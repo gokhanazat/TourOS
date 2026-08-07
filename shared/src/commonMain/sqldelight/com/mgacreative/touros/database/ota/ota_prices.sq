@@ -1,0 +1,17 @@
+CREATE TABLE ota_prices (
+    id TEXT NOT NULL PRIMARY KEY,
+    ota_product_id TEXT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    adult_price REAL NOT NULL,
+    child_price REAL NOT NULL DEFAULT 0.0,
+    infant_price REAL NOT NULL DEFAULT 0.0,
+    valid_from TEXT NOT NULL,
+    valid_to TEXT NOT NULL
+);
+
+selectPricesByProductId:
+SELECT * FROM ota_prices WHERE ota_product_id = ?;
+
+insertPrice:
+INSERT INTO ota_prices(id, ota_product_id, currency, adult_price, child_price, infant_price, valid_from, valid_to)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);

@@ -1,0 +1,19 @@
+CREATE TABLE ota_products (
+    id TEXT NOT NULL PRIMARY KEY,
+    tour_id TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    external_product_code TEXT NOT NULL,
+    title TEXT NOT NULL,
+    mapped_tour_id TEXT NOT NULL,
+    tenant_id TEXT NOT NULL
+);
+
+selectProducts:
+SELECT * FROM ota_products WHERE tenant_id = ?;
+
+selectByExternalCode:
+SELECT * FROM ota_products WHERE external_product_code = ?;
+
+insertProduct:
+INSERT INTO ota_products(id, tour_id, account_id, external_product_code, title, mapped_tour_id, tenant_id)
+VALUES (?, ?, ?, ?, ?, ?, ?);

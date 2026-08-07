@@ -1,0 +1,26 @@
+CREATE TABLE ota_bookings (
+    id TEXT NOT NULL PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    ota_reference TEXT NOT NULL,
+    booking_id TEXT,
+    status TEXT NOT NULL DEFAULT 'CONFIRMED',
+    total_amount REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    pax_count INTEGER NOT NULL DEFAULT 1,
+    raw_payload TEXT,
+    tenant_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+selectBookings:
+SELECT * FROM ota_bookings WHERE tenant_id = ? ORDER BY created_at DESC;
+
+selectByOtaRef:
+SELECT * FROM ota_bookings WHERE ota_reference = ?;
+
+insertBooking:
+INSERT INTO ota_bookings(id, account_id, ota_reference, booking_id, status, total_amount, currency, pax_count, raw_payload, tenant_id, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBookingStatus:
+UPDATE ota_bookings SET status = ? WHERE id = ?;

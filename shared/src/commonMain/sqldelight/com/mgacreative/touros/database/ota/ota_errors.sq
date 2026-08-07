@@ -1,0 +1,15 @@
+CREATE TABLE ota_errors (
+    id TEXT NOT NULL PRIMARY KEY,
+    error_code TEXT NOT NULL,
+    error_message TEXT NOT NULL,
+    ota_provider TEXT NOT NULL,
+    tenant_id TEXT NOT NULL,
+    timestamp TEXT NOT NULL
+);
+
+selectAllErrors:
+SELECT * FROM ota_errors WHERE tenant_id = ? ORDER BY timestamp DESC;
+
+insertError:
+INSERT INTO ota_errors(id, error_code, error_message, ota_provider, tenant_id, timestamp)
+VALUES (?, ?, ?, ?, ?, ?);

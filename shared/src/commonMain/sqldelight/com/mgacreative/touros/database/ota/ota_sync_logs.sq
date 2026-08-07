@@ -1,0 +1,16 @@
+CREATE TABLE ota_sync_logs (
+    id TEXT NOT NULL PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    sync_type TEXT NOT NULL DEFAULT 'INCREMENTAL',
+    items_synced INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'SUCCESS',
+    tenant_id TEXT NOT NULL,
+    last_synced_at TEXT NOT NULL
+);
+
+selectHistory:
+SELECT * FROM ota_sync_logs WHERE tenant_id = ? ORDER BY last_synced_at DESC LIMIT 50;
+
+insertLog:
+INSERT INTO ota_sync_logs(id, account_id, sync_type, items_synced, status, tenant_id, last_synced_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);

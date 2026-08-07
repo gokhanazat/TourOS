@@ -1,0 +1,17 @@
+CREATE TABLE ota_connections (
+    id TEXT NOT NULL PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'CONNECTED',
+    last_synced_at TEXT NOT NULL,
+    error_count INTEGER NOT NULL DEFAULT 0
+);
+
+selectByAccountId:
+SELECT * FROM ota_connections WHERE account_id = ?;
+
+insertConnection:
+INSERT INTO ota_connections(id, account_id, status, last_synced_at, error_count)
+VALUES (?, ?, ?, ?, ?);
+
+updateStatus:
+UPDATE ota_connections SET status = ?, last_synced_at = ? WHERE account_id = ?;

@@ -1,0 +1,23 @@
+CREATE TABLE ota_accounts (
+    id TEXT NOT NULL PRIMARY KEY,
+    provider_id TEXT NOT NULL,
+    account_name TEXT NOT NULL,
+    api_key TEXT NOT NULL,
+    api_secret TEXT,
+    tenant_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    created_at TEXT NOT NULL
+);
+
+selectAll:
+SELECT * FROM ota_accounts WHERE tenant_id = ?;
+
+selectById:
+SELECT * FROM ota_accounts WHERE id = ?;
+
+insertAccount:
+INSERT INTO ota_accounts(id, provider_id, account_name, api_key, api_secret, tenant_id, status, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteAccount:
+DELETE FROM ota_accounts WHERE id = ?;
