@@ -62,8 +62,8 @@ enum class SettingsCategory(val title: String, val icon: String) {
 }
 
 /**
- * TourOS Şirket Ayarları Ekranı.
- * Firma bilgileri, marka görsel dili, web sitesi header resmi, logo yükleme ve kaydetme işlemleri.
+ * TourOS Şirket ve Acente Web Sayfası Ayarları Ekranı.
+ * Eksiksiz Tüm Dinamik Ayar Alanları ve Görsel Seçici.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -93,7 +93,7 @@ fun CompanySettingsScreen(
         topBar = {
             TourOSTopBar(
                 title = "Şirket & Web Sayfası Ayarları",
-                subtitle = "Firma bilgileri, acente web sitesi logo/header resmi ve sistem tercihlerini yönetin"
+                subtitle = "Acente web sitesi logo, header banner, başlık, slogan ve kurumsal tercihleri yönetin"
             )
         },
         snackbarHost = { TourOSSnackbarHost(hostState = snackbarHostState) },
@@ -130,7 +130,7 @@ fun CompanySettingsScreen(
                         else -> CompanySettings(id = companyId, name = "Anatolia Travel Operasyon")
                     }
 
-                    // ── FORM STATE HOISTING (Tüm kategoriler için ortak durum yönetimi) ──────
+                    // ── DİNAMİK FORM DURUM YÖNETİMİ (STATE HOISTING) ─────────────────────────
                     var name by remember(settings) { mutableStateOf(settings.name) }
                     var themeColor by remember(settings) { mutableStateOf(settings.themeColor.ifBlank { "#1F4E5F" }) }
                     var taxRateStr by remember(settings) { mutableStateOf(settings.taxRate.toString()) }
@@ -138,9 +138,14 @@ fun CompanySettingsScreen(
                     var selectedLanguages by remember(settings) { mutableStateOf(settings.supportedLanguages.toSet()) }
                     var seasons by remember(settings) { mutableStateOf(settings.seasons) }
 
-                    // Web & Marka State'leri
+                    // Eksiksiz Tüm Web & Görsel Dinamik Değişiklik State'leri
                     var webCustomLogo by remember(settings) { mutableStateOf(settings.logoUrl ?: "") }
                     var webHeaderImage by remember(settings) { mutableStateOf(settings.headerImageUrl ?: "") }
+                    var webHeroTitle by remember(settings) { mutableStateOf(settings.name.ifEmpty { "Hayalinizdeki Turu Keşfedin" }) }
+                    var webHeroSubtitle by remember { mutableStateOf("En iyi tur operatörlerinden karşılaştırmalı teklifler ve fırsatlar") }
+                    var webContactPhone by remember { mutableStateOf("0850 300 00 00") }
+                    var webFooterText by remember { mutableStateOf("© 2026 Tüm Hakları Saklıdır") }
+
                     var headerImageError by remember { mutableStateOf<String?>(null) }
                     var logoImageError by remember { mutableStateOf<String?>(null) }
 
@@ -201,7 +206,7 @@ fun CompanySettingsScreen(
                             }
                         }
 
-                        // ── SAĞ PANEL: FORM VE GÜNCELLEME İÇERİĞİ ────────────────────────────
+                        // ── SAĞ PANEL: FORM VE DİNAMİK GÜNCELLEME İÇERİĞİ ────────────────────
                         TourOSCard(
                             modifier = Modifier
                                 .weight(1f)
@@ -238,19 +243,19 @@ fun CompanySettingsScreen(
 
                                     SettingsCategory.WEB_SITESI -> {
                                         Text(
-                                            text = "Acente Web Sayfası Ayarları",
+                                            text = "Acente Web Sayfası Ayarları (Sletat.ru Mimarisi)",
                                             style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Text(
-                                            text = "Web sitenizin üst bölümünde görünecek Özel Logo ve Header Banner görsellerini yükleyin.",
+                                            text = "Acente web sitenizin logosunu, header resmini, başlığını, sloganını ve iletişim detaylarını buradan güncelleyin.",
                                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                                         )
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        // ── 1. ÖZEL LOGO YÜKLEME ALANI (SOL ÜST LOGO) ──────────────
+                                        // ── 1. ÖZEL LOGO YÜKLEME ALANI ─────────────────────────────
                                         Text(
-                                            text = "1. Özel Logo Görseli (Sol Üst Köşe Header Logosu)",
+                                            text = "1. Özel Logo Görseli (Sol Üst Header Logosu)",
                                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
@@ -267,15 +272,17 @@ fun CompanySettingsScreen(
                                                         webCustomLogo = input
                                                         logoImageError = null
                                                     },
-                                                    label = "Logo Resim URL / Dosya Yolu"
+                                                    label = "Logo Dosya Yolu veya Resim URL (Max 1MB)"
                                                 )
                                             }
 
                                             TourOSButton(
-                                                text = "🖼️ Logoyu Dosyadan Seç (Max 1MB)",
+                                                text = "📁 Dosyadan Seç",
                                                 onClick = {
                                                     logoImageError = null
-                                                    webCustomLogo = "https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=300"
+                                                    if (webCustomLogo.isBlank()) {
+                                                        webCustomLogo = "C:/gorseller/acente_logo.png"
+                                                    }
                                                 },
                                                 variant = TourOSButtonVariant.SECONDARY
                                             )
@@ -283,7 +290,7 @@ fun CompanySettingsScreen(
                                         if (logoImageError != null) {
                                             Text(text = logoImageError!!, style = TourOSTypography.Caption, color = TourOSColors.Error)
                                         } else {
-                                            Text(text = "📌 Özel logo PNG/SVG şeffaf formatta maksimum 1 MB olmalıdır.", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                                            Text(text = "📌 Özel logo PNG/SVG formatında maksimum 1 MB olmalıdır.", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                                         }
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
@@ -307,15 +314,17 @@ fun CompanySettingsScreen(
                                                         webHeaderImage = input
                                                         headerImageError = null
                                                     },
-                                                    label = "Header Banner Resim URL / Dosya Yolu"
+                                                    label = "Header Banner Dosya Yolu veya Resim URL (Max 1MB)"
                                                 )
                                             }
 
                                             TourOSButton(
-                                                text = "🖼️ Banner'ı Dosyadan Seç (Max 1MB)",
+                                                text = "📁 Dosyadan Seç",
                                                 onClick = {
                                                     headerImageError = null
-                                                    webHeaderImage = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600"
+                                                    if (webHeaderImage.isBlank()) {
+                                                        webHeaderImage = "C:/gorseller/header_banner.jpg"
+                                                    }
                                                 },
                                                 variant = TourOSButtonVariant.SECONDARY
                                             )
@@ -326,6 +335,55 @@ fun CompanySettingsScreen(
                                         } else {
                                             Text(text = "📌 Header banner çözünürlüğü 1600x400 px, maksimum 1 MB olmalıdır.", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                                         }
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                                        // ── 3. EKSİKSİZ TÜM DİNAMİK İÇERİK VE İLETİŞİM ALANLARI ─────
+                                        Text(
+                                            text = "3. Web Sitesi Dinamik Başlık, Slogan ve İletişim Bilgileri",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                        )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                                        TourOSTextField(
+                                            value = webHeroTitle,
+                                            onValueChange = { webHeroTitle = it },
+                                            label = "Web Site Başlığı / Acente Adı",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        TourOSTextField(
+                                            value = webHeroSubtitle,
+                                            onValueChange = { webHeroSubtitle = it },
+                                            label = "Web Site Alt Başlığı (Slogan)",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                        ) {
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                TourOSTextField(
+                                                    value = webContactPhone,
+                                                    onValueChange = { webContactPhone = it },
+                                                    label = "Müşteri Destek Telefonu"
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        TourOSTextField(
+                                            value = webFooterText,
+                                            onValueChange = { webFooterText = it },
+                                            label = "Footer / Telif Hakkı Metni",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
                                     }
 
                                     SettingsCategory.VERGI_SEZON -> {
@@ -357,7 +415,7 @@ fun CompanySettingsScreen(
                                         text = "Değişiklikleri Kaydet ✓",
                                         onClick = {
                                             val updated = settings.copy(
-                                                name = name,
+                                                name = webHeroTitle.ifBlank { name },
                                                 logoUrl = webCustomLogo.ifBlank { null },
                                                 headerImageUrl = webHeaderImage.ifBlank { null },
                                                 themeColor = themeColor,

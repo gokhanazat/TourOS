@@ -81,12 +81,26 @@ class CompanySettingsRepositoryImpl(
                 }
             }
 
-            supabaseClient.postgrest.from("companies")
-                .update(updatePayload) {
-                    filter {
-                        eq("id", targetId)
+            runCatching {
+                supabaseClient.postgrest.from("companies")
+                    .update(updatePayload) {
+                        filter {
+                            eq("id", targetId)
+                        }
                     }
-                }
+            }
+
+            val brandingPayload = buildJsonObject {
+                put("agency_id", targetId)
+                put("hero_title", settings.name)
+                settings.logoUrl?.let { put("custom_logo_url", it) }
+                settings.headerImageUrl?.let { put("header_image_url", it) }
+            }
+
+            runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .upsert(brandingPayload)
+            }
 
             settings
         }
