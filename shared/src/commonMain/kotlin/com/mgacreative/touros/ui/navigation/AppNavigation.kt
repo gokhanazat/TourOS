@@ -47,34 +47,22 @@ private val authRoutePatterns = listOf(
 private fun NavDestination?.isAuthRoute(): Boolean =
     authRoutePatterns.any { this?.route?.contains(it) == true }
 
-@Composable
-private fun MenuIconBadge(symbol: String, bgColor: Color = TourOSColors.PrimaryContainer, textColor: Color = TourOSColors.Primary) {
-    Box(
-        modifier = Modifier
-            .size(26.dp)
-            .background(bgColor, RoundedCornerShape(6.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = symbol, style = TourOSTypography.Label, color = textColor, fontWeight = FontWeight.Black)
-    }
-}
-
 // ─── Menü Öğeleri ─────────────────────────────────────────────────────────────
 private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
-    TourOSNavItem("Dashboard",        { MenuIconBadge("DB") }, DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
-    TourOSNavItem("Turlar",           { MenuIconBadge("TR") }, ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
-    TourOSNavItem("Rezervasyon",      { MenuIconBadge("RZ") }, BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
-    TourOSNavItem("Oteller",          { MenuIconBadge("OT") }, HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
-    TourOSNavItem("Tur Operatörleri", { MenuIconBadge("OP") }, AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
-    TourOSNavItem("Ürünler",           { MenuIconBadge("ÜN") }, AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-    TourOSNavItem("Acente Web Sayfası", { MenuIconBadge("WEB", bgColor = TourOSColors.Primary, textColor = TourOSColors.OnPrimary) }, AgencyStorefrontRoute, isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
-    TourOSNavItem("Fiyat & Kampanya", { MenuIconBadge("FK") }, DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
-    TourOSNavItem("OTA Hub",          { MenuIconBadge("OTA") }, OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
-    TourOSNavItem("Finans",           { MenuIconBadge("FN") }, FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
-    TourOSNavItem("Müşteriler & CRM",  { MenuIconBadge("CRM") }, CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
-    TourOSNavItem("Analitik & Trend", { MenuIconBadge("AN") }, AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
-    TourOSNavItem("Destek & SSS",     { MenuIconBadge("SSS") }, FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
-    TourOSNavItem("Ayarlar & Dil",    { MenuIconBadge("AY") }, SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
+    TourOSNavItem("Dashboard",        DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
+    TourOSNavItem("Turlar",           ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
+    TourOSNavItem("Rezervasyon",      BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
+    TourOSNavItem("Oteller",          HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
+    TourOSNavItem("Tur Operatörleri", AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
+    TourOSNavItem("Ürünler",           AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
+    TourOSNavItem("Acente Web Sayfası", AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
+    TourOSNavItem("Fiyat & Kampanya", DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
+    TourOSNavItem("OTA Hub",          OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
+    TourOSNavItem("Finans",           FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
+    TourOSNavItem("Müşteriler & CRM",  CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
+    TourOSNavItem("Analitik & Trend", AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
+    TourOSNavItem("Destek & SSS",     FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
+    TourOSNavItem("Ayarlar & Dil",    SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
 )
 
 

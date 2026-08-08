@@ -34,8 +34,8 @@ import com.mgacreative.touros.ui.theme.TourOSTypography
 
 data class TourOSNavItem(
     val title: String,
-    val icon: @Composable () -> Unit,
     val route: Any,
+    val icon: (@Composable () -> Unit)? = null,
     val isSelected: Boolean = false,
     val badgeCount: Int? = null
 )
@@ -117,8 +117,10 @@ fun TourOSSidebar(
                         .padding(horizontal = TourOSSpacing.medium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    item.icon()
-                    Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+                    if (item.icon != null) {
+                        item.icon.invoke()
+                        Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+                    }
                     Text(
                         text = item.title,
                         style = TourOSTypography.TitleMedium.copy(color = contentColor),
