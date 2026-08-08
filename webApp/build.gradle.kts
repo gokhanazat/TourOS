@@ -30,3 +30,7 @@ kotlin {
         }
     }
 }
+
+tasks.withType<ProcessResources>().configureEach {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
