@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -102,6 +103,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun getCurrentUser(): User? {
+        runCatching { auth.sessionStatus.first { it !is SessionStatus.Initializing } }
         val userInfo = auth.currentUserOrNull() ?: return null
         return mapUserInfoToUser(userInfo)
     }
@@ -112,6 +114,7 @@ class AuthRepositoryImpl(
 
     override suspend fun refreshSession(): Result<User> {
         return runCatching {
+            auth.sessionStatus.first { it !is SessionStatus.Initializing }
             auth.refreshCurrentSession()
             val userInfo = auth.currentUserOrNull()
                 ?: throw IllegalStateException("Oturum yenilenemedi")
@@ -120,6 +123,7 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun isSessionValid(): Boolean {
+        runCatching { auth.sessionStatus.first { it !is SessionStatus.Initializing } }
         val session = auth.currentSessionOrNull() ?: return false
         return session.user != null
     }

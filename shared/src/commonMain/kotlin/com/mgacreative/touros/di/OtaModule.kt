@@ -4,7 +4,6 @@ import com.mgacreative.touros.domain.usecase.ota.ConnectOtaAccountUseCase
 import com.mgacreative.touros.domain.usecase.ota.GetOtaBookingsUseCase
 import com.mgacreative.touros.domain.usecase.ota.SyncOtaChannelUseCase
 import com.mgacreative.touros.ui.viewmodel.OTAHubViewModel
-import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val otaModule = module {
@@ -13,5 +12,5 @@ val otaModule = module {
     factory { SyncOtaChannelUseCase(get()) }
     factory { GetOtaBookingsUseCase(get()) }
 
-    viewModel { OTAHubViewModel(get(), get(), get()) }
+    factory { OTAHubViewModel(get(), get(), get()) }
 }
