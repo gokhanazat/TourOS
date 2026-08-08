@@ -1,147 +1,348 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.CampaignCouponViewModel
 
+private data class CampaignItemData(
+    val id: String,
+    val title: String,
+    val typeName: String,
+    val typeIcon: String,
+    val discountPercent: Int,
+    val startDate: String,
+    val endDate: String,
+    val isActive: Boolean
+)
+
+private val sampleCampaignList = listOf(
+    CampaignItemData("c1", "Erken Rezervasyon İndirimi", "Erken Rezervasyon", "🎟️", 15, "01.08.2026", "31.08.2026", true),
+    CampaignItemData("c2", "Yaz Sonu Flaş Fırsat", "Flaş İndirim", "⚡", 20, "15.08.2026", "25.08.2026", true),
+    CampaignItemData("c3", "B2B Acente Özel İskontosu", "Acente İskontosu", "🏢", 10, "01.01.2026", "31.12.2026", true),
+    CampaignItemData("c4", "Kış Sezonu Erken Kampanyası", "Sezon Sonu", "☀️", 25, "01.05.2026", "31.05.2026", false)
+)
+
 /**
- * 4.3.1 Dinamik Fiyatlandırma - Erken Rezervasyon & Kampanya Kupon Ekranı.
+ * Kampanya Yönetimi Ekranı — TourOS 0.3
+ *
+ * Kampanya kartları listesi (başlangıç/bitiş tarihi, tür rozeti).
+ * Sağ üstte '+ Yeni Kampanya' butonu.
+ * Yeni kampanya oluşturmak için modal form.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CampaignCouponScreen(
     viewModel: CampaignCouponViewModel,
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
-    val res = state.result
+    var campaignList by remember { mutableStateOf(sampleCampaignList) }
+    var isNewCampaignModalOpen by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🏷️ Kampanya & Kupon Motoru", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Kampanya Yönetimi",
+                subtitle = "Aktif indirim kampanyaları ve promosyon kuponları",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
+                },
+                actions = {
+                    // SAĞ ÜSTTE '+ YENİ KAMPANYA' BUTONU (Strict Rule)
+                    TourOSButton(
+                        text = "+ Yeni Kampanya",
+                        onClick = { isNewCampaignModalOpen = true },
+                        variant = TourOSButtonVariant.PRIMARY,
+                        modifier = Modifier.padding(end = TourOSSpacing.small)
+                    )
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
-                }
-            }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val isExpanded = maxWidth >= 768.dp
 
-            // 1. Kampanya Parametre Girişi Kartı
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(TourOSSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("⚙️ Fiyat & Kampanya Girişleri", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Tur Baz Fiyatı:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${state.originalPrice} TRY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-
-                    Text("Kalkışa Kalan Süre: ${state.daysToDeparture} Gün", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Slider(
-                        value = state.daysToDeparture.toFloat(),
-                        onValueChange = { viewModel.updateDaysToDeparture(it.toInt()) },
-                        valueRange = 5f..60f,
-                        steps = 55,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Text("💡 (30 günden fazla süre kaldığında %15 Erken Rezervasyon İndirimi otomatik uygulanır)", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                    OutlinedTextField(
-                        value = state.couponCode,
-                        onValueChange = { viewModel.updateCouponCode(it) },
-                        label = { Text("Promosyon / İndirim Kupon Kodu") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Button(
-                        onClick = { viewModel.calculateDiscount() },
-                        enabled = !state.isLoading,
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(10.dp)
+                // Bildirim Mesajı
+                if (state.notificationMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .background(TourOSColors.SuccessContainer)
+                            .padding(TourOSSpacing.medium)
                     ) {
-                        if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                        else Text("🏷️ Kuponu Hesapla & Sepete Uygula", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            state.notificationMessage!!,
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                        )
+                    }
+                }
+
+                // KAMPANYA KARTLARI LİSTESİ Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "📋 Kampanya Listesi (${campaignList.size})",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    )
+
+                    TourOSStatusBadge(
+                        text = "${campaignList.count { it.isActive }} Aktif",
+                        backgroundColor = TourOSColors.SuccessContainer,
+                        textColor = TourOSColors.Success
+                    )
+                }
+
+                // KAMPANYA KARTLARI LİSTESİ
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                ) {
+                    items(campaignList) { campaign ->
+                        CampaignCardItem(campaign = campaign)
                     }
                 }
             }
 
-            // 2. İndirim ve Net Fiyat Özeti Kartı
-            Card(
+            // ── YENİ KAMPANYA OLUŞTURMA MODAL FORMU ────────────────────────────
+            if (isNewCampaignModalOpen) {
+                NewCampaignModalDialog(
+                    onDismiss = { isNewCampaignModalOpen = false },
+                    onSave = { newCampaign ->
+                        campaignList = listOf(newCampaign) + campaignList
+                        isNewCampaignModalOpen = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+// ─── KAMPANYA KARTI BİLEŞENİ (BAŞLANGIÇ/BİTİŞ TARİHİ, TÜR ROZETİ) ─────────────
+
+@Composable
+private fun CampaignCardItem(campaign: CampaignItemData) {
+    TourOSCard(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.Surface,
+        contentPadding = TourOSSpacing.large
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(2.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("📊 Otomatik İndirim ve Net Fiyat Dökümü", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                // TÜR ROZETİ (Strict Rule: Erken Rezervasyon, Flaş Fırsat vb.)
+                TourOSStatusBadge(
+                    text = "${campaign.typeIcon} ${campaign.typeName}",
+                    backgroundColor = TourOSColors.PrimaryContainer,
+                    textColor = TourOSColors.Primary
+                )
 
-                    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-                        Text(res.appliedCampaignTitle, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
-                    }
+                // AKTİF / DÜŞTÜ DURUMU
+                TourOSStatusBadge(
+                    text = if (campaign.isActive) "● AKTİF" else "○ SÜRESİ DOLDU",
+                    backgroundColor = if (campaign.isActive) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
+                    textColor = if (campaign.isActive) TourOSColors.Success else TourOSColors.Secondary
+                )
+            }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Orijinal Fiyat:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${res.originalPrice} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
+            Text(
+                campaign.title,
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+            )
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Toplam İndirim Tutarı:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("-${res.discountAmount} TRY", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
-                    }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "İndirim Oranı: %${campaign.discountPercent}",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                )
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Text(
+                    "📅 ${campaign.startDate} - ${campaign.endDate}",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+            }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Net Ödenecek Tutar:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        Text("${res.finalPrice} TRY", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
+            HorizontalDivider(color = TourOSColors.Divider)
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 4.dp)) {
-                        if (res.isEarlyBirdApplied) {
-                            Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFDCFCE7)) {
-                                Text("✅ Erken Rezervasyon", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                            }
-                        }
-                        if (res.isCouponApplied) {
-                            Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFDBEAFE)) {
-                                Text("✅ Kupon Kodu Aktif", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E40AF), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                            }
-                        }
-                    }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                    TourOSButton(
+                        text = "✏️ Düzenle",
+                        onClick = { },
+                        variant = TourOSButtonVariant.TERTIARY
+                    )
+                    TourOSButton(
+                        text = "📊 Raporu Gör",
+                        onClick = { },
+                        variant = TourOSButtonVariant.SECONDARY
+                    )
                 }
             }
         }
     }
+}
+
+// ─── YENİ KAMPANYA OLUŞTURMA MODAL FORMU DIALOGU ──────────────────────────────
+
+@Composable
+private fun NewCampaignModalDialog(
+    onDismiss: () -> Unit,
+    onSave: (CampaignItemData) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("Erken Rezervasyon") }
+    var selectedIcon by remember { mutableStateOf("🎟️") }
+    var discountPercent by remember { mutableStateOf("15") }
+    var startDate by remember { mutableStateOf("01.09.2026") }
+    var endDate by remember { mutableStateOf("30.09.2026") }
+
+    val campaignTypes = listOf(
+        "Erken Rezervasyon" to "🎟️",
+        "Flaş İndirim" to "⚡",
+        "Acente İskontosu" to "🏢",
+        "Sezon Sonu" to "☀️"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                "➕ Yeni Kampanya Oluştur",
+                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+            )
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TourOSTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = "Kampanya Adı",
+                    placeholder = "Örn: Sonbahar Kapadokya VIP Fırsatı",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // KAMPANYA TÜRÜ SEÇİMİ CHIPLERİ
+                Text("Kampanya Türü Seçin:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    campaignTypes.forEach { (tName, tIcon) ->
+                        val isSelected = selectedType == tName
+                        OutlinedButton(
+                            onClick = {
+                                selectedType = tName
+                                selectedIcon = tIcon
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                            colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text(
+                                "$tIcon $tName",
+                                style = TourOSTypography.Caption.copy(
+                                    color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                    TourOSTextField(
+                        value = discountPercent,
+                        onValueChange = { discountPercent = it },
+                        label = "İndirim (%)",
+                        placeholder = "15",
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    TourOSTextField(
+                        value = startDate,
+                        onValueChange = { startDate = it },
+                        label = "Başlangıç Tarihi",
+                        placeholder = "01.09.2026",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                TourOSTextField(
+                    value = endDate,
+                    onValueChange = { endDate = it },
+                    label = "Bitiş Tarihi",
+                    placeholder = "30.09.2026",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TourOSButton(
+                text = "💾 Kaydet & Yayınla",
+                onClick = {
+                    if (title.isNotBlank()) {
+                        val newItem = CampaignItemData(
+                            id = "c_${kotlin.random.Random.nextInt(100000, 999999)}",
+                            title = title,
+                            typeName = selectedType,
+                            typeIcon = selectedIcon,
+                            discountPercent = discountPercent.toIntOrNull() ?: 15,
+                            startDate = startDate,
+                            endDate = endDate,
+                            isActive = true
+                        )
+                        onSave(newItem)
+                    }
+                },
+                variant = TourOSButtonVariant.PRIMARY
+            )
+        },
+        dismissButton = {
+            TourOSButton(
+                text = "İptal",
+                onClick = onDismiss,
+                variant = TourOSButtonVariant.TERTIARY
+            )
+        },
+        containerColor = TourOSColors.Surface,
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusLarge)
+    )
 }
