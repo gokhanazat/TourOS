@@ -27,5 +27,6 @@ data class CompanySettings(
     val taxRate: Double = 20.0,
     val seasons: List<CompanySeason> = emptyList(),
     val supportedCurrencies: List<String> = listOf("TRY", "EUR", "USD"),
-    val supportedLanguages: List<String> = listOf("tr", "en")
+    val supportedLanguages: List<String> = listOf("tr", "en"),
+    val headerImageUrl: String? = null
 )

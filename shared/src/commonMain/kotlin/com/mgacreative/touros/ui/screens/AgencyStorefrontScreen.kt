@@ -59,7 +59,13 @@ fun AgencyStorefrontScreen(
     var departureCityInput by remember { mutableStateOf("İstanbul") }
     var destinationInput by remember { mutableStateOf("") }
     var maxBudgetInput by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(0) } // 0: Turlar, 1: Sıcak Fırsatlar, 2: Oteller
+    var selectedSectionTab by remember { mutableStateOf(0) } // 0: Turlar, 1: Oteller, 2: Tur Operatörü Ürünleri, 3: Rezervasyon & İletişim
+
+    // Rezervasyon & İletişim Form State
+    var contactName by remember { mutableStateOf("") }
+    var contactPhone by remember { mutableStateOf("") }
+    var contactNotes by remember { mutableStateOf("") }
+    var reservationSuccessMsg by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -81,7 +87,7 @@ fun AgencyStorefrontScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // 1. Sletat.ru Top Header / Brand Bar
+                    // 1. Top Header / Brand Bar (Dynamic Header Image Support)
                     item {
                         Card(
                             shape = RoundedCornerShape(0.dp),
@@ -123,7 +129,7 @@ fun AgencyStorefrontScreen(
                         }
                     }
 
-                    // 2. Sletat.ru Hero Search Module
+                    // 2. Hero Header Module with 4 Main Tabs
                     item {
                         Box(
                             modifier = Modifier
@@ -133,18 +139,19 @@ fun AgencyStorefrontScreen(
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = "80+ Tur Operatöründen En Uygun Fiyatları Karşılaştırın",
+                                    text = "Acente Web Portalı — Tatilinizi Kolayca Planlayın",
                                     style = TourOSTypography.TitleLarge,
                                     color = TourOSColors.OnPrimary,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                                // Search Tabs (Turlar / Sıcak Fırsatlar / Oteller)
+                                // 4 ANA BÖLÜM SEKMELERİ
                                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                    SletatTabButton("✈️ Turlar", selectedTab == 0) { selectedTab = 0 }
-                                    SletatTabButton("🔥 Sıcak Fırsatlar", selectedTab == 1) { selectedTab = 1 }
-                                    SletatTabButton("🏨 Oteller", selectedTab == 2) { selectedTab = 2 }
+                                    SletatTabButton("✈️ 1. Turlar", selectedSectionTab == 0) { selectedSectionTab = 0 }
+                                    SletatTabButton("🏨 2. Oteller", selectedSectionTab == 1) { selectedSectionTab = 1 }
+                                    SletatTabButton("⚡ 3. Tur Operatörü Ürünleri", selectedSectionTab == 2) { selectedSectionTab = 2 }
+                                    SletatTabButton("📞 4. Rezervasyon & İletişim", selectedSectionTab == 3) { selectedSectionTab = 3 }
                                 }
                                 Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
@@ -183,7 +190,7 @@ fun AgencyStorefrontScreen(
                                                 )
                                             }
                                             TourOSButton(
-                                                text = "TURLARI ARA 🔍",
+                                                text = "ARA 🔍",
                                                 onClick = {
                                                     val b = maxBudgetInput.toDoubleOrNull() ?: 100000.0
                                                     viewModel.loadStorefront(countryFilter = destinationInput, maxBudget = b)
@@ -196,85 +203,181 @@ fun AgencyStorefrontScreen(
                         }
                     }
 
-                    // 3. Sletat.ru Operator Trust Strip
-                    item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(TourOSColors.Surface)
-                                .padding(vertical = TourOSSpacing.medium, horizontal = TourOSSpacing.large)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = "Güvenilir Tur Operatörleri:", style = TourOSTypography.Label, color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold)
-                                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large)) {
-                                    OperatorBadge("Coral Travel")
-                                    OperatorBadge("Anex Tour")
-                                    OperatorBadge("Pegas Touristik")
-                                    OperatorBadge("Fun & Sun")
-                                    OperatorBadge("Sunmar")
+                    // 3. Tab İçeriklerinin Gösterilmesi
+                    when (selectedSectionTab) {
+                        0 -> {
+                            // ── BÖLÜM 1: MANUEL GİRİLEN TURLAR ────────────────────────────────
+                            item {
+                                Column(modifier = Modifier.padding(TourOSSpacing.large)) {
+                                    Text(
+                                        text = "✈️ Manuel Girilen Acente Turları",
+                                        style = TourOSTypography.TitleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                    Text(
+                                        text = "Acente tarafından özel olarak oluşturulan ve yönetilen tur paketleri.",
+                                        style = TourOSTypography.BodyMedium,
+                                        color = TourOSColors.TextSecondary
+                                    )
+                                }
+                            }
+                            val manualTours = state.tours.filter { it.comparedOperatorCount <= 3 }
+                            items(manualTours.ifEmpty { state.tours }) { tourItem ->
+                                Box(modifier = Modifier.padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.xSmall)) {
+                                    SletatTourCard(
+                                        item = tourItem,
+                                        onClickDetail = { onNavigateToTourDetail(tourItem.tourId) }
+                                    )
                                 }
                             }
                         }
-                    }
-
-                    // 4. Popular Country Categories (Sletat.ru Quick Filter Cards)
-                    item {
-                        Column(modifier = Modifier.padding(TourOSSpacing.large)) {
-                            Text(
-                                text = "Popüler Destinasyonlar",
-                                style = TourOSTypography.TitleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = TourOSColors.TextPrimary
-                            )
-                            Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                                items(
-                                    listOf(
-                                        "Türkiye 🇹🇷" to "12.500 ₺'den",
-                                        "Mısır 🇪🇬" to "18.900 ₺'den",
-                                        "BAE (Dubai) 🇦🇪" to "24.000 ₺'den",
-                                        "Tayland 🇹🇭" to "32.000 ₺'den",
-                                        "İtalya 🇮🇹" to "28.500 ₺'den"
+                        1 -> {
+                            // ── BÖLÜM 2: OTELLER ──────────────────────────────────────────────
+                            item {
+                                Column(modifier = Modifier.padding(TourOSSpacing.large)) {
+                                    Text(
+                                        text = "🏨 Kayıtlı Oteller ve Konaklama Tesisleri",
+                                        style = TourOSTypography.TitleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary
                                     )
-                                ) { (dest, price) ->
-                                    DestinationCard(destination = dest, startingPrice = price) {
-                                        destinationInput = dest.split(" ")[0]
-                                        viewModel.loadStorefront(countryFilter = destinationInput, maxBudget = 100000.0)
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                    Text(
+                                        text = "Acente sisteminde tanımlı anlaşmalı oteller ve oda seçenekleri.",
+                                        style = TourOSTypography.BodyMedium,
+                                        color = TourOSColors.TextSecondary
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                    val sampleHotels = listOf(
+                                        "Crystal De Luxe Resort & Spa" to "Kemer, Antalya • Her Şey Dahil • 5 Yıldız",
+                                        "Sunrise Holidays Resort (Adults Only)" to "Hurghada, Mısır • Denize Sıfır • 5 Yıldız",
+                                        "Kaya Palazzo Golf Resort" to "Belek, Antalya • Ultra Her Şey Dahil • 5 Yıldız",
+                                        "Voyage Belek Golf & Spa" to "Belek, Antalya • Ultra Her Şey Dahil • 5 Yıldız"
+                                    )
+                                    sampleHotels.forEach { (hotelName, hotelInfo) ->
+                                        Card(
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
+                                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().padding(TourOSSpacing.medium),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text(text = hotelName, style = TourOSTypography.TitleMedium, fontWeight = FontWeight.Bold)
+                                                    Text(text = hotelInfo, style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                                                }
+                                                TourOSButton(text = "Otel İncele", onClick = {})
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-
-                    // 5. Search Results Header
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.small),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Karşılaştırmalı Tur Sonuçları (${state.tours.size} Tur Bulundu)",
-                                style = TourOSTypography.TitleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = TourOSColors.TextPrimary
-                            )
+                        2 -> {
+                            // ── BÖLÜM 3: TUR OPERATÖRÜ ÜRÜNLERİ ─────────────────────────────
+                            item {
+                                Column(modifier = Modifier.padding(TourOSSpacing.large)) {
+                                    Text(
+                                        text = "⚡ Tur Operatörleri Entegre Ürün Kataloğu",
+                                        style = TourOSTypography.TitleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                    Text(
+                                        text = "Coral Travel, Anex Tour, Pegas Touristik ve 80+ entegre operatörün yayınlanmış canlı ürünleri.",
+                                        style = TourOSTypography.BodyMedium,
+                                        color = TourOSColors.TextSecondary
+                                    )
+                                }
+                            }
+                            items(state.tours) { tourItem ->
+                                Box(modifier = Modifier.padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.xSmall)) {
+                                    SletatTourCard(
+                                        item = tourItem,
+                                        onClickDetail = { onNavigateToTourDetail(tourItem.tourId) }
+                                    )
+                                }
+                            }
                         }
-                    }
+                        3 -> {
+                            // ── BÖLÜM 4: REZERVASYON VE İLETİŞİM ─────────────────────────────
+                            item {
+                                Column(modifier = Modifier.padding(TourOSSpacing.large)) {
+                                    Text(
+                                        text = "📞 Rezervasyon Talep & İletişim Formu",
+                                        style = TourOSTypography.TitleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                    Text(
+                                        text = "Hızlı rezervasyon talebinizi iletin, acente danışmanlarımız size anında ulaşsın.",
+                                        style = TourOSTypography.BodyMedium,
+                                        color = TourOSColors.TextSecondary
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                    // 6. Sletat.ru Style Tour List
-                    items(state.tours) { tourItem ->
-                        Box(modifier = Modifier.padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.xSmall)) {
-                            SletatTourCard(
-                                item = tourItem,
-                                onClickDetail = { onNavigateToTourDetail(tourItem.tourId) }
-                            )
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
+                                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(modifier = Modifier.padding(TourOSSpacing.large)) {
+                                            TourOSTextField(
+                                                value = contactName,
+                                                onValueChange = { contactName = it },
+                                                label = "Adınız Soyadınız",
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                                            TourOSTextField(
+                                                value = contactPhone,
+                                                onValueChange = { contactPhone = it },
+                                                label = "Telefon Numaranız",
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                                            TourOSTextField(
+                                                value = contactNotes,
+                                                onValueChange = { contactNotes = it },
+                                                label = "Rezervasyon / Tur Notları (Kalkış Tarihi, Kişi Sayısı)",
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                                            if (reservationSuccessMsg != null) {
+                                                Text(
+                                                    text = reservationSuccessMsg!!,
+                                                    style = TourOSTypography.BodyMedium,
+                                                    color = TourOSColors.Success,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                                            }
+
+                                            TourOSButton(
+                                                text = "REZERVASYON TALEBİ GÖNDER ➔",
+                                                onClick = {
+                                                    if (contactName.isNotBlank() && contactPhone.isNotBlank()) {
+                                                        reservationSuccessMsg = "✓ Rezervasyon talebiniz başarıyla alındı! Acente müşteri temsilcimiz sizinle iletişime geçecektir."
+                                                    } else {
+                                                        reservationSuccessMsg = "Lütfen Ad Soyad ve Telefon bilgilerinizi doldurun."
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 

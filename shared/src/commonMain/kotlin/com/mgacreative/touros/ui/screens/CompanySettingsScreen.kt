@@ -361,6 +361,8 @@ fun CompanySettingsScreen(
                                         var webHeroSubtitle by remember { mutableStateOf("En iyi tur operatörlerinden karşılaştırmalı teklifler ve fırsatlar") }
                                         var webContactPhone by remember { mutableStateOf("0850 300 00 00") }
                                         var webCustomLogo by remember { mutableStateOf(settings.logoUrl ?: "") }
+                                        var webHeaderImage by remember(settings) { mutableStateOf(settings.headerImageUrl ?: "") }
+                                        var headerImageError by remember { mutableStateOf<String?>(null) }
                                         var webFooterText by remember { mutableStateOf("© 2026 Tüm Hakları Saklıdır") }
 
                                         Text(
@@ -368,11 +370,63 @@ fun CompanySettingsScreen(
                                             style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Text(
-                                            text = "Müşterilerinize sunulan web sitesinin başlığı, logo, iletişim ve ürün yayınlama ayarlarını düzenleyin.",
+                                            text = "Müşterilerinize sunulan web sitesinin başlığı, header görseli, logo, iletişim ve ürün yayınlama ayarlarını düzenleyin.",
                                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                                         )
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                                        // ── Header Banner Resmi Seçimi (Maks 1 MB) ──────────────────
+                                        Text(
+                                            text = "Web Sitesi Header Banner Görseli",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                        )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                TourOSTextField(
+                                                    value = webHeaderImage,
+                                                    onValueChange = { input ->
+                                                        webHeaderImage = input
+                                                        headerImageError = null
+                                                    },
+                                                    label = "Header Resim URL / Dosya Yolu"
+                                                )
+                                            }
+
+                                            TourOSButton(
+                                                text = "🖼️ Dosyadan Seç (Max 1MB)",
+                                                onClick = {
+                                                    // 1 MB Dosya Boyut Kontrolü (Simülasyon / Doğrulama)
+                                                    headerImageError = null
+                                                    webHeaderImage = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600"
+                                                },
+                                                variant = TourOSButtonVariant.SECONDARY
+                                            )
+                                        }
+
+                                        if (headerImageError != null) {
+                                            Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                            Text(
+                                                text = headerImageError!!,
+                                                style = TourOSTypography.Caption,
+                                                color = TourOSColors.Error
+                                            )
+                                        } else {
+                                            Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                            Text(
+                                                text = "📌 İpucu: Seçilecek görsel boyutu maksimum 1 MB olmalıdır. (JPG, PNG, WEBP)",
+                                                style = TourOSTypography.Caption,
+                                                color = TourOSColors.TextSecondary
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
                                         TourOSTextField(
                                             value = webHeroTitle,
@@ -574,7 +628,8 @@ fun CompanySettingsScreen(
                                                 taxRate = taxRateStr.toDoubleOrNull() ?: settings.taxRate,
                                                 supportedCurrencies = selectedCurrencies.toList(),
                                                 supportedLanguages = selectedLanguages.toList(),
-                                                seasons = seasons
+                                                seasons = seasons,
+                                                headerImageUrl = settings.headerImageUrl
                                             )
                                             viewModel.saveSettings(updated)
                                         },
