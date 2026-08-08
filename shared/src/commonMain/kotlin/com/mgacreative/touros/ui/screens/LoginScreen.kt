@@ -126,22 +126,37 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
 
-                // Error Banner
+                // Error Banner (Anlaşılır & Şık Uyarı Kutusu)
                 if (uiState is AuthUiState.Error) {
+                    val rawMsg = (uiState as AuthUiState.Error).message
+                    val displayMsg = if (rawMsg.contains("invalid_credentials") || rawMsg.contains("grant_type") || rawMsg.contains("Headers:")) {
+                        "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
+                    } else {
+                        rawMsg
+                    }
+
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                            .background(TourOSColors.ErrorContainer)
+                            .background(TourOSColors.SecondaryContainer.copy(alpha = 0.5f))
                             .padding(TourOSSpacing.medium)
                     ) {
-                        Text(
-                            text = (uiState as AuthUiState.Error).message,
-                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error)
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("⚠️", style = TourOSTypography.TitleMedium)
+                            Text(
+                                text = displayMsg,
+                                style = TourOSTypography.Label.copy(color = TourOSColors.Secondary),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(TourOSSpacing.large))
                 }
+
 
                 // Form Fields
                 TourOSTextField(

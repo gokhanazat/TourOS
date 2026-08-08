@@ -19,7 +19,10 @@ object SupabaseClientProvider {
             supabaseUrl = SupabaseConfig.url,
             supabaseKey = SupabaseConfig.anonKey
         ) {
-            install(Auth)
+            install(Auth) {
+                alwaysAutoRefresh = true
+                autoLoadFromStorage = true
+            }
             install(Postgrest)
             install(Realtime)
             install(Storage)

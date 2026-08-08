@@ -1,6 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,19 +10,31 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.GuidePerformanceItem
 import com.mgacreative.touros.domain.model.GuidePerformanceSummary
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.GuidePerformanceReportViewModel
 import com.mgacreative.touros.ui.viewmodel.GuidePerformanceUiState
 
+private enum class GuideSortOption(val label: String) {
+    RATING("⭐ Puana Göre"),
+    TOURS("🚩 Tur Sayısına Göre"),
+    NAME("🔤 İsme Göre")
+}
+
 /**
- * 2.5.5 Rehber Performans Raporu Yönetim Ekranı.
+ * Rehber Performans Raporu — TourOS 0.3
+ *
+ * Basit ve sıralanabilir tablo/liste (Rehber adı, Tamamlanan tur sayısı, Yıldız gösterimli ortalama puan).
+ * Expanded: Sıralanabilir Tablo  |  Compact: Kart Listesi
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuidePerformanceReportScreen(
     viewModel: GuidePerformanceReportViewModel,
@@ -30,48 +43,111 @@ fun GuidePerformanceReportScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("📊 Rehber Performans Raporu", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Rehber Performans Raporu",
+                subtitle = "Rehber kadrosu tur tamamlama ve memnuniyet analizleri",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            when (val state = uiState) {
-                is GuidePerformanceUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+        when (val state = uiState) {
+            is GuidePerformanceUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TourOSColors.Primary)
                 }
-                is GuidePerformanceUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Hata: ${state.message}", color = MaterialTheme.colorScheme.error)
-                    }
+            }
+            is GuidePerformanceUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("Hata: ${state.message}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error))
                 }
-                is GuidePerformanceUiState.Success -> {
-                    // 1. KPI Performans Özet Kartları
-                    GuidePerformanceKpiSection(summary = state.summary)
+            }
+            is GuidePerformanceUiState.Success -> {
+                var currentSort by remember { mutableStateOf(GuideSortOption.RATING) }
 
-                    // 2. Performans Tablosu ve Detay Rehber Kartları
-                    Text("🏆 Rehber Kadrosu Derecelendirme ve Tur İstatistikleri:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                // Sıralanmış rehber listesi
+                val sortedGuides = remember(state.summary.guides, currentSort) {
+                    when (currentSort) {
+                        GuideSortOption.RATING -> state.summary.guides.sortedByDescending { it.rating }
+                        GuideSortOption.TOURS -> state.summary.guides.sortedByDescending { it.totalToursCompleted }
+                        GuideSortOption.NAME -> state.summary.guides.sortedBy { it.fullName }
+                    }
+                }
+
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    val isExpanded = maxWidth >= 768.dp
 
                     LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth().weight(1f)
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(TourOSSpacing.large),
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        items(state.summary.guides) { item ->
-                            GuidePerformanceCard(item = item)
+                        // ── 1. KPI Özet Kartları ──────────────────────────────
+                        item {
+                            GuidePerformanceKpiSection(summary = state.summary)
+                        }
+
+                        // ── 2. Sıralama Butonları ──────────────────────────────
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "🏆 Performance Sıralaması",
+                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                )
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                                    GuideSortOption.entries.forEach { option ->
+                                        FilterChip(
+                                            selected = currentSort == option,
+                                            onClick = { currentSort = option },
+                                            label = { Text(option.label, style = TourOSTypography.Caption) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                selectedLabelColor = TourOSColors.Primary
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // ── 3. Tablo veya Kart Listesi ──────────────────────────
+                        if (sortedGuides.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "Kayıtlı rehber performans verisi bulunamadı.",
+                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        } else if (isExpanded) {
+                            // Expanded: Sıralanabilir Tablo
+                            item {
+                                GuidePerformanceTable(
+                                    guides = sortedGuides,
+                                    currentSort = currentSort,
+                                    onSortChange = { currentSort = it }
+                                )
+                            }
+                        } else {
+                            // Compact: Kart Listesi
+                            items(sortedGuides) { item ->
+                                GuidePerformanceCard(item = item)
+                            }
                         }
                     }
                 }
@@ -80,124 +156,254 @@ fun GuidePerformanceReportScreen(
     }
 }
 
+// ─── KPI Bölümü ──────────────────────────────────────────────────────────────
+
 @Composable
-fun GuidePerformanceKpiSection(summary: GuidePerformanceSummary) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("👨‍💼 Rehber Kadrosu", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${summary.totalActiveGuides} Aktif Rehber", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-            }
+private fun GuidePerformanceKpiSection(summary: GuidePerformanceSummary) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        PerformanceKpiCard(
+            label = "Aktif Kadro",
+            value = "${summary.totalActiveGuides} Rehber",
+            bgColor = TourOSColors.PrimaryContainer,
+            textColor = TourOSColors.Primary,
+            modifier = Modifier.weight(1f)
+        )
+        PerformanceKpiCard(
+            label = "Ortalama Kadro Puanı",
+            value = "⭐ ${summary.avgFleetRating} / 5.0",
+            bgColor = TourOSColors.SecondaryContainer,
+            textColor = TourOSColors.Secondary,
+            modifier = Modifier.weight(1f)
+        )
+        PerformanceKpiCard(
+            label = "Tamamlanan Tur",
+            value = "${summary.totalToursExecuted} Tur",
+            bgColor = TourOSColors.SuccessContainer,
+            textColor = TourOSColors.Success,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
 
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF08A))
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("⭐ Ortalama Kadro Puanı", fontSize = 10.sp, color = Color(0xFF854D0E))
-                    Text("${summary.avgFleetRating} / 5.0", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF854D0E))
-                }
-            }
+@Composable
+private fun PerformanceKpiCard(
+    label: String,
+    value: String,
+    bgColor: Color,
+    textColor: Color,
+    modifier: Modifier
+) {
+    TourOSCard(modifier = modifier, backgroundColor = bgColor, contentPadding = TourOSSpacing.medium) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(value, style = TourOSTypography.TitleLarge.copy(color = textColor))
+            Text(label, style = TourOSTypography.Caption.copy(color = textColor.copy(alpha = 0.8f)), textAlign = TextAlign.Center)
         }
+    }
+}
 
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f))
+// ─── Expanded: Sıralanabilir Tablo ────────────────────────────────────────────
+
+@Composable
+private fun GuidePerformanceTable(
+    guides: List<GuidePerformanceItem>,
+    currentSort: GuideSortOption,
+    onSortChange: (GuideSortOption) -> Unit
+) {
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+        Column {
+            // Tablo Başlık Satırı
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(TourOSColors.Primary)
+                    .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("🚩 Toplam Tamamlanan Tur", fontSize = 10.sp, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                    Text("${summary.totalToursExecuted} Tur", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
-                }
+                Text(
+                    "Sıra",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                    modifier = Modifier.width(40.dp)
+                )
+                Text(
+                    "Rehber Adı",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                    modifier = Modifier.weight(1.5f).clickable { onSortChange(GuideSortOption.NAME) }
+                )
+                Text(
+                    "Uzmanlık",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                    modifier = Modifier.weight(1.2f)
+                )
+                Text(
+                    "Tamamlanan Tur",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                    modifier = Modifier.weight(1.0f).clickable { onSortChange(GuideSortOption.TOURS) }
+                )
+                Text(
+                    "Ortalama Puan",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                    modifier = Modifier.weight(1.0f).clickable { onSortChange(GuideSortOption.RATING) }
+                )
+                Text(
+                    "Performans Derecesi",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                    modifier = Modifier.weight(1.1f)
+                )
             }
 
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("🏆 En Yüksek Puanlı Rehber", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(summary.topRatedGuideName, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            // Satırlar
+            guides.forEachIndexed { index, item ->
+                val bg = if (index % 2 == 0) TourOSColors.Background else TourOSColors.Surface
+                val isStarGuide = item.performanceLevel == "Yıldız Rehber"
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(bg)
+                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Sıra #
+                    Text(
+                        "#${index + 1}",
+                        style = TourOSTypography.Label.copy(
+                            color = if (index == 0) TourOSColors.Secondary else TourOSColors.TextSecondary
+                        ),
+                        modifier = Modifier.width(40.dp)
+                    )
+
+                    // Rehber Adı
+                    Column(modifier = Modifier.weight(1.5f)) {
+                        Text(item.fullName, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                        Text("Kokart: ${item.licenseNumber ?: "—"}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    }
+
+                    // Uzmanlık
+                    Text(
+                        item.specialization ?: "Genel Kültür",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                        modifier = Modifier.weight(1.2f)
+                    )
+
+                    // Tamamlanan Tur Sayısı
+                    Text(
+                        "🚩 ${item.totalToursCompleted} Tur",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Primary),
+                        modifier = Modifier.weight(1.0f)
+                    )
+
+                    // Ortalama Puan (Yıldız Gösterimi)
+                    Row(
+                        modifier = Modifier.weight(1.0f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("⭐", style = TourOSTypography.Caption)
+                        Text(
+                            "${item.rating} / 5.0",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Secondary)
+                        )
+                    }
+
+                    // Performans Derecesi Badgesi
+                    Box(modifier = Modifier.weight(1.1f)) {
+                        TourOSStatusBadge(
+                            text = if (isStarGuide) "🏆 Yıldız Rehber" else "🌟 ${item.performanceLevel}",
+                            backgroundColor = if (isStarGuide) TourOSColors.SecondaryContainer else TourOSColors.PrimaryContainer,
+                            textColor = if (isStarGuide) TourOSColors.Secondary else TourOSColors.Primary
+                        )
+                    }
+                }
+
+                if (index < guides.size - 1) {
+                    HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
                 }
             }
         }
     }
 }
 
+// ─── Compact: Kart Görünümü ───────────────────────────────────────────────────
+
 @Composable
-fun GuidePerformanceCard(item: GuidePerformanceItem) {
+private fun GuidePerformanceCard(item: GuidePerformanceItem) {
     val isStarGuide = item.performanceLevel == "Yıldız Rehber"
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isStarGuide) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            // Header: Seviye & Yıldız Puanı
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (isStarGuide) Color(0xFFFEF08A) else MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Text(
-                        text = if (isStarGuide) "🏆 ${item.performanceLevel}" else "🌟 ${item.performanceLevel}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isStarGuide) Color(0xFF854D0E) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                TourOSStatusBadge(
+                    text = if (isStarGuide) "🏆 Yıldız Rehber" else "🌟 ${item.performanceLevel}",
+                    backgroundColor = if (isStarGuide) TourOSColors.SecondaryContainer else TourOSColors.PrimaryContainer,
+                    textColor = if (isStarGuide) TourOSColors.Secondary else TourOSColors.Primary
+                )
 
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFFDCFCE7)
+                // Yıldız İkonlu Puan Rozeti
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TourOSColors.SecondaryContainer)
+                        .padding(horizontal = TourOSSpacing.small, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "⭐ ${item.rating} / 5.0",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF15803D),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        "⭐ ${item.rating} / 5.0",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Secondary)
                     )
                 }
             }
 
-            Column {
-                Text(item.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Kokart No: ${item.licenseNumber ?: "Lisanslı"} | Uzmanlık: ${item.specialization ?: "Kültür Turları"}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            // Rehber İsim & Detay
+            Text(
+                item.fullName,
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+            )
+
+            Text(
+                "Kokart No: ${item.licenseNumber ?: "—"}  ·  Uzmanlık: ${item.specialization ?: "Genel Kültür"}",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
 
             // Puan İlerleme Çubuğu
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("Puan Performansı", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("%${(item.rating * 20).toInt()}", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Puan Performansı", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("%${(item.rating * 20).toInt()}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
                 }
                 LinearProgressIndicator(
                     progress = { (item.rating / 5.0).toFloat() },
-                    modifier = Modifier.fillMaxWidth().height(6.dp),
-                    color = if (isStarGuide) Color(0xFFEAB308) else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    color = if (isStarGuide) TourOSColors.Secondary else TourOSColors.Primary,
+                    trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.5f)
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = TourOSColors.Divider)
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("🚩 Tamamlanan Tur: ${item.totalToursCompleted}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                Text("💬 Müşteri Değerlendirmesi: ${item.totalReviews} (${item.fiveStarReviews} Tanesi ⭐ 5 Yıldız)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Alt Satır: Tamamlanan Tur & Değerlendirme Sayısı
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "🚩 Tamamlanan Tur: ${item.totalToursCompleted}",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                )
+                Text(
+                    "💬 ${item.totalReviews} Değerlendirme (${item.fiveStarReviews} ⭐ 5/5)",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
             }
         }
     }

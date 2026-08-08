@@ -15,6 +15,8 @@ data class Tour(
     val city: String,
     val durationDays: Int = 1,
     val basePrice: Double = 0.0,
+    val childPrice06: Double = 0.0,
+    val childPrice712: Double = 0.0,
     val capacity: Int = 20,
     val minParticipants: Int = 1,
     val maxParticipants: Int = 30,

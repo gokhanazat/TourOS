@@ -27,7 +27,7 @@ class TourRepositoryImpl(
 
             entities.map { entity ->
                 Tour(
-                    id = entity.id,
+                    id = entity.id ?: "",
                     code = entity.code,
                     title = entity.title,
                     category = TourCategory.fromKey(entity.category),
@@ -35,6 +35,8 @@ class TourRepositoryImpl(
                     city = entity.city,
                     durationDays = entity.durationDays,
                     basePrice = entity.basePrice,
+                    childPrice06 = entity.childPrice06,
+                    childPrice712 = entity.childPrice712,
                     capacity = entity.capacity,
                     minParticipants = entity.minParticipants,
                     maxParticipants = entity.maxParticipants,
@@ -59,7 +61,7 @@ class TourRepositoryImpl(
                 .decodeSingle<TourEntity>()
 
             Tour(
-                id = entity.id,
+                id = entity.id ?: "",
                 code = entity.code,
                 title = entity.title,
                 category = TourCategory.fromKey(entity.category),
@@ -67,6 +69,8 @@ class TourRepositoryImpl(
                 city = entity.city,
                 durationDays = entity.durationDays,
                 basePrice = entity.basePrice,
+                childPrice06 = entity.childPrice06,
+                childPrice712 = entity.childPrice712,
                 capacity = entity.capacity,
                 minParticipants = entity.minParticipants,
                 maxParticipants = entity.maxParticipants,
@@ -140,12 +144,16 @@ class TourRepositoryImpl(
     override suspend fun createTour(tour: Tour): Result<Tour> {
         return runCatching {
             val entity = TourEntity(
+                id = tour.id.ifBlank { null },
                 code = tour.code,
                 title = tour.title,
                 category = tour.category.name,
                 country = tour.country,
                 city = tour.city,
                 durationDays = tour.durationDays,
+                basePrice = tour.basePrice,
+                childPrice06 = tour.childPrice06,
+                childPrice712 = tour.childPrice712,
                 capacity = tour.capacity,
                 minParticipants = tour.minParticipants,
                 maxParticipants = tour.maxParticipants,
@@ -153,7 +161,7 @@ class TourRepositoryImpl(
                 cancellationPolicy = tour.cancellationPolicy,
                 insuranceDetails = tour.insuranceDetails,
                 isActive = tour.isActive,
-                tenantId = tour.tenantId
+                tenantId = if (tour.tenantId.isValidUuid()) tour.tenantId else "00000000-0000-0000-0000-000000000001"
             )
             val created = supabaseClient.postgrest.from("tours")
                 .insert(entity) {
@@ -161,7 +169,7 @@ class TourRepositoryImpl(
                 }
                 .decodeSingle<TourEntity>()
 
-            tour.copy(id = created.id)
+            tour.copy(id = created.id ?: "")
         }
     }
 
@@ -175,6 +183,9 @@ class TourRepositoryImpl(
                 country = tour.country,
                 city = tour.city,
                 durationDays = tour.durationDays,
+                basePrice = tour.basePrice,
+                childPrice06 = tour.childPrice06,
+                childPrice712 = tour.childPrice712,
                 capacity = tour.capacity,
                 minParticipants = tour.minParticipants,
                 maxParticipants = tour.maxParticipants,
@@ -182,7 +193,7 @@ class TourRepositoryImpl(
                 cancellationPolicy = tour.cancellationPolicy,
                 insuranceDetails = tour.insuranceDetails,
                 isActive = tour.isActive,
-                tenantId = tour.tenantId
+                tenantId = if (tour.tenantId.isValidUuid()) tour.tenantId else "00000000-0000-0000-0000-000000000001"
             )
             supabaseClient.postgrest.from("tours").upsert(entity)
             tour

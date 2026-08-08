@@ -11,6 +11,8 @@ data class CompanyEntity(
     val id: String = "",
     val name: String = "",
     val slug: String = "",
+    @SerialName("company_type") val companyType: String = "tur_operatoru", // tur_operatoru veya acente
+    @SerialName("operator_code") val operatorCode: String? = null, // örn. ANK, IST
     @SerialName("logo_url") val logoUrl: String? = null,
     @SerialName("theme_color") val themeColor: String = "#1976D2",
     @SerialName("tax_rate") val taxRate: Double = 20.0,

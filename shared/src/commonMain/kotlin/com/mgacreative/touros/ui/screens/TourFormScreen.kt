@@ -37,8 +37,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.decodeToImageBitmap
 import com.mgacreative.touros.domain.model.TourCategory
 import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
@@ -52,6 +56,9 @@ import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.TourFormUiState
 import com.mgacreative.touros.ui.viewmodel.TourFormViewModel
 import org.koin.compose.viewmodel.koinViewModel
+
+import com.mgacreative.touros.utils.MAX_IMAGE_SIZE_BYTES
+import com.mgacreative.touros.utils.rememberFilePickerLauncher
 
 /**
  * TourOS 0.3 Tasarım Sistemine uygun Tur Oluşturma / Düzenleme Ekranı.
@@ -76,15 +83,30 @@ fun TourFormScreen(
     var country by remember { mutableStateOf("Türkiye") }
     var city by remember { mutableStateOf("İstanbul") }
     var durationDaysText by remember { mutableStateOf("1") }
+    var basePriceText by remember { mutableStateOf("0") }
+    var childPrice06Text by remember { mutableStateOf("0") }
+    var childPrice712Text by remember { mutableStateOf("0") }
     var capacityText by remember { mutableStateOf("20") }
     var minParticipantsText by remember { mutableStateOf("1") }
     var maxParticipantsText by remember { mutableStateOf("30") }
     var description by remember { mutableStateOf("") }
     var cancellationPolicy by remember { mutableStateOf("") }
     var insuranceDetails by remember { mutableStateOf("") }
+    var errorMessageOverride by remember { mutableStateOf<String?>(null) }
+
+    var coverFileName by remember { mutableStateOf<String?>(null) }
+    var coverBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var galleryItems by remember { mutableStateOf<List<Pair<String, ByteArray>>>(emptyList()) }
 
     LaunchedEffect(tourId) {
         viewModel.loadTourForEdit(tourId)
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is TourFormUiState.Success) {
+            kotlinx.coroutines.delay(800)
+            onNavigateBack()
+        }
     }
 
     LaunchedEffect(loadedTour) {
@@ -95,6 +117,9 @@ fun TourFormScreen(
             country = tour.country
             city = tour.city
             durationDaysText = tour.durationDays.toString()
+            basePriceText = if (tour.basePrice > 0) tour.basePrice.toString() else ""
+            childPrice06Text = if (tour.childPrice06 > 0) tour.childPrice06.toString() else ""
+            childPrice712Text = if (tour.childPrice712 > 0) tour.childPrice712.toString() else ""
             capacityText = tour.capacity.toString()
             minParticipantsText = tour.minParticipants.toString()
             maxParticipantsText = tour.maxParticipants.toString()
@@ -140,42 +165,65 @@ fun TourFormScreen(
                         .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
                 ) {
-                    // State Banners (Error / Success)
-                    when (val state = uiState) {
-                        is TourFormUiState.Error -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                                    .background(TourOSColors.ErrorContainer)
-                                    .padding(TourOSSpacing.medium)
-                            ) {
-                                Text(
-                                    text = state.message,
-                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error)
-                                )
-                            }
+                    // Custom Size Error or State Banners
+                    val activeError = errorMessageOverride ?: (uiState as? TourFormUiState.Error)?.message
+                    if (activeError != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.ErrorContainer)
+                                .padding(TourOSSpacing.medium)
+                        ) {
+                            Text(
+                                text = activeError,
+                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error)
+                            )
                         }
-                        is TourFormUiState.Success -> {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                                    .background(TourOSColors.SuccessContainer)
-                                    .padding(TourOSSpacing.medium)
-                            ) {
-                                Text(
-                                    text = state.message,
-                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Success)
-                                )
-                            }
+                    } else if (uiState is TourFormUiState.Success) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.SuccessContainer)
+                                .padding(TourOSSpacing.medium)
+                        ) {
+                            Text(
+                                text = (uiState as TourFormUiState.Success).message,
+                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Success)
+                            )
                         }
-                        else -> {}
                     }
 
                     if (isCompact) {
                         // COMPACT LAYOUT (Mobil: Medya alanı en üstte, sonra form)
-                        MediaUploadSection()
+                        MediaUploadSection(
+                            coverFileName = coverFileName,
+                            coverBytes = coverBytes,
+                            galleryItems = galleryItems,
+                            onCoverSelected = { fileName, bytes ->
+                                if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
+                                    val sizeMb = bytes.size / (1024 * 1024.0)
+                                    errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
+                                } else {
+                                    errorMessageOverride = null
+                                    coverFileName = fileName
+                                    coverBytes = bytes
+                                }
+                            },
+                            onGalleryImageSelected = { fileName, bytes ->
+                                if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
+                                    val sizeMb = bytes.size / (1024 * 1024.0)
+                                    errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
+                                } else {
+                                    errorMessageOverride = null
+                                    galleryItems = (galleryItems + (fileName to bytes)).take(10)
+                                }
+                            },
+                            onRemoveGalleryImage = { index ->
+                                galleryItems = galleryItems.filterIndexed { i, _ -> i != index }
+                            }
+                        )
                         TourFormFieldsSection(
                             title = title,
                             onTitleChange = { title = it },
@@ -189,6 +237,12 @@ fun TourFormScreen(
                             onCityChange = { city = it },
                             durationDaysText = durationDaysText,
                             onDurationChange = { durationDaysText = it },
+                            basePriceText = basePriceText,
+                            onBasePriceChange = { basePriceText = it },
+                            childPrice06Text = childPrice06Text,
+                            onChildPrice06Change = { childPrice06Text = it },
+                            childPrice712Text = childPrice712Text,
+                            onChildPrice712Change = { childPrice712Text = it },
                             capacityText = capacityText,
                             onCapacityChange = { capacityText = it },
                             minParticipantsText = minParticipantsText,
@@ -222,6 +276,12 @@ fun TourFormScreen(
                                     onCityChange = { city = it },
                                     durationDaysText = durationDaysText,
                                     onDurationChange = { durationDaysText = it },
+                                    basePriceText = basePriceText,
+                                    onBasePriceChange = { basePriceText = it },
+                                    childPrice06Text = childPrice06Text,
+                                    onChildPrice06Change = { childPrice06Text = it },
+                                    childPrice712Text = childPrice712Text,
+                                    onChildPrice712Change = { childPrice712Text = it },
                                     capacityText = capacityText,
                                     onCapacityChange = { capacityText = it },
                                     minParticipantsText = minParticipantsText,
@@ -238,7 +298,33 @@ fun TourFormScreen(
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                MediaUploadSection()
+                                MediaUploadSection(
+                                    coverFileName = coverFileName,
+                                    coverBytes = coverBytes,
+                                    galleryItems = galleryItems,
+                                    onCoverSelected = { fileName, bytes ->
+                                        if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
+                                            val sizeMb = bytes.size / (1024 * 1024.0)
+                                            errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
+                                        } else {
+                                            errorMessageOverride = null
+                                            coverFileName = fileName
+                                            coverBytes = bytes
+                                        }
+                                    },
+                                    onGalleryImageSelected = { fileName, bytes ->
+                                        if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
+                                            val sizeMb = bytes.size / (1024 * 1024.0)
+                                            errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
+                                        } else {
+                                            errorMessageOverride = null
+                                            galleryItems = (galleryItems + (fileName to bytes)).take(10)
+                                        }
+                                    },
+                                    onRemoveGalleryImage = { index ->
+                                        galleryItems = galleryItems.filterIndexed { i, _ -> i != index }
+                                    }
+                                )
                             }
                         }
                     }
@@ -261,6 +347,9 @@ fun TourFormScreen(
                                     country = country,
                                     city = city,
                                     durationDays = durationDaysText.toIntOrNull() ?: 1,
+                                    basePrice = basePriceText.toDoubleOrNull() ?: 0.0,
+                                    childPrice06 = childPrice06Text.toDoubleOrNull() ?: 0.0,
+                                    childPrice712 = childPrice712Text.toDoubleOrNull() ?: 0.0,
                                     capacity = capacityText.toIntOrNull() ?: 20,
                                     minParticipants = minParticipantsText.toIntOrNull() ?: 1,
                                     maxParticipants = maxParticipantsText.toIntOrNull() ?: 30,
@@ -289,6 +378,9 @@ private fun TourFormFieldsSection(
     country: String, onCountryChange: (String) -> Unit,
     city: String, onCityChange: (String) -> Unit,
     durationDaysText: String, onDurationChange: (String) -> Unit,
+    basePriceText: String, onBasePriceChange: (String) -> Unit,
+    childPrice06Text: String, onChildPrice06Change: (String) -> Unit,
+    childPrice712Text: String, onChildPrice712Change: (String) -> Unit,
     capacityText: String, onCapacityChange: (String) -> Unit,
     minParticipantsText: String, onMinChange: (String) -> Unit,
     maxParticipantsText: String, onMaxChange: (String) -> Unit,
@@ -421,8 +513,45 @@ private fun TourFormFieldsSection(
         HorizontalDivider(color = TourOSColors.Divider)
         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-        // 4. Detaylar & Koşullar
-        Text(text = "4. Tur Açıklaması & Şartlar", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        // 4. Fiyatlandırma & Yaş Kategori Fiyatları
+        Text(text = "4. Fiyatlandırma & Yaş Kategori Fiyatları", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+        Row(modifier = Modifier.fillMaxWidth()) {
+            TourOSTextField(
+                value = basePriceText,
+                onValueChange = onBasePriceChange,
+                label = "Yetişkin / Kişi Başı (₺) *",
+                placeholder = "0.00",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+            TourOSTextField(
+                value = childPrice06Text,
+                onValueChange = onChildPrice06Change,
+                label = "Çocuk (0-6 Yaş) (₺)",
+                placeholder = "0.00",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+            TourOSTextField(
+                value = childPrice712Text,
+                onValueChange = onChildPrice712Change,
+                label = "Çocuk (7-12 Yaş) (₺)",
+                placeholder = "0.00",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
+        HorizontalDivider(color = TourOSColors.Divider)
+        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+        // 5. Detaylar & Koşullar
+        Text(text = "5. Tur Açıklaması & Şartlar", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
         TourOSTextField(
@@ -450,7 +579,23 @@ private fun TourFormFieldsSection(
 }
 
 @Composable
-private fun MediaUploadSection() {
+private fun MediaUploadSection(
+    coverFileName: String?,
+    coverBytes: ByteArray?,
+    galleryItems: List<Pair<String, ByteArray>>,
+    onCoverSelected: (String, ByteArray) -> Unit,
+    onGalleryImageSelected: (String, ByteArray) -> Unit,
+    onRemoveGalleryImage: (Int) -> Unit
+) {
+    val launchCoverPicker = rememberFilePickerLauncher(mimeType = "image/*", onFileSelected = onCoverSelected)
+    val launchGalleryPicker = rememberFilePickerLauncher(mimeType = "image/*", onFileSelected = onGalleryImageSelected)
+
+    val coverBitmap = remember(coverBytes) {
+        coverBytes?.let {
+            runCatching { it.decodeToImageBitmap() }.getOrNull()
+        }
+    }
+
     TourOSCard(
         modifier = Modifier.fillMaxWidth(),
         backgroundColor = TourOSColors.Background,
@@ -462,28 +607,69 @@ private fun MediaUploadSection() {
 
         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-        // Kapak Resmi Yükleme Dropzone
+        // Kapak Resmi Yükleme Dropzone / Preview
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(160.dp)
+                .height(180.dp)
                 .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
-                .background(TourOSColors.PrimaryContainer)
+                .background(if (coverFileName != null) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer)
                 .border(
                     width = TourOSSpacing.borderWidth,
-                    color = TourOSColors.Primary,
+                    color = if (coverFileName != null) TourOSColors.Success else TourOSColors.Primary,
                     shape = RoundedCornerShape(TourOSSpacing.cornerRadius)
                 )
-                .clickable { /* Upload Cover */ },
+                .clickable { launchCoverPicker() },
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(text = "📸 Kapak Resmi Yükleyin", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-                Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                Text(text = "Yüksek çözünürlüklü JPG/PNG (Maks 5MB)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+            if (coverBitmap != null) {
+                Image(
+                    bitmap = coverBitmap,
+                    contentDescription = "Kapak Görseli",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "✅ $coverFileName",
+                            style = TourOSTypography.Caption.copy(color = Color.White),
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "Değiştir ✏️",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.PrimaryContainer)
+                        )
+                    }
+                }
+            } else if (coverFileName != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "✅ Kapak Seçildi: $coverFileName", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Success))
+                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                    Text(text = "Değiştirmek için tekrar tıklayın (Maks 1MB)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                }
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "📸 Kapak Resmi Yükleyin", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                    Text(text = "Yüksek çözünürlüklü JPG/PNG (Maks 1MB)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                }
             }
         }
 
@@ -492,22 +678,63 @@ private fun MediaUploadSection() {
         Text(text = "Ek Fotoğraf Galerisi (Maks. 10 Görsel)", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
         ) {
-            repeat(4) { index ->
+            galleryItems.forEachIndexed { index, (name, bytes) ->
+                val galleryBitmap = remember(bytes) {
+                    runCatching { bytes.decodeToImageBitmap() }.getOrNull()
+                }
+
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
+                        .size(72.dp)
                         .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(TourOSColors.Surface)
-                        .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)),
+                        .background(TourOSColors.PrimaryContainer)
+                        .border(TourOSSpacing.borderWidth, TourOSColors.Primary, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "+", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextDisabled))
+                    if (galleryBitmap != null) {
+                        Image(
+                            bitmap = galleryBitmap,
+                            contentDescription = name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Text(text = "🖼️", style = TourOSTypography.TitleLarge)
+                    }
+
+                    // Görsel Silme (X) Butonu
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .align(Alignment.TopEnd)
+                            .background(TourOSColors.Error, shape = RoundedCornerShape(bottomStart = 8.dp))
+                            .clickable { onRemoveGalleryImage(index) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "✕", style = TourOSTypography.Caption.copy(color = Color.White))
+                    }
+                }
+            }
+
+            if (galleryItems.size < 10) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.Surface)
+                        .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .clickable { launchGalleryPicker() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "+", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextSecondary))
                 }
             }
         }
     }
 }
+

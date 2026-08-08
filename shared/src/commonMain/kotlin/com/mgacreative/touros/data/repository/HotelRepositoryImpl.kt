@@ -13,6 +13,8 @@ import com.mgacreative.touros.domain.model.RoomType
 import com.mgacreative.touros.domain.repository.HotelRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 import com.mgacreative.touros.data.util.isValidUuid
 
@@ -433,7 +435,7 @@ class HotelRepositoryImpl(
     override suspend fun toggleStopSaleStatus(id: String, isActive: Boolean): Result<Boolean> {
         return runCatching {
             supabaseClient.postgrest.from("hotel_stop_sales")
-                .update(mapOf("is_active" to isActive)) { filter { eq("id", id) } }
+                .update(buildJsonObject { put("is_active", isActive) }) { filter { eq("id", id) } }
             true
         }
     }

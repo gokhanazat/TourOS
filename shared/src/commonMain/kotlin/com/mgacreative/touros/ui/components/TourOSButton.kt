@@ -27,7 +27,8 @@ enum class TourOSButtonVariant {
     PRIMARY,
     SECONDARY,
     TERTIARY,
-    DESTRUCTIVE
+    DESTRUCTIVE,
+    SUCCESS
 }
 
 @Composable
@@ -108,6 +109,23 @@ fun TourOSButton(
                 contentPadding = PaddingValues(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.small)
             ) {
                 ButtonContent(text = text, isLoading = isLoading, icon = icon, contentColor = TourOSColors.OnError)
+            }
+        }
+        TourOSButtonVariant.SUCCESS -> {
+            Button(
+                onClick = onClick,
+                modifier = modifier.height(44.dp),
+                enabled = enabled && !isLoading,
+                shape = shape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = TourOSColors.Success,
+                    contentColor = TourOSColors.OnSuccess,
+                    disabledContainerColor = TourOSColors.TextDisabled,
+                    disabledContentColor = TourOSColors.OnSuccess
+                ),
+                contentPadding = PaddingValues(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.small)
+            ) {
+                ButtonContent(text = text, isLoading = isLoading, icon = icon, contentColor = TourOSColors.OnSuccess)
             }
         }
     }

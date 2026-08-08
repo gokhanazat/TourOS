@@ -1,5 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,18 +10,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.CommissionRule
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.CommissionRulesUiState
 import com.mgacreative.touros.ui.viewmodel.CommissionRulesViewModel
 
 /**
- * 3.1.6 Komisyon Kuralları & Canlı Hesaplayıcı Ekranı.
+ * Komisyon Ayarları & Kuralları Ekranı — TourOS 0.3
+ *
+ * Kural listesi tablo halinde gösterilir.
+ * Yeni kural eklemek için modal form (Oran / Sabit Tutar seçimi RadioButton ile yapılmıştır).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CommissionRulesScreen(
     viewModel: CommissionRulesViewModel,
@@ -29,65 +37,101 @@ fun CommissionRulesScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🎯 Komisyon Kuralları & Motoru", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Komisyon Ayarları",
+                subtitle = "Acente ve tur komisyon kuralları motoru",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
-                },
-                actions = {
-                    Button(
-                        onClick = { showCreateDialog = true },
-                        modifier = Modifier.padding(end = 8.dp),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("➕ Yeni Kural Ekle", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            when (val state = uiState) {
-                is CommissionRulesUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+        when (val state = uiState) {
+            is CommissionRulesUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TourOSColors.Primary)
                 }
-                is CommissionRulesUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Hata: ${state.message}", color = MaterialTheme.colorScheme.error)
-                    }
+            }
+            is CommissionRulesUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("Hata: ${state.message}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error))
                 }
-                is CommissionRulesUiState.Success -> {
-                    // 1. Canlı Hesaplama Simülatör Kartı
-                    CommissionSimulatorCard(
-                        rules = state.rules,
-                        simulatedResultText = state.simulatedResultText,
-                        onSimulate = { price, rule -> viewModel.simulateCalculation(price, rule) }
-                    )
+            }
+            is CommissionRulesUiState.Success -> {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    val isExpanded = maxWidth >= 768.dp
 
-                    // 2. Kural Listesi
-                    Text("📋 Yapılandırılmış Komisyon Kuralları (${state.rules.size}):", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        items(state.rules) { rule ->
-                            CommissionRuleCard(
-                                rule = rule,
-                                onSimulateClick = { viewModel.simulateCalculation(10000.0, rule) }
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(TourOSSpacing.large),
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                    ) {
+                        // ── 1. Canlı Simülatör Kartı ──────────────────────────
+                        item {
+                            CommissionSimulatorCard(
+                                rules = state.rules,
+                                simulatedResultText = state.simulatedResultText,
+                                onSimulate = { price, rule -> viewModel.simulateCalculation(price, rule) }
                             )
+                        }
+
+                        // ── 2. Başlık ve Buton ───────────────────────────────
+                        item {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "📋 Yapılandırılmış Komisyon Kuralları (${state.rules.size})",
+                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                )
+                                TourOSButton(
+                                    text = "+ Yeni Kural Ekle",
+                                    onClick = { showCreateDialog = true },
+                                    variant = TourOSButtonVariant.PRIMARY
+                                )
+                            }
+                        }
+
+                        // ── 3. Tablo veya Kart Listesi ──────────────────────────
+                        if (state.rules.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "Tanımlı komisyon kuralı bulunamadı.",
+                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        } else if (isExpanded) {
+                            // Expanded: Kural Listesi Tablosu
+                            item {
+                                CommissionRulesTable(
+                                    rules = state.rules,
+                                    onSimulateClick = { viewModel.simulateCalculation(10000.0, it) }
+                                )
+                            }
+                        } else {
+                            // Compact: Kart Listesi
+                            items(state.rules) { rule ->
+                                CommissionRuleCard(
+                                    rule = rule,
+                                    onSimulateClick = { viewModel.simulateCalculation(10000.0, rule) }
+                                )
+                            }
                         }
                     }
 
-                    // Yeni Kural Ekleme Dialog
+                    // ── 4. Yeni Kural Ekleme Modal Formu (RadioButton Seçimli) ──
                     if (showCreateDialog) {
                         CreateCommissionRuleDialog(
                             onDismiss = { showCreateDialog = false },
@@ -103,159 +147,331 @@ fun CommissionRulesScreen(
     }
 }
 
+// ─── Canlı Komisyon Hesaplama Simülatörü ─────────────────────────────────────
+
 @Composable
-fun CommissionSimulatorCard(
+private fun CommissionSimulatorCard(
     rules: List<CommissionRule>,
     simulatedResultText: String?,
     onSimulate: (price: Double, rule: CommissionRule) -> Unit
 ) {
     var priceStr by remember { mutableStateOf("10000") }
-    var selectedRule by remember { mutableStateOf(rules.firstOrNull()) }
+    val activeRule = rules.firstOrNull()
 
-    Card(
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+        backgroundColor = TourOSColors.PrimaryContainer,
+        contentPadding = TourOSSpacing.large
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("🧮 Canlı Komisyon Hesaplama Simülatörü", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Text(
+                "🧮 Canlı Komisyon Simülatörü",
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+            )
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TourOSTextField(
                     value = priceStr,
                     onValueChange = { priceStr = it },
-                    label = { Text("Satış Tutarı (TRY)") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+                    label = "Satış Tutarı (₺)",
+                    placeholder = "10000",
+                    modifier = Modifier.weight(1f)
                 )
 
-                Button(
+                TourOSButton(
+                    text = "Hesapla",
                     onClick = {
                         val p = priceStr.toDoubleOrNull() ?: 0.0
-                        val r = selectedRule ?: rules.firstOrNull()
-                        if (r != null) onSimulate(p, r)
+                        if (activeRule != null) onSimulate(p, activeRule)
                     },
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.height(56.dp)
-                ) {
-                    Text("Hesapla", fontWeight = FontWeight.Bold)
-                }
+                    variant = TourOSButtonVariant.PRIMARY
+                )
             }
 
             if (simulatedResultText != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(simulatedResultText, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.SuccessContainer)
+                        .padding(TourOSSpacing.medium)
+                ) {
+                    Text(
+                        simulatedResultText,
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                    )
                 }
             }
         }
     }
 }
 
+// ─── Expanded: Kural Listesi Tablosu ──────────────────────────────────────────
+
 @Composable
-fun CommissionRuleCard(
+private fun CommissionRulesTable(
+    rules: List<CommissionRule>,
+    onSimulateClick: (CommissionRule) -> Unit
+) {
+    val headers = listOf("Kural Adı", "Acente / Hedef", "Hesaplama Türü", "Komisyon Değeri", "Durum", "İşlem")
+    val weights = listOf(1.5f, 1.4f, 1.2f, 1.1f, 0.9f, 1.0f)
+
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+        Column {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(TourOSColors.Primary)
+                    .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
+            ) {
+                headers.forEachIndexed { i, h ->
+                    Text(
+                        h,
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                        modifier = Modifier.weight(weights[i])
+                    )
+                }
+            }
+
+            // Satırlar
+            rules.forEachIndexed { idx, r ->
+                val bg = if (idx % 2 == 0) TourOSColors.Background else TourOSColors.Surface
+                val isPercentage = r.calculationType == "percentage"
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(bg)
+                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Kural Adı
+                    Text(r.ruleName, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[0]))
+
+                    // Acente / Hedef
+                    Text(
+                        text = r.agentName ?: r.tourName ?: "🌐 Genel Kural",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                        modifier = Modifier.weight(weights[1])
+                    )
+
+                    // Hesaplama Türü Badgesi
+                    Box(modifier = Modifier.weight(weights[2])) {
+                        TourOSStatusBadge(
+                            text = if (isPercentage) "% Oranlı" else "₺ Sabit Tutar",
+                            backgroundColor = if (isPercentage) TourOSColors.PrimaryContainer else TourOSColors.SecondaryContainer,
+                            textColor = if (isPercentage) TourOSColors.Primary else TourOSColors.Secondary
+                        )
+                    }
+
+                    // Değer
+                    Text(
+                        text = if (isPercentage) "%${r.rateValue}" else "₺ ${r.fixedAmount}",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Primary),
+                        modifier = Modifier.weight(weights[3])
+                    )
+
+                    // Durum
+                    Box(modifier = Modifier.weight(weights[4])) {
+                        TourOSStatusBadge(
+                            text = if (r.isActive) "Aktif" else "Pasif",
+                            backgroundColor = if (r.isActive) TourOSColors.SuccessContainer else TourOSColors.Surface,
+                            textColor = if (r.isActive) TourOSColors.Success else TourOSColors.TextSecondary
+                        )
+                    }
+
+                    // İşlem
+                    Row(modifier = Modifier.weight(weights[5])) {
+                        TourOSButton("Test Et", { onSimulateClick(r) }, variant = TourOSButtonVariant.TERTIARY)
+                    }
+                }
+
+                if (idx < rules.size - 1) {
+                    HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
+                }
+            }
+        }
+    }
+}
+
+// ─── Compact: Kural Kartı ─────────────────────────────────────────────────────
+
+@Composable
+private fun CommissionRuleCard(
     rule: CommissionRule,
     onSimulateClick: () -> Unit
 ) {
-    val (typeText, typeBg, typeFg) = if (rule.calculationType == "percentage") {
-        Triple("%${rule.rateValue} Oran", Color(0xFFDBEAFE), Color(0xFF1E40AF))
-    } else {
-        Triple("${rule.fixedAmount} TRY Sabit", Color(0xFFFEF3C7), Color(0xFF92400E))
-    }
+    val isPercentage = rule.calculationType == "percentage"
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(rule.ruleName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Surface(shape = RoundedCornerShape(6.dp), color = typeBg) {
-                    Text(typeText, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = typeFg, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                }
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(rule.ruleName, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                TourOSStatusBadge(
+                    text = if (isPercentage) "%${rule.rateValue} Oran" else "₺ ${rule.fixedAmount} Sabit",
+                    backgroundColor = if (isPercentage) TourOSColors.PrimaryContainer else TourOSColors.SecondaryContainer,
+                    textColor = if (isPercentage) TourOSColors.Primary else TourOSColors.Secondary
+                )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (rule.agentName != null) {
-                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                        Text("🏢 Acente: ${rule.agentName}", fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                    }
-                }
-                if (rule.tourName != null) {
-                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.tertiaryContainer) {
-                        Text("🏔️ Tur: ${rule.tourName}", fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                    }
-                }
-                if (rule.agentName == null && rule.tourName == null) {
-                    Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                        Text("🌐 Genel Kural (Tüm Rezervasyonlar)", fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                    }
-                }
-            }
+            Text(
+                "Hedef: ${rule.agentName ?: rule.tourName ?: "🌐 Genel Kural (Tüm Rezervasyonlar)"}",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = TourOSColors.Divider)
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Durum: 🟢 Aktif", fontSize = 11.sp, color = Color(0xFF15803D), fontWeight = FontWeight.Bold)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TourOSStatusBadge(
+                    text = "🟢 Aktif",
+                    backgroundColor = TourOSColors.SuccessContainer,
+                    textColor = TourOSColors.Success
+                )
 
-                TextButton(onClick = onSimulateClick) {
-                    Text("🧮 Simülatörde Test Et", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
+                TourOSButton("🧮 Test Et", onSimulateClick, variant = TourOSButtonVariant.TERTIARY)
             }
         }
     }
 }
 
+// ─── MODAL FORM (Radio Button ile Oran / Sabit Tutar Seçimi) ──────────────────
+
 @Composable
-fun CreateCommissionRuleDialog(
+private fun CreateCommissionRuleDialog(
     onDismiss: () -> Unit,
     onCreate: (ruleName: String, agentName: String?, tourName: String?, calculationType: String, rateValue: Double, fixedAmount: Double) -> Unit
 ) {
     var ruleName by remember { mutableStateOf("") }
     var agentName by remember { mutableStateOf("") }
     var tourName by remember { mutableStateOf("") }
-    var calculationType by remember { mutableStateOf("percentage") }
+    var calculationType by remember { mutableStateOf("percentage") } // "percentage" veya "fixed_amount"
     var valueStr by remember { mutableStateOf("10.0") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("➕ Yeni Komisyon Kuralı", fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+        title = {
+            Text(
+                "➕ Yeni Komisyon Kuralı Ekle",
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+            )
+        },
         text = {
-            Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = ruleName, onValueChange = { ruleName = it }, label = { Text("Kural Adı") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = agentName, onValueChange = { agentName = it }, label = { Text("Acente Adı (Opsiyonel)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = tourName, onValueChange = { tourName = it }, label = { Text("Tur Adı (Opsiyonel)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                TourOSTextField(
+                    value = ruleName,
+                    onValueChange = { ruleName = it },
+                    label = "Kural Adı",
+                    placeholder = "Örn: Acente X Özel Oranı",
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected = calculationType == "percentage", onClick = { calculationType = "percentage" }, label = { Text("% Oran") })
-                    FilterChip(selected = calculationType == "fixed_amount", onClick = { calculationType = "fixed_amount" }, label = { Text("Sabit Tutar") })
+                TourOSTextField(
+                    value = agentName,
+                    onValueChange = { agentName = it },
+                    label = "Acente Adı (Opsiyonel)",
+                    placeholder = "Örn: Jolly Tur",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                TourOSTextField(
+                    value = tourName,
+                    onValueChange = { tourName = it },
+                    label = "Tur Adı (Opsiyonel)",
+                    placeholder = "Örn: Kapadokya Balon Turu",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // RADIO BUTTON SEÇİMİ (ORAN / SABİT TUTAR)
+                Text(
+                    "Hesaplama Tipi Seçimi:",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { calculationType = "percentage" }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        RadioButton(
+                            selected = calculationType == "percentage",
+                            onClick = { calculationType = "percentage" },
+                            colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary)
+                        )
+                        Spacer(Modifier.width(TourOSSpacing.xSmall))
+                        Text(
+                            "% Oranlı Komisyon (Yüzde Hesaplama)",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { calculationType = "fixed_amount" }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        RadioButton(
+                            selected = calculationType == "fixed_amount",
+                            onClick = { calculationType = "fixed_amount" },
+                            colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary)
+                        )
+                        Spacer(Modifier.width(TourOSSpacing.xSmall))
+                        Text(
+                            "₺ Sabit Tutar Komisyonu (Sabit TL)",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                        )
+                    }
                 }
 
-                OutlinedTextField(
+                // Değer Giriş Alanı
+                TourOSTextField(
                     value = valueStr,
                     onValueChange = { valueStr = it },
-                    label = { Text(if (calculationType == "percentage") "Oran (%)" else "Sabit Tutar (TRY)") },
-                    singleLine = true,
+                    label = if (calculationType == "percentage") "Komisyon Oranı (%)" else "Sabit Komisyon Tutarı (₺)",
+                    placeholder = if (calculationType == "percentage") "10.0" else "500.0",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(
+            TourOSButton(
+                text = "💾 Kuralı Kaydet",
                 onClick = {
                     val v = valueStr.toDoubleOrNull() ?: 0.0
                     val rate = if (calculationType == "percentage") v else 0.0
                     val fixed = if (calculationType == "fixed_amount") v else 0.0
                     onCreate(ruleName, agentName.ifBlank { null }, tourName.ifBlank { null }, calculationType, rate, fixed)
                 },
-                enabled = ruleName.isNotBlank() && valueStr.toDoubleOrNull() != null
-            ) {
-                Text("Kaydet")
-            }
+                enabled = ruleName.isNotBlank() && valueStr.toDoubleOrNull() != null,
+                variant = TourOSButtonVariant.PRIMARY
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("İptal") }
+            TourOSButton(
+                text = "İptal",
+                onClick = onDismiss,
+                variant = TourOSButtonVariant.SECONDARY
+            )
         }
     )
 }

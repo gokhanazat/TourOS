@@ -1,5 +1,6 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,18 +9,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.B2BAgencyProfile
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.B2BAgencyAuthViewModel
 
 /**
- * 4.1.1 B2B Acente Girişi ve Cari Hesap Bakiyesi Ekranı.
+ * B2B Acente Girişi — TourOS 0.3
+ *
+ * Ana giriş ekranıyla aynı dar kart düzeni (max width 420dp, ortalanmış).
+ * Üstte 'Acente Girişi' etiketiyle ayırt edici küçük bir rozet.
+ * Oturum açıldıktan sonra B2B Acente Cari Hesap Bakiyesi Dashboard'u gösterilir.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun B2BAgencyAuthScreen(
     viewModel: B2BAgencyAuthViewModel,
@@ -32,175 +41,237 @@ fun B2BAgencyAuthScreen(
     var password by remember { mutableStateOf("123456") }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🌐 B2B Acente Portalı", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "B2B Acente Portalı",
+                subtitle = "Partner acente girişi ve cari hesap yönetimi",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentAlignment = Alignment.Center
         ) {
-            if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
-                }
-            }
-
-            if (!state.isAuthenticated) {
-                // B2B Acente Giriş Formu
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Text("🔑 B2B Acente Giriş Paneli", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-                        OutlinedTextField(
-                            value = agencyCode,
-                            onValueChange = { agencyCode = it },
-                            label = { Text("Acente Kodu (Örn: ACN-GLB)") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 420.dp)
+                    .fillMaxWidth()
+                    .padding(TourOSSpacing.large),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                // Bildirim Mesajı
+                if (state.notificationMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .background(TourOSColors.SuccessContainer)
+                            .padding(TourOSSpacing.medium)
+                    ) {
+                        Text(
+                            state.notificationMessage!!,
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Success)
                         )
-
-                        OutlinedTextField(
-                            value = email,
-                            onValueChange = { email = it },
-                            label = { Text("Acente Yetkili E-Posta") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        OutlinedTextField(
-                            value = password,
-                            onValueChange = { password = it },
-                            label = { Text("Şifre") },
-                            visualTransformation = PasswordVisualTransformation(),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Button(
-                            onClick = { viewModel.loginB2BAgency(agencyCode, email, password) },
-                            enabled = !state.isLoading && agencyCode.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth().height(46.dp),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                            else Text("🔑 B2B Portalına Giriş Yap", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
                     }
                 }
-            } else {
-                // B2B Girişi Yapılmış Acente Cari Hesap Bakiyesi Ekranı
-                state.agencyProfile?.let { profile ->
-                    B2BAgencyCurrentAccountDashboard(profile = profile, onLogout = { viewModel.logout() })
+
+                if (!state.isAuthenticated) {
+                    // ── ANA GİRİŞ EKRANIYLA AYNI DAR KART DÜZENİ ──────────────────
+                    TourOSCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = TourOSColors.Surface,
+                        contentPadding = TourOSSpacing.large
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            // ÜSTTE 'ACENTE GİRİŞİ' ETİKETİYLE AYIRT EDİCİ KÜÇÜK ROZET
+                            TourOSStatusBadge(
+                                text = "🏢 ACENTE GİRİŞİ",
+                                backgroundColor = TourOSColors.PrimaryContainer,
+                                textColor = TourOSColors.Primary
+                            )
+
+                            Text(
+                                "TourOS B2B Portalı",
+                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
+                                textAlign = TextAlign.Center
+                            )
+
+                            Text(
+                                "Lütfen yetkili acente kodunuz ve şifreniz ile oturum açın.",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                                textAlign = TextAlign.Center
+                            )
+
+                            HorizontalDivider(color = TourOSColors.Divider)
+
+                            // Form Alanları
+                            TourOSTextField(
+                                value = agencyCode,
+                                onValueChange = { agencyCode = it },
+                                label = "Acente Kodu",
+                                placeholder = "ACN-GLB",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            TourOSTextField(
+                                value = email,
+                                onValueChange = { email = it },
+                                label = "Yetkili E-Posta",
+                                placeholder = "b2b@globaltravel.com",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            TourOSTextField(
+                                value = password,
+                                onValueChange = { password = it },
+                                label = "Şifre",
+                                placeholder = "••••••",
+                                visualTransformation = PasswordVisualTransformation(),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            TourOSButton(
+                                text = "🔑 B2B Portalına Giriş Yap",
+                                onClick = { viewModel.loginB2BAgency(agencyCode, email, password) },
+                                enabled = !state.isLoading && agencyCode.isNotBlank() && email.isNotBlank(),
+                                variant = TourOSButtonVariant.PRIMARY,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                } else {
+                    // Giriş Yapılmış Acente Cari Dashboard
+                    state.agencyProfile?.let { profile ->
+                        B2BAgencyCurrentAccountDashboard(
+                            profile = profile,
+                            onLogout = { viewModel.logout() }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
+// ─── B2B Acente Cari Dashboard Kartı ──────────────────────────────────────────
+
 @Composable
-fun B2BAgencyCurrentAccountDashboard(profile: B2BAgencyProfile, onLogout: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+private fun B2BAgencyCurrentAccountDashboard(
+    profile: B2BAgencyProfile,
+    onLogout: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         // Acente Kimlik Kartı
-        Card(
+        TourOSCard(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            backgroundColor = TourOSColors.PrimaryContainer,
+            contentPadding = TourOSSpacing.large
         ) {
             Row(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(profile.agencyName, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Text("KOD: ${profile.agencyCode} | ${profile.contactEmail}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
-                    Text("Tel: ${profile.contactPhone}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        profile.agencyName,
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+                    Text(
+                        "KOD: ${profile.agencyCode}  ·  ${profile.contactEmail}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
                 }
 
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF15803D)) {
-                    Text("B2B ONAYLI", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
+                TourOSStatusBadge(
+                    text = "🟢 B2B ONAYLI",
+                    backgroundColor = TourOSColors.SuccessContainer,
+                    textColor = TourOSColors.Success
+                )
             }
         }
 
-        // Cari Hesap Bakiyesi ve Limit Metrik Kartları
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("💳 Kredi Limiti", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${profile.creditLimit} ${profile.currency}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("📊 Güncel Cari Bakiye", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${profile.currentBalance} ${profile.currency}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
-                }
-            }
-        }
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("💰 Bekleyen Komisyon", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${profile.pendingCommission} ${profile.currency}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEA580C))
-                }
-            }
-
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("📋 Aktif Rezervasyon", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${profile.activeBookingsCount} Adet", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        Button(
-            onClick = onLogout,
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-            modifier = Modifier.fillMaxWidth().height(46.dp),
-            shape = RoundedCornerShape(10.dp)
+        // Cari Hesap Metrik Kartları
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
         ) {
-            Text("🚪 B2B Oturumunu Kapat", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            TourOSCard(
+                modifier = Modifier.weight(1f),
+                backgroundColor = TourOSColors.Surface,
+                contentPadding = TourOSSpacing.medium
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Kredi Limiti", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(profile.creditLimit)}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                }
+            }
+
+            TourOSCard(
+                modifier = Modifier.weight(1f),
+                backgroundColor = TourOSColors.Surface,
+                contentPadding = TourOSSpacing.medium
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Güncel Bakiye", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(profile.currentBalance)}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Success))
+                }
+            }
         }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        ) {
+            TourOSCard(
+                modifier = Modifier.weight(1f),
+                backgroundColor = TourOSColors.Surface,
+                contentPadding = TourOSSpacing.medium
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Bekleyen Komisyon", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(profile.pendingCommission)}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary))
+                }
+            }
+
+            TourOSCard(
+                modifier = Modifier.weight(1f),
+                backgroundColor = TourOSColors.Surface,
+                contentPadding = TourOSSpacing.medium
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Aktif Rezervasyon", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("${profile.activeBookingsCount} Adet", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                }
+            }
+        }
+
+        TourOSButton(
+            text = "🚪 B2B Oturumunu Kapat",
+            onClick = onLogout,
+            variant = TourOSButtonVariant.SECONDARY,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
+}
+
+private fun formatMoney(amount: Double): String {
+    val rounded = (amount * 100).toLong() / 100.0
+    return rounded.toString()
 }

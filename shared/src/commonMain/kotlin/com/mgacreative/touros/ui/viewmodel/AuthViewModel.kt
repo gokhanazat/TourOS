@@ -39,9 +39,8 @@ class AuthViewModel(
                     _uiState.value = AuthUiState.Success(user)
                 }
                 .onFailure { exception ->
-                    _uiState.value = AuthUiState.Error(
-                        exception.message ?: "Giriş yapılırken bir hata oluştu"
-                    )
+                    val userFriendlyMsg = mapAuthErrorMessage(exception.message)
+                    _uiState.value = AuthUiState.Error(userFriendlyMsg)
                 }
         }
     }
@@ -54,12 +53,39 @@ class AuthViewModel(
                     _uiState.value = AuthUiState.Success(user)
                 }
                 .onFailure { exception ->
-                    _uiState.value = AuthUiState.Error(
-                        exception.message ?: "Kayıt olunurken bir hata oluştu"
-                    )
+                    val userFriendlyMsg = mapAuthErrorMessage(exception.message)
+                    _uiState.value = AuthUiState.Error(userFriendlyMsg)
                 }
         }
     }
+
+    private fun mapAuthErrorMessage(rawMessage: String?): String {
+        if (rawMessage.isNullOrBlank()) {
+            return "Giriş yapılırken beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."
+        }
+        val msg = rawMessage.lowercase()
+        return when {
+            msg.contains("invalid_credentials") || msg.contains("invalid login credentials") || msg.contains("grant_type=password") -> {
+                "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
+            }
+            msg.contains("email_not_confirmed") || msg.contains("email not confirmed") -> {
+                "E-posta adresiniz henüz doğrulanmamış. Lütfen gelen kutunuzu doğrulayın."
+            }
+            msg.contains("user_already_exists") || msg.contains("user already registered") -> {
+                "Bu e-posta adresiyle zaten kayıtlı bir hesap mevcut."
+            }
+            msg.contains("too_many_requests") || msg.contains("rate limit") -> {
+                "Çok fazla hatalı giriş denemesi yapıldı. Lütfen kısa bir süre sonra tekrar deneyin."
+            }
+            msg.contains("network") || msg.contains("timeout") || msg.contains("connection") -> {
+                "İnternet bağlantısı kurulamadı. Lütfen ağ bağlantınızı kontrol edin."
+            }
+            else -> {
+                "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edin."
+            }
+        }
+    }
+
 
     fun logout() {
         viewModelScope.launch {

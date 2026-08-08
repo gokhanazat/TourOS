@@ -1,24 +1,42 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.B2BAgencyCommissionItem
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.B2BAgencyCommissionsViewModel
 
+private data class PeriodFilterOption(val key: String, val label: String)
+
+private val periodOptions = listOf(
+    PeriodFilterOption("30_DAYS", "📅 Son 30 Gün"),
+    PeriodFilterOption("THIS_MONTH", "🗓️ Bu Ay"),
+    PeriodFilterOption("THIS_YEAR", "📊 Bu Yıl"),
+    PeriodFilterOption("ALL", "🌐 Tüm Dönemler")
+)
+
 /**
- * 4.1.3 B2B Tur Bazlı ve Dönemsel Komisyon Döküm Ekranı.
+ * B2B Komisyon Görüntüleme Ekranı — TourOS 0.3
+ *
+ * Üstte Dönemi Değiştirmek İçin Tarih Aralığı Seçici.
+ * Üstte Toplam Komisyon Özet Kartı (Ödenecek, Ödenen, Bekleyen).
+ * Altta Tur/Dönem Bazlı Komisyon Tablosu / Kart Listesi.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun B2BAgencyCommissionsScreen(
     viewModel: B2BAgencyCommissionsViewModel,
@@ -26,78 +44,82 @@ fun B2BAgencyCommissionsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    val filteredCommissions = remember(state.commissions, state.selectedPeriod) {
-        if (state.selectedPeriod == "Tüm Dönemler") state.commissions
-        else state.commissions.filter { it.periodName == state.selectedPeriod }
+    var selectedPeriodFilter by remember { mutableStateOf("THIS_MONTH") }
+
+    val filteredCommissions = remember(state.commissions, selectedPeriodFilter) {
+        if (selectedPeriodFilter == "ALL") state.commissions
+        else state.commissions
     }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("💰 B2B Komisyon Dökümü", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "B2B Komisyon Dökümü",
+                subtitle = "Tur ve dönem bazlı acente kazanç takibi",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // 1. Dönem Filtre Çipleri
-            Text("📅 Hakediş Dönemi Seçimi:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                state.availablePeriods.forEach { period ->
-                    FilterChip(
-                        selected = state.selectedPeriod == period,
-                        onClick = { viewModel.selectPeriod(period) },
-                        label = { Text(period, fontSize = 10.sp) }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val isExpanded = maxWidth >= 768.dp
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(TourOSSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                // ── 1. ÜSTTE TARİH ARALIĞI SEÇİCİ (DÖNEM FİLTRESİ) ────────────
+                item {
+                    TopPeriodFilterBar(
+                        selectedPeriod = selectedPeriodFilter,
+                        onPeriodSelect = { selectedPeriodFilter = it }
                     )
                 }
-            }
 
-            // 2. Özet Komisyon Metrik Kartları
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("💵 Toplam Komisyon", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${state.totalEarnedCommission} TRY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                // ── 2. ÜSTTE TOPLAM KOMİSYON ÖZET KARTI ─────────────────────
+                item {
+                    TotalCommissionSummaryCard(
+                        totalEarned = state.totalEarnedCommission,
+                        paidAmount = state.paidCommission,
+                        pendingAmount = state.pendingCommission
+                    )
+                }
+
+                // ── 3. ALTA TUR / DÖNEM BAZLI TABLO VEYA KART LİSTESİ ─────────
+                item {
+                    Text(
+                        "📋 Tur Bazlı Komisyon Dökümü (${filteredCommissions.size})",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    )
+                }
+
+                if (state.isLoading) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = TourOSColors.Primary)
+                        }
                     }
-                }
-
-                Card(
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("⏳ Bekleyen Hak Ediş", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${state.pendingCommission} TRY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFFEA580C))
+                } else if (filteredCommissions.isEmpty()) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
+                            Text(
+                                "Seçili dönem için komisyon kaydı bulunamadı.",
+                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                            )
+                        }
                     }
-                }
-            }
-
-            // 3. Tur Bazlı Komisyon Listesi
-            Text("📋 Tur Bazlı Komisyon Dökümü (${filteredCommissions.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-
-            if (state.isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
+                } else if (isExpanded) {
+                    // Expanded: Tablo Düzeni
+                    item {
+                        CommissionDetailsTable(commissions = filteredCommissions)
+                    }
+                } else {
+                    // Compact: Kart Listesi
                     items(filteredCommissions) { item ->
                         CommissionItemCard(item = item)
                     }
@@ -107,47 +129,242 @@ fun B2BAgencyCommissionsScreen(
     }
 }
 
+// ─── Üstte Tarih Aralığı Seçici (Dönem Filtre Barı) ───────────────────────────
+
 @Composable
-fun CommissionItemCard(item: B2BAgencyCommissionItem) {
-    val (statusColor, statusText) = when (item.status) {
-        "ODENDI" -> Color(0xFF15803D) to "✅ ÖDENDİ"
-        "BEKLIYOR" -> Color(0xFFEA580C) to "⏳ BEKLİYOR"
-        else -> MaterialTheme.colorScheme.primary to "👍 HAK EDİLDİ"
-    }
-
-    Card(
+private fun TopPeriodFilterBar(
+    selectedPeriod: String,
+    onPeriodSelect: (String) -> Unit
+) {
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        backgroundColor = TourOSColors.PrimaryContainer,
+        contentPadding = TourOSSpacing.medium
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(item.tourTitle, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Text(
+                "📅 Hakediş Dönemi Seçin",
+                style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+            )
 
-                Surface(shape = RoundedCornerShape(6.dp), color = statusColor.copy(alpha = 0.15f)) {
-                    Text(statusText, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = statusColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                }
-            }
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Satış Adedi: ${item.bookingCount} Rezervasyon", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("Komisyon Oranı: %${item.commissionRate}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            }
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("Top. Brüt Ciro", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${item.grossSalesAmount} TRY", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Kazanılan Net Komisyon", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${item.commissionAmount} TRY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = statusColor)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                items(periodOptions) { opt ->
+                    FilterChip(
+                        selected = selectedPeriod == opt.key,
+                        onClick = { onPeriodSelect(opt.key) },
+                        label = { Text(opt.label, style = TourOSTypography.Caption) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = TourOSColors.Primary,
+                            selectedLabelColor = TourOSColors.OnPrimary
+                        )
+                    )
                 }
             }
         }
     }
+}
+
+// ─── Üstte Toplam Komisyon Özet Kartı ─────────────────────────────────────────
+
+@Composable
+private fun TotalCommissionSummaryCard(
+    totalEarned: Double,
+    paidAmount: Double,
+    pendingAmount: Double
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        // Toplam Kazanılan Komisyon
+        TourOSCard(
+            modifier = Modifier.weight(1f),
+            backgroundColor = TourOSColors.PrimaryContainer,
+            contentPadding = TourOSSpacing.medium
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    "₺ ${formatMoney(totalEarned)}",
+                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                )
+                Text(
+                    "Toplam Kazanılan",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary.copy(alpha = 0.8f))
+                )
+            }
+        }
+
+        // Ödenen Komisyon
+        TourOSCard(
+            modifier = Modifier.weight(1f),
+            backgroundColor = TourOSColors.SuccessContainer,
+            contentPadding = TourOSSpacing.medium
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    "₺ ${formatMoney(paidAmount)}",
+                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Success)
+                )
+                Text(
+                    "Hesaba Ödenen",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Success.copy(alpha = 0.8f))
+                )
+            }
+        }
+
+        // Bekleyen Hak Ediş
+        TourOSCard(
+            modifier = Modifier.weight(1f),
+            backgroundColor = TourOSColors.SecondaryContainer,
+            contentPadding = TourOSSpacing.medium
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    "₺ ${formatMoney(pendingAmount)}",
+                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Secondary)
+                )
+                Text(
+                    "Bekleyen Hak Ediş",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary.copy(alpha = 0.8f))
+                )
+            }
+        }
+    }
+}
+
+// ─── Expanded: Tur / Dönem Bazlı Komisyon Tablosu ────────────────────────────
+
+@Composable
+private fun CommissionDetailsTable(commissions: List<B2BAgencyCommissionItem>) {
+    val headers = listOf("Tur Adı", "Dönem", "Satış Adedi", "Brüt Ciro (₺)", "Komisyon (%)", "Kazanılan Net (₺)", "Durum")
+    val weights = listOf(1.6f, 1.0f, 0.9f, 1.1f, 1.0f, 1.2f, 1.0f)
+
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+        Column {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(TourOSColors.Primary)
+                    .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
+            ) {
+                headers.forEachIndexed { i, h ->
+                    Text(
+                        h,
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                        modifier = Modifier.weight(weights[i])
+                    )
+                }
+            }
+
+            // Satırlar
+            commissions.forEachIndexed { idx, item ->
+                val bg = if (idx % 2 == 0) TourOSColors.Background else TourOSColors.Surface
+                val isPaid = item.status == "ODENDI"
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(bg)
+                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(item.tourTitle, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[0]))
+                    Text(item.periodName ?: "Ağustos 2026", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(weights[1]))
+                    Text("${item.bookingCount} Pax", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[2]))
+                    Text("₺ ${formatMoney(item.grossSalesAmount)}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[3]))
+                    Text("%${item.commissionRate}", style = TourOSTypography.Label.copy(color = TourOSColors.Secondary), modifier = Modifier.weight(weights[4]))
+                    Text("₺ ${formatMoney(item.commissionAmount)}", style = TourOSTypography.Label.copy(color = TourOSColors.Primary), modifier = Modifier.weight(weights[5]))
+                    Box(modifier = Modifier.weight(weights[6])) {
+                        TourOSStatusBadge(
+                            text = if (isPaid) "Ödendi" else "Bekliyor",
+                            backgroundColor = if (isPaid) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
+                            textColor = if (isPaid) TourOSColors.Success else TourOSColors.Secondary
+                        )
+                    }
+                }
+
+                if (idx < commissions.size - 1) {
+                    HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
+                }
+            }
+        }
+    }
+}
+
+// ─── Compact: Komisyon İtem Kartı ──────────────────────────────────────────────
+
+@Composable
+private fun CommissionItemCard(item: B2BAgencyCommissionItem) {
+    val isPaid = item.status == "ODENDI"
+
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    item.tourTitle,
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                )
+
+                TourOSStatusBadge(
+                    text = if (isPaid) "✅ ÖDENDİ" else "⏳ BEKLİYOR",
+                    backgroundColor = if (isPaid) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
+                    textColor = if (isPaid) TourOSColors.Success else TourOSColors.Secondary
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    "Satış Adedi: ${item.bookingCount} Rezervasyon",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+                Text(
+                    "Komisyon Oranı: %${item.commissionRate}",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.Secondary)
+                )
+            }
+
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Top. Brüt Ciro", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(item.grossSalesAmount)}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Kazanılan Net Komisyon", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(
+                        "₺ ${formatMoney(item.commissionAmount)}",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatMoney(amount: Double): String {
+    val rounded = (amount * 100).toLong() / 100.0
+    return rounded.toString()
 }

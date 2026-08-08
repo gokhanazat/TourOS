@@ -1,25 +1,55 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.NotificationChannel
 import com.mgacreative.touros.domain.model.NotificationResult
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.NotificationHubViewModel
 
+private data class ChannelFilterOption(val key: String, val label: String, val icon: String)
+
+private val channelFilters = listOf(
+    ChannelFilterOption("ALL", "Tüm Bildirimler", "🔔"),
+    ChannelFilterOption("PUSH", "Push (Sistem)", "📲"),
+    ChannelFilterOption("WHATSAPP", "WhatsApp", "💬"),
+    ChannelFilterOption("SMS", "SMS", "📱"),
+    ChannelFilterOption("EMAIL", "E-Posta", "📧")
+)
+
+private data class NotificationItemUi(
+    val id: String,
+    val channel: NotificationChannel,
+    val title: String,
+    val content: String,
+    val recipient: String,
+    val timestamp: String,
+    val isRead: Boolean
+)
+
 /**
- * 3.4.4 NotificationService Çoklu Kanal Bildirim Ekranı (Push, SMS, WhatsApp, E-Posta).
+ * Bildirim Merkezi — TourOS 0.3
+ *
+ * Kronolojik bildirim listesi.
+ * Okunmamışlar hafif Primary Container arka planla vurgulanır.
+ * Üstte kanal filtre chip'leri (Push, WhatsApp, SMS, E-Posta).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationHubScreen(
     viewModel: NotificationHubViewModel,
@@ -27,157 +57,223 @@ fun NotificationHubScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    var recipient by remember { mutableStateOf("+905329998877") }
-    var title by remember { mutableStateOf("Kapadokya Turu Kalkış Bilgilendirmesi") }
-    var content by remember { mutableStateOf("Sayın Misafirimiz, turunuz yarın saat 08:30'da kalkacaktır.") }
+    var selectedChannelFilter by remember { mutableStateOf("ALL") }
+
+    // Kronolojik Bildirim Veri Mock / Listesi
+    var notificationList by remember {
+        mutableStateOf(
+            listOf(
+                NotificationItemUi("n1", NotificationChannel.PUSH, "Yeni Rezervasyon Alındı (#BK-9812)", "Hans Müller Kapadokya VIP Turu için 12,000 TRY ödeme yaptı.", "Operasyon Ekibi", "5 Dk Önce", isRead = false),
+                NotificationItemUi("n2", NotificationChannel.WHATSAPP, "Voucher Bağlantısı Gönderildi", "Sayın Sarah Jenkins, seyahat voucher belgeniz WhatsApp üzerinden iletildi.", "+44 7700 900077", "18 Dk Önce", isRead = false),
+                NotificationItemUi("n3", NotificationChannel.SMS, "Transfer Aracı Yola Çıktı", "34 TUR 06 plakalı Mercedes Sprinter havalimanına hareket etti.", "+90 532 111 2233", "45 Dk Önce", isRead = false),
+                NotificationItemUi("n4", NotificationChannel.EMAIL, "Otomatik Satış Faturası Kesildi", "INV-202608-002 numaralı e-fatura müşteriye e-posta ile iletildi.", "sarah@jenkins.com", "2 Saat Önce", isRead = true),
+                NotificationItemUi("n5", NotificationChannel.PUSH, "Rehber Görev Onayı", "Rehber Mehmet Can 'Ege Turu' görevini onayladı ve takvime ekledi.", "Rehber Ekibi", "4 Saat Önce", isRead = true)
+            )
+        )
+    }
+
+    val filteredNotifications = remember(notificationList, selectedChannelFilter) {
+        if (selectedChannelFilter == "ALL") notificationList
+        else notificationList.filter { it.channel.name == selectedChannelFilter }
+    }
+
+    val unreadCount = remember(notificationList) { notificationList.count { !it.isRead } }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🔔 Çoklu Kanal Bildirim Merkezi", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Bildirim Merkezi",
+                subtitle = "Kronolojik bildirim günlüğü ve kanal takibi",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
+                    }
+                },
+                actions = {
+                    if (unreadCount > 0) {
+                        TourOSButton(
+                            text = "Tümünü Okundu İşaretle",
+                            onClick = {
+                                notificationList = notificationList.map { it.copy(isRead = true) }
+                            },
+                            variant = TourOSButtonVariant.TERTIARY,
+                            modifier = Modifier.padding(end = TourOSSpacing.small)
+                        )
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(TourOSSpacing.large),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
-            // 1. Kanal Seçim Çipleri
-            Text("📡 İletişim Kanalı Seçimi:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = state.selectedChannel == NotificationChannel.PUSH,
-                    onClick = { viewModel.setSelectedChannel(NotificationChannel.PUSH) },
-                    label = { Text("📲 Push (FCM)", fontSize = 10.sp) }
-                )
-                FilterChip(
-                    selected = state.selectedChannel == NotificationChannel.WHATSAPP,
-                    onClick = { viewModel.setSelectedChannel(NotificationChannel.WHATSAPP) },
-                    label = { Text("💬 WhatsApp", fontSize = 10.sp) }
-                )
-                FilterChip(
-                    selected = state.selectedChannel == NotificationChannel.SMS,
-                    onClick = { viewModel.setSelectedChannel(NotificationChannel.SMS) },
-                    label = { Text("📱 SMS", fontSize = 10.sp) }
-                )
-                FilterChip(
-                    selected = state.selectedChannel == NotificationChannel.EMAIL,
-                    onClick = { viewModel.setSelectedChannel(NotificationChannel.EMAIL) },
-                    label = { Text("📧 E-Posta", fontSize = 10.sp) }
-                )
-            }
-
-            if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
-                }
-            }
-
-            // 2. Bildirim Gönderim Formu
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("🚀 Anlık Bildirim Gönder (${state.selectedChannel.name})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-                    OutlinedTextField(
-                        value = recipient,
-                        onValueChange = { recipient = it },
-                        label = { Text(if (state.selectedChannel == NotificationChannel.EMAIL) "Alıcı E-Posta Adresi" else "Alıcı Telefon No / User ID") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+            // ── 1. ÜSTTE KANAL FİLTRE CHIP'LERİ ──────────────────────────────
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "📡 İletişim Kanalları",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                     )
 
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("Bildirim Başlığı") },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        label = { Text("Mesaj İçeriği") },
-                        modifier = Modifier.fillMaxWidth().height(90.dp)
-                    )
-
-                    Button(
-                        onClick = {
-                            if (recipient.isNotBlank() && content.isNotBlank()) {
-                                viewModel.sendNotification(recipient, title, content)
-                            }
-                        },
-                        enabled = recipient.isNotBlank() && content.isNotBlank(),
-                        modifier = Modifier.fillMaxWidth().height(46.dp),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text("🚀 Bildirimi ${state.selectedChannel.name} Üzerinden Gönder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    if (unreadCount > 0) {
+                        TourOSStatusBadge(
+                            text = "$unreadCount Okunmamış",
+                            backgroundColor = TourOSColors.PrimaryContainer,
+                            textColor = TourOSColors.Primary
+                        )
                     }
                 }
             }
 
-            // 3. Gönderilen Bildirim Geçmiş Günlüğü
-            Text("📜 Bildirim Günlüğü (${state.dispatchHistory.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            item {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(channelFilters) { opt ->
+                        FilterChip(
+                            selected = selectedChannelFilter == opt.key,
+                            onClick = { selectedChannelFilter = opt.key },
+                            label = { Text("${opt.icon} ${opt.label}", style = TourOSTypography.Caption) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TourOSColors.Primary,
+                                selectedLabelColor = TourOSColors.OnPrimary
+                            )
+                        )
+                    }
+                }
+            }
 
-            if (state.isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+            // ── 2. KRONOLOJİK BİLDİRİM LİSTESİ ───────────────────────────────
+            item {
+                Text(
+                    "📜 Kronolojik Bildirim Akışı (${filteredNotifications.size})",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+                )
+            }
+
+            if (filteredNotifications.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(160.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Bu kanala ait bildirim bulunamadı.",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                        )
+                    }
                 }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    items(state.dispatchHistory) { log ->
-                        NotificationLogCard(log = log)
-                    }
+                items(filteredNotifications) { item ->
+                    ChronologicalNotificationCard(
+                        item = item,
+                        onMarkAsRead = {
+                            notificationList = notificationList.map {
+                                if (it.id == item.id) it.copy(isRead = true) else it
+                            }
+                        }
+                    )
                 }
             }
         }
     }
 }
 
+// ─── KRONOLOJİK BİLDİRİM KARTI (OKUNMAMIŞLAR PRIMARY CONTAINER İLE VURGULANIR) ──
+
 @Composable
-fun NotificationLogCard(log: NotificationResult) {
-    val (icon, color) = when (log.channel) {
-        NotificationChannel.PUSH -> "📲" to MaterialTheme.colorScheme.primary
-        NotificationChannel.WHATSAPP -> "💬" to Color(0xFF16A34A)
-        NotificationChannel.SMS -> "📱" to Color(0xFFEA580C)
-        NotificationChannel.EMAIL -> "📧" to Color(0xFF2563EB)
+private fun ChronologicalNotificationCard(
+    item: NotificationItemUi,
+    onMarkAsRead: () -> Unit
+) {
+    // OKUNMAMIŞLAR HAFİF PRIMARY CONTAINER ARKA PLANLA VURGULANIR (Strict Rule)
+    val cardBg = if (!item.isRead) {
+        TourOSColors.PrimaryContainer.copy(alpha = 0.45f)
+    } else {
+        TourOSColors.Surface
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    val (channelIcon, channelBadgeText) = when (item.channel) {
+        NotificationChannel.PUSH -> "📲" to "PUSH"
+        NotificationChannel.WHATSAPP -> "💬" to "WHATSAPP"
+        NotificationChannel.SMS -> "📱" to "SMS"
+        NotificationChannel.EMAIL -> "📧" to "E-POSTA"
+    }
+
+    TourOSCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { if (!item.isRead) onMarkAsRead() },
+        backgroundColor = cardBg,
+        contentPadding = TourOSSpacing.medium
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Text(icon, fontSize = 18.sp)
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(log.title ?: "Bildirim", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("Alıcı: ${log.recipient} | ${log.content}", fontSize = 10.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${log.createdAt} | Provider: ${log.provider}", fontSize = 9.sp, color = MaterialTheme.colorScheme.outline)
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(channelIcon, style = TourOSTypography.TitleLarge)
+                    Text(
+                        item.title,
+                        style = TourOSTypography.Label.copy(
+                            color = TourOSColors.TextPrimary
+                        )
+                    )
+                }
+
+                // Okunmadı rozeti veya Kanal badgesi
+                if (!item.isRead) {
+                    TourOSStatusBadge(
+                        text = "🔵 YENİ",
+                        backgroundColor = TourOSColors.Primary,
+                        textColor = TourOSColors.OnPrimary
+                    )
+                } else {
+                    TourOSStatusBadge(
+                        text = channelBadgeText,
+                        backgroundColor = TourOSColors.SecondaryContainer,
+                        textColor = TourOSColors.Secondary
+                    )
                 }
             }
 
-            Surface(shape = RoundedCornerShape(6.dp), color = color.copy(alpha = 0.15f)) {
-                Text(log.status, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = color, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+            Text(
+                item.content,
+                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+            )
+
+            HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "👤 ${item.recipient}  ·  🕒 ${item.timestamp}",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+
+                if (!item.isRead) {
+                    TourOSButton(
+                        text = "✓ Okundu",
+                        onClick = onMarkAsRead,
+                        variant = TourOSButtonVariant.TERTIARY
+                    )
+                }
             }
         }
     }

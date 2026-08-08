@@ -20,6 +20,8 @@ data class CompanySeason(
 data class CompanySettings(
     val id: String,
     val name: String,
+    val companyType: String = "tur_operatoru", // tur_operatoru veya acente
+    val operatorCode: String? = null, // örn. ANK, IST
     val logoUrl: String? = null,
     val themeColor: String = "#1976D2",
     val taxRate: Double = 20.0,

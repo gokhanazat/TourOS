@@ -64,11 +64,18 @@ class TourListViewModel(
                 searchQuery = currentSearch
             )
         }.onFailure { exception ->
-            _uiState.value = TourListUiState.Error(
-                exception.message ?: "Turlar yüklenirken hata oluştu"
-            )
+            val rawMsg = exception.message ?: ""
+            val userFriendlyMsg = if (rawMsg.contains("infinite recursion") || rawMsg.contains("42P17") || rawMsg.contains("profiles")) {
+                "Veritabanı RLS Politika Hatası (profiles tablosunda sonsuz döngü tespit edildi - Code: 42P17). Lütfen Supabase RLS kuralını güncelleyin."
+            } else if (rawMsg.contains("Headers:") || rawMsg.contains("Http Method")) {
+                "Tur kataloğu verileri yüklenirken sunucu erişim hatası oluştu."
+            } else {
+                rawMsg.ifBlank { "Turlar yüklenirken hata oluştu" }
+            }
+            _uiState.value = TourListUiState.Error(userFriendlyMsg)
         }
     }
+
 
     fun onCategoryFilterSelected(category: TourCategory?) {
         currentCategory = category

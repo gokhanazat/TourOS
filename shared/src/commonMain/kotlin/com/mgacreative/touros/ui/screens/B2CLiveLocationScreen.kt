@@ -3,23 +3,27 @@ package com.mgacreative.touros.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.B2CLiveLocationViewModel
 
 /**
- * 4.2.5 B2C Customer Mobile App Supabase Realtime Live Location Screen.
+ * B2C Canlı Konum Ekranı — TourOS 0.3
+ *
+ * Tam ekran harita görünümü.
+ * Üstte yarı saydam bilgi kartı (Tahmini Varış Süresi - ETA, Araç Plakası, Rehber/Sürücü Adı) sabit konumda.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun B2CLiveLocationScreen(
     viewModel: B2CLiveLocationViewModel,
@@ -29,129 +33,205 @@ fun B2CLiveLocationScreen(
     val loc = state.liveLocation
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("📡 Canlı Konum Takibi", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Canlı Konum Takibi",
+                subtitle = "Tur otobüsü ve rehberinizin anlık harita konumu",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        // ── TAM EKRAN HARİTA DÜZENİ ───────────────────────────────────────────
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // 1. Supabase Realtime Bağlantı Durum Banner'ı
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = Color(0xFFDCFCE7),
-                modifier = Modifier.fillMaxWidth()
+            // 1. TAM EKRAN HARİTA ZEMİN SİMÜLASYONU
+            FullScreenMapViewContainer(
+                lat = loc.latitude,
+                lng = loc.longitude,
+                speedKmh = loc.speedKmh
+            )
+
+            // 2. ÜSTTE YARI SAYDAM BİLĞİ KARTI (SABİT OVERLAY)
+            TopOverlayInfoCard(
+                etaMinutes = 12,
+                distanceKm = 3.4,
+                vehiclePlate = loc.vehiclePlate.ifBlank { "34 TUR 06" },
+                guideName = loc.guideName.ifBlank { "Mehmet Can" },
+                driverName = loc.driverName.ifBlank { "Ali Yılmaz" },
+                lastUpdated = loc.updatedAt,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(TourOSSpacing.large)
+            )
+
+            // 3. ALTA SABİT HIZLI İLETİŞİM AKSİYON BAR'I
+            BottomContactActionBar(
+                onCallDriver = { },
+                onWhatsappGuide = { },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(TourOSSpacing.large)
+            )
+        }
+    }
+}
+
+// ─── ÜSTTE YARI SAYDAM BİLGİ KARTI (TAHMİNİ VARIŞ, ARAÇ / REHBER ADI) ───────
+
+@Composable
+private fun TopOverlayInfoCard(
+    etaMinutes: Int,
+    distanceKm: Double,
+    vehiclePlate: String,
+    guideName: String,
+    driverName: String,
+    lastUpdated: String,
+    modifier: Modifier = Modifier
+) {
+    // YARI SAYDAM KURUMSAL BİLGİ KARTI (Strict Rule: alpha = 0.94f)
+    TourOSCard(
+        modifier = modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.Surface.copy(alpha = 0.94f),
+        contentPadding = TourOSSpacing.large
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("🟢", fontSize = 14.sp)
-                        Text("Supabase Realtime Canlı Konum Akışı", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF15803D))
-                    }
-                    Text("Canlı", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
-                }
-            }
-
-            // 2. Canlı Harita / GPS Radar Çerçevesi
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("📍 Canlı GPS Konum Radarı", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp)
-                            .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                            .background(Color(0xFF0F172A), RoundedCornerShape(12.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("🚌 📍 Araç & Rehber Pin", fontSize = 28.sp)
-                            Text("${loc.latitude}° N, ${loc.longitude}° E", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF2563EB)) {
-                                    Text("🚀 ${loc.speedKmh} km/h", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                                }
-                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFD97706)) {
-                                    Text("🧭 ${loc.headingDegrees}° Yön", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                                }
-                            }
-                        }
+                    Text("⏱️", style = TourOSTypography.TitleLarge)
+                    Column {
+                        Text(
+                            "Tahmini Varış: $etaMinutes Dakika",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                        )
+                        Text(
+                            "$distanceKm km uzaklıkta  ·  Son sinyal: $lastUpdated",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                        )
                     }
                 }
+
+                TourOSStatusBadge(
+                    text = "🔴 CANLI TAKİP",
+                    backgroundColor = TourOSColors.SuccessContainer,
+                    textColor = TourOSColors.Success
+                )
             }
 
-            // 3. Araç ve Görevli Personel Bilgileri
-            Card(
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            // Araç & Rehber Detayı
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("🚍 Araç & Personel Bilgileri", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Araç & Plaka:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(
+                        "🚍 $vehiclePlate (VIP Sprinter)",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                    )
+                }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Araç Plakası:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(loc.vehiclePlate, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Kaptan Sürücü:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(loc.driverName, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Kokartlı Rehber:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(loc.guideName, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Son Sinyal Zamanı:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(loc.updatedAt, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = {},
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("📞 Kaptanı Ara", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Button(
-                            onClick = {},
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("💬 Rehbere WhatsApp", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
+                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("Rehber & Sürücü:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(
+                        "👤 $guideName  ·  👨‍✈️ $driverName",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                    )
                 }
             }
         }
+    }
+}
+
+// ─── TAM EKRAN HARİTA GÖRÜNÜM SİMÜLASYONU ────────────────────────────────────
+
+@Composable
+private fun FullScreenMapViewContainer(
+    lat: Double,
+    lng: Double,
+    speedKmh: Double
+) {
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFE2E8F0)),
+        contentAlignment = Alignment.Center
+    ) {
+        // Harita Izgara Ve Rota Akış Simülasyon Çizgileri
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(160.dp)
+                    .clip(RoundedCornerShape(80.dp))
+                    .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
+                    .border(2.dp, TourOSColors.Primary, RoundedCornerShape(80.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("🚌 📍", style = TourOSTypography.DisplaySmall)
+                    Text(
+                        "CANLI ARAÇ PİNİ",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
+                    )
+                    Text(
+                        "$speedKmh km/h",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                    )
+                }
+            }
+
+            Text(
+                "🗺️ Harita Koordinatları: $lat° N, $lng° E",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
+        }
+    }
+}
+
+// ─── ALTA SABİT HIZLI İLETİŞİM AKSİYON BAR'I ─────────────────────────────────
+
+@Composable
+private fun BottomContactActionBar(
+    onCallDriver: () -> Unit,
+    onWhatsappGuide: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        TourOSButton(
+            text = "📞 Sürücüyü Ara",
+            onClick = onCallDriver,
+            variant = TourOSButtonVariant.SECONDARY,
+            modifier = Modifier.weight(1f)
+        )
+
+        TourOSButton(
+            text = "💬 Rehbere Mesaj At",
+            onClick = onWhatsappGuide,
+            variant = TourOSButtonVariant.PRIMARY,
+            modifier = Modifier.weight(1f)
+        )
     }
 }

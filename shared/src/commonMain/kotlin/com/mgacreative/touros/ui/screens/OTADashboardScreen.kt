@@ -1,31 +1,52 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.ota.OTAAccount
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.OTAHubViewModel
 
-data class OTAChannelUiModel(
-    val providerId: String,
-    val providerName: String,
+private data class OTAProviderItemData(
+    val id: String,
+    val name: String,
+    val logoIcon: String,
     val isConnected: Boolean,
     val lastSyncedAt: String,
-    val failedJobCount: Int,
+    val productCount: Int,
     val bookingCount: Int,
-    val productCount: Int
+    val hasError: Boolean = false
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val sampleOTAProviders = listOf(
+    OTAProviderItemData("viator", "Viator / TripAdvisor", "🌐", true, "2 Dk Önce (18:20)", 14, 185, false),
+    OTAProviderItemData("getyourguide", "GetYourGuide", "🎯", true, "5 Dk Önce (18:17)", 10, 142, false),
+    OTAProviderItemData("booking", "Booking.com Experiences", "🏨", true, "12 Dk Önce (18:10)", 22, 210, false),
+    OTAProviderItemData("expedia", "Expedia Local Expert", "✈️", false, "Bağlantı Kesildi (Hata)", 8, 45, true),
+    OTAProviderItemData("airbnb", "Airbnb Experiences", "🏡", true, "1Sa Önce (17:22)", 6, 68, false),
+    OTAProviderItemData("tiqets", "Tiqets Partner API", "🎟️", true, "30 Dk Önce (17:52)", 12, 94, false)
+)
+
+/**
+ * OTA Dashboard Ekranı — TourOS 0.3
+ *
+ * Bağlı sağlayıcı kartları grid'i.
+ * Her kartta sağlayıcı logosu/adı, bağlantı durumu rozeti (Success/Error), son sync zamanı ve 'Yönet' butonu.
+ */
 @Composable
 fun OTADashboardScreen(
     viewModel: OTAHubViewModel,
@@ -33,93 +54,84 @@ fun OTADashboardScreen(
     onNavigateToLogs: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedChannelForLogs by remember { mutableStateOf<String?>(null) }
-
-    val mockChannels = remember {
-        listOf(
-            OTAChannelUiModel("viator", "Viator / TripAdvisor", true, "10 dk önce", 0, 142, 12),
-            OTAChannelUiModel("getyourguide", "GetYourGuide", true, "15 dk önce", 1, 98, 8),
-            OTAChannelUiModel("hotelbeds", "HotelBeds", false, "Henüz bağlanmadı", 0, 0, 0),
-            OTAChannelUiModel("booking", "Booking.com", true, "5 dk önce", 0, 210, 24),
-            OTAChannelUiModel("expedia", "Expedia Partner Central", false, "Bağlantı Kesildi", 2, 45, 6)
-        )
-    }
+    var providersList by remember { mutableStateOf(sampleOTAProviders) }
+    var selectedProviderForManage by remember { mutableStateOf<OTAProviderItemData?>(null) }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("OTA Entegrasyon Yönetim Paneli", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "OTA Entegrasyon Dashboard",
+                subtitle = "Canlı online seyahat kanalları ve API senkronizasyon kontrolü",
                 actions = {
-                    TextButton(onClick = { viewModel.loadBookings(tenantId = tenantId) }) {
-                        Text("Yenile")
-                    }
+                    TourOSButton(
+                        text = "🔄 Tümünü Senkronize Et",
+                        onClick = { viewModel.loadBookings(tenantId = tenantId) },
+                        variant = TourOSButtonVariant.SECONDARY,
+                        modifier = Modifier.padding(end = TourOSSpacing.small)
+                    )
                 }
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Özet Metrik Kartları
-            item {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val gridColumns = if (maxWidth >= 1024.dp) 3 else if (maxWidth >= 640.dp) 2 else 1
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(TourOSSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                // ÖZET METRİK KARTLARI (Kanal Bağlantı İstatistikleri)
+                OTAMetricsOverviewBar(
+                    totalBookings = providersList.sumOf { it.bookingCount },
+                    activeChannels = providersList.count { it.isConnected },
+                    totalChannels = providersList.size,
+                    errorChannels = providersList.count { it.hasError }
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    SummaryMetricCard(
-                        title = "Toplam Rezervasyon",
-                        value = "495",
-                        badge = "REZ",
-                        modifier = Modifier.weight(1f)
+                    Text(
+                        "🔗 Entegre OTA Sağlayıcı Kanalları (${providersList.size})",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                     )
-                    SummaryMetricCard(
-                        title = "Aktif Kanallar",
-                        value = "3 / 5",
-                        badge = "AKTİF",
-                        modifier = Modifier.weight(1f)
+
+                    TourOSStatusBadge(
+                        text = "${providersList.count { it.isConnected }} / ${providersList.size} CANLI",
+                        backgroundColor = TourOSColors.SuccessContainer,
+                        textColor = TourOSColors.Success
                     )
-                    SummaryMetricCard(
-                        title = "Başarısız Job",
-                        value = "3",
-                        badge = "HATA",
-                        modifier = Modifier.weight(1f),
-                        isError = true
-                    )
+                }
+
+                // ── BAĞLI SAĞLAYICI KARTLARI GRID'İ ──────────────────────────────
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(gridColumns),
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                    modifier = Modifier.fillMaxWidth().weight(1f)
+                ) {
+                    items(providersList) { provider ->
+                        OTAProviderGridCardItem(
+                            provider = provider,
+                            onManage = { selectedProviderForManage = provider }
+                        )
+                    }
                 }
             }
 
-            item {
-                Text(
-                    text = "OTA Kanal Bağlantıları & Durum",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
-            // Kanal Listesi
-            items(mockChannels) { channel ->
-                OTAChannelCard(
-                    channel = channel,
-                    onConnect = {
-                        viewModel.connectChannel(
-                            OTAAccount(accountId = channel.providerId, providerId = channel.providerId, accountName = channel.providerName, apiKey = "key-123"),
-                            tenantId
-                        )
-                    },
-                    onDisconnect = {
-                        viewModel.syncNow(channel.providerId, false, tenantId)
-                    },
-                    onSync = {
-                        viewModel.syncNow(channel.providerId, true, tenantId)
-                    },
-                    onViewLogs = {
-                        selectedChannelForLogs = channel.providerId
-                        onNavigateToLogs(channel.providerId)
+            // KANAL YÖNETİM MODAL DIALOGU
+            selectedProviderForManage?.let { provider ->
+                OTAManageModalDialog(
+                    provider = provider,
+                    onDismiss = { selectedProviderForManage = null },
+                    onSyncNow = {
+                        viewModel.syncNow(provider.id, true, tenantId)
+                        selectedProviderForManage = null
                     }
                 )
             }
@@ -127,140 +139,190 @@ fun OTADashboardScreen(
     }
 }
 
+// ─── ÖZET METRİK BARI BİLEŞENİ ────────────────────────────────────────────────
+
 @Composable
-fun SummaryMetricCard(
-    title: String,
-    value: String,
-    badge: String,
-    modifier: Modifier = Modifier,
-    isError: Boolean = false
+private fun OTAMetricsOverviewBar(
+    totalBookings: Int,
+    activeChannels: Int,
+    totalChannels: Int,
+    errorChannels: Int
 ) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = if (isError) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
-        )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.Start
+        TourOSCard(
+            modifier = Modifier.weight(1f),
+            backgroundColor = TourOSColors.PrimaryContainer,
+            contentPadding = TourOSSpacing.medium
         ) {
-            Surface(
-                shape = RoundedCornerShape(4.dp),
-                color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-            ) {
-                Text(
-                    text = badge,
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Toplam OTA Rezervasyonu", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                Text("$totalBookings REZ", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Text(text = title, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        TourOSCard(
+            modifier = Modifier.weight(1f),
+            backgroundColor = TourOSColors.SuccessContainer,
+            contentPadding = TourOSSpacing.medium
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Aktif Kanal Bağlantısı", style = TourOSTypography.Caption.copy(color = TourOSColors.Success))
+                Text("$activeChannels / $totalChannels AKTİF", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Success))
+            }
+        }
+
+        TourOSCard(
+            modifier = Modifier.weight(1f),
+            backgroundColor = if (errorChannels > 0) TourOSColors.SecondaryContainer else TourOSColors.Surface,
+            contentPadding = TourOSSpacing.medium
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Hatalı Kanal Durumu", style = TourOSTypography.Caption.copy(color = if (errorChannels > 0) TourOSColors.Secondary else TourOSColors.TextSecondary))
+                Text("$errorChannels HATA", style = TourOSTypography.TitleLarge.copy(color = if (errorChannels > 0) TourOSColors.Secondary else TourOSColors.TextPrimary))
+            }
         }
     }
 }
 
+// ─── BAĞLI SAĞLAYICI KARTI BİLEŞENİ (Strict Rule: Logo, Rozet, Sync, Yönet) ─────
+
 @Composable
-fun OTAChannelCard(
-    channel: OTAChannelUiModel,
-    onConnect: () -> Unit,
-    onDisconnect: () -> Unit,
-    onSync: () -> Unit,
-    onViewLogs: () -> Unit
+private fun OTAProviderGridCardItem(
+    provider: OTAProviderItemData,
+    onManage: () -> Unit
 ) {
-    Card(
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(12.dp)
+        backgroundColor = TourOSColors.Surface,
+        contentPadding = TourOSSpacing.large
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            // 1. SAĞLAYICI LOGOSU & BAĞLANTI DURUMU ROZETİ (Success/Error) (Strict Rule)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = if (channel.isConnected) Color(0xFF4CAF50) else Color.Gray,
-                        modifier = Modifier.size(12.dp)
-                    ) {}
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = channel.providerName, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(provider.logoIcon, style = TourOSTypography.TitleLarge)
+                    Text(
+                        provider.name,
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    )
                 }
 
-                AssistChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            if (channel.isConnected) "BAĞLI" else "DEVRE DIŞI",
-                            color = if (channel.isConnected) Color(0xFF2E7D32) else Color.DarkGray
-                        )
-                    }
+                // BAĞLANTI DURUMU ROZETİ (Success/Error Strict Rule)
+                TourOSStatusBadge(
+                    text = if (provider.hasError) "❌ KESİNTİ HATA" else if (provider.isConnected) "✅ BAĞLANTI AKTİF" else "○ PASİF",
+                    backgroundColor = if (provider.hasError) TourOSColors.SecondaryContainer else if (provider.isConnected) TourOSColors.SuccessContainer else TourOSColors.Surface,
+                    textColor = if (provider.hasError) TourOSColors.Secondary else if (provider.isConnected) TourOSColors.Success else TourOSColors.TextSecondary
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = TourOSColors.Divider)
 
+            // 2. SON SYNC ZAMANI (Strict Rule)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Son Sync: ${channel.lastSyncedAt}", fontSize = 13.sp, color = Color.Gray)
-                Text(text = "Başarısız Job: ${channel.failedJobCount}", fontSize = 13.sp, color = if (channel.failedJobCount > 0) Color.Red else Color.Gray)
+                Text(
+                    "Son Sync Zamanı:",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+                Text(
+                    provider.lastSyncedAt,
+                    style = TourOSTypography.Label.copy(
+                        color = if (provider.hasError) TourOSColors.Secondary else TourOSColors.Primary
+                    )
+                )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(text = "Rezervasyon: ${channel.bookingCount}", fontSize = 13.sp)
-                Text(text = "Eşleşen Ürün: ${channel.productCount}", fontSize = 13.sp)
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Buton Grubu: Connect, Disconnect, Manuel Sync, Logları Görüntüle
+            // 3. EŞLEŞEN ÜRÜN VE REZERVASYON DETAYLARI
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if (channel.isConnected) {
-                    OutlinedButton(
-                        onClick = onDisconnect,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Disconnect", fontSize = 11.sp)
-                    }
-                } else {
-                    Button(
-                        onClick = onConnect,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Connect", fontSize = 11.sp)
-                    }
-                }
-
-                Button(
-                    onClick = onSync,
-                    enabled = channel.isConnected,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Manuel Sync", fontSize = 11.sp)
-                }
-
-                OutlinedButton(
-                    onClick = onViewLogs,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Loglar", fontSize = 11.sp)
-                }
+                Text(
+                    "Eşleşen Ürün: ${provider.productCount} Tur",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+                Text(
+                    "Rezervasyon: ${provider.bookingCount} Rez",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary)
+                )
             }
+
+            Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+
+            // 4. 'YÖNET' BUTONU (Strict Rule)
+            TourOSButton(
+                text = "⚙️ Yönet & Ayarlar",
+                onClick = onManage,
+                variant = TourOSButtonVariant.SECONDARY,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
+}
+
+// ─── KANAL YÖNETİM MODAL DIALOGU ──────────────────────────────────────────────
+
+@Composable
+private fun OTAManageModalDialog(
+    provider: OTAProviderItemData,
+    onDismiss: () -> Unit,
+    onSyncNow: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(provider.logoIcon, style = TourOSTypography.TitleLarge)
+                Text(
+                    "${provider.name} Yönetimi",
+                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                )
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                Text(
+                    "Kanal Durumu: ${if (provider.isConnected) "Bağlı ve Aktif" else "Bağlantı Kesildi"}",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                )
+                Text(
+                    "Son Senkronizasyon: ${provider.lastSyncedAt}",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+
+                HorizontalDivider(color = TourOSColors.Divider)
+
+                TourOSButton(
+                    text = "⚡ Şimdi Manuel Senkronize Et",
+                    onClick = onSyncNow,
+                    variant = TourOSButtonVariant.PRIMARY,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TourOSButton(
+                text = "Kapat",
+                onClick = onDismiss,
+                variant = TourOSButtonVariant.TERTIARY
+            )
+        },
+        containerColor = TourOSColors.Surface,
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusLarge)
+    )
 }

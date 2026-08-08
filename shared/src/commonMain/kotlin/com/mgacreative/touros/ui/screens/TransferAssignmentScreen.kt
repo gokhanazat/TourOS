@@ -1,30 +1,51 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.Driver
 import com.mgacreative.touros.domain.model.Guide
 import com.mgacreative.touros.domain.model.TransferTask
 import com.mgacreative.touros.domain.model.Vehicle
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.AssignmentDialogState
 import com.mgacreative.touros.ui.viewmodel.TransferAssignmentUiState
 import com.mgacreative.touros.ui.viewmodel.TransferAssignmentViewModel
 
+private data class StatusFilterItem(val key: String?, val label: String, val icon: String)
+
+private val statusFilters = listOf(
+    StatusFilterItem(null, "Tüm Görevler", "📋"),
+    StatusFilterItem("planned", "Planlanan", "⏱️"),
+    StatusFilterItem("assigned", "Atanan", "👤"),
+    StatusFilterItem("completed", "Tamamlanan", "✅")
+)
+
 /**
- * 2.4.2 Şoför ve Rehber Transfer Görevi Atama Ekranı.
+ * Transfer Görev Atama Ekranı — TourOS 0.3
+ *
+ * İki Panelli Düzen (Expanded: Sol Transfer Detayı, Sağ Müsait Personel/Araç Kartları)
+ * Compact: Üstte Transfer Listesi/Detayı, Altta Müsait Personel Seçimi.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransferAssignmentScreen(
     viewModel: TransferAssignmentViewModel,
@@ -34,99 +55,179 @@ fun TransferAssignmentScreen(
     val dialogState by viewModel.dialogState.collectAsState()
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🚐 Şoför & Rehber Transfer Atama", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Transfer Görev Atama",
+                subtitle = "Şoför, rehber ve araç görevlendirme yönetimi",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            when (val state = uiState) {
-                is TransferAssignmentUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+        when (val state = uiState) {
+            is TransferAssignmentUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TourOSColors.Primary)
                 }
-                is TransferAssignmentUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Hata: ${state.message}", color = MaterialTheme.colorScheme.error)
-                    }
+            }
+            is TransferAssignmentUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("Hata: ${state.message}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error))
                 }
-                is TransferAssignmentUiState.Success -> {
-                    // Atama Dialog Açıksa
-                    if (dialogState.isOpen && dialogState.transfer != null) {
-                        TransferAssignmentDialog(
-                            dialogState = dialogState,
-                            drivers = state.drivers,
-                            guides = state.guides,
-                            vehicles = state.vehicles,
-                            onSelectDriver = { viewModel.selectDriver(it) },
-                            onSelectGuide = { viewModel.selectGuide(it) },
-                            onSelectVehicle = { viewModel.selectVehicle(it) },
-                            onSave = { viewModel.saveAssignment() },
-                            onCancel = { viewModel.closeAssignmentDialog() }
-                        )
-                    }
+            }
+            is TransferAssignmentUiState.Success -> {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    val isExpanded = maxWidth >= 840.dp
+                    var selectedTransferId by remember { mutableStateOf<String?>(state.transfers.firstOrNull()?.id) }
 
-                    // Durum Filtre Çipleri
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // Aktif seçili transfer görevi
+                    val activeTransfer = state.transfers.find { it.id == selectedTransferId } ?: state.transfers.firstOrNull()
+
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(TourOSSpacing.large),
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        FilterChip(
-                            selected = state.selectedStatusFilter == null,
-                            onClick = { viewModel.setStatusFilter(null) },
-                            label = { Text("Tüm Görevler", fontSize = 11.sp) }
-                        )
-                        FilterChip(
-                            selected = state.selectedStatusFilter == "planned",
-                            onClick = { viewModel.setStatusFilter("planned") },
-                            label = { Text("📋 Planlanan", fontSize = 11.sp) }
-                        )
-                        FilterChip(
-                            selected = state.selectedStatusFilter == "assigned",
-                            onClick = { viewModel.setStatusFilter("assigned") },
-                            label = { Text("👤 Atanan", fontSize = 11.sp) }
-                        )
-                        FilterChip(
-                            selected = state.selectedStatusFilter == "completed",
-                            onClick = { viewModel.setStatusFilter("completed") },
-                            label = { Text("✅ Tamamlanan", fontSize = 11.sp) }
-                        )
-                    }
-
-                    if (state.transfers.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                            Text("Bu filtreye uygun transfer görevi bulunamadı.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth().weight(1f)
-                        ) {
-                            items(state.transfers) { transfer ->
-                                val driver = state.drivers.find { it.id == transfer.driverId }
-                                val guide = state.guides.find { it.id == transfer.guideId }
-                                val vehicle = state.vehicles.find { it.id == transfer.vehicleId }
-
-                                TransferTaskCard(
-                                    transfer = transfer,
-                                    driver = driver,
-                                    guide = guide,
-                                    vehicle = vehicle,
-                                    onAssignClick = { viewModel.openAssignmentDialog(transfer) }
+                        // ── Filtre Çipleri ────────────────────────────────────
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                            items(statusFilters) { filter ->
+                                FilterChip(
+                                    selected = state.selectedStatusFilter == filter.key,
+                                    onClick = { viewModel.setStatusFilter(filter.key) },
+                                    label = {
+                                        Text("${filter.icon} ${filter.label}", style = TourOSTypography.Caption)
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = TourOSColors.PrimaryContainer,
+                                        selectedLabelColor = TourOSColors.Primary
+                                    )
                                 )
+                            }
+                        }
+
+                        if (state.transfers.isEmpty()) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Filtreye uygun transfer görevi bulunamadı.",
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else if (isExpanded) {
+                            // ── Expanded: İKİ PANELLİ DÜZEN ─────────────────────
+                            Row(
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                            ) {
+                                // SOL PANEL: Transfer Liste & Detayı (Kapsamlı)
+                                Column(
+                                    modifier = Modifier.weight(1.1f).fillMaxHeight(),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                ) {
+                                    Text(
+                                        "📌 Transfer Görevleri (${state.transfers.size})",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                    )
+
+                                    LazyColumn(
+                                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                        modifier = Modifier.fillMaxSize()
+                                    ) {
+                                        items(state.transfers) { transfer ->
+                                            val isSelected = transfer.id == activeTransfer?.id
+                                            val driver = state.drivers.find { it.id == transfer.driverId }
+                                            val guide = state.guides.find { it.id == transfer.guideId }
+                                            val vehicle = state.vehicles.find { it.id == transfer.vehicleId }
+
+                                            TransferSelectableCard(
+                                                transfer = transfer,
+                                                driver = driver,
+                                                guide = guide,
+                                                vehicle = vehicle,
+                                                isSelected = isSelected,
+                                                onClick = {
+                                                    selectedTransferId = transfer.id
+                                                    viewModel.openAssignmentDialog(transfer)
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                VerticalDivider(color = TourOSColors.Divider, thickness = 1.dp)
+
+                                // SAĞ PANEL: Müsait Şoför, Rehber & Araç Seçim Paneli
+                                Column(
+                                    modifier = Modifier.weight(1.3f).fillMaxHeight(),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                ) {
+                                    if (activeTransfer != null) {
+                                        RightAssignmentPanel(
+                                            activeTransfer = activeTransfer,
+                                            dialogState = dialogState,
+                                            drivers = state.drivers,
+                                            guides = state.guides,
+                                            vehicles = state.vehicles,
+                                            onSelectDriver = { viewModel.selectDriver(it) },
+                                            onSelectGuide = { viewModel.selectGuide(it) },
+                                            onSelectVehicle = { viewModel.selectVehicle(it) },
+                                            onSave = { viewModel.saveAssignment() },
+                                            onCancel = { viewModel.closeAssignmentDialog() }
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            // ── Compact: TEK SÜTUNLU AKIŞ ──────────────────────
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                            ) {
+                                items(state.transfers) { transfer ->
+                                    val driver = state.drivers.find { it.id == transfer.driverId }
+                                    val guide = state.guides.find { it.id == transfer.guideId }
+                                    val vehicle = state.vehicles.find { it.id == transfer.vehicleId }
+
+                                    TransferCompactCard(
+                                        transfer = transfer,
+                                        driver = driver,
+                                        guide = guide,
+                                        vehicle = vehicle,
+                                        onAssignClick = {
+                                            selectedTransferId = transfer.id
+                                            viewModel.openAssignmentDialog(transfer)
+                                        }
+                                    )
+                                }
+
+                                item {
+                                    AnimatedVisibility(
+                                        visible = dialogState.isOpen && dialogState.transfer != null,
+                                        enter = expandVertically(),
+                                        exit = shrinkVertically()
+                                    ) {
+                                        dialogState.transfer?.let { transfer ->
+                                            RightAssignmentPanel(
+                                                activeTransfer = transfer,
+                                                dialogState = dialogState,
+                                                drivers = state.drivers,
+                                                guides = state.guides,
+                                                vehicles = state.vehicles,
+                                                onSelectDriver = { viewModel.selectDriver(it) },
+                                                onSelectGuide = { viewModel.selectGuide(it) },
+                                                onSelectVehicle = { viewModel.selectVehicle(it) },
+                                                onSave = { viewModel.saveAssignment() },
+                                                onCancel = { viewModel.closeAssignmentDialog() }
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -136,133 +237,68 @@ fun TransferAssignmentScreen(
     }
 }
 
+// ─── Sol Panel: Seçilebilir Transfer Kartı (Expanded) ─────────────────────────
+
 @Composable
-fun TransferTaskCard(
+private fun TransferSelectableCard(
     transfer: TransferTask,
     driver: Driver?,
     guide: Guide?,
     vehicle: Vehicle?,
-    onAssignClick: () -> Unit
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    val transferTypeLabel = when (transfer.transferType) {
-        "airport" -> "✈️ Havalimanı Transferi"
-        "tour" -> "🏞️ Tur Transferi"
-        "intercity" -> "🛣️ Şehirler Arası Transfer"
-        else -> "🚐 Özel Transfer"
-    }
-
     val isFullyAssigned = driver != null && guide != null && vehicle != null
+    val borderColor = if (isSelected) TourOSColors.Primary else TourOSColors.Border
+    val bgColor = if (isSelected) TourOSColors.PrimaryContainer.copy(alpha = 0.3f) else TourOSColors.Background
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    TourOSCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+            ),
+        backgroundColor = bgColor,
+        contentPadding = TourOSSpacing.medium
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) {
-                    Text(
-                        text = transferTypeLabel,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (isFullyAssigned) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer
-                ) {
-                    Text(
-                        text = if (isFullyAssigned) "✅ Atama Tamamlandı" else "⚠️ Atama Bekliyor",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isFullyAssigned) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                Text(
+                    text = transferTypeLabel(transfer.transferType),
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
+                )
+                TourOSStatusBadge(
+                    text = if (isFullyAssigned) "✅ Tamam" else "⚠️ Atama Bekliyor",
+                    backgroundColor = if (isFullyAssigned) TourOSColors.SuccessContainer else TourOSColors.WarningContainer,
+                    textColor = if (isFullyAssigned) TourOSColors.Success else TourOSColors.Warning
+                )
             }
 
-            // Güzergah & Zaman
-            Column {
-                Text("📍 ${transfer.origin}  ➜  ${transfer.destination}", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(2.dp))
-                Text("📅 Alış Tarihi: ${transfer.pickupTime ?: "Tarih Belirtilmedi"} | 👥 ${transfer.paxCount} Yolcu (Pax)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            Text(
+                text = "📍 ${transfer.origin} → ${transfer.destination}",
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+            )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            // Atanan Şoför, Rehber ve Araç Özeti
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Şoför Kartı
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = if (driver != null) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text("👨‍✈️ Şoför", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(driver?.fullName ?: "Atanmadı", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (driver != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error)
-                        if (driver?.phone != null) {
-                            Text(driver.phone, fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-
-                // Rehber Kartı
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = if (guide != null) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text("🚩 Kokartlı Rehber", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(guide?.fullName ?: "Atanmadı", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (guide != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error)
-                        if (guide?.languages != null) {
-                            Text(guide.languages.joinToString(", "), fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-
-                // Araç Kartı
-                Card(
-                    modifier = Modifier.weight(1f),
-                    colors = CardDefaults.cardColors(containerColor = if (vehicle != null) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.2f))
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Text("🚌 Araç", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(vehicle?.plateNumber ?: "Atanmadı", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (vehicle != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error)
-                        if (vehicle?.model != null) {
-                            Text(vehicle.model, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
-
-            if (!transfer.notes.isNullOrBlank()) {
-                Text("📝 Not: ${transfer.notes}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            Button(
-                onClick = onAssignClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(if (isFullyAssigned) "✏️ Atamayı Güncelle" else "👤 Şoför / Rehber Atama Yap")
-            }
+            Text(
+                text = "📅 ${transfer.pickupTime ?: "—"}  ·  👥 ${transfer.paxCount} Pax",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
         }
     }
 }
 
+// ─── Sağ Panel: Şoför, Rehber & Araç Seçim Ekranı ────────────────────────────
+
 @Composable
-fun TransferAssignmentDialog(
+private fun RightAssignmentPanel(
+    activeTransfer: TransferTask,
     dialogState: AssignmentDialogState,
     drivers: List<Driver>,
     guides: List<Guide>,
@@ -273,82 +309,258 @@ fun TransferAssignmentDialog(
     onSave: () -> Unit,
     onCancel: () -> Unit
 ) {
-    val transfer = dialogState.transfer ?: return
-
-    Card(
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+        backgroundColor = TourOSColors.SecondaryContainer.copy(alpha = 0.4f),
+        contentPadding = TourOSSpacing.large
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("👤 Transfer Görevi Atama Formu", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+            // Başlık
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "👤 Görev Atama Paneli",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    )
+                    Text(
+                        "📍 ${activeTransfer.origin} → ${activeTransfer.destination}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
+                    )
+                }
                 IconButton(onClick = onCancel) {
-                    Text("✕", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("✕", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextSecondary))
                 }
             }
 
-            Text("📍 Güzergah: ${transfer.origin} ➜ ${transfer.destination}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            HorizontalDivider(color = TourOSColors.Divider)
 
-            // Şoför Seçimi
-            Text("👨‍✈️ Şoför Seçin:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = dialogState.selectedDriverId == null,
-                    onClick = { onSelectDriver(null) },
-                    label = { Text("Atama Yapma", fontSize = 11.sp) }
-                )
-                drivers.forEach { d ->
-                    FilterChip(
-                        selected = dialogState.selectedDriverId == d.id,
-                        onClick = { onSelectDriver(d.id) },
-                        label = { Text("${d.fullName} (${d.licenseClass ?: "D1"})", fontSize = 11.sp) }
+            // 1. MÜSAİT ŞOFÖR SEÇİM KARTLARI
+            Text(
+                "👨‍✈️ Müsait Şoför Listesi",
+                style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                item {
+                    SelectableChipCard(
+                        title = "Atama Yapma",
+                        subtitle = "Şoförsüz",
+                        isSelected = dialogState.selectedDriverId == null,
+                        onClick = { onSelectDriver(null) }
+                    )
+                }
+                items(drivers) { d ->
+                    SelectableChipCard(
+                        title = d.fullName,
+                        subtitle = "Ehliyet: ${d.licenseClass ?: "D1"} · 📞 ${d.phone ?: "—"}",
+                        isSelected = dialogState.selectedDriverId == d.id,
+                        onClick = { onSelectDriver(d.id) }
                     )
                 }
             }
 
-            // Rehber Seçimi
-            Text("🚩 Kokartlı Rehber Seçin:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = dialogState.selectedGuideId == null,
-                    onClick = { onSelectGuide(null) },
-                    label = { Text("Atama Yapma", fontSize = 11.sp) }
-                )
-                guides.forEach { g ->
-                    FilterChip(
-                        selected = dialogState.selectedGuideId == g.id,
-                        onClick = { onSelectGuide(g.id) },
-                        label = { Text(g.fullName, fontSize = 11.sp) }
+            // 2. MÜSAİT REHBER SEÇİM KARTLARI
+            Text(
+                "🚩 Kokartlı Rehber Listesi",
+                style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                item {
+                    SelectableChipCard(
+                        title = "Atama Yapma",
+                        subtitle = "Rehbersiz",
+                        isSelected = dialogState.selectedGuideId == null,
+                        onClick = { onSelectGuide(null) }
+                    )
+                }
+                items(guides) { g ->
+                    SelectableChipCard(
+                        title = g.fullName,
+                        subtitle = "Diller: ${g.languages?.joinToString(", ") ?: "—"}",
+
+                        isSelected = dialogState.selectedGuideId == g.id,
+                        onClick = { onSelectGuide(g.id) }
                     )
                 }
             }
 
-            // Araç Seçimi
-            Text("🚌 Filodan Araç Seçin:", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = dialogState.selectedVehicleId == null,
-                    onClick = { onSelectVehicle(null) },
-                    label = { Text("Atama Yapma", fontSize = 11.sp) }
-                )
-                vehicles.forEach { v ->
-                    FilterChip(
-                        selected = dialogState.selectedVehicleId == v.id,
-                        onClick = { onSelectVehicle(v.id) },
-                        label = { Text("${v.plateNumber} (${v.capacity} Pax)", fontSize = 11.sp) }
+            // 3. MÜSAİT ARAÇ SEÇİM KARTLARI
+            Text(
+                "🚌 Müsait Filo Araçları",
+                style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+            )
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                item {
+                    SelectableChipCard(
+                        title = "Atama Yapma",
+                        subtitle = "Araçsız",
+                        isSelected = dialogState.selectedVehicleId == null,
+                        onClick = { onSelectVehicle(null) }
+                    )
+                }
+                items(vehicles) { v ->
+                    SelectableChipCard(
+                        title = v.plateNumber,
+                        subtitle = "${v.brand ?: ""} ${v.model ?: ""} (${v.capacity} Pax)",
+                        isSelected = dialogState.selectedVehicleId == v.id,
+                        onClick = { onSelectVehicle(v.id) }
                     )
                 }
             }
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-                    Text("İptal")
-                }
-                Button(onClick = onSave, modifier = Modifier.weight(1f)) {
-                    Text("💾 Atamayı Kaydet")
-                }
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            // Kaydet / İptal Butonları
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                TourOSButton(
+                    text = "İptal",
+                    onClick = onCancel,
+                    variant = TourOSButtonVariant.SECONDARY,
+                    modifier = Modifier.weight(1f)
+                )
+                TourOSButton(
+                    text = "💾 Atamayı Kaydet",
+                    onClick = onSave,
+                    variant = TourOSButtonVariant.PRIMARY,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
+}
+
+// ─── Seçilebilir Personel / Araç Chip Kartı ─────────────────────────────────
+
+@Composable
+private fun SelectableChipCard(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val borderColor = if (isSelected) TourOSColors.Primary else TourOSColors.Border
+    val bgColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Surface
+
+    Box(
+        modifier = Modifier
+            .width(180.dp)
+            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+            .background(bgColor)
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+            )
+            .clickable { onClick() }
+            .padding(TourOSSpacing.small)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                title,
+                style = TourOSTypography.Label.copy(
+                    color = if (isSelected) TourOSColors.Primary else TourOSColors.TextPrimary
+                )
+            )
+            Text(
+                subtitle,
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// ─── Compact Kart Görünümü ───────────────────────────────────────────────────
+
+@Composable
+private fun TransferCompactCard(
+    transfer: TransferTask,
+    driver: Driver?,
+    guide: Guide?,
+    vehicle: Vehicle?,
+    onAssignClick: () -> Unit
+) {
+    val isFullyAssigned = driver != null && guide != null && vehicle != null
+
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    transferTypeLabel(transfer.transferType),
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
+                )
+                TourOSStatusBadge(
+                    text = if (isFullyAssigned) "✅ Atama Tamam" else "⚠️ Atama Bekliyor",
+                    backgroundColor = if (isFullyAssigned) TourOSColors.SuccessContainer else TourOSColors.WarningContainer,
+                    textColor = if (isFullyAssigned) TourOSColors.Success else TourOSColors.Warning
+                )
+            }
+
+            Text(
+                "📍 ${transfer.origin} → ${transfer.destination}",
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+            )
+            Text(
+                "📅 Tarih: ${transfer.pickupTime ?: "—"}  ·  👥 Yolcu: ${transfer.paxCount} Pax",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
+
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            // Mevcut Atamalar (3 Kolonlu Özet)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            ) {
+                AssignmentMiniBox("👨‍✈️ Şoför", driver?.fullName ?: "Atanmadı", driver != null, Modifier.weight(1f))
+                AssignmentMiniBox("🚩 Rehber", guide?.fullName ?: "Atanmadı", guide != null, Modifier.weight(1f))
+                AssignmentMiniBox("🚌 Araç", vehicle?.plateNumber ?: "Atanmadı", vehicle != null, Modifier.weight(1f))
+            }
+
+            TourOSButton(
+                text = if (isFullyAssigned) "✏️ Atamayı Güncelle" else "👤 Atama Yap",
+                onClick = onAssignClick,
+                variant = if (isFullyAssigned) TourOSButtonVariant.TERTIARY else TourOSButtonVariant.PRIMARY,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssignmentMiniBox(label: String, value: String, isAssigned: Boolean, modifier: Modifier) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+            .background(if (isAssigned) TourOSColors.PrimaryContainer.copy(alpha = 0.4f) else TourOSColors.ErrorContainer.copy(alpha = 0.3f))
+            .padding(TourOSSpacing.small)
+    ) {
+        Column {
+            Text(label, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+            Text(
+                value,
+                style = TourOSTypography.Label.copy(
+                    color = if (isAssigned) TourOSColors.TextPrimary else TourOSColors.Error
+                ),
+                maxLines = 1
+            )
+        }
+    }
+}
+
+private fun transferTypeLabel(type: String?) = when (type) {
+    "airport"   -> "✈️ Havalimanı Transferi"
+    "tour"      -> "🏞️ Tur Transferi"
+    "intercity" -> "🛣️ Şehirler Arası Transfer"
+    else        -> "🚐 Özel Transfer"
 }

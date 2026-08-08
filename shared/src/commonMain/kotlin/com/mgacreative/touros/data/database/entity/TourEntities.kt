@@ -26,29 +26,27 @@ data class TourCategoryEntity(
  */
 @Serializable
 data class TourEntity(
-    val id: String = "",
+    val id: String? = null,
     val code: String = "",
     val title: String = "",
     val category: String = "",
     val country: String = "",
     val city: String = "",
-    @SerialName("category_id") val categoryId: String? = null,
-    val slug: String = "",
-    val description: String? = null,
-    @SerialName("cover_image_url") val coverImageUrl: String? = null,
     @SerialName("duration_days") val durationDays: Int = 1,
     @SerialName("base_price") val basePrice: Double = 0.0,
-    val currency: String = "TRY",
     val capacity: Int = 20,
     @SerialName("min_participants") val minParticipants: Int = 1,
     @SerialName("max_participants") val maxParticipants: Int = 30,
+    val description: String? = null,
     @SerialName("cancellation_policy") val cancellationPolicy: String? = null,
     @SerialName("insurance_details") val insuranceDetails: String? = null,
     @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("tenant_id") val tenantId: String = "",
-    @SerialName("created_at") val createdAt: String = "",
-    @SerialName("updated_at") val updatedAt: String = "",
-    @SerialName("created_by") val createdBy: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("created_by") val createdBy: String? = null,
+    @SerialName("child_price_0_6") val childPrice06: Double = 0.0,
+    @SerialName("child_price_7_12") val childPrice712: Double = 0.0
 )
 
 /**

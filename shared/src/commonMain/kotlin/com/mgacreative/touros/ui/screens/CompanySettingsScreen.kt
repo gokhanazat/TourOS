@@ -71,9 +71,10 @@ enum class SettingsCategory(val title: String, val icon: String) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CompanySettingsScreen(
-    companyId: String = "default_company_id",
+    companyId: String = "00000000-0000-0000-0000-000000000001",
     viewModel: CompanySettingsViewModel = koinViewModel()
 ) {
+
     val uiState by viewModel.uiState.collectAsState()
     val userMessage by viewModel.userMessage.collectAsState()
 

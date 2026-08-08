@@ -1,27 +1,50 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.domain.model.Guide
 import com.mgacreative.touros.domain.model.GuideRecommendation
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.DepartureInfo
 import com.mgacreative.touros.ui.viewmodel.GuideAssignmentUiState
 import com.mgacreative.touros.ui.viewmodel.GuideAssignmentViewModel
 
+private data class LanguageFilterOption(val key: String?, val label: String)
+
+private val languageFilters = listOf(
+    LanguageFilterOption(null, "Tüm Diller"),
+    LanguageFilterOption("İngilizce", "İngilizce"),
+    LanguageFilterOption("Almanca", "Almanca"),
+    LanguageFilterOption("Fransızca", "Fransızca"),
+    LanguageFilterOption("İspanyolca", "İspanyolca")
+)
+
 /**
- * 2.5.2 Akıllı Rehber Atama ve Öneri Ekranı.
+ * Akıllı Rehber Atama ve Öneri Ekranı — TourOS 0.3
+ *
+ * Öneri sıralı liste (% Uyum skoru, #1, #2, #3 sıralama rozeti).
+ * Dil eşleşmesi chip ile yeşil/vurgulu olarak gösterilir.
+ * Tek tıkla kolay atama butonları ve kart tıklaması.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuideAssignmentScreen(
     viewModel: GuideAssignmentViewModel,
@@ -30,104 +53,144 @@ fun GuideAssignmentScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🎯 Tur Kalkışına Rehber Atama", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Tur Rehberi Atama",
+                subtitle = "Akıllı öneri motoru ve dil eşleşmeli rehber seçimi",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            when (val state = uiState) {
-                is GuideAssignmentUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
+        when (val state = uiState) {
+            is GuideAssignmentUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = TourOSColors.Primary)
                 }
-                is GuideAssignmentUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Hata: ${state.message}", color = MaterialTheme.colorScheme.error)
-                    }
+            }
+            is GuideAssignmentUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                    Text("Hata: ${state.message}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error))
                 }
-                is GuideAssignmentUiState.Success -> {
-                    // 1. Tur Kalkış Özet Başlık Kartı
-                    DepartureSummaryHeaderCard(departure = state.departure)
+            }
+            is GuideAssignmentUiState.Success -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentPadding = PaddingValues(TourOSSpacing.large),
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                ) {
+                    // ── 1. Tur Kalkış Özet Kartı ──────────────────────────────
+                    item {
+                        DepartureSummaryCard(departure = state.departure)
+                    }
 
+                    // ── Atama Başarı Bildirimi ──────────────────────────────────
                     if (state.assignedSuccessMessage != null) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Color(0xFFDCFCE7),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = state.assignedSuccessMessage,
-                                color = Color(0xFF15803D),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(12.dp)
-                            )
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                    .background(TourOSColors.SuccessContainer)
+                                    .padding(TourOSSpacing.medium)
+                            ) {
+                                Text(
+                                    text = state.assignedSuccessMessage,
+                                    style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                                )
+                            }
                         }
                     }
 
-                    // 2. Filtreler: Dil Filtresi & Sadece Müsait Olanlar Toggle
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("🗣️ Tur Dili Filtresi & Müsaitlik:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    // ── 2. Filtreler ──────────────────────────────────────────
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                            Text(
+                                "🗣️ Dil Filtresi & Müsaitlik",
+                                style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+                            )
+
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                itemsIndexed(languageFilters) { _, filter ->
+                                    FilterChip(
+                                        selected = state.selectedLanguage == filter.key,
+                                        onClick = { viewModel.setLanguageFilter(filter.key) },
+                                        label = {
+                                            Text(filter.label, style = TourOSTypography.Caption)
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                            selectedLabelColor = TourOSColors.Primary
+                                        )
+                                    )
+                                }
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                            ) {
+                                Switch(
+                                    checked = state.onlyAvailableFilter,
+                                    onCheckedChange = { viewModel.toggleOnlyAvailable(it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = TourOSColors.Primary,
+                                        checkedTrackColor = TourOSColors.PrimaryContainer
+                                    )
+                                )
+                                Text(
+                                    "🟢 Sadece Müsait Rehberleri Göster",
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                                )
+                            }
+                        }
+                    }
+
+                    // ── 3. Rehber Öneri Listesi ──────────────────────────────
+                    item {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            FilterChip(
-                                selected = state.selectedLanguage == null,
-                                onClick = { viewModel.setLanguageFilter(null) },
-                                label = { Text("Tüm Diller", fontSize = 11.sp) }
+                            Text(
+                                "🌟 Öneri Sıralı Rehber Listesi (${state.recommendations.size})",
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                             )
-                            listOf("İngilizce", "Almanca", "Fransızca", "İspanyolca").forEach { lang ->
-                                FilterChip(
-                                    selected = state.selectedLanguage == lang,
-                                    onClick = { viewModel.setLanguageFilter(lang) },
-                                    label = { Text(lang, fontSize = 11.sp) }
-                                )
-                            }
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Checkbox(
-                                checked = state.onlyAvailableFilter,
-                                onCheckedChange = { viewModel.toggleOnlyAvailable(it) }
+                            Text(
+                                "En Yüksek Uyum Üstte",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
                             )
-                            Text("🟢 Sadece Müsait ve Görevde Olmayan Rehberleri Göster", fontSize = 12.sp)
                         }
                     }
-
-                    // 3. Rehber Öneri Listesi
-                    Text("🌟 Tur için En Uygun Akıllı Öneriler:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
 
                     if (state.recommendations.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                            Text("Seçilen kriterlere uygun rehber bulunamadı.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    } else {
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth().weight(1f)
-                        ) {
-                            items(state.recommendations) { rec ->
-                                GuideRecommendationCard(
-                                    recommendation = rec,
-                                    isCurrentlyAssigned = state.departure.currentGuideName == rec.guide.fullName,
-                                    onAssignClick = { viewModel.assignGuide(rec.guide) }
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(180.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Seçilen kriterlere uygun rehber bulunamadı.",
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                    textAlign = TextAlign.Center
                                 )
                             }
+                        }
+                    } else {
+                        itemsIndexed(state.recommendations) { index, rec ->
+                            val isAssigned = state.departure.currentGuideName == rec.guide.fullName
+                            GuideRecommendationCard(
+                                rankIndex = index + 1,
+                                recommendation = rec,
+                                requiredLanguage = state.departure.requiredLanguage,
+                                isCurrentlyAssigned = isAssigned,
+                                onAssignClick = { viewModel.assignGuide(rec.guide) }
+                            )
                         }
                     }
                 }
@@ -136,153 +199,246 @@ fun GuideAssignmentScreen(
     }
 }
 
-@Composable
-fun DepartureSummaryHeaderCard(departure: DepartureInfo) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(departure.tourTitle, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.primary
-                ) {
-                    Text(
-                        text = "Gerekli Dil: ${departure.requiredLanguage}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Text("📅 Kalkış Tarihi: ${departure.departureDate} | 👥 Yolcu Sayısı: ${departure.bookedPax}/${departure.capacity} Pax", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (departure.currentGuideName != null) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = if (departure.currentGuideName != null) "🚩 Atanmış Rehber: ${departure.currentGuideName}" else "⚠️ Bu kalkışa henüz rehber atanmadı!",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (departure.currentGuideName != null) Color(0xFF15803D) else MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                )
-            }
-        }
-    }
-}
+// ─── Tur Kalkış Özet Kartı ───────────────────────────────────────────────────
 
 @Composable
-fun GuideRecommendationCard(
-    recommendation: GuideRecommendation,
-    isCurrentlyAssigned: Boolean,
-    onAssignClick: () -> Unit
-) {
-    val guide = recommendation.guide
+private fun DepartureSummaryCard(departure: DepartureInfo) {
+    val hasGuide = departure.currentGuideName != null
 
-    Card(
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentlyAssigned) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        backgroundColor = TourOSColors.PrimaryContainer,
+        contentPadding = TourOSSpacing.large
     ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFF1E293B)
+                Text(
+                    departure.tourTitle,
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.SecondaryContainer)
+                        .padding(horizontal = TourOSSpacing.small, vertical = 3.dp)
                 ) {
                     Text(
-                        text = "🎯 %${recommendation.matchScore} Uyum",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF38BDF8),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        "🗣️ Gerekli Dil: ${departure.requiredLanguage}",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Secondary)
                     )
                 }
+            }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Color(0xFFFEF08A)
-                    ) {
-                        Text(
-                            text = "⭐ ${guide.rating}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF854D0E),
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            Text(
+                "📅 Kalkış: ${departure.departureDate}  ·  👥 Yolcu: ${departure.bookedPax}/${departure.capacity} Pax",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
+
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                    Text("🚩 Atanmış Rehber:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(
+                        departure.currentGuideName ?: "Henüz rehber atanmadı",
+                        style = TourOSTypography.Label.copy(
+                            color = if (hasGuide) TourOSColors.Success else TourOSColors.Error
                         )
+                    )
+                }
+                TourOSStatusBadge(
+                    text = if (hasGuide) "✅ Atandı" else "⚠️ Atama Bekliyor",
+                    backgroundColor = if (hasGuide) TourOSColors.SuccessContainer else TourOSColors.ErrorContainer,
+                    textColor = if (hasGuide) TourOSColors.Success else TourOSColors.Error
+                )
+            }
+        }
+    }
+}
+
+// ─── Öneri Sıralı Rehber Kartı ────────────────────────────────────────────────
+
+@Composable
+private fun GuideRecommendationCard(
+    rankIndex: Int,
+    recommendation: GuideRecommendation,
+    requiredLanguage: String,
+    isCurrentlyAssigned: Boolean,
+    onAssignClick: () -> Unit
+) {
+    val guide = recommendation.guide
+    val isAvailable = recommendation.isAvailable
+
+    val cardBg = when {
+        isCurrentlyAssigned -> TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
+        !isAvailable -> TourOSColors.Surface.copy(alpha = 0.6f)
+        else -> TourOSColors.Background
+    }
+
+    val borderColor = when {
+        isCurrentlyAssigned -> TourOSColors.Primary
+        rankIndex == 1 -> TourOSColors.Secondary
+        else -> TourOSColors.Border
+    }
+
+    TourOSCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isCurrentlyAssigned) { onAssignClick() }
+            .border(
+                width = if (isCurrentlyAssigned || rankIndex == 1) 2.dp else 1.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+            ),
+        backgroundColor = cardBg,
+        contentPadding = TourOSSpacing.large
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            // Header: Sıra #, % Uyum, Puan & Müsaitlik
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                ) {
+                    // Öneri Sırası (#1, #2...)
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(if (rankIndex == 1) TourOSColors.Secondary else TourOSColors.Primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("#$rankIndex", style = TourOSTypography.Caption.copy(color = Color.White))
                     }
 
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = if (recommendation.isAvailable) Color(0xFFDCFCE7) else MaterialTheme.colorScheme.errorContainer
+                    // % Uyum Skoru Badgesi
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .background(TourOSColors.PrimaryContainer)
+                            .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
                     ) {
                         Text(
-                            text = if (recommendation.isAvailable) "🟢 Müsait" else "🔴 Görevde",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (recommendation.isAvailable) Color(0xFF15803D) else MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            "🎯 %${recommendation.matchScore} Uyum",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
                         )
                     }
                 }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                ) {
+                    // ⭐ Puan Rozeti
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .background(TourOSColors.SecondaryContainer)
+                            .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
+                    ) {
+                        Text(
+                            "⭐ ${guide.rating}",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Secondary)
+                        )
+                    }
+
+                    // Müsaitlik Rozeti
+                    TourOSStatusBadge(
+                        text = if (isAvailable) "🟢 Müsait" else "🔴 Görevde",
+                        backgroundColor = if (isAvailable) TourOSColors.SuccessContainer else TourOSColors.ErrorContainer,
+                        textColor = if (isAvailable) TourOSColors.Success else TourOSColors.Error
+                    )
+                }
             }
 
+            // Rehber İsim & Detay
             Column {
-                Text(guide.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Kokart No: ${guide.licenseNumber ?: "Lisanssız"} | 📞 ${guide.phone ?: "-"} | 🚩 ${guide.totalToursCompleted} Tur Geçmişi", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-            Surface(
-                shape = RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.fillMaxWidth()
-            ) {
                 Text(
-                    text = "💡 Öneri Gerekçesi: ${recommendation.recommendationReason}",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
+                    guide.fullName,
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                )
+                Text(
+                    "Kokart: ${guide.licenseNumber ?: "Lisanssız"}  ·  📞 ${guide.phone ?: "—"}  ·  🚩 ${guide.totalToursCompleted} Tur",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                 )
             }
 
+            // Öneri Gerekçesi kutusu
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                    .background(TourOSColors.Surface)
+                    .border(0.5.dp, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                    .padding(TourOSSpacing.small)
+            ) {
+                Text(
+                    "💡 ${recommendation.recommendationReason}",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+            }
+
+            // Diller Chip Grubu (Vurgulu Eşleşme)
             if (!guide.languages.isNullOrEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("🗣️ Bildiği Diller:", fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterVertically))
-                    guide.languages.forEach { lang ->
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (recommendation.languageMatch && lang.contains("İngilizce")) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Text(lang, fontSize = 10.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                ) {
+                    Text("🗣️ Diller:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(guide.languages ?: emptyList()) { lang ->
+                            val isLanguageMatch = lang.lowercase() == requiredLanguage.lowercase() || recommendation.languageMatch
+                            LanguageMatchChip(language = lang, isMatched = isLanguageMatch)
                         }
                     }
+
                 }
             }
 
-            Button(
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            // Tek Tıkla Atama Butonu
+            TourOSButton(
+                text = if (isCurrentlyAssigned) "✅ Tura Atanmış Rehber" else "👆 Tek Tıkla Tura Ata",
                 onClick = onAssignClick,
-                modifier = Modifier.fillMaxWidth(),
                 enabled = !isCurrentlyAssigned,
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(if (isCurrentlyAssigned) "✅ Tura Atanmış Rehber" else "🚩 Bu Rehberi Tura Ata")
-            }
+                variant = if (isCurrentlyAssigned) TourOSButtonVariant.TERTIARY else if (rankIndex == 1) TourOSButtonVariant.SECONDARY else TourOSButtonVariant.PRIMARY,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
+    }
+}
+
+// ─── Dil Eşleşmeli Chip ───────────────────────────────────────────────────────
+
+@Composable
+private fun LanguageMatchChip(language: String, isMatched: Boolean) {
+    val bg = if (isMatched) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
+    val textCol = if (isMatched) TourOSColors.Success else TourOSColors.Primary
+    val borderCol = if (isMatched) TourOSColors.Success else TourOSColors.Border
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(bg)
+            .border(1.dp, borderCol, RoundedCornerShape(12.dp))
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = if (isMatched) "✓ $language" else language,
+            style = TourOSTypography.Caption.copy(color = textCol)
+        )
     }
 }

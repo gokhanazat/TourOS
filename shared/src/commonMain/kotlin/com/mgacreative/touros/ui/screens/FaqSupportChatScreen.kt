@@ -1,5 +1,6 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -9,15 +10,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.faq.ChatMessage
 import com.mgacreative.touros.domain.model.faq.ChatSender
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.FaqSupportChatViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * SSS Destek Asistanı Ekranı — TourOS 0.3
+ *
+ * Klasik sohbet balonu düzeni (Kullanıcı sağda Primary Container, Asistan solda Surface).
+ * Alt kısımda sabit mesaj giriş çubuğu.
+ */
 @Composable
 fun FaqSupportChatScreen(
     viewModel: FaqSupportChatViewModel,
@@ -28,21 +37,36 @@ fun FaqSupportChatScreen(
 
     val quickQuestions = remember {
         listOf(
-            "Canlı Temsilciye Bağlan 👤",
-            "Rezervasyon Durumum?",
-            "İptal & İade Koşulları?",
-            "Vize Gereklilikleri?",
-            "Buluşma Noktası Neresi?"
+            "👤 Canlı Temsilciye Bağlan",
+            "🎫 Bilet / Voucher Nereden Alınır?",
+            "📅 Tur İptal Koşulları Nedir?",
+            "📍 Buluşma Noktası Neresi?",
+            "💳 Ödeme Seçenekleri?"
         )
     }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("TourOS SSS Destek Asistanı", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "SSS Destek Asistanı",
+                subtitle = "7/24 Yapay zeka destek ve canlı acente asistanı",
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Text("←", fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
+                    }
+                }
+            )
+        },
+        bottomBar = {
+            // ── ALT KISIMDA SABİT MESAJ GİRİŞ ÇUBUĞU (Strict Rule) ─────────────
+            StickyBottomInputBar(
+                inputText = inputText,
+                onInputTextChange = { inputText = it },
+                onSend = {
+                    if (inputText.isNotBlank()) {
+                        viewModel.sendUserQuery(inputText)
+                        inputText = ""
                     }
                 }
             )
@@ -53,33 +77,44 @@ fun FaqSupportChatScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Mesaj Listesi
+            // ── 1. KLASİK SOHBET BALONU AKIŞ LİSTESİ (Strict Rule) ─────────────
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = TourOSSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                contentPadding = PaddingValues(vertical = TourOSSpacing.medium)
             ) {
                 items(uiState.messages) { msg ->
-                    ChatBubble(message = msg)
+                    ClassicChatBubbleItem(message = msg)
                 }
 
                 if (uiState.isLoading) {
                     item {
-                        Text(
-                            text = "Asistan yazıyor...",
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = TourOSColors.Primary
+                            )
+                            Text(
+                                "🤖 Asistan yanıt hazırlıyor...",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                            )
+                        }
                     }
                 }
             }
 
-            // Hızlı Soru Çipleri
+            // ── 2. HIZLI SORU ÇİPLERİ ŞERİDİ ─────────────────────────────────
             LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                contentPadding = PaddingValues(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.small),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
             ) {
                 items(quickQuestions) { q ->
                     FilterChip(
@@ -91,74 +126,98 @@ fun FaqSupportChatScreen(
                                 viewModel.sendUserQuery(q)
                             }
                         },
-                        label = { Text(q, fontSize = 12.sp) }
+                        label = {
+                            Text(q, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.5f)
+                        )
                     )
-                }
-            }
-
-            // Mesaj Yazma Alanı
-            Surface(
-                tonalElevation = 4.dp,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = inputText,
-                        onValueChange = { inputText = it },
-                        placeholder = { Text("Sorunuzu yazın...", fontSize = 13.sp) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            if (inputText.isNotBlank()) {
-                                viewModel.sendUserQuery(inputText)
-                                inputText = ""
-                            }
-                        }
-                    ) {
-                        Text("Gönder")
-                    }
                 }
             }
         }
     }
 }
 
+// ─── KLASİK SOHBET BALONU İTEMİ (Kullanıcı Sağda PrimaryContainer, Asistan Solda Surface) ─
+
 @Composable
-fun ChatBubble(message: ChatMessage) {
+private fun ClassicChatBubbleItem(message: ChatMessage) {
     val isUser = message.sender == ChatSender.USER
     val alignment = if (isUser) Alignment.End else Alignment.Start
-    val bgColor = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    val textColor = if (isUser) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+
+    // KULLANICI SAĞDA PRIMARY CONTAINER, ASİSTAN SOLDA SURFACE (Strict Rule)
+    val bubbleBg = if (isUser) TourOSColors.PrimaryContainer else TourOSColors.Surface
+    val textColor = if (isUser) TourOSColors.Primary else TourOSColors.TextPrimary
+    val senderLabel = if (isUser) "Siz (Kullanıcı)" else "🤖 TourOS Yapay Zeka Asistanı"
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
+        horizontalAlignment = alignment,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Card(
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isUser) 16.dp else 4.dp,
-                bottomEnd = if (isUser) 4.dp else 16.dp
-            ),
-            colors = CardDefaults.cardColors(containerColor = bgColor),
-            modifier = Modifier.widthIn(max = 280.dp)
+        Text(
+            text = senderLabel,
+            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        TourOSCard(
+            modifier = Modifier.widthIn(max = 310.dp),
+            backgroundColor = bubbleBg,
+            contentPadding = TourOSSpacing.medium
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = message.content,
-                    color = textColor,
-                    fontSize = 13.sp
+                    style = TourOSTypography.BodyMedium.copy(color = textColor)
+                )
+
+                Text(
+                    text = "18:24",
+                    style = TourOSTypography.Caption.copy(
+                        color = if (isUser) TourOSColors.Primary.copy(alpha = 0.7f) else TourOSColors.TextSecondary
+                    ),
+                    modifier = Modifier.align(Alignment.End)
                 )
             }
+        }
+    }
+}
+
+// ─── ALT KISIMDA SABİT MESAJ GİRİŞ ÇUBUĞU BİLEŞENİ ────────────────────────────
+
+@Composable
+private fun StickyBottomInputBar(
+    inputText: String,
+    onInputTextChange: (String) -> Unit,
+    onSend: () -> Unit
+) {
+    Surface(
+        color = TourOSColors.Surface,
+        shadowElevation = 8.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(TourOSSpacing.medium),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TourOSTextField(
+                value = inputText,
+                onValueChange = onInputTextChange,
+                placeholder = "Mesajınızı yazın veya soru sorun...",
+                modifier = Modifier.weight(1f)
+            )
+
+            TourOSButton(
+                text = "Gönder ➔",
+                onClick = onSend,
+                enabled = inputText.isNotBlank(),
+                variant = TourOSButtonVariant.PRIMARY
+            )
         }
     }
 }

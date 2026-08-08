@@ -1,6 +1,9 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -8,132 +11,288 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.domain.model.AppLanguageItem
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.MultiLanguageViewModel
 
+private data class CurrencyOption(val code: String, val name: String, val symbol: String, val flag: String)
+
+private val currencyOptions = listOf(
+    CurrencyOption("TRY", "Türk Lirası", "₺", "🇹🇷"),
+    CurrencyOption("EUR", "Euro", "€", "🇪🇺"),
+    CurrencyOption("USD", "Amerikan Doları", "$", "🇺🇸"),
+    CurrencyOption("GBP", "İngiliz Sterlini", "£", "🇬🇧")
+)
+
 /**
- * 4.4.1 Çoklu Dil (TR, EN, DE, RU, AR, FR) ve Arapça RTL Düzeni Test Ekranı.
+ * Dil/Para Birimi Ayarları Ekranı — TourOS 0.3
+ *
+ * Basit iki dropdown (Dil, Para Birimi) içeren küçük bir ayar kartı.
+ * Uygulama genelinde üst bar'daki hızlı erişim menüsünden de ulaşılabilir.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MultiLanguageScreen(
     viewModel: MultiLanguageViewModel,
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
-    val lang = state.selectedLanguage
-    val isRtl = lang.isRtl
 
-    // Arapça için RTL LayoutDirection
-    val layoutDirection = if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+    var selectedLang by remember(state.selectedLanguage) { mutableStateOf(state.selectedLanguage) }
+    var selectedCurr by remember { mutableStateOf(currencyOptions.first()) }
+    var showQuickAccessMenu by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🌍 Çoklu Dil & RTL Desteği", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Dil & Para Birimi Ayarları",
+                subtitle = "Uygulama genel yerelleştirme ve para birimi tercihleri",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
+                    }
+                },
+                actions = {
+                    // UYGULAMA GENELİNDE ÜST BAR'DAKİ HIZLI ERİŞİM MENÜSÜ (Strict Rule)
+                    Box {
+                        TourOSStatusBadge(
+                            text = "${selectedLang.flagEmoji} ${selectedLang.code.uppercase()} | ${selectedCurr.symbol} ${selectedCurr.code}",
+                            backgroundColor = TourOSColors.PrimaryContainer,
+                            textColor = TourOSColors.Primary,
+                            modifier = Modifier
+                                .padding(end = TourOSSpacing.medium)
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .clickable { showQuickAccessMenu = true }
+                        )
+
+                        DropdownMenu(
+                            expanded = showQuickAccessMenu,
+                            onDismissRequest = { showQuickAccessMenu = false },
+                            modifier = Modifier.background(TourOSColors.Surface)
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "⚡ Hızlı Dil & Para Birimi Değiştir",
+                                        style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                                    )
+                                },
+                                onClick = { showQuickAccessMenu = false }
+                            )
+
+                            HorizontalDivider(color = TourOSColors.Divider)
+
+                            currencyOptions.forEach { curr ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "${curr.flag} ${curr.name} (${curr.symbol})",
+                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedCurr = curr
+                                        showQuickAccessMenu = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentAlignment = Alignment.TopCenter
         ) {
-            if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
-                }
-            }
-
-            // 1. Dil Seçim Paneli (6 Dil)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(2.dp)
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 480.dp)
+                    .fillMaxWidth()
+                    .padding(TourOSSpacing.large),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("🌐 Desteklenen Diller (6 Dil)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        state.supportedLanguages.chunked(2).forEach { row ->
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                row.forEach { item ->
-                                    FilterChip(
-                                        selected = lang.code == item.code,
-                                        onClick = { viewModel.selectLanguage(item) },
-                                        label = { Text("${item.flagEmoji} ${item.name}", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 2. Dynamic RTL / LTR Composition Wrapper Preview Box
-            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                // Bildirim Mesajı
+                if (state.notificationMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .background(TourOSColors.SuccessContainer)
+                            .padding(TourOSSpacing.medium)
                     ) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("${lang.flagEmoji} ${lang.name} Önizleme", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            val rtlBadgeColor = if (isRtl) Color(0xFFD97706) else Color(0xFF2563EB)
-                            val rtlBadgeText = if (isRtl) "🇸🇦 RTL SAĞDAN SOLA DÜZEN" else "LTR SOLDAN SAĞA DÜZEN"
-                            Surface(shape = RoundedCornerShape(6.dp), color = rtlBadgeColor.copy(alpha = 0.15f)) {
-                                Text(rtlBadgeText, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = rtlBadgeColor, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                            }
-                        }
-
-                        Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                state.translations["welcome_title"] ?: "TourOS Seyahat Sistemine Hoş Geldiniz",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = {},
-                                modifier = Modifier.weight(1f).height(42.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(state.translations["search_tours"] ?: "Tur Ara", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                            Button(
-                                onClick = {},
-                                modifier = Modifier.weight(1f).height(42.dp),
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(state.translations["checkout"] ?: "Ödemeye Geç", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
+                        Text(
+                            state.notificationMessage!!,
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                        )
                     }
                 }
+
+                // ── BASİT İKİ DROPDOWN (DİL, PARA BİRİMİ) İÇEREN KÜÇÜK AYAR KARTI ────────
+                LanguageAndCurrencySettingsCard(
+                    supportedLanguages = state.supportedLanguages,
+                    selectedLanguage = selectedLang,
+                    onLanguageSelect = { lang ->
+                        selectedLang = lang
+                        viewModel.selectLanguage(lang)
+                    },
+                    currencyOptions = currencyOptions,
+                    selectedCurrency = selectedCurr,
+                    onCurrencySelect = { curr -> selectedCurr = curr }
+                )
+
+                // ── CANLI YERELLEŞTİRME VE PARA BİRİMİ ÖNİZLEME KARTI ────────────────────
+                LivePreviewCard(
+                    selectedLang = selectedLang,
+                    selectedCurr = selectedCurr,
+                    translations = state.translations
+                )
             }
         }
+    }
+}
+
+// ─── BASİT İKİ DROPDOWN İÇEREN KÜÇÜK AYAR KARTI BİLEŞENİ ─────────────────────
+
+@Composable
+private fun LanguageAndCurrencySettingsCard(
+    supportedLanguages: List<AppLanguageItem>,
+    selectedLanguage: AppLanguageItem,
+    onLanguageSelect: (AppLanguageItem) -> Unit,
+    currencyOptions: List<CurrencyOption>,
+    selectedCurrency: CurrencyOption,
+    onCurrencySelect: (CurrencyOption) -> Unit
+) {
+    // KÜÇÜK AYAR KARTI (Strict Rule: Derli toplu 480dp kart)
+    TourOSCard(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.Surface,
+        contentPadding = TourOSSpacing.large
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "🌐 Bölgesel Ayarlar",
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
+
+                TourOSStatusBadge(
+                    text = "AYAR KARTI",
+                    backgroundColor = TourOSColors.PrimaryContainer,
+                    textColor = TourOSColors.Primary
+                )
+            }
+
+            // 1. DROPDOWN: DİL SEÇİMİ (Strict Rule)
+            TourOSDropdown(
+                items = supportedLanguages,
+                selectedItem = selectedLanguage,
+                onItemSelected = onLanguageSelect,
+                itemLabel = { "${it.flagEmoji} ${it.name}" },
+                label = "Uygulama Dili (Language)",
+                placeholder = "Dil Seçiniz...",
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // 2. DROPDOWN: PARA BİRİMİ SEÇİMİ (Strict Rule)
+            TourOSDropdown(
+                items = currencyOptions,
+                selectedItem = selectedCurrency,
+                onItemSelected = onCurrencySelect,
+                itemLabel = { "${it.flag} ${it.name} (${it.symbol} ${it.code})" },
+                label = "Para Birimi (Currency)",
+                placeholder = "Para Birimi Seçiniz...",
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            TourOSButton(
+                text = "💾 Tercihleri Uygula & Kaydet",
+                onClick = { },
+                variant = TourOSButtonVariant.PRIMARY,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+// ─── CANLI YERELLEŞTİRME VE PARA BİRİMİ ÖNİZLEME KARTI ────────────────────────
+
+@Composable
+private fun LivePreviewCard(
+    selectedLang: AppLanguageItem,
+    selectedCurr: CurrencyOption,
+    translations: Map<String, String>
+) {
+
+    TourOSCard(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.35f),
+        contentPadding = TourOSSpacing.large
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "👁️ Canlı Arayüz Önizleme",
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
+
+                TourOSStatusBadge(
+                    text = if (selectedLang.isRtl) "🇸🇦 RTL DÜZEN" else "LTR DÜZEN",
+                    backgroundColor = TourOSColors.SecondaryContainer,
+                    textColor = TourOSColors.Secondary
+                )
+            }
+
+            Text(
+                translations["welcome_title"] ?: "TourOS Seyahat Sistemine Hoş Geldiniz",
+                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+            )
+
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Örnek Tur Fiyatı:",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+                Text(
+                    "${selectedCurr.symbol} ${formatCurrencyPreview(14500.0, selectedCurr.code)}",
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
+            }
+        }
+    }
+}
+
+private fun formatCurrencyPreview(amount: Double, code: String): String {
+    return when (code) {
+        "EUR" -> (amount / 36.0).toInt().toString()
+        "USD" -> (amount / 33.0).toInt().toString()
+        "GBP" -> (amount / 42.0).toInt().toString()
+        else -> (amount).toInt().toString()
     }
 }

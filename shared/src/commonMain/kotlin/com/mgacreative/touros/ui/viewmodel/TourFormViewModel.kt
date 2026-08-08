@@ -7,6 +7,7 @@ import com.mgacreative.touros.domain.model.TourCategory
 import com.mgacreative.touros.domain.usecase.CreateOrUpdateTourUseCase
 import com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase
 import com.mgacreative.touros.domain.usecase.GetToursUseCase
+import com.mgacreative.touros.data.util.isValidUuid
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +57,9 @@ class TourFormViewModel(
         country: String,
         city: String,
         durationDays: Int,
+        basePrice: Double = 0.0,
+        childPrice06: Double = 0.0,
+        childPrice712: Double = 0.0,
         capacity: Int,
         minParticipants: Int,
         maxParticipants: Int,
@@ -67,7 +71,7 @@ class TourFormViewModel(
             _uiState.value = TourFormUiState.Loading
 
             val currentUser = getCurrentUserUseCase()
-            val tenantId = currentUser?.tenantId ?: "tenant_id"
+            val tenantId = currentUser?.tenantId?.takeIf { it.isValidUuid() } ?: "00000000-0000-0000-0000-000000000001"
 
             val tour = Tour(
                 id = id,
@@ -77,6 +81,9 @@ class TourFormViewModel(
                 country = country.trim(),
                 city = city.trim(),
                 durationDays = durationDays,
+                basePrice = basePrice,
+                childPrice06 = childPrice06,
+                childPrice712 = childPrice712,
                 capacity = capacity,
                 minParticipants = minParticipants,
                 maxParticipants = maxParticipants,

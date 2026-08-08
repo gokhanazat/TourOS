@@ -1,6 +1,7 @@
 package com.mgacreative.touros.data.repository
 
 import com.mgacreative.touros.data.database.entity.CompanyEntity
+import com.mgacreative.touros.data.util.isValidUuid
 import com.mgacreative.touros.domain.model.CompanySeason
 import com.mgacreative.touros.domain.model.CompanySettings
 import com.mgacreative.touros.domain.repository.CompanySettingsRepository
@@ -9,6 +10,10 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 
 class CompanySettingsRepositoryImpl(
     private val supabaseClient: SupabaseClient
@@ -18,13 +23,27 @@ class CompanySettingsRepositoryImpl(
 
     override suspend fun getCompanySettings(companyId: String): Result<CompanySettings> {
         return runCatching {
-            val entity = supabaseClient.postgrest.from("companies")
-                .select {
-                    filter {
-                        eq("id", companyId)
+            val targetId = if (companyId.isValidUuid()) companyId else "00000000-0000-0000-0000-000000000001"
+            val entity = runCatching {
+                supabaseClient.postgrest.from("companies")
+                    .select {
+                        filter {
+                            eq("id", targetId)
+                        }
                     }
-                }
-                .decodeSingle<CompanyEntity>()
+                    .decodeSingle<CompanyEntity>()
+            }.getOrElse {
+                CompanyEntity(
+                    id = targetId,
+                    name = "TourOS Agency",
+                    logoUrl = null,
+                    themeColor = "#1976D2",
+                    taxRate = 20.0,
+                    seasons = "[]",
+                    supportedCurrencies = listOf("TRY", "EUR", "USD"),
+                    supportedLanguages = listOf("tr", "en")
+                )
+            }
 
             val seasons = runCatching {
                 json.decodeFromString<List<CompanySeason>>(entity.seasons)
@@ -46,21 +65,26 @@ class CompanySettingsRepositoryImpl(
     override suspend fun updateCompanySettings(settings: CompanySettings): Result<CompanySettings> {
         return runCatching {
             val seasonsJson = json.encodeToString(settings.seasons)
+            val targetId = if (settings.id.isValidUuid()) settings.id else "00000000-0000-0000-0000-000000000001"
+
+            val updatePayload = buildJsonObject {
+                put("name", settings.name)
+                settings.logoUrl?.let { put("logo_url", it) }
+                put("theme_color", settings.themeColor)
+                put("tax_rate", settings.taxRate)
+                put("seasons", seasonsJson)
+                putJsonArray("supported_currencies") {
+                    settings.supportedCurrencies.forEach { add(it) }
+                }
+                putJsonArray("supported_languages") {
+                    settings.supportedLanguages.forEach { add(it) }
+                }
+            }
 
             supabaseClient.postgrest.from("companies")
-                .update(
-                    mapOf(
-                        "name" to settings.name,
-                        "logo_url" to settings.logoUrl,
-                        "theme_color" to settings.themeColor,
-                        "tax_rate" to settings.taxRate,
-                        "seasons" to seasonsJson,
-                        "supported_currencies" to settings.supportedCurrencies,
-                        "supported_languages" to settings.supportedLanguages
-                    )
-                ) {
+                .update(updatePayload) {
                     filter {
-                        eq("id", settings.id)
+                        eq("id", targetId)
                     }
                 }
 
@@ -74,18 +98,22 @@ class CompanySettingsRepositoryImpl(
         fileName: String
     ): Result<String> {
         return runCatching {
-            val path = "company_${companyId}_$fileName"
+            val targetId = if (companyId.isValidUuid()) companyId else "00000000-0000-0000-0000-000000000001"
+            val path = "company_${targetId}_$fileName"
             val bucket = supabaseClient.storage.from("company-logos")
             bucket.upload(path, fileBytes) {
                 upsert = true
             }
             val publicUrl = bucket.publicUrl(path)
 
-            // Ayrıca companies tablosundaki logo_url'yi güncelle
+            val logoPayload = buildJsonObject {
+                put("logo_url", publicUrl)
+            }
+
             supabaseClient.postgrest.from("companies")
-                .update(mapOf("logo_url" to publicUrl)) {
+                .update(logoPayload) {
                     filter {
-                        eq("id", companyId)
+                        eq("id", targetId)
                     }
                 }
 

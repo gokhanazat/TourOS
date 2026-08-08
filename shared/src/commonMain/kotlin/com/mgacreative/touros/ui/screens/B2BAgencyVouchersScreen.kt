@@ -1,24 +1,34 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.B2BAgencyVoucherItem
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.B2BAgencyVouchersViewModel
 
 /**
- * 4.1.4 B2B Acente Voucher İndirme ve Yazdırma Ekranı.
+ * B2B Voucher Yazdırma & İndirme Ekranı — TourOS 0.3
+ *
+ * Ortada Kağıt-Benzeri Kart İçinde Canlı Voucher Önizlemesi.
+ * Altta '📄 İndir' ve '🖨️ Yazdır' Primary/Secondary Butonları.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun B2BAgencyVouchersScreen(
     viewModel: B2BAgencyVouchersViewModel,
@@ -26,60 +36,119 @@ fun B2BAgencyVouchersScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    val filteredVouchers = remember(state.vouchers, state.searchQuery) {
-        if (state.searchQuery.isBlank()) state.vouchers
-        else state.vouchers.filter {
-            it.bookingCode.contains(state.searchQuery, ignoreCase = true) ||
-            it.guestName.contains(state.searchQuery, ignoreCase = true) ||
-            it.tourTitle.contains(state.searchQuery, ignoreCase = true)
-        }
+    var selectedVoucherId by remember { mutableStateOf<String?>(null) }
+
+    val activeVoucher = remember(state.vouchers, selectedVoucherId) {
+        state.vouchers.find { it.voucherId == selectedVoucherId } ?: state.vouchers.firstOrNull()
     }
 
+
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🖨️ Voucher Yazdırma & İndirme", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "B2B Voucher Önizleme & Yazdırma",
+                subtitle = "Acente seyahat belgesi belgelendirme ve döküm",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // 1. Arama Çubuğu
-            OutlinedTextField(
-                value = state.searchQuery,
-                onValueChange = { viewModel.setSearchQuery(it) },
-                label = { Text("Rezervasyon Kodu veya Misafir Adı Ara...") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val isExpanded = maxWidth >= 768.dp
 
-            if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(TourOSSpacing.large),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                // Bildirim Mesajı
+                if (state.notificationMessage != null) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.SuccessContainer)
+                                .padding(TourOSSpacing.medium)
+                        ) {
+                            Text(
+                                state.notificationMessage!!,
+                                style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                            )
+                        }
+                    }
                 }
-            }
 
-            // 2. Voucher Belgeleri Listesi
-            Text("🎟️ İndirilebilir Voucher Belgeleri (${filteredVouchers.size}):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-
-            if (state.isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+                // ── 1. VOUCHER SEÇİM CHIP ÇUBUĞU ──────────────────────────────
+                item {
+                    Text(
+                        "🎟️ Yazdırılacak Voucher Belgesi Seçin",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    )
                 }
-            } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
-                    items(filteredVouchers) { item ->
-                        AgencyVoucherCard(item = item, onPrint = { viewModel.printVoucher(item) })
+
+                item {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(state.vouchers) { v ->
+                            FilterChip(
+                                selected = activeVoucher?.voucherId == v.voucherId,
+                                onClick = { selectedVoucherId = v.voucherId },
+                                label = { Text("${v.bookingCode} - ${v.guestName}", style = TourOSTypography.Caption) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.Primary,
+                                    selectedLabelColor = TourOSColors.OnPrimary
+                                )
+                            )
+                        }
+
+                    }
+                }
+
+                // ── 2. ORTADA KAĞIT-BENZERİ KART İÇİNDE VOUCHER ÖNİZLEMESİ ───────
+                if (activeVoucher != null) {
+                    item {
+                        PaperVoucherPreviewCard(voucher = activeVoucher)
+                    }
+
+                    // ── 3. ALTTA 'İNDİR' VE 'YAZDIR' PRIMARY / SECONDARY BUTONLARI ──
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            // PRIMARY BUTON: PDF İNDİR
+                            TourOSButton(
+                                text = "📄 PDF İndir",
+                                onClick = {
+                                    viewModel.setSearchQuery("")
+                                },
+                                variant = TourOSButtonVariant.PRIMARY,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            // SECONDARY BUTON: YAZDIR
+                            TourOSButton(
+                                text = "🖨️ Yazdır",
+                                onClick = {
+                                    viewModel.printVoucher(activeVoucher)
+                                },
+                                variant = TourOSButtonVariant.SECONDARY,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                } else if (state.isLoading) {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = TourOSColors.Primary)
+                        }
                     }
                 }
             }
@@ -87,52 +156,136 @@ fun B2BAgencyVouchersScreen(
     }
 }
 
+// ─── KAĞIT-BENZERİ KART İÇİNDE VOUCHER ÖNİZLEMESİ (A4 PAPER MOCKUP) ─────────
+
 @Composable
-fun AgencyVoucherCard(item: B2BAgencyVoucherItem, onPrint: () -> Unit) {
-    Card(
+private fun PaperVoucherPreviewCard(voucher: B2BAgencyVoucherItem) {
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f),
+        contentPadding = TourOSSpacing.large
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("🎟️", fontSize = 20.sp)
-                    Column {
-                        Text(item.bookingCode, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(item.guestName, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+        ) {
+            Text(
+                "🖨️ A4 Kağıt Belge Önizlemesi",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
 
-                Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Text("${item.paxCount} Kişi", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
-                }
-            }
-
-            Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Tur: ${item.tourTitle}", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text("Otel: ${item.hotelName} | Kalkış: ${item.departureDate}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                val mbInt = item.fileSizeBytes / 1048576
-                val mbDec = (item.fileSizeBytes % 1048576) / 104857
-                Text("Boyut: ${mbInt}.${mbDec} MB | Yazdırıldı: ${item.printedCount} Kez", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Button(onClick = {}, shape = RoundedCornerShape(6.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)) {
-                        Text("📥 PDF İndir", fontSize = 10.sp)
-                    }
-                    Button(
-                        onClick = onPrint,
-                        shape = RoundedCornerShape(6.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+            // DÜZ BEYAZ KAĞIT ARKA PLANLI VOUCHER BELGESİ
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                    .background(Color.White)
+                    .border(1.dp, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                    .padding(TourOSSpacing.large)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                    // Header: Acente Logo & Belge Tipi
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Text("🖨️ Yazdır", fontSize = 10.sp)
+                        Column {
+                            Text(
+                                "TourOS B2B Partner Network",
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                            )
+                            Text(
+                                "Düzenleyen Acente: Global Travel Agency A.Ş.",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                "SEYAHAT VOUCHER'I",
+                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                            )
+                            Text(
+                                "Ref: ${voucher.bookingCode}",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = TourOSColors.Primary, thickness = 2.dp)
+
+                    // Misafir & Konaklama Bilgileri
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.PrimaryContainer.copy(alpha = 0.3f))
+                                .padding(TourOSSpacing.medium)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("👤 MİSAFİR ADI SOYADI:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                Text(voucher.guestName, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                Text("Yolcu Sayısı: ${voucher.paxCount} Kişi (Pax)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.SecondaryContainer.copy(alpha = 0.3f))
+                                .padding(TourOSSpacing.medium)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("🏨 OTEL & KONAKLAMA:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                Text(voucher.hotelName, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary))
+                                Text("Tarih: ${voucher.departureDate}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            }
+                        }
+                    }
+
+                    // Tur Programı Detayı
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(0.5.dp, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .padding(TourOSSpacing.medium)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("🏔️ Tur Programı:", style = TourOSTypography.Label.copy(color = TourOSColors.Primary))
+                            Text(voucher.tourTitle, style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
+                            Text("Havalimanı Transferi: Dahil (Karşılama İsimliği: ${voucher.guestName})", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        }
+                    }
+
+                    // QR Kod & Barkod Mockup'ı
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("Barkod / QR Onay Kodu:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            Text(
+                                "||||| |||| |||||| |||||||",
+                                style = TourOSTypography.TitleLarge.copy(fontFamily = FontFamily.Monospace, color = TourOSColors.TextPrimary)
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(TourOSColors.PrimaryContainer),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("QR", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                        }
                     }
                 }
             }

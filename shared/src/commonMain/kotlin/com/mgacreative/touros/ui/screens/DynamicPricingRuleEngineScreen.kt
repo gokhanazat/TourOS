@@ -1,8 +1,11 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -10,17 +13,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.DynamicPricingRule
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.DynamicPricingRuleEngineViewModel
 
 /**
- * 4.3.2 Dinamik Fiyatlandırma Öncelikli Kural Motoru Ekranı.
+ * Dinamik Fiyat Kuralları Ekranı — TourOS 0.3
+ *
+ * Kural listesini öncelik sırasına göre sürükle-bırak / sıralanabilir liste olarak gösterir.
+ * Sağda seçili kural için canlı fiyat simülasyon paneli (Responsive Row/Column).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DynamicPricingRuleEngineScreen(
     viewModel: DynamicPricingRuleEngineViewModel,
@@ -29,151 +38,186 @@ fun DynamicPricingRuleEngineScreen(
     val state by viewModel.uiState.collectAsState()
     val eval = state.evaluationResult
 
+    var rulesList by remember(state.rules) { mutableStateOf(state.rules) }
+    var selectedRuleId by remember { mutableStateOf(state.rules.firstOrNull()?.ruleId ?: "") }
+
+
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("⚡ Dinamik Fiyat Kural Motoru", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Dinamik Fiyat Kuralları",
+                subtitle = "Öncelikli kural motoru ve canlı fiyat simülasyon paneli",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Tab Selector
-            SecondaryTabRow(selectedTabIndex = state.selectedTab) {
-                Tab(selected = state.selectedTab == 0, onClick = { viewModel.selectTab(0) }) {
-                    Text("1. ⚡ Rule Simülatörü", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-                Tab(selected = state.selectedTab == 1, onClick = { viewModel.selectTab(1) }) {
-                    Text("2. 📋 Kural Listesi (${state.rules.size})", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
-            }
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
+            val isExpanded = maxWidth >= 840.dp
 
-            if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
-                }
-            }
-
-            if (state.selectedTab == 0) {
-                // TAB 0: Rule Engine Simulator
-                Column(
+            if (isExpanded) {
+                // ── TABLET / DESKTOP (ÇİFT SÜTUN: SOL KURAL LİSTESİ, SAĞ SİMÜLASYON) ──────
+                Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxSize()
+                        .padding(TourOSSpacing.large),
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
                 ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                    // SOL SÜTUN: ÖNCELİK SIRALI KURAL LİSTESİ (%50 GENİŞLİK)
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("🎛️ Canlı Kural Koşul Parametreleri", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        PriorityRuleHeader(ruleCount = rulesList.size)
 
-                            Text("Doluluk Oranı: %${state.occupancyRate.toInt()}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Slider(
-                                value = state.occupancyRate.toFloat(),
-                                onValueChange = { viewModel.updateOccupancyRate(it.toDouble()) },
-                                valueRange = 0f..100f,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            // Sezon Seçimi
-                            Text("Sezon Türü:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("HIGH_SEASON" to "Yüksek", "MID_SEASON" to "Orta", "LOW_SEASON" to "Düşük").forEach { (code, label) ->
-                                    FilterChip(
-                                        selected = state.selectedSeason == code,
-                                        onClick = { viewModel.updateSeason(code) },
-                                        label = { Text(label, fontSize = 11.sp) }
-                                    )
+                        PriorityRuleList(
+                            rules = rulesList,
+                            selectedRuleId = selectedRuleId,
+                            onRuleSelect = { id -> selectedRuleId = id },
+                            onMoveUp = { idx ->
+                                if (idx > 0) {
+                                    val mutable = rulesList.toMutableList()
+                                    val item = mutable.removeAt(idx)
+                                    mutable.add(idx - 1, item)
+                                    rulesList = mutable
                                 }
-                            }
-
-                            // Acente Seviyesi Seçimi
-                            Text("Acente Tier:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("VIP_AGENCY" to "VIP Acente", "REGULAR_AGENCY" to "Standart", "ALL" to "Tümü").forEach { (code, label) ->
-                                    FilterChip(
-                                        selected = state.selectedAgencyTier == code,
-                                        onClick = { viewModel.updateAgencyTier(code) },
-                                        label = { Text(label, fontSize = 11.sp) }
-                                    )
+                            },
+                            onMoveDown = { idx ->
+                                if (idx < rulesList.size - 1) {
+                                    val mutable = rulesList.toMutableList()
+                                    val item = mutable.removeAt(idx)
+                                    mutable.add(idx + 1, item)
+                                    rulesList = mutable
                                 }
-                            }
-
-                            // Ülke Pazar Seçimi
-                            Text("Hedef Ülke Pazar:", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf("GERMANY" to "Almanya/AB", "JAPAN" to "Japonya", "DOMESTIC" to "İç Pazar", "ALL" to "Tümü").forEach { (code, label) ->
-                                    FilterChip(
-                                        selected = state.selectedCountry == code,
-                                        onClick = { viewModel.updateCountry(code) },
-                                        label = { Text(label, fontSize = 11.sp) }
-                                    )
-                                }
-                            }
-                        }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
                     }
 
-                    // Rule Engine Dynamic Price Output Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                    // SAĞ SÜTUN: CANLI FİYAT SİMÜLASYON PANELİ (%50 GENİŞLİK)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("⚡ Öncelikli Kural Motoru Hesaplama Sonucu", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        LivePriceSimulationPanel(
+                            selectedRule = rulesList.find { it.ruleId == selectedRuleId } ?: rulesList.firstOrNull(),
 
-                            Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-                                Text("Eşleşen Öncelikli Kural: ${eval.matchedRuleName}", fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(10.dp))
-                            }
-
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Baz Tur Fiyatı:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${eval.basePrice} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Net Fiyat Değişim Oranı:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                val sign = if (eval.totalAdjustmentPercent >= 0) "+" else ""
-                                Text("$sign${eval.totalAdjustmentPercent}%", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (eval.totalAdjustmentPercent >= 0) Color(0xFFD97706) else Color(0xFF15803D))
-                            }
-
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("Dinamik Son Fiyat:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                                Text("${eval.adjustedPrice} TRY", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            }
-
-                            Text("Uygulanan Kurallar: ${eval.appliedRulesSummary}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                            occupancyRate = state.occupancyRate,
+                            selectedSeason = state.selectedSeason,
+                            selectedAgencyTier = state.selectedAgencyTier,
+                            selectedCountry = state.selectedCountry,
+                            basePrice = eval.basePrice,
+                            adjustedPrice = eval.adjustedPrice,
+                            totalAdjustmentPercent = eval.totalAdjustmentPercent,
+                            onOccupancyChange = { viewModel.updateOccupancyRate(it) },
+                            onSeasonChange = { viewModel.updateSeason(it) },
+                            onAgencyTierChange = { viewModel.updateAgencyTier(it) },
+                            onCountryChange = { viewModel.updateCountry(it) }
+                        )
                     }
                 }
             } else {
-                // TAB 1: Rules List
-                if (state.isLoading) {
-                    Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                // ── MOBİL DÜZEN (SEKMELİ ROW VEYA DİKEY AKIŞ) ───────────────────────
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(TourOSSpacing.large),
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                ) {
+                    SecondaryTabRow(
+                        selectedTabIndex = state.selectedTab,
+                        containerColor = TourOSColors.Surface,
+                        contentColor = TourOSColors.Primary
+                    ) {
+                        Tab(
+                            selected = state.selectedTab == 0,
+                            onClick = { viewModel.selectTab(0) }
+                        ) {
+                            Text(
+                                "⚡ Fiyat Simülasyonu",
+                                modifier = Modifier.padding(TourOSSpacing.medium),
+                                style = TourOSTypography.Label.copy(
+                                    color = if (state.selectedTab == 0) TourOSColors.Primary else TourOSColors.TextSecondary
+                                )
+                            )
+                        }
+
+                        Tab(
+                            selected = state.selectedTab == 1,
+                            onClick = { viewModel.selectTab(1) }
+                        ) {
+                            Text(
+                                "📋 Kural Listesi (#${rulesList.size})",
+                                modifier = Modifier.padding(TourOSSpacing.medium),
+                                style = TourOSTypography.Label.copy(
+                                    color = if (state.selectedTab == 1) TourOSColors.Primary else TourOSColors.TextSecondary
+                                )
+                            )
+                        }
                     }
-                } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        items(state.rules) { rule ->
-                            DynamicPricingRuleCardItem(rule = rule)
+
+                    if (state.selectedTab == 0) {
+                        // MOBİL TAB 0: CANLI FİYAT SİMÜLASYON PANELİ
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            LivePriceSimulationPanel(
+                                selectedRule = rulesList.find { it.ruleId == selectedRuleId } ?: rulesList.firstOrNull(),
+
+                                occupancyRate = state.occupancyRate,
+                                selectedSeason = state.selectedSeason,
+                                selectedAgencyTier = state.selectedAgencyTier,
+                                selectedCountry = state.selectedCountry,
+                                basePrice = eval.basePrice,
+                                adjustedPrice = eval.adjustedPrice,
+                                totalAdjustmentPercent = eval.totalAdjustmentPercent,
+                                onOccupancyChange = { viewModel.updateOccupancyRate(it) },
+                                onSeasonChange = { viewModel.updateSeason(it) },
+                                onAgencyTierChange = { viewModel.updateAgencyTier(it) },
+                                onCountryChange = { viewModel.updateCountry(it) }
+                            )
+                        }
+                    } else {
+                        // MOBİL TAB 1: SIRALANABİLİR KURAL LİSTESİ
+                        Column(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            PriorityRuleHeader(ruleCount = rulesList.size)
+
+                            PriorityRuleList(
+                                rules = rulesList,
+                                selectedRuleId = selectedRuleId,
+                                onRuleSelect = { id -> selectedRuleId = id },
+                                onMoveUp = { idx ->
+                                    if (idx > 0) {
+                                        val mutable = rulesList.toMutableList()
+                                        val item = mutable.removeAt(idx)
+                                        mutable.add(idx - 1, item)
+                                        rulesList = mutable
+                                    }
+                                },
+                                onMoveDown = { idx ->
+                                    if (idx < rulesList.size - 1) {
+                                        val mutable = rulesList.toMutableList()
+                                        val item = mutable.removeAt(idx)
+                                        mutable.add(idx + 1, item)
+                                        rulesList = mutable
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
                         }
                     }
                 }
@@ -182,36 +226,307 @@ fun DynamicPricingRuleEngineScreen(
     }
 }
 
+// ─── ÖNCELİK SIRALI KURAL LİSTESİ ÜST BAŞLIĞI ────────────────────────────────
+
 @Composable
-fun DynamicPricingRuleCardItem(rule: DynamicPricingRule) {
-    Card(
+private fun PriorityRuleHeader(ruleCount: Int) {
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(2.dp)
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Text("ÖNCELİK #${rule.priority}", fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                }
-                val sign = if (rule.priceAdjustmentPercent >= 0) "+" else ""
-                Text("$sign${rule.priceAdjustmentPercent}%", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = if (rule.priceAdjustmentPercent >= 0) Color(0xFFD97706) else Color(0xFF15803D))
-            }
+        Text(
+            "📋 Öncelik Sıralı Kurallar ($ruleCount)",
+            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+        )
 
-            Text(rule.ruleName, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        TourOSStatusBadge(
+            text = "⚡ Öncelik Motoru Aktif",
+            backgroundColor = TourOSColors.PrimaryContainer,
+            textColor = TourOSColors.Primary
+        )
+    }
+}
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                    Text("Sezon: ${rule.season}", fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                }
-                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                    Text("Doluluk: >%${rule.minOccupancyRate.toInt()}", fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                }
-                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                    Text("Acente: ${rule.agencyTier}", fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+// ─── SIRALANABİLİR KURAL LİSTESİ (REORDERABLE PRIORITY RULE LIST) ──────────
+
+@Composable
+private fun PriorityRuleList(
+    rules: List<DynamicPricingRule>,
+    selectedRuleId: String,
+    onRuleSelect: (String) -> Unit,
+    onMoveUp: (Int) -> Unit,
+    onMoveDown: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        itemsIndexed(rules) { index, rule ->
+            val isSelected = rule.ruleId == selectedRuleId
+            val priorityBadge = "#${index + 1}"
+
+            TourOSCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onRuleSelect(rule.ruleId) },
+
+                backgroundColor = if (isSelected) TourOSColors.PrimaryContainer.copy(alpha = 0.4f) else TourOSColors.Surface,
+                contentPadding = TourOSSpacing.medium
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // SÜRÜKLE-BIRAK VE SIRA DEĞİŞTİRME BUTONLARI (Strict Rule)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            "⋮⋮",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextSecondary)
+                        )
+                        IconButton(
+                            onClick = { onMoveUp(index) },
+                            enabled = index > 0,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text("▲", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
+                        }
+                        IconButton(
+                            onClick = { onMoveDown(index) },
+                            enabled = index < rules.size - 1,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text("▼", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
+                        }
+                    }
+
+                    // KURAL DETAY KARTI
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TourOSStatusBadge(
+                                text = "ÖNCELİK $priorityBadge",
+                                backgroundColor = TourOSColors.Primary,
+                                textColor = TourOSColors.OnPrimary
+                            )
+
+                            val sign = if (rule.priceAdjustmentPercent >= 0) "+" else ""
+                            Text(
+                                "$sign%${rule.priceAdjustmentPercent}",
+                                style = TourOSTypography.TitleMedium.copy(
+                                    color = if (rule.priceAdjustmentPercent >= 0) TourOSColors.Secondary else TourOSColors.Success
+                                )
+                            )
+                        }
+
+                        Text(
+                            rule.ruleName,
+                            style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                            Text(
+                                "Sezon: ${rule.season}  ·  Doluluk: >%${rule.minOccupancyRate.toInt()}",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+}
+
+// ─── SAĞDA SEÇİLİ KURAL İÇİN CANLI FİYAT SİMÜLASYON PANELİ ────────────────────
+
+@Composable
+private fun LivePriceSimulationPanel(
+    selectedRule: DynamicPricingRule?,
+    occupancyRate: Double,
+    selectedSeason: String,
+    selectedAgencyTier: String,
+    selectedCountry: String,
+    basePrice: Double,
+    adjustedPrice: Double,
+    totalAdjustmentPercent: Double,
+    onOccupancyChange: (Double) -> Unit,
+    onSeasonChange: (String) -> Unit,
+    onAgencyTierChange: (String) -> Unit,
+    onCountryChange: (String) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // 1. CANLI SİMÜLASYON SONUÇ KARTI
+        TourOSCard(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = TourOSColors.Surface,
+            contentPadding = TourOSSpacing.large
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "⚡ Canlı Fiyat Simülasyonu",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+
+                    TourOSStatusBadge(
+                        text = "● SIMULATION LIVE",
+                        backgroundColor = TourOSColors.SuccessContainer,
+                        textColor = TourOSColors.Success
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.PrimaryContainer)
+                        .padding(TourOSSpacing.medium)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "Etkin Öncelikli Kural:",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                        )
+                        Text(
+                            selectedRule?.ruleName ?: "Varsayılan Fiyat Kuralı",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Baz Tur Fiyatı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatPriceMoney(basePrice)}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Net Değişim Oranı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+
+                    val sign = if (totalAdjustmentPercent >= 0) "+" else ""
+                    Text(
+                        "$sign%$totalAdjustmentPercent",
+                        style = TourOSTypography.Label.copy(
+                            color = if (totalAdjustmentPercent >= 0) TourOSColors.Secondary else TourOSColors.Success
+                        )
+                    )
+                }
+
+                HorizontalDivider(color = TourOSColors.Divider)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Dinamik Son Fiyat:", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                    Text(
+                        "₺ ${formatPriceMoney(adjustedPrice)}",
+                        style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                    )
+                }
+            }
+        }
+
+        // 2. PARAMETRE AYARLARI KARTI (DOLULUK, SEZON, ACENTE TIER)
+        TourOSCard(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = TourOSColors.Surface,
+            contentPadding = TourOSSpacing.large
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                Text(
+                    "🎛️ Simülatör Koşul Parametreleri",
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                )
+
+                Text(
+                    "Doluluk Oranı: %${occupancyRate.toInt()}",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                )
+
+                Slider(
+                    value = occupancyRate.toFloat(),
+                    onValueChange = { onOccupancyChange(it.toDouble()) },
+                    valueRange = 0f..100f,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = TourOSColors.Primary,
+                        activeTrackColor = TourOSColors.Primary
+                    )
+                )
+
+                // Sezon Seçim Chipleri
+                Text("Sezon Türü:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                    listOf("HIGH_SEASON" to "Yüksek", "MID_SEASON" to "Orta", "LOW_SEASON" to "Düşük").forEach { (code, label) ->
+                        val isSelected = selectedSeason == code
+                        OutlinedButton(
+                            onClick = { onSeasonChange(code) },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                            colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text(
+                                label,
+                                style = TourOSTypography.Caption.copy(
+                                    color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+
+                // Acente Tier Chipleri
+                Text("Acente Seviyesi:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                    listOf("VIP_AGENCY" to "VIP Acente", "REGULAR_AGENCY" to "Standart", "ALL" to "Tümü").forEach { (code, label) ->
+                        val isSelected = selectedAgencyTier == code
+                        OutlinedButton(
+                            onClick = { onAgencyTierChange(code) },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                            colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text(
+                                label,
+                                style = TourOSTypography.Caption.copy(
+                                    color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatPriceMoney(amount: Double): String {
+
+    val rounded = (amount * 100).toLong() / 100.0
+    return rounded.toString()
 }

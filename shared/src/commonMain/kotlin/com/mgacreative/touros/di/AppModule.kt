@@ -168,7 +168,10 @@ val useCaseModule = module {
     single { com.mgacreative.touros.data.gateway.StripePaymentGatewayImpl() }
     single { com.mgacreative.touros.data.gateway.MockPaymentGatewayImpl() }
     single<com.mgacreative.touros.domain.gateway.PaymentGatewayFactory> { com.mgacreative.touros.data.gateway.PaymentGatewayFactoryImpl(get(), get(), get()) }
-    single<com.mgacreative.touros.domain.factory.OTAProviderFactory> { com.mgacreative.touros.data.factory.OTAProviderFactoryImpl() }
+    single { com.mgacreative.touros.data.adapter.InternalOperatorAdapter(get()) }
+    single { com.mgacreative.touros.domain.engine.MarketplaceBookingRoutingEngine(get(), get()) }
+    single { com.mgacreative.touros.domain.engine.MarketplaceCancellationReceiver(get(), get()) }
+    single { com.mgacreative.touros.domain.engine.MarketplaceCommissionEngine(get()) }
     single { com.mgacreative.touros.domain.engine.OTASyncManager(get(), get()) }
     single { com.mgacreative.touros.domain.engine.OTAWebhookManager(get(), get(), get()) }
     single { com.mgacreative.touros.data.service.FirebasePushNotificationServiceImpl(get()) }
@@ -306,6 +309,9 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.SharedMapViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.PersonalizedRecommendationsViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.FaqSupportChatViewModel(get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AgencyOperatorConnectionsViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AgencyStorefrontViewModel(get()) }
 }
 
 /**

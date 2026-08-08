@@ -13,6 +13,8 @@ import com.mgacreative.touros.domain.model.Payment
 import com.mgacreative.touros.domain.repository.FinanceRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 class FinanceRepositoryImpl(
     private val supabaseClient: SupabaseClient
@@ -239,8 +241,8 @@ class FinanceRepositoryImpl(
 
     override suspend fun payCommission(commissionId: String): Result<Boolean> {
         return runCatching {
-            supabaseClient.postgrest.from("commissions")
-                .update(mapOf("is_paid" to true)) { filter { eq("id", commissionId) } }
+            supabaseClient.postgrest.from("b2b_agency_commissions")
+                .update(buildJsonObject { put("is_paid", true) }) { filter { eq("id", commissionId) } }
             true
         }
     }

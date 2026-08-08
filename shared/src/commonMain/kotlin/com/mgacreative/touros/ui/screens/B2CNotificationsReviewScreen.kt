@@ -1,5 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,17 +12,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.B2CPushNotificationItem
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.B2CNotificationsReviewViewModel
 
 /**
- * 4.2.6 B2C Müşteri Push Bildirimleri ve Tur Değerlendirme Ekranı.
+ * B2C Müşteri Bildirimleri & Tur Değerlendirme Ekranı — TourOS 0.3
+ *
+ * Basit kronolojik bildirim listesi.
+ * Okunmamış bildirimler hafif Primary Container arka planla vurgulanır.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun B2CNotificationsReviewScreen(
     viewModel: B2CNotificationsReviewViewModel,
@@ -30,12 +38,14 @@ fun B2CNotificationsReviewScreen(
     var commentInput by remember { mutableStateOf("Rehberimiz Mehmet Bey harikaydı, balon turu organizasyonu kusursuzdu! Teşekkürler.") }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🔔 Bildirimler & ⭐ Değerlendirme", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Bildirimler & Duyurular",
+                subtitle = "Seyahat hatırlatmaları, duyurular ve tur puanlama",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
@@ -45,90 +55,154 @@ fun B2CNotificationsReviewScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .padding(TourOSSpacing.large),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
-            // Tab Selector
-            SecondaryTabRow(selectedTabIndex = state.selectedTab) {
-                Tab(selected = state.selectedTab == 0, onClick = { viewModel.selectTab(0) }) {
-                    Text("1. 🔔 Bildirimlerim (${state.unreadCount})", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            // ── 1. İKİ SEKMELİ DÜZEN (BİLDİRİMLER & DEĞERLENDİRME) ───────────────
+            SecondaryTabRow(
+                selectedTabIndex = state.selectedTab,
+                containerColor = TourOSColors.Surface,
+                contentColor = TourOSColors.Primary
+            ) {
+                Tab(
+                    selected = state.selectedTab == 0,
+                    onClick = { viewModel.selectTab(0) }
+                ) {
+                    Text(
+                        "🔔 Bildirimlerim (${state.unreadCount} Okunmamış)",
+                        modifier = Modifier.padding(TourOSSpacing.medium),
+                        style = TourOSTypography.Label.copy(
+                            color = if (state.selectedTab == 0) TourOSColors.Primary else TourOSColors.TextSecondary
+                        )
+                    )
                 }
-                Tab(selected = state.selectedTab == 1, onClick = { viewModel.selectTab(1) }) {
-                    Text("2. ⭐ Tur Değerlendir", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+
+                Tab(
+                    selected = state.selectedTab == 1,
+                    onClick = { viewModel.selectTab(1) }
+                ) {
+                    Text(
+                        "⭐ Tur Değerlendir",
+                        modifier = Modifier.padding(TourOSSpacing.medium),
+                        style = TourOSTypography.Label.copy(
+                            color = if (state.selectedTab == 1) TourOSColors.Primary else TourOSColors.TextSecondary
+                        )
+                    )
                 }
             }
 
+            // Bildirim Mesajı
             if (state.notificationMessage != null) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFDCFCE7), modifier = Modifier.fillMaxWidth()) {
-                    Text(state.notificationMessage!!, color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.SuccessContainer)
+                        .padding(TourOSSpacing.medium)
+                ) {
+                    Text(
+                        state.notificationMessage!!,
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                    )
                 }
             }
 
+            // ── 2. SEKMELERE GÖRE İÇERİK ───────────────────────────────────────
             if (state.selectedTab == 0) {
-                // TAB 0: Push Bildirimleri Listesi
+                // TAB 0: BASİT KRONOLOJİK BİLDİRİM LİSTESİ
                 if (state.isLoading) {
                     Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = TourOSColors.Primary)
                     }
+                } else if (state.notifications.isEmpty()) {
+                    TourOSEmptyState(
+                        title = "Henüz Bildiriminiz Bulunmuyor",
+                        description = "Tur hatırlatmaları ve duyurular zamanı geldiğinde burada listelenecektir.",
+                        icon = { Text("🔔", style = TourOSTypography.DisplaySmall) },
+                        modifier = Modifier.weight(1f)
+                    )
                 } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                        modifier = Modifier.fillMaxWidth().weight(1f)
+                    ) {
                         items(state.notifications) { notif ->
                             B2CPushNotificationCard(notif = notif)
                         }
                     }
                 }
             } else {
-                // TAB 1: Tur Değerlendirme Formu
+                // TAB 1: TUR DEĞERLENDİRME FORMU
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
                         .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                 ) {
-                    Card(
+                    TourOSCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        backgroundColor = TourOSColors.Surface,
+                        contentPadding = TourOSSpacing.large
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("🎉 Tamamlanan Turunuzu Değerlendirin", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
-                                Text(state.selectedTourTitle, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(10.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                            Text(
+                                "🎉 Tamamlanan Turunuzu Değerlendirin",
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                    .background(TourOSColors.PrimaryContainer)
+                                    .padding(TourOSSpacing.medium)
+                            ) {
+                                Text(
+                                    "Tur: ${state.selectedTourTitle}",
+                                    style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                                )
                             }
 
-                            // Star Rating Selector Bar
-                            Text("Puanınız (${state.rating.toInt()} / 5 Yıldız):", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Yıldız Seçim Barı
+                            Text(
+                                "Puanınız (${state.rating.toInt()} / 5 Yıldız):",
+                                style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+                            )
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                                 (1..5).forEach { star ->
                                     val isSelected = star <= state.rating.toInt()
                                     OutlinedButton(
                                         onClick = { viewModel.updateRating(star.toDouble()) },
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFFEF08A)) else ButtonDefaults.outlinedButtonColors()
+                                        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                                        colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.SecondaryContainer) else ButtonDefaults.outlinedButtonColors()
                                     ) {
-                                        Text(if (isSelected) "★ $star" else "☆ $star", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isSelected) Color(0xFF854D0E) else Color.Gray)
+                                        Text(
+                                            if (isSelected) "★ $star" else "☆ $star",
+                                            style = TourOSTypography.Label.copy(
+                                                color = if (isSelected) TourOSColors.Secondary else TourOSColors.TextSecondary
+                                            )
+                                        )
                                     }
                                 }
                             }
 
-                            OutlinedTextField(
+                            TourOSTextField(
                                 value = commentInput,
                                 onValueChange = { commentInput = it },
-                                label = { Text("Tur Deneyiminiz ve Yorumunuz") },
-                                modifier = Modifier.fillMaxWidth().height(100.dp)
+                                label = "Tur Deneyiminiz ve Yorumunuz",
+                                placeholder = "Rehberlik, araç konforu ve otel hakkında düşünceleriniz...",
+                                modifier = Modifier.fillMaxWidth()
                             )
 
-                            Button(
+                            TourOSButton(
+                                text = "🌟 Değerlendirmeyi Gönder",
                                 onClick = { viewModel.submitReview(commentInput) },
                                 enabled = !state.isLoading && commentInput.isNotBlank(),
-                                modifier = Modifier.fillMaxWidth().height(46.dp),
-                                shape = RoundedCornerShape(10.dp)
-                            ) {
-                                if (state.isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                                else Text("🌟 Değerlendirmeyi Gönder", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
+                                variant = TourOSButtonVariant.PRIMARY,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
                     }
                 }
@@ -137,27 +211,63 @@ fun B2CNotificationsReviewScreen(
     }
 }
 
+// ─── KRONOLOJİK BİLDİRİM KARTI (OKUNMAMIŞLAR PRIMARY CONTAINER İLE VURGULANIR) ──
+
 @Composable
-fun B2CPushNotificationCard(notif: B2CPushNotificationItem) {
-    Card(
+private fun B2CPushNotificationCard(notif: B2CPushNotificationItem) {
+    // OKUNMAMIŞLAR PRIMARY CONTAINER ARKA PLANLA VURGULANIR (Strict Rule)
+    val cardBg = if (!notif.isRead) {
+        TourOSColors.PrimaryContainer.copy(alpha = 0.45f)
+    } else {
+        TourOSColors.Surface
+    }
+
+    val icon = if (notif.category == "REMINDER") "🎈" else "🔥"
+
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = if (!notif.isRead) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(1.dp)
+        backgroundColor = cardBg,
+        contentPadding = TourOSSpacing.medium
     ) {
-        Row(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-            Text(if (notif.category == "REMINDER") "🎈" else "🔥", fontSize = 20.sp)
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(notif.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+            verticalAlignment = Alignment.Top
+        ) {
+            Text(icon, style = TourOSTypography.TitleLarge)
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        notif.title,
+                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                    )
+
                     if (!notif.isRead) {
-                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF2563EB)) {
-                            Text("YENİ", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                        }
+                        TourOSStatusBadge(
+                            text = "🔵 YENİ",
+                            backgroundColor = TourOSColors.Primary,
+                            textColor = TourOSColors.OnPrimary
+                        )
                     }
                 }
-                Text(notif.body, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(notif.createdAt, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+
+                Text(
+                    notif.body,
+                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                )
+
+                Text(
+                    "🕒 ${notif.createdAt}",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
             }
         }
     }

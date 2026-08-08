@@ -131,3 +131,7 @@ kotlin {
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
 }
+
+tasks.named<Jar>("jvmJar") {
+    from(kotlin.targets.getByName("jvm").compilations.getByName("main").output.classesDirs)
+}
