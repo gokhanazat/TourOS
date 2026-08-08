@@ -70,6 +70,27 @@ fun AgencyStorefrontScreen(
                 }
             }
             is AgencyStorefrontUiState.Success -> {
+                // Browser URL Preview Strip
+                Card(
+                    shape = RoundedCornerShape(0.dp),
+                    colors = CardDefaults.cardColors(containerColor = TourOSColors.SurfaceVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "🔒 https://", style = TourOSTypography.Label, color = TourOSColors.Success)
+                            Text(text = "acente-web.touros.app/storefront", style = TourOSTypography.Label, fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
+                        }
+                        Text(text = "🌐 Acente Canlı Web Sitesi Önizlemesi", style = TourOSTypography.Label, color = TourOSColors.TextSecondary)
+                    }
+                }
+
                 // Hero Header (Travelata.ru Branding)
                 Box(
                     modifier = Modifier

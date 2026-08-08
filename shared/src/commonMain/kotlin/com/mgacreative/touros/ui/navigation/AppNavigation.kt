@@ -46,7 +46,7 @@ private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
     TourOSNavItem("Oteller",          { androidx.compose.material3.Text("🏨") }, HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
     TourOSNavItem("Pazaryeri Bağlantı", { androidx.compose.material3.Text("🤝") }, AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
     TourOSNavItem("Ürün Yayınlama",   { androidx.compose.material3.Text("📤") }, AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-    TourOSNavItem("Acente Storefront",{ androidx.compose.material3.Text("🏪") }, AgencyStorefrontRoute,        isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
+    TourOSNavItem("🌐 Acente Web Sayfası", { androidx.compose.material3.Text("🌐") }, AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
     TourOSNavItem("Fiyat & Kampanya", { androidx.compose.material3.Text("🏷️") }, DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
     TourOSNavItem("OTA Hub",          { androidx.compose.material3.Text("🌐") }, OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
     TourOSNavItem("Finans",           { androidx.compose.material3.Text("💰") }, FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
