@@ -47,7 +47,7 @@ fun TourOSBottomBar(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    item.icon()
+                    item.icon?.invoke()
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = item.title,
