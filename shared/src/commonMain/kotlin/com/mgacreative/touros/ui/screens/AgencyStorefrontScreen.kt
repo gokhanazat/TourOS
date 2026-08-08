@@ -73,7 +73,7 @@ fun AgencyStorefrontScreen(
                 // Browser URL Preview Strip
                 Card(
                     shape = RoundedCornerShape(0.dp),
-                    colors = CardDefaults.cardColors(containerColor = TourOSColors.SurfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
