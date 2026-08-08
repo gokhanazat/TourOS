@@ -32,11 +32,8 @@ jobs:
       - name: Build Compose Wasm/JS App
         run: ./gradlew :webApp:wasmJsBrowserDistribution --no-daemon
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: touros
-          directory: webApp/build/dist/wasmJs/productionExecutable
-          gitBranch: master
+      - name: Deploy to Cloudflare Pages via Wrangler
+        run: npx wrangler pages deploy webApp/build/dist/wasmJs/productionExecutable --project-name=touros --branch=master
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
