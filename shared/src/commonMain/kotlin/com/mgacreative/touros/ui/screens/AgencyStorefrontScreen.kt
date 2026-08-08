@@ -219,28 +219,50 @@ fun AgencyStorefrontScreen(
                 // ── NORMAL KESİNTİSİZ LANDING PAGE SAYFA AKIŞI ────────────────────────────
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-                    // ── 1. HEADER RESİM BANNER ALANI (GÖRSEL DEĞİŞEBİLİR) ─────────────────────
+                    // ── 1. CLEAN HEADER BANNER ALANI (YAZILAR KALDIRILDI, ÖZEL LOGO SOL ÜSTTE) ─
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(160.dp)
                                 .background(TourOSColors.Primary),
-                            contentAlignment = Alignment.CenterStart
+                            contentAlignment = Alignment.TopStart
                         ) {
-                            Column(modifier = Modifier.padding(horizontal = TourOSSpacing.large)) {
-                                Text(
-                                    text = "SLETAT | ${state.branding.heroTitle}",
-                                    style = TourOSTypography.TitleLarge,
-                                    color = TourOSColors.OnPrimary,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "80+ Tur Operatöründen En Uygun Fiyatlar • 7/24 Canlı Destek (0850 300 00 00)",
-                                    style = TourOSTypography.BodyMedium,
-                                    color = TourOSColors.OnPrimary.copy(alpha = 0.9f)
-                                )
+                            // Sol Üst Özel Logo Rozeti ve İletişim Rozeti
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color.White, RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 14.dp, vertical = 8.dp)
+                                    ) {
+                                        Text(
+                                            text = state.branding.customLogoUrl?.takeIf { it.isNotBlank() } ?: "🏢 ACENTE LOGO",
+                                            style = TourOSTypography.TitleMedium,
+                                            color = TourOSColors.Primary,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(
+                                        text = "📞 0850 300 00 00",
+                                        style = TourOSTypography.BodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
                     }
