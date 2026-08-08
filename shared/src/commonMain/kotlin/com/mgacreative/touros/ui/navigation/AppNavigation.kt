@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 
+import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
@@ -36,6 +37,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import com.mgacreative.touros.ui.theme.TourOSTypography
+
+// ─── Auth-only route'ları (shell gizlenir) ────────────────────────────────────
+private val authRoutePatterns = listOf(
+    "SplashRoute", "LoginRoute", "RegisterRoute",
+    "ForgotPasswordRoute", "OnboardingRoute", "EmailVerificationRoute"
+)
+
+private fun NavDestination?.isAuthRoute(): Boolean =
+    authRoutePatterns.any { this?.route?.contains(it) == true }
 
 @Composable
 private fun MenuIconBadge(symbol: String, bgColor: Color = TourOSColors.PrimaryContainer, textColor: Color = TourOSColors.Primary) {
