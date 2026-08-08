@@ -60,6 +60,7 @@ import org.koin.compose.viewmodel.koinViewModel
 enum class SettingsCategory(val title: String, val icon: String) {
     GENEL("Genel", "🏢"),
     MARKA("Marka", "🎨"),
+    WEB_SITESI("Acente Web Sitesi", "🖥️"),
     VERGI_SEZON("Vergi / Sezon", "📊"),
     DIL_PARA_BIRIMI("Dil / Para Birimi", "🌐")
 }
@@ -352,6 +353,94 @@ fun CompanySettingsScreen(
                                                     .background(parsedColor)
                                                     .border(TourOSSpacing.borderWidth, TourOSColors.Border, CircleShape)
                                             )
+                                        }
+                                    }
+
+                                    SettingsCategory.WEB_SITESI -> {
+                                        var webHeroTitle by remember { mutableStateOf(settings.name.ifEmpty { "Hayalinizdeki Turu Keşfedin" }) }
+                                        var webHeroSubtitle by remember { mutableStateOf("En iyi tur operatörlerinden karşılaştırmalı teklifler ve fırsatlar") }
+                                        var webContactPhone by remember { mutableStateOf("0850 300 00 00") }
+                                        var webCustomLogo by remember { mutableStateOf(settings.logoUrl ?: "") }
+                                        var webFooterText by remember { mutableStateOf("© 2026 Tüm Hakları Saklıdır") }
+
+                                        Text(
+                                            text = "Acente Web Sayfası Ayarları (Sletat.ru Konsepti)",
+                                            style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
+                                        )
+                                        Text(
+                                            text = "Müşterilerinize sunulan web sitesinin başlığı, logo, iletişim ve ürün yayınlama ayarlarını düzenleyin.",
+                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                                        )
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                                        TourOSTextField(
+                                            value = webHeroTitle,
+                                            onValueChange = { webHeroTitle = it },
+                                            label = "Web Site Başlığı / Acente Adı",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        TourOSTextField(
+                                            value = webHeroSubtitle,
+                                            onValueChange = { webHeroSubtitle = it },
+                                            label = "Web Site Alt Başlığı (Slogan)",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                        ) {
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                TourOSTextField(
+                                                    value = webContactPhone,
+                                                    onValueChange = { webContactPhone = it },
+                                                    label = "Müşteri Destek Telefonu"
+                                                )
+                                            }
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                TourOSTextField(
+                                                    value = webCustomLogo,
+                                                    onValueChange = { webCustomLogo = it },
+                                                    label = "Özel Logo URL"
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        TourOSTextField(
+                                            value = webFooterText,
+                                            onValueChange = { webFooterText = it },
+                                            label = "Footer / Telif Hakkı Metni",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                                        // Entegrasyon Bilgi Kartı
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                                .background(TourOSColors.PrimaryContainer.copy(alpha = 0.4f))
+                                                .border(TourOSSpacing.borderWidth, TourOSColors.Primary.copy(alpha = 0.3f), RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                                .padding(TourOSSpacing.medium)
+                                        ) {
+                                            Column {
+                                                Text(text = "🌐 OTA & Canlı Ürün Yayınlama Entegrasyonu", style = TourOSTypography.TitleMedium, color = TourOSColors.Primary)
+                                                Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                                Text(
+                                                    text = "OTA Hub ve Pazaryeri kataloğundan 'Yayınla' (is_published=true) olarak işaretlenen tüm turlar, kar marjı hesaplanarak acente web sitenizde canlı olarak görünür.",
+                                                    style = TourOSTypography.BodyMedium,
+                                                    color = TourOSColors.TextPrimary
+                                                )
+                                            }
                                         }
                                     }
 
