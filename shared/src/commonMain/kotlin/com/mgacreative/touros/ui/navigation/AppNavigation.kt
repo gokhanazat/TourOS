@@ -29,6 +29,23 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.LocalOffer
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material3.Icon
+
 // ─── Auth-only route'ları (shell gizlenir) ────────────────────────────────────
 private val authRoutePatterns = listOf(
     "SplashRoute", "LoginRoute", "RegisterRoute",
@@ -40,20 +57,20 @@ private fun NavDestination?.isAuthRoute(): Boolean =
 
 // ─── Menü Öğeleri ─────────────────────────────────────────────────────────────
 private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
-    TourOSNavItem("Dashboard",        { androidx.compose.material3.Text("📊") }, DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
-    TourOSNavItem("Turlar",           { androidx.compose.material3.Text("🗺️") }, ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
-    TourOSNavItem("Rezervasyon",      { androidx.compose.material3.Text("📋") }, BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
-    TourOSNavItem("Oteller",          { androidx.compose.material3.Text("🏨") }, HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
-    TourOSNavItem("Pazaryeri Bağlantı", { androidx.compose.material3.Text("🤝") }, AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
-    TourOSNavItem("Ürün Yayınlama",   { androidx.compose.material3.Text("📤") }, AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-    TourOSNavItem("Acente Web Sayfası", { androidx.compose.material3.Text("🖥️") }, AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
-    TourOSNavItem("Fiyat & Kampanya", { androidx.compose.material3.Text("🏷️") }, DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
-    TourOSNavItem("OTA Hub",          { androidx.compose.material3.Text("🌐") }, OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
-    TourOSNavItem("Finans",           { androidx.compose.material3.Text("💰") }, FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
-    TourOSNavItem("Müşteriler & CRM",  { androidx.compose.material3.Text("👥") }, CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
-    TourOSNavItem("Analitik & Trend", { androidx.compose.material3.Text("📈") }, AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
-    TourOSNavItem("Destek & SSS",     { androidx.compose.material3.Text("💬") }, FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
-    TourOSNavItem("Ayarlar & Dil",    { androidx.compose.material3.Text("⚙️") }, SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
+    TourOSNavItem("Dashboard",        { Icon(Icons.Default.Dashboard, contentDescription = null, tint = TourOSColors.Primary) }, DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
+    TourOSNavItem("Turlar",           { Icon(Icons.Default.Map, contentDescription = null, tint = TourOSColors.Primary) }, ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
+    TourOSNavItem("Rezervasyon",      { Icon(Icons.Default.Assignment, contentDescription = null, tint = TourOSColors.Primary) }, BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
+    TourOSNavItem("Oteller",          { Icon(Icons.Default.Hotel, contentDescription = null, tint = TourOSColors.Primary) }, HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
+    TourOSNavItem("Pazaryeri Bağlantı", { Icon(Icons.Default.Storefront, contentDescription = null, tint = TourOSColors.Primary) }, AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
+    TourOSNavItem("Ürün Yayınlama",   { Icon(Icons.Default.CloudUpload, contentDescription = null, tint = TourOSColors.Primary) }, AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
+    TourOSNavItem("Acente Web Sayfası", { Icon(Icons.Default.Computer, contentDescription = null, tint = TourOSColors.Primary) }, AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
+    TourOSNavItem("Fiyat & Kampanya", { Icon(Icons.Default.LocalOffer, contentDescription = null, tint = TourOSColors.Primary) }, DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
+    TourOSNavItem("OTA Hub",          { Icon(Icons.Default.Public, contentDescription = null, tint = TourOSColors.Primary) }, OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
+    TourOSNavItem("Finans",           { Icon(Icons.Default.AccountBalance, contentDescription = null, tint = TourOSColors.Primary) }, FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
+    TourOSNavItem("Müşteriler & CRM",  { Icon(Icons.Default.Group, contentDescription = null, tint = TourOSColors.Primary) }, CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
+    TourOSNavItem("Analitik & Trend", { Icon(Icons.Default.BarChart, contentDescription = null, tint = TourOSColors.Primary) }, AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
+    TourOSNavItem("Destek & SSS",     { Icon(Icons.Default.Chat, contentDescription = null, tint = TourOSColors.Primary) }, FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
+    TourOSNavItem("Ayarlar & Dil",    { Icon(Icons.Default.Settings, contentDescription = null, tint = TourOSColors.Primary) }, SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
 )
 
 
