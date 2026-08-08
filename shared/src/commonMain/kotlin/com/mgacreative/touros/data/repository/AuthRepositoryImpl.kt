@@ -28,16 +28,20 @@ class AuthRepositoryImpl(
 
     init {
         scope.launch {
-            auth.sessionStatus.collect { status ->
-                when (status) {
-                    is SessionStatus.Authenticated -> {
-                        _currentUserState.value = mapUserInfoToUser(status.session.user)
+            try {
+                auth.sessionStatus.collect { status ->
+                    when (status) {
+                        is SessionStatus.Authenticated -> {
+                            _currentUserState.value = mapUserInfoToUser(status.session.user)
+                        }
+                        is SessionStatus.NotAuthenticated -> {
+                            _currentUserState.value = null
+                        }
+                        else -> {}
                     }
-                    is SessionStatus.NotAuthenticated -> {
-                        _currentUserState.value = null
-                    }
-                    else -> {}
                 }
+            } catch (e: Throwable) {
+                _currentUserState.value = null
             }
         }
     }

@@ -11,17 +11,19 @@ class CheckSessionUseCase(
     private val authRepository: AuthRepository
 ) {
     suspend operator fun invoke(): Result<User?> {
-        val currentUser = authRepository.getCurrentUser()
-        if (currentUser != null && authRepository.isSessionValid()) {
-            return Result.success(currentUser)
-        }
+        return runCatching {
+            val currentUser = authRepository.getCurrentUser()
+            if (currentUser != null && authRepository.isSessionValid()) {
+                return@runCatching currentUser
+            }
 
-        // Token yenilemeyi dene
-        val refreshResult = authRepository.refreshSession()
-        return if (refreshResult.isSuccess) {
-            Result.success(refreshResult.getOrNull())
-        } else {
-            Result.success(null)
-        }
+            // Token yenilemeyi dene
+            val refreshResult = authRepository.refreshSession()
+            if (refreshResult.isSuccess) {
+                refreshResult.getOrNull()
+            } else {
+                null
+            }
+        }.recover { null }
     }
 }

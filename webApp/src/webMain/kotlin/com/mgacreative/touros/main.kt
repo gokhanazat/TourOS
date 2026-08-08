@@ -6,7 +6,11 @@ import com.mgacreative.touros.di.initKoin
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
-    initKoin()
+    try {
+        initKoin()
+    } catch (e: Throwable) {
+        // Prevent web initialization crash if Koin is already started or encounters startup exception
+    }
 
     ComposeViewport {
         App()

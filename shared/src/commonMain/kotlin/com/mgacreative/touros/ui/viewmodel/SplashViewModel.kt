@@ -30,16 +30,20 @@ class SplashViewModel(
     fun checkSession() {
         viewModelScope.launch {
             _uiState.value = SplashState.Loading
-            // Min 1000ms splash animasyon görünürlüğü
             val startTime = currentTimeMillis()
 
-            val userResult = checkSessionUseCase()
+            val user = try {
+                val userResult = checkSessionUseCase()
+                userResult.getOrNull()
+            } catch (e: Throwable) {
+                null
+            }
+
             val elapsedTime = currentTimeMillis() - startTime
             if (elapsedTime < 1000) {
                 delay(1000 - elapsedTime)
             }
 
-            val user = userResult.getOrNull()
             if (user != null) {
                 _uiState.value = SplashState.Authenticated(user.role)
             } else {
