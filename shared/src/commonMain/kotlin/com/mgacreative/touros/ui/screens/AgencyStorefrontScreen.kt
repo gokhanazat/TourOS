@@ -201,7 +201,7 @@ fun AgencyStorefrontScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(TourOSColors.SurfaceVariant)
+                                .background(TourOSColors.Surface)
                                 .padding(vertical = TourOSSpacing.medium, horizontal = TourOSSpacing.large)
                         ) {
                             Row(
@@ -326,7 +326,7 @@ private fun DestinationCard(destination: String, startingPrice: String, onClick:
             .clickable { onClick() }
     ) {
         Column(modifier = Modifier.padding(TourOSSpacing.medium)) {
-            Text(text = destination, style = TourOSTypography.TitleSmall, fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
+            Text(text = destination, style = TourOSTypography.TitleMedium, fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = startingPrice, style = TourOSTypography.Label, color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
         }
