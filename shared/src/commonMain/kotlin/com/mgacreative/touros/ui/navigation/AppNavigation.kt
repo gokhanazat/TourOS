@@ -29,48 +29,42 @@ import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.CloudUpload
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Public
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Storefront
-import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import com.mgacreative.touros.ui.theme.TourOSTypography
 
-// ─── Auth-only route'ları (shell gizlenir) ────────────────────────────────────
-private val authRoutePatterns = listOf(
-    "SplashRoute", "LoginRoute", "RegisterRoute",
-    "ForgotPasswordRoute", "OnboardingRoute", "EmailVerificationRoute"
-)
-
-private fun NavDestination?.isAuthRoute(): Boolean =
-    authRoutePatterns.any { this?.route?.contains(it) == true }
+@Composable
+private fun MenuIconBadge(symbol: String, bgColor: Color = TourOSColors.PrimaryContainer, textColor: Color = TourOSColors.Primary) {
+    Box(
+        modifier = Modifier
+            .size(26.dp)
+            .background(bgColor, RoundedCornerShape(6.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = symbol, style = TourOSTypography.Label, color = textColor, fontWeight = FontWeight.Black)
+    }
+}
 
 // ─── Menü Öğeleri ─────────────────────────────────────────────────────────────
 private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
-    TourOSNavItem("Dashboard",        { Icon(Icons.Default.Dashboard, contentDescription = null, tint = TourOSColors.Primary) }, DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
-    TourOSNavItem("Turlar",           { Icon(Icons.Default.Map, contentDescription = null, tint = TourOSColors.Primary) }, ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
-    TourOSNavItem("Rezervasyon",      { Icon(Icons.Default.Assignment, contentDescription = null, tint = TourOSColors.Primary) }, BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
-    TourOSNavItem("Oteller",          { Icon(Icons.Default.Hotel, contentDescription = null, tint = TourOSColors.Primary) }, HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
-    TourOSNavItem("Pazaryeri Bağlantı", { Icon(Icons.Default.Storefront, contentDescription = null, tint = TourOSColors.Primary) }, AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
-    TourOSNavItem("Ürün Yayınlama",   { Icon(Icons.Default.CloudUpload, contentDescription = null, tint = TourOSColors.Primary) }, AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-    TourOSNavItem("Acente Web Sayfası", { Icon(Icons.Default.Computer, contentDescription = null, tint = TourOSColors.Primary) }, AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
-    TourOSNavItem("Fiyat & Kampanya", { Icon(Icons.Default.LocalOffer, contentDescription = null, tint = TourOSColors.Primary) }, DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
-    TourOSNavItem("OTA Hub",          { Icon(Icons.Default.Public, contentDescription = null, tint = TourOSColors.Primary) }, OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
-    TourOSNavItem("Finans",           { Icon(Icons.Default.AccountBalance, contentDescription = null, tint = TourOSColors.Primary) }, FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
-    TourOSNavItem("Müşteriler & CRM",  { Icon(Icons.Default.Group, contentDescription = null, tint = TourOSColors.Primary) }, CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
-    TourOSNavItem("Analitik & Trend", { Icon(Icons.Default.BarChart, contentDescription = null, tint = TourOSColors.Primary) }, AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
-    TourOSNavItem("Destek & SSS",     { Icon(Icons.Default.Chat, contentDescription = null, tint = TourOSColors.Primary) }, FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
-    TourOSNavItem("Ayarlar & Dil",    { Icon(Icons.Default.Settings, contentDescription = null, tint = TourOSColors.Primary) }, SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
+    TourOSNavItem("Dashboard",        { MenuIconBadge("DB") }, DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
+    TourOSNavItem("Turlar",           { MenuIconBadge("TR") }, ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
+    TourOSNavItem("Rezervasyon",      { MenuIconBadge("RZ") }, BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
+    TourOSNavItem("Oteller",          { MenuIconBadge("OT") }, HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
+    TourOSNavItem("Pazaryeri Bağlantı", { MenuIconBadge("PZ") }, AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
+    TourOSNavItem("Ürün Yayınlama",   { MenuIconBadge("YY") }, AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
+    TourOSNavItem("Acente Web Sayfası", { MenuIconBadge("WEB", bgColor = TourOSColors.Primary, textColor = TourOSColors.OnPrimary) }, AgencyStorefrontRoute, isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
+    TourOSNavItem("Fiyat & Kampanya", { MenuIconBadge("FK") }, DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
+    TourOSNavItem("OTA Hub",          { MenuIconBadge("OTA") }, OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
+    TourOSNavItem("Finans",           { MenuIconBadge("FN") }, FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
+    TourOSNavItem("Müşteriler & CRM",  { MenuIconBadge("CRM") }, CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
+    TourOSNavItem("Analitik & Trend", { MenuIconBadge("AN") }, AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
+    TourOSNavItem("Destek & SSS",     { MenuIconBadge("SSS") }, FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
+    TourOSNavItem("Ayarlar & Dil",    { MenuIconBadge("AY") }, SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
 )
 
 
