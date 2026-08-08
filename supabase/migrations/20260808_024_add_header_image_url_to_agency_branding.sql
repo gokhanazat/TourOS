@@ -6,6 +6,8 @@
 ALTER TABLE public.agency_branding 
 ADD COLUMN IF NOT EXISTS header_image_url TEXT;
 
+DROP FUNCTION IF EXISTS public.get_agency_branding(UUID);
+
 CREATE OR REPLACE FUNCTION public.get_agency_branding(p_agency_id UUID)
 RETURNS TABLE (
     id UUID,
