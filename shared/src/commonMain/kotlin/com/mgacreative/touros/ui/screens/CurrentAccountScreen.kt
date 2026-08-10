@@ -34,13 +34,19 @@ fun CurrentAccountScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
+
+    var selectedAccountForDetail by remember { mutableStateOf<CurrentAccountItem?>(null) }
+    var selectedTypeFilter by remember { mutableStateOf<String?>(null) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedTransactionType by remember { mutableStateOf("Tümü") }
 
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Cari Hesaplar & Mutabakat",
-                subtitle = "Müşteri, acente ve tedarikçi bakiye dökümleri ve ekstreler",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Hesaplar & Mutabakat"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri, acente ve tedarikçi bakiye dökümleri ve ekstreler"),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -98,7 +104,7 @@ fun CurrentAccountScreen(
 
                         // ── 3. Cari Hesap Listesi ──────────────────────────────
                         Text(
-                            "📋 Cari Hesap Listesi (${state.accounts.size})",
+                            "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Hesap Listesi")} (${state.accounts.size})",
                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.Bold
                         )
@@ -109,7 +115,7 @@ fun CurrentAccountScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    "Filtreye uygun veya veritabanında kaydedilmiş cari hesap bulunamadı.",
+                                    com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtreye uygun veya veritabanında kaydedilmiş cari hesap bulunamadı."),
                                     style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
                                     textAlign = TextAlign.Center
                                 )
@@ -163,7 +169,7 @@ private fun TopBalanceSummarySection(
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
         ) {
             Text(
-                "NET GENEL BAKİYE",
+                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("NET GENEL BAKİYE"),
                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
                 fontWeight = FontWeight.Bold
             )
@@ -181,7 +187,7 @@ private fun TopBalanceSummarySection(
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📈 Müşteri Alacakları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+                    Text("📈 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Alacakları")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                     Text(
                         "₺ ${formatMoney(totalCustomerReceivables)}",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
@@ -190,7 +196,7 @@ private fun TopBalanceSummarySection(
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📉 Tedarikçi Borçları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+                    Text("📉 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Borçları")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                     Text(
                         "₺ ${formatMoney(totalSupplierPayables)}",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
@@ -215,8 +221,8 @@ private fun SearchAndFilterBar(
         TourOSTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
-            label = "Cari Arama",
-            placeholder = "Cari Adı, Cari Kodu (CAR-...) veya Vergi/TC No ile ara...",
+            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Arama"),
+            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...) veya Vergi/TC No ile ara..."),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -227,22 +233,22 @@ private fun SearchAndFilterBar(
             FilterChip(
                 selected = selectedEntityType == null,
                 onClick = { onEntityTypeSelected(null) },
-                label = { Text("Tüm Cariler", style = TourOSTypography.Caption) }
+                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm Cariler"), style = TourOSTypography.Caption) }
             )
             FilterChip(
                 selected = selectedEntityType == "customer",
                 onClick = { onEntityTypeSelected("customer") },
-                label = { Text("👤 Müşteriler", style = TourOSTypography.Caption) }
+                label = { Text("👤 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteriler")}", style = TourOSTypography.Caption) }
             )
             FilterChip(
                 selected = selectedEntityType == "agency",
                 onClick = { onEntityTypeSelected("agency") },
-                label = { Text("🏢 Acenteler", style = TourOSTypography.Caption) }
+                label = { Text("🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acenteler")}", style = TourOSTypography.Caption) }
             )
             FilterChip(
                 selected = selectedEntityType == "supplier",
                 onClick = { onEntityTypeSelected("supplier") },
-                label = { Text("🏨 Tedarikçiler", style = TourOSTypography.Caption) }
+                label = { Text("🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçiler")}", style = TourOSTypography.Caption) }
             )
         }
     }
@@ -256,10 +262,10 @@ private fun CurrentAccountCard(
     onStatementClick: () -> Unit
 ) {
     val typeTitle = when (account.entityType) {
-        "customer" -> "Müşteri"
-        "agency" -> "Acente"
-        "supplier" -> "Tedarikçi"
-        else -> "Cari"
+        "customer" -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri")
+        "agency" -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente")
+        "supplier" -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi")
+        else -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari")
     }
 
     val typeIcon = when (account.entityType) {
@@ -304,7 +310,7 @@ private fun CurrentAccountCard(
                 }
 
                 Text(
-                    "Son İşlem: ${account.lastTransactionDate.ifBlank { "—" }}",
+                    "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Son İşlem")}: ${account.lastTransactionDate.ifBlank { "—" }}",
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                 )
             }
@@ -330,7 +336,7 @@ private fun CurrentAccountCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Borç Toplamı / Alacak Toplamı", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Borç Toplamı / Alacak Toplamı"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text(
                         "₺ ${formatMoney(account.totalDebit)} / ₺ ${formatMoney(account.totalCredit)}",
                         style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
@@ -338,7 +344,7 @@ private fun CurrentAccountCard(
                 }
 
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Net Bakiye", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Bakiye"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text(
                         "₺ ${formatMoney(account.balance)} ${account.currency}",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
@@ -348,7 +354,7 @@ private fun CurrentAccountCard(
             }
 
             TourOSButton(
-                text = "📋 Hareket Dökümü & Ekstreyi Aç",
+                text = "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hareket Dökümü & Ekstreyi Aç")}",
                 onClick = onStatementClick,
                 variant = TourOSButtonVariant.SECONDARY,
                 modifier = Modifier.fillMaxWidth()
@@ -373,7 +379,7 @@ private fun AccountStatementModal(
         title = {
             Column {
                 Text(
-                    "📋 Cari Hareket Dökümü & Ekstre",
+                    "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Hareket Dökümü & Ekstre")}",
                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                     fontWeight = FontWeight.Bold
                 )
@@ -401,7 +407,7 @@ private fun AccountStatementModal(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Güncel Bakiye:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Güncel Bakiye:"), style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                         Text(
                             "₺ ${formatMoney(account.balance)} ${account.currency}",
                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
@@ -418,16 +424,16 @@ private fun AccountStatementModal(
                                 .background(TourOSColors.Primary)
                                 .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
                         ) {
-                            Text("Tarih", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.9f))
-                            Text("Açıklama / Ref", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
-                            Text("Borç (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
-                            Text("Alacak (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
-                            Text("Bakiye (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih"), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.9f))
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Açıklama / Ref"), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Borç (TL)"), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Alacak (TL)"), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bakiye (TL)"), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
                         }
 
                         if (details.isEmpty()) {
                             Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                                Text("Hareket detayı bulunamadı.", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hareket detayı bulunamadı."), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                             }
                         } else {
                             LazyColumn(
@@ -442,7 +448,7 @@ private fun AccountStatementModal(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(item.date, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(0.9f))
-                                        Text(item.description, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
+                                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.description), style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
                                         Text(formatMoney(item.debit), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(1.0f))
                                         Text(formatMoney(item.credit), style = TourOSTypography.Caption.copy(color = TourOSColors.Success), modifier = Modifier.weight(1.0f))
                                         Text(formatMoney(item.balance), style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
@@ -457,7 +463,7 @@ private fun AccountStatementModal(
         },
         confirmButton = {
             TourOSButton(
-                text = "Kapat",
+                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kapat"),
                 onClick = onDismiss,
                 variant = TourOSButtonVariant.PRIMARY
             )

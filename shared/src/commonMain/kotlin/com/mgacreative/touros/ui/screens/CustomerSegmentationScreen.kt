@@ -38,6 +38,7 @@ fun CustomerSegmentationScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     val selectedSegment = state.segments.find { it.id == state.selectedSegmentId } ?: state.segments.firstOrNull()
 
@@ -56,8 +57,8 @@ fun CustomerSegmentationScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Müşteri Segmentleri & CRM",
-                subtitle = "Kullanıcı davranışlarına göre canlı segmentasyon ve müşteri dökümü",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Segmentleri & CRM"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kullanıcı davranışlarına göre canlı segmentasyon ve müşteri dökümü"),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -82,13 +83,13 @@ fun CustomerSegmentationScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "📊 Müşteri Segment Kartları (${state.segments.size})",
+                        "📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Segment Kartları")} (${state.segments.size})",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                         fontWeight = FontWeight.Bold
                     )
 
                     TourOSStatusBadge(
-                        text = "Toplam ${state.totalCustomerCount} Müşteri",
+                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam")} ${state.totalCustomerCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri")}",
                         backgroundColor = TourOSColors.PrimaryContainer,
                         textColor = TourOSColors.Primary
                     )
@@ -101,7 +102,7 @@ fun CustomerSegmentationScreen(
                     }
                 } else if (state.segments.isEmpty()) {
                     Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                        Text("Henüz sisteme kayıtlı müşteri veya rezervasyon bulunamadı.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz sisteme kayıtlı müşteri veya rezervasyon bulunamadı."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                     }
                 } else {
                     LazyVerticalGrid(
@@ -132,7 +133,7 @@ fun CustomerSegmentationScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "${selectedSegment.icon} ${selectedSegment.name} (${filteredCustomers.size} Gösteriliyor)",
+                            "${selectedSegment.icon} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(selectedSegment.name)} (${filteredCustomers.size} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gösteriliyor")})",
                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.Bold
                         )
@@ -140,7 +141,7 @@ fun CustomerSegmentationScreen(
                         TourOSTextField(
                             value = state.searchQuery,
                             onValueChange = { viewModel.setSearchQuery(it) },
-                            placeholder = "Müşteri Ara...",
+                            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Ara..."),
                             modifier = Modifier.width(260.dp)
                         )
                     }
@@ -153,7 +154,7 @@ fun CustomerSegmentationScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                "Bu segmentte veya arama kriterinde müşteri bulunmuyor.",
+                                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bu segmentte veya arama kriterinde müşteri bulunmuyor."),
                                 style = TourOSTypography.BodyMedium,
                                 color = TourOSColors.TextSecondary
                             )
@@ -202,7 +203,7 @@ private fun SegmentGridCardItem(
                 ) {
                     Text(segment.icon, style = TourOSTypography.TitleMedium)
                     Text(
-                        segment.name,
+                        com.mgacreative.touros.ui.localization.AppLanguageManager.translate(segment.name),
                         style = TourOSTypography.BodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = TourOSColors.TextPrimary
@@ -210,14 +211,14 @@ private fun SegmentGridCardItem(
                 }
 
                 TourOSStatusBadge(
-                    text = "${segment.customerCount} Müşteri",
+                    text = "${segment.customerCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri")}",
                     backgroundColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Surface,
                     textColor = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
                 )
             }
 
             Text(
-                segment.description,
+                com.mgacreative.touros.ui.localization.AppLanguageManager.translate(segment.description),
                 style = TourOSTypography.Caption,
                 color = TourOSColors.TextSecondary,
                 maxLines = 2
@@ -229,14 +230,14 @@ private fun SegmentGridCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Ort. LTV: ${formatLtvCurrency(segment.avgLtv)} ₺",
+                    "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ort. LTV")}: ${formatLtvCurrency(segment.avgLtv)} ₺",
                     style = TourOSTypography.Caption,
                     color = TourOSColors.TextSecondary,
                     fontWeight = FontWeight.SemiBold
                 )
 
                 Text(
-                    if (isSelected) "● AÇIK" else "Tabloyu Aç →",
+                    if (isSelected) "● ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("AÇIK")}" else "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tabloyu Aç")} →",
                     style = TourOSTypography.Caption,
                     fontWeight = FontWeight.Bold,
                     color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
@@ -285,12 +286,12 @@ private fun DynamicCustomerRowCard(customer: CustomerCrmDetail) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Tamamlanan: ${customer.totalBookings} ${customer.bookingTypeStr} Rezervasyonu",
+                        "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tamamlanan")}: ${customer.totalBookings} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(customer.bookingTypeStr)} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyonu")}",
                         style = TourOSTypography.Caption,
                         color = TourOSColors.TextPrimary
                     )
                     Text(
-                        "Son İşlem: ${customer.lastActivityDate}",
+                        "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Son İşlem")}: ${customer.lastActivityDate}",
                         style = TourOSTypography.Caption,
                         color = TourOSColors.TextSecondary
                     )
@@ -303,7 +304,7 @@ private fun DynamicCustomerRowCard(customer: CustomerCrmDetail) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("LTV (Toplam Tutar)", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("LTV (Toplam Tutar)"), style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                     Text(
                         "${formatLtvCurrency(customer.ltvAmount)} ₺",
                         style = TourOSTypography.TitleMedium,
@@ -314,7 +315,7 @@ private fun DynamicCustomerRowCard(customer: CustomerCrmDetail) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                     TourOSButton(
-                        text = "📞 Ara",
+                        text = "📞 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ara")}",
                         onClick = { /* Ara aksiyonu */ },
                         variant = TourOSButtonVariant.SECONDARY
                     )

@@ -29,7 +29,7 @@ fun CentralPricingHubScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("🎯 Merkezi PricingEngine Hub", fontWeight = FontWeight.Bold) },
+                title = { Text("🎯 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Merkezi PricingEngine Hub")}", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
@@ -52,13 +52,13 @@ fun CentralPricingHubScreen(
                 else -> 0
             }) {
                 Tab(selected = state.selectedChannel == "B2C", onClick = { viewModel.selectChannel("B2C") }) {
-                    Text("📱 B2C Mobil", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("📱 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("B2C Mobil")}", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
                 Tab(selected = state.selectedChannel == "B2B_AGENCY", onClick = { viewModel.selectChannel("B2B_AGENCY") }) {
-                    Text("🏢 B2B Acente", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("B2B Acente")}", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
                 Tab(selected = state.selectedChannel == "ADMIN_PANEL", onClick = { viewModel.selectChannel("ADMIN_PANEL") }) {
-                    Text("📊 Admin Panel", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Admin Panel")}", modifier = Modifier.padding(10.dp), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
 
@@ -83,20 +83,20 @@ fun CentralPricingHubScreen(
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("🎛️ Kanal Girdi Parametreleri", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("🎛️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kanal Girdi Parametreleri")}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             OutlinedTextField(
                                 value = "${state.basePrice}",
                                 onValueChange = { viewModel.updateInputs(basePrice = it.toDoubleOrNull() ?: 2500.0) },
-                                label = { Text("Baz Fiyat (TRY)") },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Baz Fiyat (TRY)")) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
                             OutlinedTextField(
                                 value = "${state.paxCount}",
                                 onValueChange = { viewModel.updateInputs(paxCount = it.toIntOrNull() ?: 1) },
-                                label = { Text("Kişi (Pax)") },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kişi (Pax)")) },
                                 singleLine = true,
                                 modifier = Modifier.weight(1f)
                             )
@@ -105,12 +105,12 @@ fun CentralPricingHubScreen(
                         OutlinedTextField(
                             value = state.couponCode,
                             onValueChange = { viewModel.updateInputs(couponCode = it) },
-                            label = { Text("Kupon Kodu") },
+                            label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kupon Kodu")) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        Text("Doluluk Oranı: %${state.occupancyRate.toInt()}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Doluluk Oranı")}: %${state.occupancyRate.toInt()}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         Slider(
                             value = state.occupancyRate.toFloat(),
                             onValueChange = { viewModel.updateInputs(occupancyRate = it.toDouble()) },
@@ -129,7 +129,7 @@ fun CentralPricingHubScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("🎯 Merkezi PricingEngine Çıktısı", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("🎯 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Merkezi PricingEngine Çıktısı")}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primaryContainer) {
                                 Text(state.selectedChannel, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
@@ -140,23 +140,23 @@ fun CentralPricingHubScreen(
                         }
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Brüt Toplam Tutar:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Brüt Toplam Tutar:"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("${res.grossAmount} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Dinamik Doluluk Ayarlaması:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dinamik Doluluk Ayarlaması:"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("+${res.dynamicAdjustmentAmount} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
                         }
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Kampanya & Kupon İndirimi:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kampanya & Kupon İndirimi:"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("-${res.campaignDiscountAmount} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D))
                         }
 
                         if (state.selectedChannel == "B2B_AGENCY") {
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("Acente Hakediş Komisyonu:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Hakediş Komisyonu:"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${res.agencyCommissionAmount} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2563EB))
                             }
                         }
@@ -164,7 +164,7 @@ fun CentralPricingHubScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Text("Net Tahsil Edilecek Tutar:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Tahsil Edilecek Tutar:"), fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text("${res.netPayableAmount} TRY", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }

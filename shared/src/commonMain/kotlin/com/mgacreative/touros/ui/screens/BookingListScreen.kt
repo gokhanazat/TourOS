@@ -57,15 +57,16 @@ fun BookingListScreen(
     viewModel: BookingListViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = "Rezervasyon Yönetimi",
-                subtitle = "Tüm turların rezervasyon taleplerini ve durumlarını takip edin",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon Yönetimi"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm turların rezervasyon taleplerini ve durumlarını takip edin"),
                 actions = {
                     TourOSButton(
-                        text = "+ Yeni Rezervasyon",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Rezervasyon"),
                         onClick = onNavigateToCreateBooking,
                         variant = TourOSButtonVariant.PRIMARY
                     )

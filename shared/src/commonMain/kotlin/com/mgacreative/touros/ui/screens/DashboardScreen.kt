@@ -73,6 +73,7 @@ fun DashboardScreen(
     val navigationType = calculateNavigationType()
     val visibleItems = getNavigationItemsForRole(currentRole)
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     Row(modifier = Modifier.fillMaxSize()) {
         if (navigationType == NavigationType.NAVIGATION_RAIL ||
@@ -88,7 +89,7 @@ fun DashboardScreen(
                         selected = item.title == "Ana Sayfa",
                         onClick = { },
                         icon = { },
-                        label = { Text(item.title, style = TourOSTypography.Caption) }
+                        label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.title), style = TourOSTypography.Caption) }
                     )
                 }
             }
@@ -97,11 +98,11 @@ fun DashboardScreen(
         Scaffold(
             topBar = {
                 TourOSTopBar(
-                    title = "Operasyon Dashboard",
-                    subtitle = "Rol: ${currentRole.displayName} • Canlı İşletme & Operasyon Özeti",
+                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
+                    subtitle = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
                     actions = {
                         TourOSButton(
-                            text = "Çıkış Yap",
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
                             onClick = onNavigateToLogin,
                             variant = TourOSButtonVariant.TERTIARY
                         )

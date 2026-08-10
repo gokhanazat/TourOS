@@ -689,7 +689,9 @@ private fun AppNavHost(navController: NavHostController) {
         }
 
         composable<AgencyProductPublishingRoute> {
-            com.mgacreative.touros.ui.screens.AgencyProductPublishingScreen()
+            com.mgacreative.touros.ui.screens.AgencyProductPublishingScreen(
+                onNavigateToSearchWizard = { navController.navigate(B2BTourSearchDashboardRoute) }
+            )
         }
 
         composable<AgencyStorefrontRoute> {
@@ -748,6 +750,38 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<VoucherContractPdfRoute> {
             VoucherContractPdfScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
+        }
+
+        // ─── B2B/B2C Tour Search & Booking Wizard ─────────────────────────────
+        composable<B2BTourSearchDashboardRoute> {
+            com.mgacreative.touros.ui.screens.B2BTourSearchDashboardScreen(
+                viewModel = koinViewModel(),
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToBookings = { navController.navigate(BookingsRoute) }
+            )
+        }
+
+        composable<B2BTourFlightServiceSelectionRoute> { back ->
+            val route: B2BTourFlightServiceSelectionRoute = back.toRoute()
+            com.mgacreative.touros.ui.screens.B2BTourFlightServiceSelectionScreen(
+                viewModel = koinViewModel(),
+                onNavigateBack = { navController.popBackStack() },
+                onProceedToPassengerCheckout = {
+                    navController.navigate(B2BPassengerCheckoutWizardRoute(productId = route.productId))
+                }
+            )
+        }
+
+        composable<B2BPassengerCheckoutWizardRoute> {
+            com.mgacreative.touros.ui.screens.B2BPassengerCheckoutWizardScreen(
+                viewModel = koinViewModel(),
+                onNavigateBack = { navController.popBackStack() },
+                onBookingSuccess = {
+                    navController.navigate(DashboardRoute) {
+                        popUpTo(DashboardRoute) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

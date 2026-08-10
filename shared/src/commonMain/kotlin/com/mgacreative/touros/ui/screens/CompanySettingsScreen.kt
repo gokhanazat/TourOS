@@ -55,17 +55,26 @@ import com.mgacreative.touros.ui.components.TourOSTopBar
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.mgacreative.touros.ui.viewmodel.CompanySettingsUiState
 import com.mgacreative.touros.ui.viewmodel.CompanySettingsViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
-enum class SettingsCategory(val title: String, val icon: String) {
-    GENEL("Genel", "🏢"),
-    MARKA("Marka", "🎨"),
-    WEB_SITESI("Acente Web Sitesi", "🖥️"),
-    ODEME_SISTEMLERI("Banka & PayPal", "💳"),
-    VERGI_SEZON("Vergi / Sezon", "📊"),
-    DIL_PARA_BIRIMI("Dil / Para Birimi", "🌐")
+enum class SettingsCategory(val title: String, val icon: ImageVector) {
+    GENEL("Genel", Icons.Default.Business),
+    MARKA("Marka", Icons.Default.Palette),
+    WEB_SITESI("Acente Web Sitesi", Icons.Default.Computer),
+    ODEME_SISTEMLERI("Banka & PayPal", Icons.Default.CreditCard),
+    VERGI_SEZON("Vergi / Sezon", Icons.Default.ReceiptLong),
+    DIL_PARA_BIRIMI("Dil / Para Birimi", Icons.Default.Language)
 }
 
 /**
@@ -174,10 +183,10 @@ fun CompanySettingsScreen(
                     var webFooterText by remember(settings.id) { mutableStateOf(settings.footerText) }
 
                     // Acente Web Sayfasına Özel İletişim Bilgileri (Resmi Fatura Bilgilerinden Bağımsız)
-                    var webEmail by remember(settings.id) { mutableStateOf(settings.webEmail.ifBlank { settings.email }) }
-                    var webPhone by remember(settings.id) { mutableStateOf(settings.webPhone.ifBlank { settings.phone }) }
+                    var webEmail by remember(settings.id) { mutableStateOf(settings.webEmail) }
+                    var webPhone by remember(settings.id) { mutableStateOf(settings.webPhone) }
                     var webWhatsapp by remember(settings.id) { mutableStateOf(settings.webWhatsapp) }
-                    var webAddress by remember(settings.id) { mutableStateOf(settings.webAddress.ifBlank { settings.address }) }
+                    var webAddress by remember(settings.id) { mutableStateOf(settings.webAddress) }
 
                     // Banka & PayPal Ödeme Ayarları
                     var bankName by remember(settings.id) { mutableStateOf(settings.bankName ?: "") }
@@ -209,10 +218,10 @@ fun CompanySettingsScreen(
                             webHeroTitle = settings.name
                             webHeroSubtitle = settings.heroSubtitle
                             webFooterText = settings.footerText
-                            webEmail = settings.webEmail.ifBlank { settings.email }
-                            webPhone = settings.webPhone.ifBlank { settings.phone }
+                            webEmail = settings.webEmail
+                            webPhone = settings.webPhone
                             webWhatsapp = settings.webWhatsapp
-                            webAddress = settings.webAddress.ifBlank { settings.address }
+                            webAddress = settings.webAddress
                             bankName = settings.bankName ?: ""
                             iban = settings.iban ?: ""
                             accountHolder = settings.accountHolder ?: ""
@@ -298,7 +307,23 @@ fun CompanySettingsScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                         ) {
-                                            Text(text = category.icon, style = TourOSTypography.TitleMedium)
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                                    .background(
+                                                        if (isSelected) TourOSColors.Primary.copy(alpha = 0.15f)
+                                                        else TourOSColors.Surface
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = category.icon,
+                                                    contentDescription = category.title,
+                                                    tint = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
                                             Text(
                                                 text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(category.title),
                                                 style = TourOSTypography.BodyMedium.copy(
@@ -326,14 +351,14 @@ fun CompanySettingsScreen(
                             ) {
                                 when (selectedCategory) {
                                     SettingsCategory.GENEL -> {
-                                        Text(text = "Genel Firma Bilgileri", style = TourOSTypography.TitleLarge)
-                                        Text(text = "Fatura ve resmi yazışmalarda görünecek kurum ve iletişim bilgileri.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Genel Firma Bilgileri"), style = TourOSTypography.TitleLarge)
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura ve resmi yazışmalarda görünecek kurum ve iletişim bilgileri."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                                         TourOSTextField(
                                             value = name,
                                             onValueChange = { name = it },
-                                            label = "Firma Marka Adı",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Firma Marka Adı"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -341,7 +366,7 @@ fun CompanySettingsScreen(
                                         TourOSTextField(
                                             value = legalTitle,
                                             onValueChange = { legalTitle = it },
-                                            label = "Resmi Ticari Unvan",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Resmi Ticari Unvan"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -354,14 +379,14 @@ fun CompanySettingsScreen(
                                                 TourOSTextField(
                                                     value = taxOffice,
                                                     onValueChange = { taxOffice = it },
-                                                    label = "Vergi Dairesi"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi Dairesi")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = taxNumber,
                                                     onValueChange = { taxNumber = it },
-                                                    label = "Vergi Numarası"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi Numarası")
                                                 )
                                             }
                                         }
@@ -375,14 +400,14 @@ fun CompanySettingsScreen(
                                                 TourOSTextField(
                                                     value = tradeRegistryNo,
                                                     onValueChange = { tradeRegistryNo = it },
-                                                    label = "Ticaret Sicil No"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ticaret Sicil No")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = mersisNo,
                                                     onValueChange = { mersisNo = it },
-                                                    label = "MERSİS No"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("MERSİS No")
                                                 )
                                             }
                                         }
@@ -396,14 +421,14 @@ fun CompanySettingsScreen(
                                                 TourOSTextField(
                                                     value = companyEmail,
                                                     onValueChange = { companyEmail = it },
-                                                    label = "Kurumsal E-Posta"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kurumsal E-Posta")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = companyPhone,
                                                     onValueChange = { companyPhone = it },
-                                                    label = "Telefon Numarası"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Telefon Numarası")
                                                 )
                                             }
                                         }
@@ -412,17 +437,17 @@ fun CompanySettingsScreen(
                                         TourOSTextField(
                                             value = companyAddress,
                                             onValueChange = { companyAddress = it },
-                                            label = "Firma Merkez Adresi",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Firma Merkez Adresi"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
                                     }
 
                                     SettingsCategory.MARKA -> {
-                                        Text(text = "Marka ve Kurumsal Renkler", style = TourOSTypography.TitleLarge)
-                                        Text(text = "Acente kimliğinizi yansıtan logo ve kurumsal renk teması.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Marka ve Kurumsal Renkler"), style = TourOSTypography.TitleLarge)
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente kimliğinizi yansıtan logo ve kurumsal renk teması."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = "Kurumsal Logo", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kurumsal Logo"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         Row(
@@ -450,7 +475,7 @@ fun CompanySettingsScreen(
                                                      }
                                                      AsyncImage(
                                                          model = imageModel,
-                                                         contentDescription = "Kurumsal Logo Görseli",
+                                                         contentDescription = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kurumsal Logo Görseli"),
                                                          modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(TourOSSpacing.cornerRadius)),
                                                          contentScale = ContentScale.Fit
                                                      )
@@ -491,15 +516,15 @@ fun CompanySettingsScreen(
                                                          horizontalAlignment = Alignment.CenterHorizontally,
                                                          verticalArrangement = Arrangement.Center
                                                      ) {
-                                                         Text(text = "📁 Dosyadan Görsel Seçin", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                                                         Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📁 Dosyadan Görsel Seçin"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
                                                          Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                                                         Text(text = "PNG, JPG veya SVG (Maksimum 1MB)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                                         Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PNG, JPG veya SVG (Maksimum 1MB)"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                                      }
                                                  }
                                                  if (webCustomLogo.isNotBlank()) {
                                                      Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
                                                      Text(
-                                                         text = "✓ Seçilen Dosya: ${webCustomLogo.substringAfterLast("/").substringAfterLast("\\")}",
+                                                         text = "✓ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Seçilen Dosya:")} ${webCustomLogo.substringAfterLast("/").substringAfterLast("\\")}",
                                                          style = TourOSTypography.Caption.copy(color = TourOSColors.Success, fontWeight = FontWeight.Bold)
                                                      )
                                                  }
@@ -508,7 +533,7 @@ fun CompanySettingsScreen(
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = "Ana Kurumsal Rengi", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ana Kurumsal Rengi"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         Row(
@@ -519,7 +544,7 @@ fun CompanySettingsScreen(
                                             TourOSTextField(
                                                 value = themeColor,
                                                 onValueChange = { themeColor = it },
-                                                label = "Hex Renk Kodu (örn. #1F4E5F)",
+                                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hex Renk Kodu (örn. #1F4E5F)"),
                                                 modifier = Modifier.weight(1f)
                                             )
 
@@ -540,11 +565,11 @@ fun CompanySettingsScreen(
 
                                     SettingsCategory.WEB_SITESI -> {
                                         Text(
-                                            text = "Acente Web Sayfası Ayarları (Sletat.ru Mimarisi)",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Web Sayfası Ayarları (Sletat.ru Mimarisi)"),
                                             style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Text(
-                                            text = "Acente web sitenizin logosunu, header resmini, başlığını, sloganını ve iletişim detaylarını buradan güncelleyin.",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente web sitenizin logosunu, header resmini, başlığını, sloganını ve iletişim detaylarını buradan güncelleyin."),
                                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                                         )
 
@@ -552,7 +577,7 @@ fun CompanySettingsScreen(
 
                                         // ── 1. ÖZEL LOGO YÜKLEME ALANI ─────────────────────────────
                                         Text(
-                                            text = "1. Özel Logo Görseli (Sol Üst Header Logosu)",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("1. Özel Logo Görseli (Sol Üst Header Logosu)"),
                                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
@@ -569,12 +594,12 @@ fun CompanySettingsScreen(
                                                         webCustomLogo = input
                                                         logoImageError = null
                                                     },
-                                                    label = "Logo Dosya Yolu veya Resim URL (Max 1MB)"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Logo Dosya Yolu veya Resim URL (Max 1MB)")
                                                 )
                                             }
 
                                             TourOSButton(
-                                                text = "📁 Dosyadan Seç",
+                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📁 Dosyadan Seç"),
                                                 onClick = {
                                                     logoImageError = null
                                                     logoPickerLauncher()
@@ -585,14 +610,14 @@ fun CompanySettingsScreen(
                                         if (logoImageError != null) {
                                             Text(text = logoImageError!!, style = TourOSTypography.Caption, color = TourOSColors.Error)
                                         } else {
-                                            Text(text = "📌 Özel logo PNG/SVG formatında maksimum 1 MB olmalıdır.", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                                            Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📌 Özel logo PNG/SVG formatında maksimum 1 MB olmalıdır."), style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                                         }
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                                         // ── 2. HEADER BANNER RESMİ YÜKLEME ALANI (MAKS 1 MB) ───────
                                         Text(
-                                            text = "2. Header Banner Görseli (Web Sitesi Üst Arka Plan Resmi)",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("2. Header Banner Görseli (Web Sitesi Üst Arka Plan Resmi)"),
                                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
@@ -609,12 +634,12 @@ fun CompanySettingsScreen(
                                                         webHeaderImage = input
                                                         headerImageError = null
                                                     },
-                                                    label = "Header Banner Dosya Yolu veya Resim URL (Max 1MB)"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Header Banner Dosya Yolu veya Resim URL (Max 1MB)")
                                                 )
                                             }
 
                                             TourOSButton(
-                                                text = "📁 Dosyadan Seç",
+                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📁 Dosyadan Seç"),
                                                 onClick = {
                                                     headerImageError = null
                                                     headerPickerLauncher()
@@ -626,7 +651,7 @@ fun CompanySettingsScreen(
                                         if (headerImageError != null) {
                                             Text(text = headerImageError!!, style = TourOSTypography.Caption, color = TourOSColors.Error)
                                         } else {
-                                            Text(text = "📌 Header banner çözünürlüğü 1600x400 px, maksimum 1 MB olmalıdır.", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                                            Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📌 Header banner çözünürlüğü 1600x400 px, maksimum 1 MB olmalıdır."), style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                                         }
 
                                         if (webHeaderImage.isNotBlank()) {
@@ -649,14 +674,14 @@ fun CompanySettingsScreen(
                                                 }
                                                 AsyncImage(
                                                     model = imageModel,
-                                                    contentDescription = "Header Banner Önizleme",
+                                                    contentDescription = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Header Banner Önizleme"),
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Crop
                                                 )
                                             }
                                             Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
                                             Text(
-                                                text = "✓ Aktif Banner Yolu: $webHeaderImage",
+                                                text = "✓ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif Banner Yolu:")} $webHeaderImage",
                                                 style = TourOSTypography.Caption.copy(color = TourOSColors.Success, fontWeight = FontWeight.Bold)
                                             )
                                         }
@@ -665,12 +690,12 @@ fun CompanySettingsScreen(
 
                                         // ── 3. EKSİKSİZ TÜM DİNAMİK İÇERİK VE İLETİŞİM ALANLARI ─────
                                         Text(
-                                            text = "3. Acente Web İletişim & WhatsApp Bilgileri (Web Sayfasına Özel)",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("3. Acente Web İletişim & WhatsApp Bilgileri (Web Sayfasına Özel)"),
                                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
                                         Text(
-                                            text = "Resmi şirket fatura bilgilerinden bağımsız olarak web sitenizde ve müşteri taleplerinde kullanılacak iletişim bilgileri.",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Resmi şirket fatura bilgilerinden bağımsız olarak web sitenizde ve müşteri taleplerinde kullanılacak iletişim bilgileri."),
                                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
@@ -683,14 +708,14 @@ fun CompanySettingsScreen(
                                                 TourOSTextField(
                                                     value = webEmail,
                                                     onValueChange = { webEmail = it },
-                                                    label = "Web İletişim E-Postası (Rezervasyon Talepleri Buraya Düşer) *"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web İletişim E-Postası (Rezervasyon Talepleri Buraya Düşer) *")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = webPhone,
                                                     onValueChange = { webPhone = it },
-                                                    label = "Web İletişim Telefon Numarası *"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web İletişim Telefon Numarası *")
                                                 )
                                             }
                                         }
@@ -705,14 +730,15 @@ fun CompanySettingsScreen(
                                                 TourOSTextField(
                                                     value = webWhatsapp,
                                                     onValueChange = { webWhatsapp = it },
-                                                    label = "WhatsApp Hattı Telefon Numarası (Örn. 905320000000) *"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("WhatsApp Hattı Telefon Numarası *"),
+                                                    placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: 905300000000")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = webAddress,
                                                     onValueChange = { webAddress = it },
-                                                    label = "Web İletişim Merkez Adresi *"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web İletişim Merkez Adresi *")
                                                 )
                                             }
                                         }
@@ -720,7 +746,7 @@ fun CompanySettingsScreen(
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                                         Text(
-                                            text = "4. Web Sitesi Başlık, Slogan ve Telif Metni",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("4. Web Sitesi Başlık, Slogan ve Telif Metni"),
                                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
@@ -728,7 +754,7 @@ fun CompanySettingsScreen(
                                         TourOSTextField(
                                             value = webHeroTitle,
                                             onValueChange = { webHeroTitle = it },
-                                            label = "Web Site Başlığı / Acente Adı",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web Site Başlığı / Acente Adı"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
@@ -737,7 +763,7 @@ fun CompanySettingsScreen(
                                         TourOSTextField(
                                             value = webHeroSubtitle,
                                             onValueChange = { webHeroSubtitle = it },
-                                            label = "Web Site Alt Başlığı (Slogan)",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web Site Alt Başlığı (Slogan)"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
@@ -746,7 +772,7 @@ fun CompanySettingsScreen(
                                         TourOSTextField(
                                             value = webFooterText,
                                             onValueChange = { webFooterText = it },
-                                            label = "Footer / Telif Hakkı Metni",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Footer / Telif Hakkı Metni"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
@@ -762,10 +788,10 @@ fun CompanySettingsScreen(
                                                 .padding(TourOSSpacing.medium)
                                         ) {
                                             Column {
-                                                Text(text = "🌐 OTA & Canlı Ürün Yayınlama Entegrasyonu", style = TourOSTypography.TitleMedium, color = TourOSColors.Primary)
+                                                Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("🌐 OTA & Canlı Ürün Yayınlama Entegrasyonu"), style = TourOSTypography.TitleMedium, color = TourOSColors.Primary)
                                                 Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
                                                 Text(
-                                                    text = "OTA Hub ve Pazaryeri kataloğundan 'Yayınla' (is_published=true) olarak işaretlenen tüm turlar, kar marjı hesaplanarak acente web sitenizde canlı olarak görünür.",
+                                                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("OTA Hub ve Pazaryeri kataloğundan 'Yayınla' (is_published=true) olarak işaretlenen tüm turlar, kar marjı hesaplanarak acente web sitenizde canlı olarak görünür."),
                                                     style = TourOSTypography.BodyMedium,
                                                     color = TourOSColors.TextPrimary
                                                 )
@@ -774,24 +800,24 @@ fun CompanySettingsScreen(
                                     }
 
                                     SettingsCategory.VERGI_SEZON -> {
-                                        Text(text = "Vergi Oranları ve Operasyonel Sezonlar", style = TourOSTypography.TitleLarge)
-                                        Text(text = "Otomatik fiyatlama, KDV hesaplama ve sezonsal çalışma kuralları.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi Oranları ve Operasyonel Sezonlar"), style = TourOSTypography.TitleLarge)
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otomatik fiyatlama, KDV hesaplama ve sezonsal çalışma kuralları."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                                         TourOSTextField(
                                             value = taxRateStr,
                                             onValueChange = { taxRateStr = it },
-                                            label = "Varsayılan KDV Oranı (%)",
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Varsayılan KDV Oranı (%)"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = "Tanımlı Operasyonel Sezonlar", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tanımlı Operasyonel Sezonlar"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         if (seasons.isEmpty()) {
-                                            Text(text = "Henüz tanımlanmış bir sezon bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                                            Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz tanımlanmış bir sezon bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                                         } else {
                                             seasons.forEach { season ->
                                                 Box(
@@ -813,7 +839,7 @@ fun CompanySettingsScreen(
                                                             Text(text = "${season.startDate} - ${season.endDate}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
                                                         }
                                                         TourOSButton(
-                                                            text = "Sil",
+                                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sil"),
                                                             onClick = { seasons = seasons.filter { it.id != season.id } },
                                                             variant = TourOSButtonVariant.SECONDARY
                                                         )
@@ -824,7 +850,7 @@ fun CompanySettingsScreen(
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = "Yeni Sezon Ekle", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeni Sezon Ekle"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         Row(
@@ -836,25 +862,25 @@ fun CompanySettingsScreen(
                                                 TourOSTextField(
                                                     value = newSeasonName,
                                                     onValueChange = { newSeasonName = it },
-                                                    label = "Sezon Adı (örn. Yaz 2026)"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sezon Adı (örn. Yaz 2026)")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = newSeasonStart,
                                                     onValueChange = { newSeasonStart = it },
-                                                    label = "Başlangıç Tarihi"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Başlangıç Tarihi")
                                                 )
                                             }
                                             Box(modifier = Modifier.weight(1f)) {
                                                 TourOSTextField(
                                                     value = newSeasonEnd,
                                                     onValueChange = { newSeasonEnd = it },
-                                                    label = "Bitiş Tarihi"
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bitiş Tarihi")
                                                 )
                                             }
                                             TourOSButton(
-                                                text = "➕ Ekle",
+                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("➕ Ekle"),
                                                 onClick = {
                                                     if (newSeasonName.isNotBlank()) {
                                                         val newSeason = com.mgacreative.touros.domain.model.CompanySeason(
@@ -874,24 +900,24 @@ fun CompanySettingsScreen(
 
                                      SettingsCategory.ODEME_SISTEMLERI -> {
                                          Text(
-                                             text = "💳 Banka & PayPal Ödeme Ayarları",
+                                             text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("💳 Banka & PayPal Ödeme Ayarları"),
                                              style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                                          )
                                          Text(
-                                             text = "Müşterilerinizin havale/EFT ve PayPal ile ödeme yapabilmesi için banka ve PayPal hesap bilgilerinizi girin.",
+                                             text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşterilerinizin havale/EFT ve PayPal ile ödeme yapabilmesi için banka ve PayPal hesap bilgilerinizi girin."),
                                              style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                                          )
 
                                          Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                         Text(text = "🏦 Banka Hesap Bilgileri (Havale / EFT)", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                         Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("🏦 Banka Hesap Bilgileri (Havale / EFT)"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                          Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                          TourOSTextField(
                                              value = bankName,
                                              onValueChange = { bankName = it },
-                                             label = "Banka Adı & Şube",
-                                             placeholder = "Örn: Türkiye İş Bankası - Kadıköy Şubesi",
+                                             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Banka Adı & Şube"),
+                                             placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Türkiye İş Bankası - Kadıköy Şubesi"),
                                              modifier = Modifier.fillMaxWidth()
                                          )
                                          Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -899,8 +925,8 @@ fun CompanySettingsScreen(
                                          TourOSTextField(
                                              value = accountHolder,
                                              onValueChange = { accountHolder = it },
-                                             label = "Hesap Sahibi (Alıcı Adı)",
-                                             placeholder = "Örn: TourOS Turizm Seyahat A.Ş.",
+                                             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hesap Sahibi (Alıcı Adı)"),
+                                             placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: TourOS Turizm Seyahat A.Ş."),
                                              modifier = Modifier.fillMaxWidth()
                                          )
                                          Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -908,8 +934,8 @@ fun CompanySettingsScreen(
                                          TourOSTextField(
                                              value = iban,
                                              onValueChange = { iban = it },
-                                             label = "IBAN Numarası",
-                                             placeholder = "Örn: TR92 0006 4000 0011 2233 4455 66",
+                                             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("IBAN Numarası"),
+                                             placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: TR92 0006 4000 0011 2233 4455 66"),
                                              modifier = Modifier.fillMaxWidth()
                                          )
 
@@ -917,14 +943,14 @@ fun CompanySettingsScreen(
                                          HorizontalDivider(color = TourOSColors.Divider)
                                          Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                         Text(text = "🅿️ PayPal Ödeme Ayarları", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                         Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("🅿️ PayPal Ödeme Ayarları"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                          Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                          TourOSTextField(
                                              value = paypalEmail,
                                              onValueChange = { paypalEmail = it },
-                                             label = "PayPal Kurumsal E-Posta Adresi",
-                                             placeholder = "Örn: payment@acente.com",
+                                             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PayPal Kurumsal E-Posta Adresi"),
+                                             placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: payment@acente.com"),
                                              modifier = Modifier.fillMaxWidth()
                                          )
                                          Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -932,15 +958,15 @@ fun CompanySettingsScreen(
                                          TourOSTextField(
                                              value = paypalMeUrl,
                                              onValueChange = { paypalMeUrl = it },
-                                             label = "PayPal.Me Ödeme Bağlantısı (URL)",
-                                             placeholder = "Örn: https://paypal.me/acenteisminiz",
+                                             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PayPal.Me Ödeme Bağlantısı (URL)"),
+                                             placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: https://paypal.me/acenteisminiz"),
                                              modifier = Modifier.fillMaxWidth()
                                          )
                                      }
 
                                     SettingsCategory.DIL_PARA_BIRIMI -> {
                                         Text(
-                                            text = "Dil ve Para Birimi Tercihleri",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dil ve Para Birimi Tercihleri"),
                                             style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Text(
@@ -950,25 +976,90 @@ fun CompanySettingsScreen(
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Desteklenen Para Birimleri"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        // ── 1. CANLI ARAYÜZ DİLİ (TEKLİ SEÇİM) ────────────────────
+                                        Text(
+                                            text = "🌐 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı Panel Arayüz Dili (Anlık Çeviri)")}",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm yönetim panelinin anlık olarak görüntüleneceği dili seçiniz (Tekli seçim)."),
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                                        val activeSystemLanguage = currentLanguage.code
+                                        val allLanguages = mapOf("tr" to "Türkçe 🇹🇷", "en" to "English 🇬🇧", "ru" to "Русский 🇷🇺", "de" to "Deutsch 🇩🇪", "ar" to "العربية 🇸🇦", "es" to "Español 🇪🇸")
+
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                        ) {
+                                            allLanguages.forEach { (code, langName) ->
+                                                val isActive = activeSystemLanguage == code
+                                                FilterChip(
+                                                    selected = isActive,
+                                                    onClick = {
+                                                        com.mgacreative.touros.ui.localization.AppLanguageManager.setLanguage(code)
+                                                        if (code !in selectedLanguages) {
+                                                            selectedLanguages = selectedLanguages + code
+                                                        }
+                                                    },
+                                                    label = {
+                                                        Text(
+                                                            text = if (isActive) "✓ $langName (${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif")})" else langName,
+                                                            style = TourOSTypography.BodyMedium.copy(
+                                                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+                                                            )
+                                                        )
+                                                    },
+                                                    colors = FilterChipDefaults.filterChipColors(
+                                                        selectedContainerColor = TourOSColors.SuccessContainer,
+                                                        selectedLabelColor = TourOSColors.Success,
+                                                        containerColor = TourOSColors.Surface,
+                                                        labelColor = TourOSColors.TextSecondary
+                                                    ),
+                                                    border = FilterChipDefaults.filterChipBorder(
+                                                        enabled = true,
+                                                        selected = isActive,
+                                                        borderColor = TourOSColors.Border,
+                                                        selectedBorderColor = TourOSColors.Success,
+                                                        borderWidth = if (isActive) 2.dp else 1.dp
+                                                    )
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+                                        HorizontalDivider(color = TourOSColors.Divider)
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        // ── 2. WEB SİTESİ DESTEKLENEN DİLLER (ÇOKLU SEÇİM) ────────
+                                        Text(
+                                            text = "🛒 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Web Sitesi Desteklenen Diller (Çoklu Seçim)")}",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşterilerinizin acente web sitenizde dil bayrağı menusunde göreceği diller."),
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         FlowRow(
                                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                                             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                         ) {
-                                            val allCurrencies = listOf("TRY (₺)", "EUR (€)", "USD ($)", "RUB (₽)", "GBP (£)", "AED", "SAR")
-                                            allCurrencies.forEach { curr ->
-                                                val code = curr.take(3)
-                                                val isSelected = code in selectedCurrencies
+                                            allLanguages.forEach { (code, langName) ->
+                                                val isSelected = code in selectedLanguages
                                                 FilterChip(
                                                     selected = isSelected,
                                                     onClick = {
-                                                        selectedCurrencies = if (isSelected) selectedCurrencies - code else selectedCurrencies + code
+                                                        selectedLanguages = if (isSelected && selectedLanguages.size > 1) selectedLanguages - code else selectedLanguages + code
                                                     },
                                                     label = {
                                                         Text(
-                                                            text = if (isSelected) "✓ $curr" else curr,
+                                                            text = if (isSelected) "☑ $langName" else "☐ $langName",
                                                             style = TourOSTypography.BodyMedium.copy(
                                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                                             )
@@ -992,27 +1083,37 @@ fun CompanySettingsScreen(
                                         }
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
+                                        HorizontalDivider(color = TourOSColors.Divider)
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Desteklenen Panel Dilleri"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        // ── 3. DESTEKLENEN PARA BİRİMLERİ (ÇOKLU SEÇİM) ────────────
+                                        Text(
+                                            text = "💵 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Desteklenen Para Birimleri (Çoklu Seçim)")}",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sistemde ve web sitesinde müşterilere sunulacak satış ve fiyatlama birimleri."),
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         FlowRow(
                                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                                             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                         ) {
-                                            val allLanguages = mapOf("tr" to "Türkçe", "en" to "English", "ru" to "Русский", "de" to "Deutsch", "ar" to "العربية", "es" to "Español")
-                                            allLanguages.forEach { (code, langName) ->
-                                                val isSelected = code in selectedLanguages
+                                            val allCurrencies = listOf("TRY (₺)", "EUR (€)", "USD ($)", "RUB (₽)", "GBP (£)", "AED", "SAR")
+                                            allCurrencies.forEach { curr ->
+                                                val code = curr.take(3)
+                                                val isSelected = code in selectedCurrencies
                                                 FilterChip(
                                                     selected = isSelected,
                                                     onClick = {
-                                                        val newSet = if (isSelected) selectedLanguages - code else selectedLanguages + code
-                                                        selectedLanguages = newSet
-                                                        com.mgacreative.touros.ui.localization.AppLanguageManager.setLanguage(code)
+                                                        selectedCurrencies = if (isSelected && selectedCurrencies.size > 1) selectedCurrencies - code else selectedCurrencies + code
                                                     },
                                                     label = {
                                                         Text(
-                                                            text = if (isSelected) "✓ $langName" else langName,
+                                                            text = if (isSelected) "☑ $curr" else "☐ $curr",
                                                             style = TourOSTypography.BodyMedium.copy(
                                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                                             )
@@ -1047,7 +1148,7 @@ fun CompanySettingsScreen(
                                     horizontalArrangement = Arrangement.End
                                 ) {
                                     TourOSButton(
-                                        text = "Değişiklikleri Kaydet ✓",
+                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Değişiklikleri Kaydet ✓"),
                                         onClick = {
                                             val updated = settings.copy(
                                                 name = name,

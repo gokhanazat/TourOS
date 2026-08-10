@@ -611,6 +611,7 @@ fun AgencyStorefrontScreen(
                                      border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.3f)),
                                      modifier = Modifier.weight(1f)
                                  ) {
+                                     val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
                                      Column(modifier = Modifier.padding(TourOSSpacing.large)) {
                                          Text(text = "🏢 Acente İletişim Bilgileri", style = TourOSTypography.TitleMedium, color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                                          Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -628,7 +629,10 @@ fun AgencyStorefrontScreen(
                                                      .fillMaxWidth()
                                                      .clip(RoundedCornerShape(8.dp))
                                                      .background(Color(0xFF25D366))
-                                                     .clickable { /* WhatsApp Action */ }
+                                                     .clickable {
+                                                         val cleanNum = whatsappNum.filter { it.isDigit() }
+                                                         uriHandler.openUri("https://wa.me/$cleanNum")
+                                                     }
                                                      .padding(vertical = 10.dp, horizontal = 14.dp),
                                                  contentAlignment = Alignment.Center
                                              ) {

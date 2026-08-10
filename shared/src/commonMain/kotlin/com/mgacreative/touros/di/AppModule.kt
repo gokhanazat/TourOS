@@ -316,6 +316,7 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AgencyStorefrontViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.B2CHotelDetailCheckoutViewModel(get(), get(), get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel(get()) }
 }
 
 /**

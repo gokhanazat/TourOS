@@ -16,14 +16,14 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-sealed interface AgencyStorefrontUiState {
-    data object Loading : AgencyStorefrontUiState
+sealed class AgencyStorefrontUiState {
+    data object Loading : AgencyStorefrontUiState()
     data class Success(
         val branding: AgencyBrandingEntity,
         val tours: List<AgencyStorefrontTourItem>,
         val hotels: List<Hotel>
-    ) : AgencyStorefrontUiState
-    data class Error(val message: String) : AgencyStorefrontUiState
+    ) : AgencyStorefrontUiState()
+    data class Error(val message: String) : AgencyStorefrontUiState()
 }
 
 class AgencyStorefrontViewModel(
@@ -56,17 +56,23 @@ class AgencyStorefrontViewModel(
                         .decodeSingleOrNull<AgencyBrandingEntity>()
                 }.getOrNull()
 
+                val directBranding = runCatching {
+                    supabaseClient.postgrest.from("agency_branding")
+                        .select { filter { eq("agency_id", "00000000-0000-0000-0000-000000000001") } }
+                        .decodeSingleOrNull<AgencyBrandingEntity>()
+                }.getOrNull()
+
                 val branding = AgencyBrandingEntity(
                     agencyId = "00000000-0000-0000-0000-000000000001",
-                    heroTitle = companySettings?.name?.takeIf { it.isNotBlank() } ?: rpcBranding?.heroTitle ?: "Hayalinizdeki Turu Keşfedin",
-                    heroSubtitle = companySettings?.heroSubtitle?.takeIf { it.isNotBlank() } ?: rpcBranding?.heroSubtitle ?: "En iyi tur operatörlerinden karşılaştırmalı teklifler",
-                    customLogoUrl = companySettings?.logoUrl ?: rpcBranding?.customLogoUrl,
-                    headerImageUrl = companySettings?.headerImageUrl ?: rpcBranding?.headerImageUrl,
-                    footerText = companySettings?.footerText?.takeIf { it.isNotBlank() } ?: rpcBranding?.footerText ?: "© 2026 Tüm Hakları Saklıdır",
-                    contactEmail = companySettings?.webEmail?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactEmail ?: companySettings?.email,
-                    contactPhone = companySettings?.webPhone?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactPhone ?: companySettings?.phone,
-                    whatsappNumber = companySettings?.webWhatsapp?.takeIf { it.isNotBlank() } ?: rpcBranding?.whatsappNumber,
-                    contactAddress = companySettings?.webAddress?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactAddress ?: companySettings?.address
+                    heroTitle = companySettings?.name?.takeIf { it.isNotBlank() } ?: rpcBranding?.heroTitle ?: directBranding?.heroTitle ?: "",
+                    heroSubtitle = companySettings?.heroSubtitle?.takeIf { it.isNotBlank() } ?: rpcBranding?.heroSubtitle ?: directBranding?.heroSubtitle ?: "",
+                    customLogoUrl = rpcBranding?.customLogoUrl?.takeIf { it.isNotBlank() } ?: directBranding?.customLogoUrl?.takeIf { it.isNotBlank() } ?: companySettings?.logoUrl,
+                    headerImageUrl = rpcBranding?.headerImageUrl?.takeIf { it.isNotBlank() } ?: directBranding?.headerImageUrl?.takeIf { it.isNotBlank() } ?: companySettings?.headerImageUrl,
+                    footerText = companySettings?.footerText?.takeIf { it.isNotBlank() } ?: rpcBranding?.footerText ?: directBranding?.footerText ?: "",
+                    contactEmail = companySettings?.webEmail?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactEmail ?: directBranding?.contactEmail ?: companySettings?.email,
+                    contactPhone = companySettings?.webPhone?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactPhone ?: directBranding?.contactPhone ?: companySettings?.phone,
+                    whatsappNumber = companySettings?.webWhatsapp?.takeIf { it.isNotBlank() } ?: rpcBranding?.whatsappNumber ?: directBranding?.whatsappNumber,
+                    contactAddress = companySettings?.webAddress?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactAddress ?: directBranding?.contactAddress ?: companySettings?.address
                 )
 
                 val searchParams = buildJsonObject {
@@ -123,11 +129,11 @@ class AgencyStorefrontViewModel(
 
                 _uiState.value = AgencyStorefrontUiState.Success(
                     branding = AgencyBrandingEntity(
-                        heroTitle = companySettings?.name?.takeIf { it.isNotBlank() } ?: "Hayalinizdeki Turu Keşfedin",
-                        heroSubtitle = companySettings?.heroSubtitle?.takeIf { it.isNotBlank() } ?: "80+ Tur Operatöründen Karşılaştırmalı Fiyat Garantisi",
+                        heroTitle = companySettings?.name?.takeIf { it.isNotBlank() } ?: "",
+                        heroSubtitle = companySettings?.heroSubtitle?.takeIf { it.isNotBlank() } ?: "",
                         customLogoUrl = companySettings?.logoUrl,
                         headerImageUrl = companySettings?.headerImageUrl,
-                        footerText = companySettings?.footerText?.takeIf { it.isNotBlank() } ?: "© 2026 Tüm Hakları Saklıdır",
+                        footerText = companySettings?.footerText?.takeIf { it.isNotBlank() } ?: "",
                         contactEmail = companySettings?.webEmail?.takeIf { it.isNotBlank() } ?: companySettings?.email,
                         contactPhone = companySettings?.webPhone?.takeIf { it.isNotBlank() } ?: companySettings?.phone,
                         whatsappNumber = companySettings?.webWhatsapp,

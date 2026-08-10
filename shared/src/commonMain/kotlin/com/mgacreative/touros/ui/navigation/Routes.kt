@@ -120,3 +120,8 @@ import kotlinx.serialization.Serializable
 @Serializable object AgencyProductPublishingRoute
 @Serializable object AgencyStorefrontRoute
 
+// ─── B2B/B2C Tour Search & Booking Wizard ─────────────────────────────────────
+@Serializable object B2BTourSearchDashboardRoute
+@Serializable data class B2BTourFlightServiceSelectionRoute(val productId: String = "")
+@Serializable data class B2BPassengerCheckoutWizardRoute(val productId: String = "", val flightOptionId: String = "")
+

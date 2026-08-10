@@ -43,7 +43,7 @@ class CompanySettingsRepositoryImpl(
                             eq("agency_id", targetId)
                         }
                     }
-                    .decodeSingle<AgencyBrandingEntity>()
+                    .decodeSingleOrNull<AgencyBrandingEntity>()
             }.getOrNull()
 
             if (entity != null) {
@@ -146,24 +146,35 @@ class CompanySettingsRepositoryImpl(
             }
 
             supabaseClient.postgrest.from("companies")
-                .upsert(upsertPayload)
+                .upsert(upsertPayload) {
+                    onConflict = "id"
+                }
+
+            val existingBranding = runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .select { filter { eq("agency_id", targetId) } }
+                    .decodeSingleOrNull<AgencyBrandingEntity>()
+            }.getOrNull()
 
             val brandingPayload = buildJsonObject {
+                existingBranding?.id?.takeIf { it.isNotBlank() }?.let { put("id", it) }
                 put("agency_id", targetId)
                 put("hero_title", settings.name)
                 put("hero_subtitle", settings.heroSubtitle)
                 put("footer_text", settings.footerText)
-                put("contact_phone", settings.webPhone.ifBlank { settings.phone })
-                put("contact_email", settings.webEmail.ifBlank { settings.email })
+                put("contact_phone", settings.webPhone)
+                put("contact_email", settings.webEmail)
                 put("whatsapp_number", settings.webWhatsapp)
-                put("contact_address", settings.webAddress.ifBlank { settings.address })
-                settings.logoUrl?.let { put("custom_logo_url", it) }
-                settings.headerImageUrl?.let { put("header_image_url", it) }
+                put("contact_address", settings.webAddress)
+                if (!settings.logoUrl.isNullOrBlank()) put("custom_logo_url", settings.logoUrl)
+                if (!settings.headerImageUrl.isNullOrBlank()) put("header_image_url", settings.headerImageUrl)
             }
 
             runCatching {
                 supabaseClient.postgrest.from("agency_branding")
-                    .upsert(brandingPayload)
+                    .upsert(brandingPayload) {
+                        onConflict = "agency_id"
+                    }
             }
 
             settings
@@ -211,6 +222,32 @@ class CompanySettingsRepositoryImpl(
                     }
             }
 
+            val existingBranding = runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .select { filter { eq("agency_id", targetId) } }
+                    .decodeSingleOrNull<AgencyBrandingEntity>()
+            }.getOrNull()
+
+            val brandingPayload = buildJsonObject {
+                existingBranding?.id?.takeIf { it.isNotBlank() }?.let { put("id", it) }
+                put("agency_id", targetId)
+                put("hero_title", existingBranding?.heroTitle ?: cachedSettings?.name ?: "")
+                put("hero_subtitle", existingBranding?.heroSubtitle ?: cachedSettings?.heroSubtitle ?: "")
+                put("footer_text", existingBranding?.footerText ?: cachedSettings?.footerText ?: "")
+                put("custom_logo_url", publicUrl)
+                existingBranding?.headerImageUrl?.let { put("header_image_url", it) }
+                existingBranding?.contactPhone?.let { put("contact_phone", it) }
+                existingBranding?.contactEmail?.let { put("contact_email", it) }
+                existingBranding?.whatsappNumber?.let { put("whatsapp_number", it) }
+                existingBranding?.contactAddress?.let { put("contact_address", it) }
+            }
+
+            runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .upsert(brandingPayload)
+            }
+
+            cachedSettings = cachedSettings?.copy(logoUrl = publicUrl)
             publicUrl
         }
     }
@@ -243,9 +280,24 @@ class CompanySettingsRepositoryImpl(
             }
             val publicUrl = bucket.publicUrl(sanitizedPath)
 
+            val existingBranding = runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .select { filter { eq("agency_id", targetId) } }
+                    .decodeSingleOrNull<AgencyBrandingEntity>()
+            }.getOrNull()
+
             val headerPayload = buildJsonObject {
+                existingBranding?.id?.takeIf { it.isNotBlank() }?.let { put("id", it) }
                 put("agency_id", targetId)
+                put("hero_title", existingBranding?.heroTitle ?: cachedSettings?.name ?: "")
+                put("hero_subtitle", existingBranding?.heroSubtitle ?: cachedSettings?.heroSubtitle ?: "")
+                put("footer_text", existingBranding?.footerText ?: cachedSettings?.footerText ?: "")
                 put("header_image_url", publicUrl)
+                existingBranding?.customLogoUrl?.let { put("custom_logo_url", it) }
+                existingBranding?.contactPhone?.let { put("contact_phone", it) }
+                existingBranding?.contactEmail?.let { put("contact_email", it) }
+                existingBranding?.whatsappNumber?.let { put("whatsapp_number", it) }
+                existingBranding?.contactAddress?.let { put("contact_address", it) }
             }
 
             runCatching {

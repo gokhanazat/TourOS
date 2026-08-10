@@ -63,6 +63,8 @@ fun HotelListScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
+
     LaunchedEffect(Unit) {
         viewModel.loadHotels()
     }
@@ -70,11 +72,11 @@ fun HotelListScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = "Otel Portföy Yönetimi",
-                subtitle = "Konaklama tesislerini, kontrat şartlarını ve otel bilgilerini yönetin",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel Portföy Yönetimi"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Konaklama tesislerini, kontrat şartlarını ve otel bilgilerini yönetin"),
                 actions = {
                     TourOSButton(
-                        text = "+ Yeni Otel Ekle",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Otel Ekle"),
                         onClick = onAddHotelClick,
                         variant = TourOSButtonVariant.PRIMARY
                     )

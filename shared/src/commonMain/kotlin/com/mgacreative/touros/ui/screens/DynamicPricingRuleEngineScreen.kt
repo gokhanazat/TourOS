@@ -37,6 +37,7 @@ fun DynamicPricingRuleEngineScreen(
     viewModel: DynamicPricingRuleEngineViewModel,
     onNavigateBack: () -> Unit = {}
 ) {
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
     val state by viewModel.uiState.collectAsState()
     val eval = state.evaluationResult
 
@@ -48,8 +49,8 @@ fun DynamicPricingRuleEngineScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Dinamik Fiyat Kuralları",
-                subtitle = "Öncelikli kural motoru ve canlı fiyat simülasyon paneli",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dinamik Fiyat Kuralları"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Öncelikli kural motoru ve canlı fiyat simülasyon paneli"),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -144,7 +145,7 @@ fun DynamicPricingRuleEngineScreen(
                             onClick = { viewModel.selectTab(0) }
                         ) {
                             Text(
-                                "⚡ Fiyat Simülasyonu",
+                                "⚡ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fiyat Simülasyonu")}",
                                 modifier = Modifier.padding(TourOSSpacing.medium),
                                 style = TourOSTypography.Label.copy(
                                     color = if (state.selectedTab == 0) TourOSColors.Primary else TourOSColors.TextSecondary
@@ -157,7 +158,7 @@ fun DynamicPricingRuleEngineScreen(
                             onClick = { viewModel.selectTab(1) }
                         ) {
                             Text(
-                                "📋 Kural Listesi (#${rulesList.size})",
+                                "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kural Listesi")} (#${rulesList.size})",
                                 modifier = Modifier.padding(TourOSSpacing.medium),
                                 style = TourOSTypography.Label.copy(
                                     color = if (state.selectedTab == 1) TourOSColors.Primary else TourOSColors.TextSecondary
@@ -240,12 +241,12 @@ private fun PriorityRuleHeader(ruleCount: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "📋 Öncelik Sıralı Kurallar ($ruleCount)",
+            "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Öncelik Sıralı Kurallar")} ($ruleCount)",
             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
         )
 
         TourOSStatusBadge(
-            text = "⚡ Öncelik Motoru Aktif",
+            text = "⚡ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Öncelik Motoru Aktif")}",
             backgroundColor = TourOSColors.PrimaryContainer,
             textColor = TourOSColors.Primary
         )
@@ -320,7 +321,7 @@ private fun PriorityRuleList(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TourOSStatusBadge(
-                                text = "ÖNCELİK $priorityBadge",
+                                text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("ÖNCELİK")} $priorityBadge",
                                 backgroundColor = TourOSColors.Primary,
                                 textColor = TourOSColors.OnPrimary
                             )
@@ -335,13 +336,13 @@ private fun PriorityRuleList(
                         }
 
                         Text(
-                            rule.ruleName,
+                            com.mgacreative.touros.ui.localization.AppLanguageManager.translate(rule.ruleName),
                             style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                             Text(
-                                "Sezon: ${rule.season}  ·  Doluluk: >%${rule.minOccupancyRate.toInt()}",
+                                "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sezon")}: ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(rule.season)}  ·  ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Doluluk")}: >%${rule.minOccupancyRate.toInt()}",
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                             )
                         }
@@ -389,7 +390,7 @@ private fun LivePriceSimulationPanel(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "⚡ Canlı Fiyat Simülasyonu",
+                        "⚡ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı Fiyat Simülasyonu")}",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
                     )
 
@@ -409,11 +410,11 @@ private fun LivePriceSimulationPanel(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            "Etkin Öncelikli Kural:",
+                            com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Etkin Öncelikli Kural:"),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                         Text(
-                            selectedRule?.ruleName ?: "Varsayılan Fiyat Kuralı",
+                            com.mgacreative.touros.ui.localization.AppLanguageManager.translate(selectedRule?.ruleName ?: "Varsayılan Fiyat Kuralı"),
                             style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
                         )
                     }
@@ -423,7 +424,7 @@ private fun LivePriceSimulationPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Baz Tur Fiyatı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Baz Tur Fiyatı:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text("₺ ${formatPriceMoney(basePrice)}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
                 }
 
@@ -431,7 +432,7 @@ private fun LivePriceSimulationPanel(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Net Değişim Oranı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Değişim Oranı:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
 
                     val sign = if (totalAdjustmentPercent >= 0) "+" else ""
                     Text(
@@ -449,7 +450,7 @@ private fun LivePriceSimulationPanel(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Dinamik Son Fiyat:", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dinamik Son Fiyat:"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                     Text(
                         "₺ ${formatPriceMoney(adjustedPrice)}",
                         style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
@@ -466,7 +467,7 @@ private fun LivePriceSimulationPanel(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                 Text(
-                    "🎛️ Simülatör Koşul Parametreleri",
+                    "🎛️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Simülatör Koşul Parametreleri")}",
                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                 )
 
@@ -480,14 +481,14 @@ private fun LivePriceSimulationPanel(
                             onBasePriceChange(parsed)
                         }
                     },
-                    label = "Baz Tur Fiyatı (₺)",
+                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Baz Tur Fiyatı (₺)"),
                     placeholder = "Örn: 2500",
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(
-                    "Doluluk Oranı: %${occupancyRate.toInt()}",
+                    "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Doluluk Oranı")}: %${occupancyRate.toInt()}",
                     style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
                 )
 
@@ -503,7 +504,7 @@ private fun LivePriceSimulationPanel(
                 )
 
                 // Sezon Seçim Chipleri
-                Text("Sezon Türü:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sezon Türü:"), style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                     listOf("HIGH_SEASON" to "Yüksek", "MID_SEASON" to "Orta", "LOW_SEASON" to "Düşük").forEach { (code, label) ->
                         val isSelected = selectedSeason == code
@@ -514,7 +515,7 @@ private fun LivePriceSimulationPanel(
                             colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
                         ) {
                             Text(
-                                label,
+                                com.mgacreative.touros.ui.localization.AppLanguageManager.translate(label),
                                 style = TourOSTypography.Caption.copy(
                                     color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
                                 )
@@ -524,7 +525,7 @@ private fun LivePriceSimulationPanel(
                 }
 
                 // Acente Tier Chipleri
-                Text("Acente Seviyesi:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Seviyesi:"), style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                     listOf("VIP_AGENCY" to "VIP Acente", "REGULAR_AGENCY" to "Standart", "ALL" to "Tümü").forEach { (code, label) ->
                         val isSelected = selectedAgencyTier == code
@@ -535,7 +536,7 @@ private fun LivePriceSimulationPanel(
                             colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
                         ) {
                             Text(
-                                label,
+                                com.mgacreative.touros.ui.localization.AppLanguageManager.translate(label),
                                 style = TourOSTypography.Caption.copy(
                                     color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
                                 )

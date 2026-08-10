@@ -31,6 +31,7 @@ fun SupplierExpenseScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     var isAddingExpense by remember { mutableStateOf(false) }
     var supplierName by remember { mutableStateOf("") }
@@ -42,8 +43,8 @@ fun SupplierExpenseScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Tedarikçi Cari & Gider Girişi",
-                subtitle = "Otel, araç yakıt ve rehber gider akışları ve cari takibi",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Cari & Gider Girişi"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel, araç yakıt ve rehber gider akışları ve cari takibi"),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -51,7 +52,7 @@ fun SupplierExpenseScreen(
                 },
                 actions = {
                     TourOSButton(
-                        text = if (isAddingExpense) "📋 Liste" else "➕ Yeni Gider Gir",
+                        text = if (isAddingExpense) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📋 Liste") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("➕ Yeni Gider Gir"),
                         onClick = { isAddingExpense = !isAddingExpense },
                         variant = TourOSButtonVariant.PRIMARY
                     )
@@ -103,33 +104,33 @@ fun SupplierExpenseScreen(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                                 Text(
-                                    "➕ Yeni Gider / Tedarikçi Borcu Ekle",
+                                    "➕ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeni Gider / Tedarikçi Borcu Ekle")}",
                                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
                                     fontWeight = FontWeight.Bold
                                 )
 
                                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("Gider Kategori / Tedarikçi Türü:", style = TourOSTypography.Caption, fontWeight = FontWeight.Bold)
+                                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gider Kategori / Tedarikçi Türü:"), style = TourOSTypography.Caption, fontWeight = FontWeight.Bold)
                                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                                         FilterChip(
                                             selected = supplierType == "hotel",
                                             onClick = { supplierType = "hotel" },
-                                            label = { Text("🏨 Oteller", style = TourOSTypography.Caption) }
+                                            label = { Text("🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Oteller")}", style = TourOSTypography.Caption) }
                                         )
                                         FilterChip(
                                             selected = supplierType == "vehicle",
                                             onClick = { supplierType = "vehicle" },
-                                            label = { Text("🚌 Araç / Yakıt", style = TourOSTypography.Caption) }
+                                            label = { Text("🚌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç / Yakıt")}", style = TourOSTypography.Caption) }
                                         )
                                         FilterChip(
                                             selected = supplierType == "guide",
                                             onClick = { supplierType = "guide" },
-                                            label = { Text("🚩 Rehber", style = TourOSTypography.Caption) }
+                                            label = { Text("🚩 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber")}", style = TourOSTypography.Caption) }
                                         )
                                         FilterChip(
                                             selected = supplierType == "other",
                                             onClick = { supplierType = "other" },
-                                            label = { Text("🏢 Diğer Gider", style = TourOSTypography.Caption) }
+                                            label = { Text("🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Diğer Gider")}", style = TourOSTypography.Caption) }
                                         )
                                     }
                                 }
@@ -137,8 +138,8 @@ fun SupplierExpenseScreen(
                                 TourOSTextField(
                                     value = supplierName,
                                     onValueChange = { supplierName = it },
-                                    label = "Tedarikçi / Alacaklı Adı",
-                                    placeholder = "Örn: Hilton Hotel veya Petrol Ofisi A.Ş.",
+                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi / Alacaklı Adı"),
+                                    placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Hilton Hotel veya Petrol Ofisi A.Ş."),
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
@@ -149,21 +150,21 @@ fun SupplierExpenseScreen(
                                     TourOSTextField(
                                         value = amountStr,
                                         onValueChange = { amountStr = it },
-                                        label = "Gider Tutarı (₺)",
+                                        label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gider Tutarı (₺)"),
                                         placeholder = "Örn: 4500",
                                         modifier = Modifier.weight(1f)
                                     )
                                     TourOSTextField(
                                         value = description,
                                         onValueChange = { description = it },
-                                        label = "Açıklama / Belge No",
-                                        placeholder = "Örn: Travego Otobüs 4 Günlük Yakıt",
+                                        label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Açıklama / Belge No"),
+                                        placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Travego Otobüs 4 Günlük Yakıt"),
                                         modifier = Modifier.weight(1.5f)
                                     )
                                 }
 
                                 TourOSButton(
-                                    text = if (state.isCreatingExpense) "Kaydediliyor..." else "💾 Gider Kaydını Veritabanına İşle",
+                                    text = if (state.isCreatingExpense) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kaydediliyor...") else "💾 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gider Kaydını Veritabanına İşle")}",
                                     onClick = {
                                         val amt = amountStr.toDoubleOrNull() ?: 0.0
                                         if (supplierName.isNotBlank() && amt > 0) {
@@ -189,9 +190,9 @@ fun SupplierExpenseScreen(
                     } else {
                         // 1. KPI Özet Borç Kartları
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                            SummaryCard("🏨 Otel Borçları", "${formatMoney(state.totalHotelDebt)} TRY", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
-                            SummaryCard("🚌 Araç Borçları", "${formatMoney(state.totalVehicleDebt)} TRY", TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
-                            SummaryCard("🚩 Rehber Borçları", "${formatMoney(state.totalGuideDebt)} TRY", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
+                            SummaryCard("🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel Borçları")}", "${formatMoney(state.totalHotelDebt)} TRY", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
+                            SummaryCard("🚌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç Borçları")}", "${formatMoney(state.totalVehicleDebt)} TRY", TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
+                            SummaryCard("🚩 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber Borçları")}", "${formatMoney(state.totalGuideDebt)} TRY", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
                         }
 
                         // 2. Kategori Filtre Çipleri
@@ -199,31 +200,31 @@ fun SupplierExpenseScreen(
                             FilterChip(
                                 selected = state.selectedCategoryFilter == null,
                                 onClick = { viewModel.setCategoryFilter(null) },
-                                label = { Text("Tüm Tedarikçiler", style = TourOSTypography.Caption) }
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm Tedarikçiler"), style = TourOSTypography.Caption) }
                             )
                             FilterChip(
                                 selected = state.selectedCategoryFilter == "hotel",
                                 onClick = { viewModel.setCategoryFilter("hotel") },
-                                label = { Text("🏨 Oteller", style = TourOSTypography.Caption) }
+                                label = { Text("🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Oteller")}", style = TourOSTypography.Caption) }
                             )
                             FilterChip(
                                 selected = state.selectedCategoryFilter == "vehicle",
                                 onClick = { viewModel.setCategoryFilter("vehicle") },
-                                label = { Text("🚌 Araçlar", style = TourOSTypography.Caption) }
+                                label = { Text("🚌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araçlar")}", style = TourOSTypography.Caption) }
                             )
                             FilterChip(
                                 selected = state.selectedCategoryFilter == "guide",
                                 onClick = { viewModel.setCategoryFilter("guide") },
-                                label = { Text("🚩 Rehberler", style = TourOSTypography.Caption) }
+                                label = { Text("🚩 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehberler")}", style = TourOSTypography.Caption) }
                             )
                         }
 
                         // 3. Tedarikçi Cari Defteri & Gider Kartları Listesi
-                        Text("📖 Tedarikçi Cari Defteri & Kayıtlı Giderler (${state.transactions.size}):", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                        Text("📖 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Cari Defteri & Kayıtlı Giderler")} (${state.transactions.size}):", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
 
                         if (state.transactions.isEmpty()) {
                             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                                Text("Henüz veritabanında kaydedilmiş bir gider bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz veritabanında kaydedilmiş bir gider bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                             }
                         } else {
                             LazyColumn(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small), modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -258,10 +259,10 @@ private fun SupplierLedgerCard(
     onSettleClick: () -> Unit
 ) {
     val categoryIcon = when (item.supplierType) {
-        "hotel" -> "🏨 Otel Gideri"
-        "vehicle" -> "🚌 Araç/Yakıt Gideri"
-        "guide" -> "🚩 Rehber Gideri"
-        else -> "🏢 Tedarikçi Gideri"
+        "hotel" -> "🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel Gideri")}"
+        "vehicle" -> "🚌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç/Yakıt Gideri")}"
+        "guide" -> "🚩 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber Gideri")}"
+        else -> "🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Gideri")}"
     }
 
     TourOSCard(
@@ -286,7 +287,7 @@ private fun SupplierLedgerCard(
                         .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
                 ) {
                     Text(
-                        text = if (item.isSettled) "🟢 Ödendi & Giderleşti" else "🔴 Bekleyen Borç",
+                        text = if (item.isSettled) "🟢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ödendi & Giderleşti")}" else "🔴 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bekleyen Borç")}",
                         style = TourOSTypography.Caption.copy(color = if (item.isSettled) TourOSColors.Success else TourOSColors.Secondary),
                         fontWeight = FontWeight.Bold
                     )
@@ -300,12 +301,12 @@ private fun SupplierLedgerCard(
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
-                    Text("Cari Gider Tutarı", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Gider Tutarı"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text("${formatMoney(item.amount)} ${item.currency}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
                 }
 
                 TourOSButton(
-                    text = if (item.isSettled) "✅ Gider Kaydı İşlendi" else "⚡ Ödeme Yap & İşle",
+                    text = if (item.isSettled) "✅ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gider Kaydı İşlendi")}" else "⚡ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ödeme Yap & İşle")}",
                     onClick = onSettleClick,
                     variant = if (item.isSettled) TourOSButtonVariant.SECONDARY else TourOSButtonVariant.PRIMARY,
                     enabled = !item.isSettled
