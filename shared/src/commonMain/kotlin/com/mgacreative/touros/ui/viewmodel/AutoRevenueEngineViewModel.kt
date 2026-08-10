@@ -3,10 +3,12 @@ package com.mgacreative.touros.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.domain.model.Booking
+import com.mgacreative.touros.domain.model.BookingStatus
 import com.mgacreative.touros.domain.model.Invoice
+import com.mgacreative.touros.domain.repository.BookingRepository
+import com.mgacreative.touros.domain.repository.FinanceRepository
 import com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase
 import com.mgacreative.touros.domain.usecase.ProcessAutoRevenueUseCase
-import com.mgacreative.touros.domain.repository.FinanceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,7 @@ data class AutoRevenueLogItem(
     val taxAmount: Double,
     val totalAmount: Double,
     val status: String = "issued", // issued, draft, cancelled
-    val autoProcessedAt: String = "2026-08-06 12:00"
+    val autoProcessedAt: String = "Bugün"
 )
 
 sealed interface AutoRevenueUiState {
@@ -38,6 +40,7 @@ sealed interface AutoRevenueUiState {
 class AutoRevenueEngineViewModel(
     private val processAutoRevenueUseCase: ProcessAutoRevenueUseCase,
     private val financeRepository: FinanceRepository,
+    private val bookingRepository: BookingRepository,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
 
@@ -48,22 +51,21 @@ class AutoRevenueEngineViewModel(
         loadData()
     }
 
+    private fun resolveTenantId(userTenantId: String?): String {
+        val tid = userTenantId?.trim()
+        return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else "00000000-0000-0000-0000-000000000001"
+    }
+
     fun loadData() {
         viewModelScope.launch {
             _uiState.value = AutoRevenueUiState.Loading
             val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
+            val tenantId = resolveTenantId(user?.tenantId)
 
             val invoicesRes = financeRepository.getInvoices(tenantId)
             val invoices = invoicesRes.getOrDefault(emptyList())
 
-            val logs = if (invoices.isEmpty()) {
-                listOf(
-                    AutoRevenueLogItem("B-202608-001", "Hans Müller", 12000.0, "INV-B-202608-001", 10000.0, 2000.0, 12000.0, "issued", "2026-08-06 10:15"),
-                    AutoRevenueLogItem("B-202608-002", "Sarah Jenkins", 24000.0, "INV-B-202608-002", 20000.0, 4000.0, 24000.0, "issued", "2026-08-06 11:30"),
-                    AutoRevenueLogItem("B-202608-003", "Jean Dupont", 18000.0, "INV-B-202608-003", 15000.0, 3000.0, 18000.0, "issued", "2026-08-06 11:45")
-                )
-            } else {
+            val logs = if (invoices.isNotEmpty()) {
                 invoices.map { inv ->
                     AutoRevenueLogItem(
                         bookingCode = inv.invoiceNo.removePrefix("INV-"),
@@ -74,13 +76,31 @@ class AutoRevenueEngineViewModel(
                         taxAmount = inv.taxAmount,
                         totalAmount = inv.totalAmount,
                         status = inv.status,
-                        autoProcessedAt = inv.issuedAt ?: "2026-08-06"
+                        autoProcessedAt = inv.issuedAt?.take(10) ?: "Bugün"
+                    )
+                }
+            } else {
+                val bookings = bookingRepository.getBookings(tenantId).getOrDefault(emptyList())
+                bookings.map { b ->
+                    val tax = b.totalPrice * 0.20
+                    val subtotal = b.totalPrice - tax
+                    val isCanceled = b.status == BookingStatus.IPTAL
+                    AutoRevenueLogItem(
+                        bookingCode = b.bookingCode.ifBlank { "B-2026-001" },
+                        customerName = b.customerName.ifBlank { "Bilinmeyen Müşteri" },
+                        bookingAmount = b.totalPrice,
+                        invoiceNo = "INV-${b.bookingCode.ifBlank { "B-2026-001" }}",
+                        subtotal = (subtotal * 100).toLong() / 100.0,
+                        taxAmount = (tax * 100).toLong() / 100.0,
+                        totalAmount = b.totalPrice,
+                        status = if (isCanceled) "cancelled" else "issued",
+                        autoProcessedAt = b.createdAt.take(10).ifBlank { "Bugün" }
                     )
                 }
             }
 
-            val totalRev = logs.sumOf { it.totalAmount }
-            val totalTax = logs.sumOf { it.taxAmount }
+            val totalRev = logs.filter { item -> item.status != "cancelled" && item.status != "canceled" }.sumOf { item -> item.totalAmount }
+            val totalTax = logs.filter { item -> item.status != "cancelled" && item.status != "canceled" }.sumOf { item -> item.taxAmount }
 
             _uiState.value = AutoRevenueUiState.Success(
                 logs = logs,
@@ -90,25 +110,31 @@ class AutoRevenueEngineViewModel(
         }
     }
 
-    fun triggerAutoRevenueForBooking(bookingCode: String, customerName: String, amount: Double) {
+    fun processSingleBookingRevenue(booking: Booking) {
         viewModelScope.launch {
-            val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
-
-            val booking = Booking(
-                id = "b-new",
-                bookingCode = bookingCode,
-                customerName = customerName,
-                totalPrice = amount,
-                status = com.mgacreative.touros.domain.model.BookingStatus.ONAYLANDI,
-                tenantId = tenantId
-            )
-
+            val state = _uiState.value as? AutoRevenueUiState.Success ?: return@launch
             val res = processAutoRevenueUseCase(booking)
-            res.onSuccess {
-                loadData()
+            res.onSuccess { invoice ->
+                val newLog = AutoRevenueLogItem(
+                    bookingCode = booking.bookingCode,
+                    customerName = booking.customerName,
+                    bookingAmount = booking.totalPrice,
+                    invoiceNo = invoice.invoiceNo,
+                    subtotal = invoice.subtotal,
+                    taxAmount = invoice.taxAmount,
+                    totalAmount = invoice.totalAmount,
+                    status = invoice.status,
+                    autoProcessedAt = invoice.issuedAt?.take(10) ?: "Bugün"
+                )
+                val updatedLogs = listOf(newLog) + state.logs
+                _uiState.value = state.copy(
+                    logs = updatedLogs,
+                    totalRevenue = state.totalRevenue + invoice.totalAmount,
+                    totalTaxCollected = state.totalTaxCollected + invoice.taxAmount,
+                    notificationMessage = "⚡ ${booking.bookingCode} için Otomatik Satış Faturası (${invoice.invoiceNo}) oluşturuldu."
+                )
             }.onFailure { err ->
-                _uiState.value = AutoRevenueUiState.Error(err.message ?: "Muhasebeleştirme başarısız.")
+                _uiState.value = AutoRevenueUiState.Error(err.message ?: "Otomatik fatura oluşturma başarısız.")
             }
         }
     }

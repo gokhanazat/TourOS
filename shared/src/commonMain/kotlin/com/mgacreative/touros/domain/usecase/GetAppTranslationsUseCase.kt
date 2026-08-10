@@ -33,7 +33,7 @@ class GetAppTranslationsUseCase(
             "de" -> mapOf("welcome_title" to "Willkommen beim TourOS Reisesystem", "search_tours" to "Touren Suchen", "checkout" to "Zur Kasse")
             "ru" -> mapOf("welcome_title" to "Добро пожаловать в TourOS", "search_tours" to "Поиск туров", "checkout" to "Оформить заказ")
             "ar" -> mapOf("welcome_title" to "مرحبا بكم في نظام توروس للسياحة", "search_tours" to "البحث عن الجولات", "checkout" to "الدفع والتأكيد")
-            "fr" -> mapOf("welcome_title" to "Bienvenue dans le système TourOS", "search_tours" to "Rechercher des Tours", "checkout" to "Passer la Commande")
+            "es" -> mapOf("welcome_title" to "Bienvenido al Sistema TourOS", "search_tours" to "Buscar Tours", "checkout" to "Proceder al Pago")
             else -> mapOf("welcome_title" to "TourOS Seyahat Sistemine Hoş Geldiniz", "search_tours" to "Tur Ara", "checkout" to "Ödemeye Geç")
         }
     }

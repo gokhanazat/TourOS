@@ -38,33 +38,30 @@ class CurrentAccountViewModel(
         loadData()
     }
 
+    private fun resolveTenantId(userTenantId: String?): String {
+        val tid = userTenantId?.trim()
+        return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else "00000000-0000-0000-0000-000000000001"
+    }
+
     fun loadData(entityTypeFilter: String? = null, query: String = "") {
         viewModelScope.launch {
             _uiState.value = CurrentAccountUiState.Loading
             val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
+            val tenantId = resolveTenantId(user?.tenantId)
 
             val res = getCurrentAccountsUseCase(tenantId, entityTypeFilter)
-            val fetched = res.getOrDefault(emptyList())
-
-            val items = if (fetched.isEmpty()) {
-                listOf(
-                    CurrentAccountItem("c1", "Hans Müller", "customer", "+49 151 123456", "hans@example.com", 12000.0, 12000.0, 0.0, "TRY", "2026-08-06"),
-                    CurrentAccountItem("c2", "Sarah Jenkins", "customer", "+44 7700 900077", "sarah@example.com", 24000.0, 10000.0, 14000.0, "TRY", "2026-08-05"),
-                    CurrentAccountItem("a1", "Jolly Tur Acentesi", "agency", "+90 212 555 0100", "info@jollytur.com", 8500.0, 0.0, 8500.0, "TRY", "2026-08-04"),
-                    CurrentAccountItem("s1", "Hilton Istanbul Bosphorus", "supplier", "+90 212 310 0000", "reservation@hilton.com", 45000.0, 0.0, -45000.0, "TRY", "2026-08-05"),
-                    CurrentAccountItem("s2", "Lüks Otobüs Transfer", "supplier", "+90 212 444 0202", "operasyon@luksotobus.com", 18000.0, 0.0, -18000.0, "TRY", "2026-08-04")
-                )
-            } else {
-                fetched
-            }
+            val items = res.getOrDefault(emptyList())
 
             var filtered = items
             if (entityTypeFilter != null) {
                 filtered = filtered.filter { it.entityType == entityTypeFilter }
             }
             if (query.isNotBlank()) {
-                filtered = filtered.filter { it.entityName.contains(query, ignoreCase = true) }
+                filtered = filtered.filter { 
+                    it.entityName.contains(query, ignoreCase = true) ||
+                    it.accountCode.contains(query, ignoreCase = true) ||
+                    (it.taxNo?.contains(query, ignoreCase = true) == true)
+                }
             }
 
             val custReceivables = items.filter { it.entityType == "customer" }.sumOf { it.balance }
@@ -99,13 +96,15 @@ class CurrentAccountViewModel(
             return
         }
 
-        // Mock statement details (Hareket Dökümü)
-        val statement = listOf(
-            AccountTransactionDetail("tx1", "2026-08-01", "Açılış Bakiyesi", 0.0, 0.0, 0.0, "REF-001"),
-            AccountTransactionDetail("tx2", "2026-08-03", "Rezervasyon Borç Kaydı (INV-B-2026-001)", account.totalDebit, 0.0, account.totalDebit, "INV-B-2026-001"),
-            AccountTransactionDetail("tx3", "2026-08-05", "Banka Havale Tahsilatı", 0.0, account.totalCredit, account.balance, "DEKONT-8821")
-        )
-
-        _uiState.value = state.copy(selectedAccountForStatement = account, statementDetails = statement)
+        viewModelScope.launch {
+            val sampleDetails = listOf(
+                AccountTransactionDetail("t1", "07.08.2026", "Rezervasyon Satış Faturası", account.balance.coerceAtLeast(0.0), 0.0, account.balance, "INV-1001"),
+                AccountTransactionDetail("t2", "05.08.2026", "Banka Havale Tahsilatı", 0.0, 5000.0, (account.balance - 5000.0).coerceAtLeast(0.0), "DEC-2004")
+            )
+            _uiState.value = state.copy(
+                selectedAccountForStatement = account,
+                statementDetails = sampleDetails
+            )
+        }
     }
 }

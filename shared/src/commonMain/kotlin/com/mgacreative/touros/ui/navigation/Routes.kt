@@ -36,7 +36,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class TourFormRoute(val tourId: String? = null)
 @Serializable data class TourMediaGalleryRoute(val tourId: String)
 @Serializable object TourCalendarRoute
-@Serializable object DepartureFormRoute
+@Serializable data class DepartureFormRoute(val tourId: String = "", val departureId: String? = null)
 
 // ─── Rezervasyon ──────────────────────────────────────────────────────────────
 @Serializable object BookingsRoute
@@ -51,6 +51,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class HotelFormRoute(val hotelId: String? = null)
 @Serializable data class HotelContractRoute(val hotelId: String = "00000000-0000-0000-0000-000000000001", val hotelName: String = "Otel")
 @Serializable data class RoomTypeRoute(val hotelId: String = "00000000-0000-0000-0000-000000000001", val hotelName: String = "Otel")
+@Serializable data class B2CHotelDetailCheckoutRoute(val hotelId: String)
 
 
 // ─── Operasyon ────────────────────────────────────────────────────────────────

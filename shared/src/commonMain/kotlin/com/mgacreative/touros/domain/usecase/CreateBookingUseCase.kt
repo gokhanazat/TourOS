@@ -7,7 +7,7 @@ class CreateBookingUseCase(
     private val bookingRepository: BookingRepository
 ) {
     suspend operator fun invoke(booking: Booking): Result<Booking> {
-        if (booking.departureId.isBlank()) {
+        if (booking.bookingType != "HOTEL" && booking.hotelId.isNullOrBlank() && booking.departureId.isNullOrBlank()) {
             return Result.failure(IllegalArgumentException("Kalkış tarihi seçilmelidir"))
         }
         return bookingRepository.createBooking(booking)

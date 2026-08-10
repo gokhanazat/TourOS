@@ -17,7 +17,8 @@ sealed interface BookingDetailUiState {
     data class Success(
         val booking: Booking,
         val statusLogs: List<BookingStatusLog> = emptyList(),
-        val selectedTab: Int = 0 // 0: Yolcular & Hizmetler, 1: Ödeme Özeti, 2: Durum Geçmişi
+        val selectedTab: Int = 0, // 0: Yolcular & Hizmetler, 1: Ödeme Özeti, 2: Durum Geçmişi
+        val isDeleted: Boolean = false
     ) : BookingDetailUiState
     data class Error(val message: String) : BookingDetailUiState
 }
@@ -63,7 +64,13 @@ class BookingDetailViewModel(
         if (currentState is BookingDetailUiState.Success) {
             viewModelScope.launch {
                 updateBookingStatusUseCase(currentBookingId, currentState.booking.status, targetStatus)
-                    .onSuccess { loadBooking(currentBookingId) }
+                    .onSuccess {
+                        if (targetStatus == BookingStatus.IPTAL) {
+                            _uiState.value = currentState.copy(isDeleted = true)
+                        } else {
+                            loadBooking(currentBookingId)
+                        }
+                    }
             }
         }
     }

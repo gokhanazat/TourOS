@@ -59,6 +59,11 @@ class DynamicPricingRuleEngineViewModel(
         _uiState.value = _uiState.value.copy(selectedTab = tab)
     }
 
+    fun updateBasePrice(price: Double) {
+        _uiState.value = _uiState.value.copy(basePrice = price)
+        evaluateRules()
+    }
+
     fun updateSeason(season: String) {
         _uiState.value = _uiState.value.copy(selectedSeason = season)
         evaluateRules()

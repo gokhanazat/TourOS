@@ -28,7 +28,10 @@ private val currencyOptions = listOf(
     CurrencyOption("TRY", "Türk Lirası", "₺", "🇹🇷"),
     CurrencyOption("EUR", "Euro", "€", "🇪🇺"),
     CurrencyOption("USD", "Amerikan Doları", "$", "🇺🇸"),
-    CurrencyOption("GBP", "İngiliz Sterlini", "£", "🇬🇧")
+    CurrencyOption("RUB", "Rus Rublesi", "₽", "🇷🇺"),
+    CurrencyOption("GBP", "İngiliz Sterlini", "£", "🇬🇧"),
+    CurrencyOption("AED", "BAE Dirhemi", "AED", "🇦🇪"),
+    CurrencyOption("SAR", "Suudi Riyali", "SAR", "🇸🇦")
 )
 
 /**

@@ -41,3 +41,17 @@ class UploadCompanyLogoUseCase(
         return repository.uploadLogo(companyId, fileBytes, fileName)
     }
 }
+
+class UploadCompanyHeaderBannerUseCase(
+    private val repository: CompanySettingsRepository
+) {
+    suspend operator fun invoke(companyId: String, fileBytes: ByteArray, fileName: String): Result<String> {
+        if (companyId.isBlank()) {
+            return Result.failure(IllegalArgumentException("Geçersiz Şirket ID"))
+        }
+        if (fileBytes.isEmpty()) {
+            return Result.failure(IllegalArgumentException("Görsel dosyası boş olamaz"))
+        }
+        return repository.uploadHeaderBanner(companyId, fileBytes, fileName)
+    }
+}

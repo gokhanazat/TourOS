@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -57,6 +58,8 @@ import com.mgacreative.touros.ui.viewmodel.TourFormUiState
 import com.mgacreative.touros.ui.viewmodel.TourFormViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
+import coil3.compose.AsyncImage
+
 import com.mgacreative.touros.utils.MAX_IMAGE_SIZE_BYTES
 import com.mgacreative.touros.utils.rememberFilePickerLauncher
 
@@ -75,6 +78,8 @@ fun TourFormScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val loadedTour by viewModel.loadedTour.collectAsState()
+    val departuresDrafts by viewModel.departuresDrafts.collectAsState()
+    val itinerariesDrafts by viewModel.itinerariesDrafts.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var title by remember { mutableStateOf("") }
@@ -86,12 +91,19 @@ fun TourFormScreen(
     var basePriceText by remember { mutableStateOf("0") }
     var childPrice06Text by remember { mutableStateOf("0") }
     var childPrice712Text by remember { mutableStateOf("0") }
+    var adultCostPriceText by remember { mutableStateOf("0") }
+    var childCostPrice06Text by remember { mutableStateOf("0") }
+    var childCostPrice712Text by remember { mutableStateOf("0") }
     var capacityText by remember { mutableStateOf("20") }
     var minParticipantsText by remember { mutableStateOf("1") }
     var maxParticipantsText by remember { mutableStateOf("30") }
     var description by remember { mutableStateOf("") }
     var cancellationPolicy by remember { mutableStateOf("") }
     var insuranceDetails by remember { mutableStateOf("") }
+    var includedServices by remember { mutableStateOf("") }
+    var excludedServices by remember { mutableStateOf("") }
+    var initialDepartureDate by remember { mutableStateOf("") }
+    var initialReturnDate by remember { mutableStateOf("") }
     var errorMessageOverride by remember { mutableStateOf<String?>(null) }
 
     var coverFileName by remember { mutableStateOf<String?>(null) }
@@ -120,12 +132,17 @@ fun TourFormScreen(
             basePriceText = if (tour.basePrice > 0) tour.basePrice.toString() else ""
             childPrice06Text = if (tour.childPrice06 > 0) tour.childPrice06.toString() else ""
             childPrice712Text = if (tour.childPrice712 > 0) tour.childPrice712.toString() else ""
+            adultCostPriceText = if (tour.adultCostPrice > 0) tour.adultCostPrice.toString() else ""
+            childCostPrice06Text = if (tour.childCostPrice06 > 0) tour.childCostPrice06.toString() else ""
+            childCostPrice712Text = if (tour.childCostPrice712 > 0) tour.childCostPrice712.toString() else ""
             capacityText = tour.capacity.toString()
             minParticipantsText = tour.minParticipants.toString()
             maxParticipantsText = tour.maxParticipants.toString()
             description = tour.description ?: ""
             cancellationPolicy = tour.cancellationPolicy ?: ""
             insuranceDetails = tour.insuranceDetails ?: ""
+            includedServices = tour.includedServices ?: ""
+            excludedServices = tour.excludedServices ?: ""
         }
     }
 
@@ -200,6 +217,7 @@ fun TourFormScreen(
                         MediaUploadSection(
                             coverFileName = coverFileName,
                             coverBytes = coverBytes,
+                            existingCoverUrl = loadedTour?.coverImageUrl,
                             galleryItems = galleryItems,
                             onCoverSelected = { fileName, bytes ->
                                 if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
@@ -243,6 +261,12 @@ fun TourFormScreen(
                             onChildPrice06Change = { childPrice06Text = it },
                             childPrice712Text = childPrice712Text,
                             onChildPrice712Change = { childPrice712Text = it },
+                            adultCostPriceText = adultCostPriceText,
+                            onAdultCostPriceChange = { adultCostPriceText = it },
+                            childCostPrice06Text = childCostPrice06Text,
+                            onChildCostPrice06Change = { childCostPrice06Text = it },
+                            childCostPrice712Text = childCostPrice712Text,
+                            onChildCostPrice712Change = { childCostPrice712Text = it },
                             capacityText = capacityText,
                             onCapacityChange = { capacityText = it },
                             minParticipantsText = minParticipantsText,
@@ -254,7 +278,20 @@ fun TourFormScreen(
                             cancellationPolicy = cancellationPolicy,
                             onCancellationChange = { cancellationPolicy = it },
                             insuranceDetails = insuranceDetails,
-                            onInsuranceChange = { insuranceDetails = it }
+                            onInsuranceChange = { insuranceDetails = it },
+                            includedServices = includedServices,
+                            onIncludedServicesChange = { includedServices = it },
+                            excludedServices = excludedServices,
+                            onExcludedServicesChange = { excludedServices = it }
+                        )
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                        ItinerarySection(
+                            itineraries = itinerariesDrafts,
+                            onAddItinerary = { viewModel.addItineraryDraft() },
+                            onUpdateItinerary = { index, draft -> viewModel.updateItineraryDraft(index, draft) },
+                            onRemoveItinerary = { index -> viewModel.removeItineraryDraft(index) }
                         )
                     } else {
                         // EXPANDED LAYOUT (Masaüstü/Web: Solda Form, Sağda Medya Yükleme)
@@ -282,6 +319,12 @@ fun TourFormScreen(
                                     onChildPrice06Change = { childPrice06Text = it },
                                     childPrice712Text = childPrice712Text,
                                     onChildPrice712Change = { childPrice712Text = it },
+                                    adultCostPriceText = adultCostPriceText,
+                                    onAdultCostPriceChange = { adultCostPriceText = it },
+                                    childCostPrice06Text = childCostPrice06Text,
+                                    onChildCostPrice06Change = { childCostPrice06Text = it },
+                                    childCostPrice712Text = childCostPrice712Text,
+                                    onChildCostPrice712Change = { childCostPrice712Text = it },
                                     capacityText = capacityText,
                                     onCapacityChange = { capacityText = it },
                                     minParticipantsText = minParticipantsText,
@@ -293,7 +336,20 @@ fun TourFormScreen(
                                     cancellationPolicy = cancellationPolicy,
                                     onCancellationChange = { cancellationPolicy = it },
                                     insuranceDetails = insuranceDetails,
-                                    onInsuranceChange = { insuranceDetails = it }
+                                    onInsuranceChange = { insuranceDetails = it },
+                                    includedServices = includedServices,
+                                    onIncludedServicesChange = { includedServices = it },
+                                    excludedServices = excludedServices,
+                                    onExcludedServicesChange = { excludedServices = it }
+                                )
+
+                                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                ItinerarySection(
+                                    itineraries = itinerariesDrafts,
+                                    onAddItinerary = { viewModel.addItineraryDraft() },
+                                    onUpdateItinerary = { index, draft -> viewModel.updateItineraryDraft(index, draft) },
+                                    onRemoveItinerary = { index -> viewModel.removeItineraryDraft(index) }
                                 )
                             }
 
@@ -301,6 +357,7 @@ fun TourFormScreen(
                                 MediaUploadSection(
                                     coverFileName = coverFileName,
                                     coverBytes = coverBytes,
+                                    existingCoverUrl = loadedTour?.coverImageUrl,
                                     galleryItems = galleryItems,
                                     onCoverSelected = { fileName, bytes ->
                                         if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
@@ -350,12 +407,20 @@ fun TourFormScreen(
                                     basePrice = basePriceText.toDoubleOrNull() ?: 0.0,
                                     childPrice06 = childPrice06Text.toDoubleOrNull() ?: 0.0,
                                     childPrice712 = childPrice712Text.toDoubleOrNull() ?: 0.0,
+                                    adultCostPrice = adultCostPriceText.toDoubleOrNull() ?: 0.0,
+                                    childCostPrice06 = childCostPrice06Text.toDoubleOrNull() ?: 0.0,
+                                    childCostPrice712 = childCostPrice712Text.toDoubleOrNull() ?: 0.0,
                                     capacity = capacityText.toIntOrNull() ?: 20,
                                     minParticipants = minParticipantsText.toIntOrNull() ?: 1,
                                     maxParticipants = maxParticipantsText.toIntOrNull() ?: 30,
                                     description = description,
                                     cancellationPolicy = cancellationPolicy,
-                                    insuranceDetails = insuranceDetails
+                                    insuranceDetails = insuranceDetails,
+                                    includedServices = includedServices,
+                                    excludedServices = excludedServices,
+                                    coverBytes = coverBytes,
+                                    coverFileName = coverFileName,
+                                    existingCoverImageUrl = loadedTour?.coverImageUrl
                                 )
                             },
                             variant = TourOSButtonVariant.PRIMARY,
@@ -381,12 +446,17 @@ private fun TourFormFieldsSection(
     basePriceText: String, onBasePriceChange: (String) -> Unit,
     childPrice06Text: String, onChildPrice06Change: (String) -> Unit,
     childPrice712Text: String, onChildPrice712Change: (String) -> Unit,
+    adultCostPriceText: String, onAdultCostPriceChange: (String) -> Unit,
+    childCostPrice06Text: String, onChildCostPrice06Change: (String) -> Unit,
+    childCostPrice712Text: String, onChildCostPrice712Change: (String) -> Unit,
     capacityText: String, onCapacityChange: (String) -> Unit,
     minParticipantsText: String, onMinChange: (String) -> Unit,
     maxParticipantsText: String, onMaxChange: (String) -> Unit,
     description: String, onDescriptionChange: (String) -> Unit,
     cancellationPolicy: String, onCancellationChange: (String) -> Unit,
-    insuranceDetails: String, onInsuranceChange: (String) -> Unit
+    insuranceDetails: String, onInsuranceChange: (String) -> Unit,
+    includedServices: String, onIncludedServicesChange: (String) -> Unit,
+    excludedServices: String, onExcludedServicesChange: (String) -> Unit
 ) {
     TourOSCard(
         modifier = Modifier.fillMaxWidth(),
@@ -513,15 +583,17 @@ private fun TourFormFieldsSection(
         HorizontalDivider(color = TourOSColors.Divider)
         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-        // 4. Fiyatlandırma & Yaş Kategori Fiyatları
-        Text(text = "4. Fiyatlandırma & Yaş Kategori Fiyatları", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+        // 4. Fiyatlandırma, Pax Maliyetleri & Karlılık
+        Text(text = "4. Fiyatlandırma, Pax Maliyetleri & Karlılık Hesaplama", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+        Text(text = "🏷️ Satış Fiyatları", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
         Row(modifier = Modifier.fillMaxWidth()) {
             TourOSTextField(
                 value = basePriceText,
                 onValueChange = onBasePriceChange,
-                label = "Yetişkin / Kişi Başı (₺) *",
+                label = "Yetişkin Satış (₺) *",
                 placeholder = "0.00",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f)
@@ -530,7 +602,7 @@ private fun TourFormFieldsSection(
             TourOSTextField(
                 value = childPrice06Text,
                 onValueChange = onChildPrice06Change,
-                label = "Çocuk (0-6 Yaş) (₺)",
+                label = "Çocuk (0-6 Yaş) Satış (₺)",
                 placeholder = "0.00",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f)
@@ -539,19 +611,103 @@ private fun TourFormFieldsSection(
             TourOSTextField(
                 value = childPrice712Text,
                 onValueChange = onChildPrice712Change,
-                label = "Çocuk (7-12 Yaş) (₺)",
+                label = "Çocuk (7-12 Yaş) Satış (₺)",
                 placeholder = "0.00",
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f)
             )
         }
 
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+        Text(text = "💰 Pax Maliyetleri (Kişi Başı Maliyet)", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+        Row(modifier = Modifier.fillMaxWidth()) {
+            TourOSTextField(
+                value = adultCostPriceText,
+                onValueChange = onAdultCostPriceChange,
+                label = "Yetişkin Maliyeti (₺)",
+                placeholder = "0.00",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+            TourOSTextField(
+                value = childCostPrice06Text,
+                onValueChange = onChildCostPrice06Change,
+                label = "Çocuk (0-6) Maliyeti (₺)",
+                placeholder = "0.00",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+            TourOSTextField(
+                value = childCostPrice712Text,
+                onValueChange = onChildCostPrice712Change,
+                label = "Çocuk (7-12) Maliyeti (₺)",
+                placeholder = "0.00",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Anlık Karlılık Hesaplama Göstergesi (Özet Kart)
+        val adultSale = basePriceText.toDoubleOrNull() ?: 0.0
+        val adultCost = adultCostPriceText.toDoubleOrNull() ?: 0.0
+        val adultProfit = adultSale - adultCost
+        val adultMargin = if (adultSale > 0) (adultProfit / adultSale) * 100 else 0.0
+
+        val child06Sale = childPrice06Text.toDoubleOrNull() ?: 0.0
+        val child06Cost = childCostPrice06Text.toDoubleOrNull() ?: 0.0
+        val child06Profit = child06Sale - child06Cost
+        val child06Margin = if (child06Sale > 0) (child06Profit / child06Sale) * 100 else 0.0
+
+        val child712Sale = childPrice712Text.toDoubleOrNull() ?: 0.0
+        val child712Cost = childCostPrice712Text.toDoubleOrNull() ?: 0.0
+        val child712Profit = child712Sale - child712Cost
+        val child712Margin = if (child712Sale > 0) (child712Profit / child712Sale) * 100 else 0.0
+
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+        TourOSCard(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f),
+            borderColor = TourOSColors.Primary.copy(alpha = 0.3f),
+            contentPadding = TourOSSpacing.medium
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                Text(text = "📈 Tahmini Pax Başı Karlılık Analizi", style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Yetişkin Karı: ${adultProfit.toLong()} ₺ (%${adultMargin.toInt()})",
+                        style = TourOSTypography.Caption,
+                        fontWeight = FontWeight.Bold,
+                        color = if (adultProfit >= 0) TourOSColors.Primary else TourOSColors.Error
+                    )
+                    Text(
+                        text = "0-6 Çocuk Karı: ${child06Profit.toLong()} ₺ (%${child06Margin.toInt()})",
+                        style = TourOSTypography.Caption,
+                        fontWeight = FontWeight.Bold,
+                        color = if (child06Profit >= 0) TourOSColors.Primary else TourOSColors.Error
+                    )
+                    Text(
+                        text = "7-12 Çocuk Karı: ${child712Profit.toLong()} ₺ (%${child712Margin.toInt()})",
+                        style = TourOSTypography.Caption,
+                        fontWeight = FontWeight.Bold,
+                        color = if (child712Profit >= 0) TourOSColors.Primary else TourOSColors.Error
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
         HorizontalDivider(color = TourOSColors.Divider)
         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-        // 5. Detaylar & Koşullar
-        Text(text = "5. Tur Açıklaması & Şartlar", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        // 6. Detaylar & Koşullar
+        Text(text = "6. Tur Açıklaması & Şartlar", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
         TourOSTextField(
@@ -567,10 +723,36 @@ private fun TourFormFieldsSection(
         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
         TourOSTextField(
+            value = includedServices,
+            onValueChange = onIncludedServicesChange,
+            label = "✅ Fiyata Dahil Olan Hizmetler",
+            placeholder = "Her satıra 1 hizmet yazın.\nÖrn:\nLüks Otobüs İle Ulaşım\n4 Yıldızlı Otel Konaklama\nProfesyonel Rehberlik Hizmeti\nAçık Büfe Kahvaltı",
+            singleLine = false,
+            minLines = 3,
+            maxLines = 8,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+        TourOSTextField(
+            value = excludedServices,
+            onValueChange = onExcludedServicesChange,
+            label = "❌ Fiyata Dahil Olmayan Hizmetler",
+            placeholder = "Her satıra 1 hizmet yazın.\nÖrn:\nKişisel Harcamalar\nMüze Ören Yeri Giriş Ücretleri\nÖğle Yemekleri",
+            singleLine = false,
+            minLines = 3,
+            maxLines = 8,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+        TourOSTextField(
             value = cancellationPolicy,
             onValueChange = onCancellationChange,
             label = "İptal ve İade Koşulları",
-            placeholder = "7 gün kalaya kadar ücretsi iptal...",
+            placeholder = "7 gün kalaya kadar ücretsiz iptal...",
             singleLine = false,
             maxLines = 2,
             modifier = Modifier.fillMaxWidth()
@@ -582,6 +764,7 @@ private fun TourFormFieldsSection(
 private fun MediaUploadSection(
     coverFileName: String?,
     coverBytes: ByteArray?,
+    existingCoverUrl: String? = null,
     galleryItems: List<Pair<String, ByteArray>>,
     onCoverSelected: (String, ByteArray) -> Unit,
     onGalleryImageSelected: (String, ByteArray) -> Unit,
@@ -613,10 +796,10 @@ private fun MediaUploadSection(
                 .fillMaxWidth()
                 .height(180.dp)
                 .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
-                .background(if (coverFileName != null) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer)
+                .background(if (coverFileName != null || !existingCoverUrl.isNullOrBlank()) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer)
                 .border(
                     width = TourOSSpacing.borderWidth,
-                    color = if (coverFileName != null) TourOSColors.Success else TourOSColors.Primary,
+                    color = if (coverFileName != null || !existingCoverUrl.isNullOrBlank()) TourOSColors.Success else TourOSColors.Primary,
                     shape = RoundedCornerShape(TourOSSpacing.cornerRadius)
                 )
                 .clickable { launchCoverPicker() },
@@ -643,6 +826,36 @@ private fun MediaUploadSection(
                     ) {
                         Text(
                             text = "✅ $coverFileName",
+                            style = TourOSTypography.Caption.copy(color = Color.White),
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "Değiştir ✏️",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.PrimaryContainer)
+                        )
+                    }
+                }
+            } else if (!existingCoverUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = existingCoverUrl,
+                    contentDescription = "Kapak Görseli",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.BottomCenter)
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "✅ Mevcut Kapak Görseli",
                             style = TourOSTypography.Caption.copy(color = Color.White),
                             maxLines = 1
                         )
@@ -732,6 +945,108 @@ private fun MediaUploadSection(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = "+", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextSecondary))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ItinerarySection(
+    itineraries: List<com.mgacreative.touros.ui.viewmodel.ItineraryDraft>,
+    onAddItinerary: () -> Unit,
+    onUpdateItinerary: (Int, com.mgacreative.touros.ui.viewmodel.ItineraryDraft) -> Unit,
+    onRemoveItinerary: (Int) -> Unit
+) {
+    TourOSCard(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.Background,
+        borderColor = TourOSColors.Border,
+        contentPadding = TourOSSpacing.xLarge
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(text = "📍 Gün Gün Tur Programı (Itinerary & Rota)", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text(text = "Turun gün bazlı rotası, gezilecek yerler ve program detayları.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+            }
+            TourOSButton(
+                text = "➕ Yeni Gün Ekle",
+                onClick = onAddItinerary,
+                variant = TourOSButtonVariant.SECONDARY
+            )
+        }
+
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+        if (itineraries.isEmpty()) {
+            Text(
+                text = "Henüz gün programı eklenmedi. 'Yeni Gün Ekle' butonuna basarak tur rotasını oluşturabilirsiniz.",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
+        } else {
+            itineraries.forEachIndexed { index, itin ->
+                TourOSCard(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = TourOSSpacing.small),
+                    backgroundColor = TourOSColors.Surface,
+                    borderColor = TourOSColors.Border,
+                    contentPadding = TourOSSpacing.medium
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${itin.dayNumber}. GÜN PROGRAMI",
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                            )
+                            TourOSButton(
+                                text = "Sil 🗑️",
+                                onClick = { onRemoveItinerary(index) },
+                                variant = TourOSButtonVariant.TERTIARY
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            TourOSTextField(
+                                value = itin.title,
+                                onValueChange = { onUpdateItinerary(index, itin.copy(title = it)) },
+                                label = "Gün Başlığı *",
+                                placeholder = "Örn: Kapadokya Karşılama ve Göreme Gezisi",
+                                modifier = Modifier.weight(1.5f)
+                            )
+                            TourOSTextField(
+                                value = itin.location,
+                                onValueChange = { onUpdateItinerary(index, itin.copy(location = it)) },
+                                label = "Rota / Lokasyon",
+                                placeholder = "Örn: Nevşehir / Göreme",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                        TourOSTextField(
+                            value = itin.description,
+                            onValueChange = { onUpdateItinerary(index, itin.copy(description = it)) },
+                            label = "Günün Detaylı Açıklaması",
+                            placeholder = "Sabah transfer, Göreme Açık Hava Müzesi ve Ürgüp Paşabağ vadisi yürüyüşü...",
+                            singleLine = false,
+                            minLines = 4,
+                            maxLines = 10,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
         }

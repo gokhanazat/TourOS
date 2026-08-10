@@ -10,6 +10,7 @@ data class HotelSeasonRate(
     val id: String = "",
     val hotelId: String = "",
     val roomTypeId: String? = null,
+    val roomTypeName: String? = null,
     val seasonName: String = "",
     val startDate: String = "",
     val endDate: String = "",
@@ -18,6 +19,9 @@ data class HotelSeasonRate(
     val triplePrice: Double = 0.0,
     val extraBedPrice: Double = 0.0,
     val childPrice: Double = 0.0,
+    val costPrice: Double = 0.0,
+    val salePrice: Double = 0.0,
+    val allotment: Int = 10,
     val currency: String = "TRY",
     val mealPlan: String = "BB", // BB, HB, FB, AI, RO
     val minStayDays: Int = 1,

@@ -26,6 +26,7 @@ interface HotelRepository {
     suspend fun createSeasonRate(rate: HotelSeasonRate): Result<HotelSeasonRate>
     suspend fun updateSeasonRate(rate: HotelSeasonRate): Result<HotelSeasonRate>
     suspend fun deleteSeasonRate(id: String): Result<Boolean>
+    suspend fun deleteSeasonRatesForHotel(hotelId: String): Result<Boolean>
     suspend fun getStopSalesForHotel(hotelId: String): Result<List<HotelStopSale>>
     suspend fun createStopSale(stopSale: HotelStopSale): Result<HotelStopSale>
     suspend fun toggleStopSaleStatus(id: String, isActive: Boolean): Result<Boolean>

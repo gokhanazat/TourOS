@@ -2,6 +2,7 @@ package com.mgacreative.touros.utils
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
@@ -22,7 +23,7 @@ actual fun rememberFilePickerLauncher(
                     val targetFile = File(directory, file)
                     if (targetFile.exists() && targetFile.isFile) {
                         val bytes = targetFile.readBytes()
-                        onFileSelected(targetFile.name, bytes)
+                        onFileSelected(targetFile.absolutePath, bytes)
                     }
                 }
             } catch (e: Exception) {
@@ -31,3 +32,6 @@ actual fun rememberFilePickerLauncher(
         }
     }
 }
+
+@Composable
+actual fun Modifier.onFileDrop(onFilesDropped: (List<String>) -> Unit): Modifier = this

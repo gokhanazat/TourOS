@@ -13,6 +13,7 @@ data class B2CCheckoutRequest(
     val passengerPhone: String = "",
     val passengerEmail: String = "",
     val paxCount: Int = 1,
+    val totalAmount: Double = 0.0,
     val cardNumberMasked: String = "**** **** **** 4242",
     val cardHolder: String = "",
     val cardExpiry: String = "",
@@ -29,5 +30,7 @@ data class B2CCheckoutResult(
     val paymentReference: String = "",
     val totalAmount: Double = 0.0,
     val paymentStatus: String = "SUCCESS",
-    val createdAt: String = ""
+    val createdAt: String = "",
+    val whatsappDirectUrl: String = "",
+    val whatsappCustomerDirectUrl: String = ""
 )

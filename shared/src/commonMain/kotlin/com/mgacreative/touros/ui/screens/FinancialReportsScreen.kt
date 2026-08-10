@@ -1,7 +1,6 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -13,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.FinancialReportSummary
@@ -30,26 +30,22 @@ private val dateFilterOptions = listOf(
     ReportFilterOption("THIS_YEAR", "📊 Bu Yıl")
 )
 
-private val companyFilterOptions = listOf("Tüm Şirketler", "Merkez Acente", "Antalya Şube")
-private val currencyFilterOptions = listOf("TRY ₺", "EUR €", "USD $")
-
 /**
- * Finansal Raporlar Ekranı (KDV / Gelir / Nakit / Banka / Kârlılık) — TourOS 0.3
- *
- * Üstte Filtre Çubuğu (Tarih aralığı, Firma, Para birimi)
- * Sağ Üstte Export Butonları (PDF Export & Excel Export)
- * Altta Özet Kartları + Detaylı Finans Kalemleri Tablosu
+ * Finansal Raporlar Ekranı — TourOS Canlı Dönüşümlü & Hızlı Giriş Destekli Sürüm
  */
 @Composable
 fun FinancialReportsScreen(
     viewModel: FinancialReportsViewModel,
+    onNavigateToInvoice: () -> Unit = {},
+    onNavigateToCurrentAccount: () -> Unit = {},
+    onNavigateToSupplierExpense: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
     val summary = state.summary
+    val symbol = state.currencySymbol
+    val rate = state.currencyRate
 
-    var selectedCompany by remember { mutableStateOf(companyFilterOptions.first()) }
-    var selectedCurrency by remember { mutableStateOf(currencyFilterOptions.first()) }
     var exportNotification by remember { mutableStateOf<String?>(null) }
 
     val reportTabs = listOf("📑 KDV Raporu", "📈 Gelir / Gider", "💵 Nakit & Banka", "📊 Kârlılık Analizi")
@@ -66,19 +62,18 @@ fun FinancialReportsScreen(
                     }
                 },
                 actions = {
-                    // SAĞ ÜSTTE EXPORT BUTONLARI (PDF & EXCEL)
                     Row(
                         modifier = Modifier.padding(end = TourOSSpacing.small),
                         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)
                     ) {
                         TourOSButton(
                             text = "📄 PDF",
-                            onClick = { exportNotification = "📄 PDF Raporu Hazırlandı ve İndirildi!" },
+                            onClick = { exportNotification = "📄 PDF Finans Raporu (${state.selectedCurrency}) İndirildi!" },
                             variant = TourOSButtonVariant.SECONDARY
                         )
                         TourOSButton(
                             text = "📊 Excel",
-                            onClick = { exportNotification = "📊 Excel (CSV) Raporu Dışa Aktarıldı!" },
+                            onClick = { exportNotification = "📊 Excel (CSV) Finans Raporu Dışa Aktarıldı!" },
                             variant = TourOSButtonVariant.PRIMARY
                         )
                     }
@@ -91,7 +86,6 @@ fun FinancialReportsScreen(
             contentPadding = PaddingValues(TourOSSpacing.large),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
-            // Bildirim Mesajı
             if (exportNotification != null) {
                 item {
                     Box(
@@ -108,7 +102,8 @@ fun FinancialReportsScreen(
                         ) {
                             Text(
                                 exportNotification!!,
-                                style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                                style = TourOSTypography.Label.copy(color = TourOSColors.Success),
+                                fontWeight = FontWeight.Bold
                             )
                             IconButton(onClick = { exportNotification = null }) {
                                 Text("✕", style = TourOSTypography.Caption.copy(color = TourOSColors.Success))
@@ -118,19 +113,19 @@ fun FinancialReportsScreen(
                 }
             }
 
-            // ── 1. ÜSTTE FİLTRE ÇUBUĞU (Tarih, Firma, Para Birimi) ─────────────
             item {
                 TopReportFilterBar(
                     selectedDateFilter = state.dateFilter,
                     onDateFilterChange = { viewModel.setDateFilter(it) },
-                    selectedCompany = selectedCompany,
-                    onCompanyChange = { selectedCompany = it },
-                    selectedCurrency = selectedCurrency,
-                    onCurrencyChange = { selectedCurrency = it }
+                    companyOptions = state.companyOptions,
+                    selectedCompany = state.selectedCompany,
+                    onCompanyChange = { viewModel.setSelectedCompany(it) },
+                    currencyOptions = state.currencyOptions,
+                    selectedCurrency = state.selectedCurrency,
+                    onCurrencyChange = { viewModel.setSelectedCurrency(it) }
                 )
             }
 
-            // ── 2. SEKMELER (KDV, Gelir, Nakit, Kârlılık) ────────────────────
             item {
                 PrimaryTabRow(
                     selectedTabIndex = state.selectedTab,
@@ -141,45 +136,64 @@ fun FinancialReportsScreen(
                         Tab(
                             selected = state.selectedTab == index,
                             onClick = { viewModel.setSelectedTab(index) },
-                            text = { Text(title, style = TourOSTypography.Label) }
+                            text = { Text(title, style = TourOSTypography.Label, fontWeight = FontWeight.Bold) }
                         )
                     }
                 }
             }
 
-            // ── 3. SEKMEYE GÖRE ÖZET KARTLARI ─────────────────────────────────
             item {
                 when (state.selectedTab) {
-                    0 -> VatReportSection(summary = summary)
-                    1 -> RevenueExpenseReportSection(summary = summary)
-                    2 -> CashBankReportSection(summary = summary)
+                    0 -> VatReportSection(summary = summary, symbol = symbol, rate = rate)
+                    1 -> RevenueExpenseReportSection(summary = summary, symbol = symbol, rate = rate)
+                    2 -> CashBankReportSection(summary = summary, symbol = symbol, rate = rate)
                     3 -> ProfitabilityReportSection(summary = summary)
                 }
             }
 
-            // ── 4. ALTA DETAY HAREKET TABLOSU ─────────────────────────────────
+            // HIZLI FİNANSAL GİRİŞ BUTONLARI
             item {
-                Text(
-                    "📋 Detaylı Finans Kalemleri Tablosu",
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "📋 Detaylı Finans Kalemleri Tablosu (${state.selectedCurrency})",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                        TourOSButton(
+                            text = "🧾 Fatura Kes",
+                            onClick = onNavigateToInvoice,
+                            variant = TourOSButtonVariant.SECONDARY
+                        )
+                        TourOSButton(
+                            text = "➕ Gider Gir",
+                            onClick = onNavigateToSupplierExpense,
+                            variant = TourOSButtonVariant.PRIMARY
+                        )
+                    }
+                }
             }
 
             item {
-                FinancialDetailsTable(summary = summary, selectedTab = state.selectedTab)
+                FinancialDetailsTable(summary = summary, selectedTab = state.selectedTab, symbol = symbol, rate = rate)
             }
         }
     }
 }
 
-// ─── Üst Filtre Çubuğu (Tarih, Firma, Para Birimi) ───────────────────────────
-
 @Composable
 private fun TopReportFilterBar(
     selectedDateFilter: String,
     onDateFilterChange: (String) -> Unit,
+    companyOptions: List<String>,
     selectedCompany: String,
     onCompanyChange: (String) -> Unit,
+    currencyOptions: List<String>,
     selectedCurrency: String,
     onCurrencyChange: (String) -> Unit
 ) {
@@ -191,10 +205,10 @@ private fun TopReportFilterBar(
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Text(
                 "⚙️ Rapor Filtre Seçenekleri",
-                style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                style = TourOSTypography.Label.copy(color = TourOSColors.Primary),
+                fontWeight = FontWeight.Bold
             )
 
-            // 1. Tarih Aralığı Chip'leri
             LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                 items(dateFilterOptions) { opt ->
                     FilterChip(
@@ -211,34 +225,39 @@ private fun TopReportFilterBar(
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            // 2. Firma Seçimi & Para Birimi Seçimi
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
-                // Firma Seçim Chip'leri
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Firma / Şube:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("Firma / Şube:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(companyFilterOptions) { comp ->
+                        items(companyOptions) { comp ->
                             FilterChip(
                                 selected = selectedCompany == comp,
                                 onClick = { onCompanyChange(comp) },
-                                label = { Text(comp, style = TourOSTypography.Caption) }
+                                label = { Text(comp, style = TourOSTypography.Caption) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.PrimaryContainer,
+                                    selectedLabelColor = TourOSColors.Primary
+                                )
                             )
                         }
                     }
                 }
 
-                // Para Birimi Seçim Chip'leri
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Para Birimi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("Para Birimi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(currencyFilterOptions) { curr ->
+                        items(currencyOptions) { curr ->
                             FilterChip(
                                 selected = selectedCurrency == curr,
                                 onClick = { onCurrencyChange(curr) },
-                                label = { Text(curr, style = TourOSTypography.Caption) }
+                                label = { Text(curr, style = TourOSTypography.Caption) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.SecondaryContainer,
+                                    selectedLabelColor = TourOSColors.Secondary
+                                )
                             )
                         }
                     }
@@ -248,14 +267,12 @@ private fun TopReportFilterBar(
     }
 }
 
-// ─── Özet Kartları: KDV ───────────────────────────────────────────────────────
-
 @Composable
-private fun VatReportSection(summary: FinancialReportSummary) {
+private fun VatReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-            SummaryKpiCard("Hesaplanan KDV (Satış)", "₺ ${formatMoney(summary.vatCollected)}", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
-            SummaryKpiCard("İndirilecek KDV (Gider)", "₺ ${formatMoney(summary.vatPaid)}", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
+            SummaryKpiCard("Hesaplanan KDV (Satış)", formatConvertedMoney(summary.vatCollected, symbol, rate), TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
+            SummaryKpiCard("İndirilecek KDV (Gider)", formatConvertedMoney(summary.vatPaid, symbol, rate), TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
         }
 
         TourOSCard(
@@ -264,53 +281,47 @@ private fun VatReportSection(summary: FinancialReportSummary) {
             contentPadding = TourOSSpacing.medium
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("📌 Net Ödenecek / Devreden KDV:", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
-                Text("₺ ${formatMoney(summary.vatPayable)}", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Secondary))
+                Text("📌 Net Ödenecek / Devreden KDV:", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                Text(formatConvertedMoney(summary.vatPayable, symbol, rate), style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Secondary), fontWeight = FontWeight.Bold)
             }
         }
     }
 }
 
-// ─── Özet Kartları: Gelir / Gider ─────────────────────────────────────────────
-
 @Composable
-private fun RevenueExpenseReportSection(summary: FinancialReportSummary) {
+private fun RevenueExpenseReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-        SummaryKpiCard("Toplam Gelir", "₺ ${formatMoney(summary.totalRevenue)}", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
-        SummaryKpiCard("Toplam Gider", "₺ ${formatMoney(summary.totalExpenses)}", TourOSColors.Surface, TourOSColors.TextPrimary, Modifier.weight(1f))
-        SummaryKpiCard("Net Faaliyet Kârı", "₺ ${formatMoney(summary.netProfit)}", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
+        SummaryKpiCard("Toplam Gelir", formatConvertedMoney(summary.totalRevenue, symbol, rate), TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
+        SummaryKpiCard("Toplam Gider", formatConvertedMoney(summary.totalExpenses, symbol, rate), TourOSColors.Surface, TourOSColors.TextPrimary, Modifier.weight(1f))
+        SummaryKpiCard("Net Faaliyet Kârı", formatConvertedMoney(summary.netProfit, symbol, rate), TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
     }
 }
 
-// ─── Özet Kartları: Nakit & Banka ─────────────────────────────────────────────
-
 @Composable
-private fun CashBankReportSection(summary: FinancialReportSummary) {
+private fun CashBankReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
     val totalLiquid = summary.cashBalance + summary.bankBalance + summary.posBalance
     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-            SummaryKpiCard("Nakit Kasası", "₺ ${formatMoney(summary.cashBalance)}", TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
-            SummaryKpiCard("Banka Hesapları", "₺ ${formatMoney(summary.bankBalance)}", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
-            SummaryKpiCard("Sanal POS Bekleyen", "₺ ${formatMoney(summary.posBalance)}", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
+            SummaryKpiCard("Nakit Kasası", formatConvertedMoney(summary.cashBalance, symbol, rate), TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
+            SummaryKpiCard("Banka Hesapları", formatConvertedMoney(summary.bankBalance, symbol, rate), TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
+            SummaryKpiCard("Sanal POS Bekleyen", formatConvertedMoney(summary.posBalance, symbol, rate), TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
         }
         TourOSCard(modifier = Modifier.fillMaxWidth(), backgroundColor = TourOSColors.PrimaryContainer, contentPadding = TourOSSpacing.medium) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("💰 Toplam Likit Varlıklar:", style = TourOSTypography.Label.copy(color = TourOSColors.Primary))
-                Text("₺ ${formatMoney(totalLiquid)}", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
+                Text("💰 Toplam Likit Varlıklar:", style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+                Text(formatConvertedMoney(totalLiquid, symbol, rate), style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
             }
         }
     }
 }
-
-// ─── Özet Kartları: Kârlılık Analizi ─────────────────────────────────────────
 
 @Composable
 private fun ProfitabilityReportSection(summary: FinancialReportSummary) {
     TourOSCard(modifier = Modifier.fillMaxWidth(), backgroundColor = TourOSColors.SecondaryContainer, contentPadding = TourOSSpacing.large) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("🎯 Ortalama Kâr Marjı:", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                Text("% ${summary.profitMarginPercentage}", style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Secondary))
+                Text("🎯 Ortalama Kâr Marjı:", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                Text("% ${summary.profitMarginPercentage}", style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Secondary), fontWeight = FontWeight.Bold)
             }
 
             LinearProgressIndicator(
@@ -327,29 +338,21 @@ private fun ProfitabilityReportSection(summary: FinancialReportSummary) {
 private fun SummaryKpiCard(label: String, value: String, bg: Color, text: Color, modifier: Modifier) {
     TourOSCard(modifier = modifier, backgroundColor = bg, contentPadding = TourOSSpacing.medium) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(value, style = TourOSTypography.TitleMedium.copy(color = text))
+            Text(value, style = TourOSTypography.TitleMedium.copy(color = text), fontWeight = FontWeight.Bold)
             Text(label, style = TourOSTypography.Caption.copy(color = text.copy(alpha = 0.8f)), textAlign = TextAlign.Center)
         }
     }
 }
 
-// ─── Alttaki Detaylı Finans Kalemleri Tablosu ─────────────────────────────────
-
 @Composable
-private fun FinancialDetailsTable(summary: FinancialReportSummary, selectedTab: Int) {
-    val sampleItems = listOf(
-        FinancialRowItem("07.08.2026", "Kapadokya VIP Tur Satış Faturası", "Satış Tahsilatı", 15000.0, 3000.0, 18000.0),
-        FinancialRowItem("06.08.2026", "Mercedes Travego Yakıt Ödemesi", "Operasyon Gideri", 4500.0, 900.0, 5400.0),
-        FinancialRowItem("05.08.2026", "Kokartlı Rehber Hakediş Ödemesi", "Rehber Gideri", 3500.0, 0.0, 3500.0),
-        FinancialRowItem("04.08.2026", "Ege Turu Acente Komisyon Tahsilatı", "Komisyon Geliri", 2800.0, 560.0, 3360.0)
-    )
+private fun FinancialDetailsTable(summary: FinancialReportSummary, selectedTab: Int, symbol: String, rate: Double) {
+    val items = summary.items
 
-    val headers = listOf("Tarih", "Açıklama / Kalem", "Kategori", "Matrah (₺)", "KDV (₺)", "Genel Toplam (₺)")
+    val headers = listOf("Tarih", "Açıklama / Kalem", "Kategori", "Matrah ($symbol)", "KDV ($symbol)", "Genel Toplam ($symbol)")
     val weights = listOf(1.0f, 1.8f, 1.2f, 1.1f, 1.0f, 1.2f)
 
     TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
         Column {
-            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -360,46 +363,53 @@ private fun FinancialDetailsTable(summary: FinancialReportSummary, selectedTab: 
                     Text(
                         h,
                         style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary),
+                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(weights[i])
                     )
                 }
             }
 
-            // Satırlar
-            sampleItems.forEachIndexed { idx, item ->
-                val bg = if (idx % 2 == 0) TourOSColors.Background else TourOSColors.Surface
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(bg)
-                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
-                    verticalAlignment = Alignment.CenterVertically
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(TourOSSpacing.large),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(item.date, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(weights[0]))
-                    Text(item.description, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[1]))
-                    Text(item.category, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), modifier = Modifier.weight(weights[2]))
-                    Text("₺ ${formatMoney(item.subtotal)}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[3]))
-                    Text("₺ ${formatMoney(item.vat)}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(weights[4]))
-                    Text("₺ ${formatMoney(item.total)}", style = TourOSTypography.Label.copy(color = TourOSColors.Primary), modifier = Modifier.weight(weights[5]))
+                    Text("Henüz kaydedilmiş bir finansal işlem bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                 }
-                if (idx < sampleItems.size - 1) {
-                    HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
+            } else {
+                items.forEachIndexed { idx, item ->
+                    val bg = if (idx % 2 == 0) TourOSColors.Background else TourOSColors.Surface
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(bg)
+                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(item.date, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(weights[0]))
+                        Text(item.description, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(weights[1]))
+                        Text(item.category, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), modifier = Modifier.weight(weights[2]))
+                        Text(formatConvertedMoney(item.subtotal, symbol, rate), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(weights[3]))
+                        Text(formatConvertedMoney(item.vat, symbol, rate), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(weights[4]))
+                        Text(formatConvertedMoney(item.total, symbol, rate), style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(weights[5]))
+                    }
+                    if (idx < items.size - 1) {
+                        HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
+                    }
                 }
             }
         }
     }
 }
 
-private data class FinancialRowItem(
-    val date: String,
-    val description: String,
-    val category: String,
-    val subtotal: Double,
-    val vat: Double,
-    val total: Double
-)
-
-private fun formatMoney(amount: Double): String {
-    val rounded = (amount * 100).toLong() / 100.0
-    return rounded.toString()
+private fun formatConvertedMoney(amount: Double, symbol: String, rate: Double): String {
+    val converted = amount * rate
+    val formattedVal = if (converted % 1.0 == 0.0) {
+        converted.toLong().toString()
+    } else {
+        val whole = converted.toInt().toString()
+        val decimal = ((converted - converted.toInt()) * 100).toInt()
+        "$whole.${if (decimal < 10) "0$decimal" else decimal}"
+    }
+    return "$symbol $formattedVal"
 }

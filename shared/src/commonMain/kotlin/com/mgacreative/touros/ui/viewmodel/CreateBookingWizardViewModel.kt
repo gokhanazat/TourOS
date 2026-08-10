@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.domain.model.*
 import com.mgacreative.touros.domain.usecase.*
+import com.mgacreative.touros.data.util.isValidUuid
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,7 @@ enum class BookingWizardStep(val stepNumber: Int, val title: String) {
 }
 
 data class CreateBookingWizardUiState(
+    val seasonRates: List<HotelSeasonRate> = emptyList(),
     val currentStep: BookingWizardStep = BookingWizardStep.SELECT_TOUR,
     val tours: List<Tour> = emptyList(),
     val departures: List<Departure> = emptyList(),
@@ -64,8 +66,49 @@ data class CreateBookingWizardUiState(
             return (adultCount * pricePerAdult) + (childCount * pricePerChild)
         }
 
+    val periodPricePerNight: Double
+        get() {
+            val room = selectedRoomType ?: return 0.0
+            if (seasonRates.isEmpty()) return room.basePricePerNight
+            val checkIn = selectedDeparture?.departureDate.orEmpty().trim()
+            val cleanRoom = room.name.trim()
+
+            fun extractPrice(rate: HotelSeasonRate): Double {
+                return if (rate.salePrice > 0) rate.salePrice
+                else if (rate.doublePrice > 0) rate.doublePrice
+                else if (rate.singlePrice > 0) rate.singlePrice
+                else if (rate.costPrice > 0) rate.costPrice
+                else 0.0
+            }
+
+            val exactMatch = seasonRates.firstOrNull { rate ->
+                val matchesRoom = rate.roomTypeName.orEmpty().trim().equals(cleanRoom, ignoreCase = true) || rate.roomTypeId == room.id
+                val matchesDate = checkIn.isBlank() || (rate.startDate <= checkIn && rate.endDate >= checkIn)
+                matchesRoom && matchesDate
+            }
+            if (exactMatch != null) {
+                val price = extractPrice(exactMatch)
+                if (price > 0) return price
+            }
+
+            val roomMatch = seasonRates.firstOrNull { rate ->
+                rate.roomTypeName.orEmpty().trim().equals(cleanRoom, ignoreCase = true) || rate.roomTypeId == room.id
+            }
+            if (roomMatch != null) {
+                val price = extractPrice(roomMatch)
+                if (price > 0) return price
+            }
+
+            for (rate in seasonRates) {
+                val price = extractPrice(rate)
+                if (price > 0) return price
+            }
+
+            return room.basePricePerNight
+        }
+
     val roomTotalPrice: Double
-        get() = (selectedRoomType?.basePricePerNight ?: 0.0) * nightCount
+        get() = periodPricePerNight * nightCount
 
     val subtotalPrice: Double
         get() = baseTourPrice + roomTotalPrice + transferPrice + extrasTotalPrice
@@ -293,12 +336,13 @@ class CreateBookingWizardViewModel(
 
             val items = mutableListOf<BookingItem>()
             currentState.selectedRoomType?.let { room ->
+                val dailyPrice = currentState.periodPricePerNight
                 items.add(
                     BookingItem(
                         description = "Otel Konaklama: ${currentState.selectedHotel?.name} (${room.name}) x ${currentState.nightCount} Gece",
                         quantity = currentState.nightCount,
-                        unitPrice = room.basePricePerNight,
-                        totalPrice = room.basePricePerNight * currentState.nightCount,
+                        unitPrice = dailyPrice,
+                        totalPrice = dailyPrice * currentState.nightCount,
                         itemType = "accommodation"
                     )
                 )
@@ -334,8 +378,15 @@ class CreateBookingWizardViewModel(
                 isLead = true
             )
 
+            val isHotelBooking = currentState.selectedHotel != null || currentState.selectedRoomType != null
             val booking = Booking(
-                departureId = currentState.selectedDeparture?.id ?: "",
+                departureId = currentState.selectedDeparture?.id?.takeIf { it.isValidUuid() },
+                hotelId = currentState.selectedHotel?.id?.takeIf { it.isValidUuid() },
+                checkInDate = currentState.selectedDeparture?.departureDate,
+                roomTypeName = currentState.selectedRoomType?.name,
+                nights = currentState.nightCount,
+                bookingType = if (isHotelBooking) "HOTEL" else "TOUR",
+                productName = currentState.selectedTour?.title ?: currentState.selectedHotel?.name ?: "Otel Konaklama",
                 customerName = currentState.leadPassengerName,
                 customerEmail = currentState.leadPassengerEmail,
                 customerPhone = currentState.leadPassengerPhone,

@@ -32,7 +32,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.mgacreative.touros.domain.model.Tour
 import com.mgacreative.touros.domain.model.TourCategory
 import com.mgacreative.touros.ui.components.TourOSButton
@@ -66,6 +68,7 @@ fun TourListScreen(
     viewModel: TourListViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         viewModel.loadTours()
@@ -74,11 +77,11 @@ fun TourListScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = "Tur Kataloğu",
-                subtitle = "Aktif turlarınızı, paketleri ve rotaları yönetin",
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Kataloğu"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif turlarınızı, paketleri ve rotaları yönetin"),
                 actions = {
                     TourOSButton(
-                        text = "+ Yeni Tur Ekle",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Tur Ekle"),
                         onClick = onNavigateToCreateTour,
                         variant = TourOSButtonVariant.PRIMARY
                     )
@@ -107,7 +110,7 @@ fun TourListScreen(
                     TourOSTextField(
                         value = successState?.searchQuery ?: "",
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
-                        placeholder = "🔍 Tur adı, tur kodu veya şehir ile ara...",
+                        placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur adı, tur kodu veya şehir ile ara..."),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -127,7 +130,7 @@ fun TourListScreen(
                             FilterChip(
                                 selected = selectedCategory == null,
                                 onClick = { viewModel.onCategoryFilterSelected(null) },
-                                label = { Text("Tüm Kategoriler", style = TourOSTypography.BodyMedium) },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm Kategoriler"), style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.PrimaryContainer,
                                     selectedLabelColor = TourOSColors.Primary
@@ -139,7 +142,7 @@ fun TourListScreen(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { viewModel.onCategoryFilterSelected(cat) },
-                                    label = { Text(cat.displayName, style = TourOSTypography.BodyMedium) },
+                                    label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(cat.displayName), style = TourOSTypography.BodyMedium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = TourOSColors.PrimaryContainer,
                                         selectedLabelColor = TourOSColors.Primary
@@ -156,7 +159,7 @@ fun TourListScreen(
                             FilterChip(
                                 selected = selectedStatus == null,
                                 onClick = { viewModel.onStatusFilterSelected(null) },
-                                label = { Text("Tümü", style = TourOSTypography.BodyMedium) },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tümü"), style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.PrimaryContainer,
                                     selectedLabelColor = TourOSColors.Primary
@@ -165,7 +168,7 @@ fun TourListScreen(
                             FilterChip(
                                 selected = selectedStatus == true,
                                 onClick = { viewModel.onStatusFilterSelected(true) },
-                                label = { Text("🟢 Aktif", style = TourOSTypography.BodyMedium) },
+                                label = { Text("🟢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif"), style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.SuccessContainer,
                                     selectedLabelColor = TourOSColors.Success
@@ -206,7 +209,7 @@ fun TourListScreen(
                             )
                         } else {
                             val tourColumns = listOf(
-                                TourOSColumn<Tour>(title = "TUR KODU & ADI", weight = 2.5f) { tour ->
+                                TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TUR KODU & ADI"), weight = 2.5f) { tour ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         TourThumbnail(category = tour.category)
                                         Spacer(modifier = Modifier.width(TourOSSpacing.medium))
@@ -216,20 +219,20 @@ fun TourListScreen(
                                         }
                                     }
                                 },
-                                TourOSColumn<Tour>(title = "KATEGORİ", weight = 1.5f) { tour ->
+                                TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("KATEGORİ"), weight = 1.5f) { tour ->
                                     TourOSStatusBadge(
-                                        text = tour.category.displayName,
+                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(tour.category.displayName),
                                         backgroundColor = TourOSColors.PrimaryContainer,
                                         textColor = TourOSColors.Primary
                                     )
                                 },
-                                TourOSColumn<Tour>(title = "LOKASYON & SÜRE", weight = 1.8f) { tour ->
+                                TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("LOKASYON & SÜRE"), weight = 1.8f) { tour ->
                                     Column {
                                         Text(text = "${tour.city}, ${tour.country}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                         Text(text = "${tour.durationDays} Gün • Kapasite: ${tour.capacity}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 },
-                                TourOSColumn<Tour>(title = "DURUM", weight = 1.2f) { tour ->
+                                TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("DURUM"), weight = 1.2f) { tour ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Switch(
                                             checked = tour.isActive,
@@ -241,16 +244,16 @@ fun TourListScreen(
                                         )
                                         Spacer(modifier = Modifier.width(TourOSSpacing.small))
                                         Text(
-                                            text = if (tour.isActive) "Aktif" else "Pasif",
+                                            text = if (tour.isActive) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Pasif"),
                                             style = TourOSTypography.BodyMedium.copy(
                                                 color = if (tour.isActive) TourOSColors.Success else TourOSColors.TextDisabled
                                             )
                                         )
                                     }
                                 },
-                                TourOSColumn<Tour>(title = "İŞLEM", weight = 1f) { tour ->
+                                TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İŞLEM"), weight = 1f) { tour ->
                                     TourOSButton(
-                                        text = "Düzenle",
+                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Düzenle"),
                                         onClick = { onNavigateToEditTour(tour.id) },
                                         variant = TourOSButtonVariant.TERTIARY
                                     )
@@ -275,13 +278,22 @@ fun TourListScreen(
                                                 .background(TourOSColors.PrimaryContainer),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(text = "🗺️", style = TourOSTypography.DisplaySmall)
-                                                Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                                                Text(
-                                                    text = tour.category.displayName,
-                                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                                            if (!tour.coverImageUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = tour.coverImageUrl,
+                                                    contentDescription = tour.title,
+                                                    contentScale = ContentScale.Crop,
+                                                    modifier = Modifier.fillMaxSize()
                                                 )
+                                            } else {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                    Text(text = "🗺️", style = TourOSTypography.DisplaySmall)
+                                                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                                    Text(
+                                                        text = tour.category.displayName,
+                                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                                                    )
+                                                }
                                             }
                                         }
 

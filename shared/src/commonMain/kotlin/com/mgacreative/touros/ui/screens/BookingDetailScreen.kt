@@ -75,11 +75,17 @@ fun BookingDetailScreen(
                     }
                 }
                 is BookingDetailUiState.Success -> {
-                    BookingDetailContent(
-                        state = state,
-                        onTabSelected = { viewModel.selectTab(it) },
-                        onStatusChange = { viewModel.updateStatus(it) }
-                    )
+                    if (state.isDeleted) {
+                        LaunchedEffect(Unit) {
+                            onNavigateBack()
+                        }
+                    } else {
+                        BookingDetailContent(
+                            state = state,
+                            onTabSelected = { viewModel.selectTab(it) },
+                            onStatusChange = { viewModel.updateStatus(it) }
+                        )
+                    }
                 }
             }
         }
@@ -130,12 +136,29 @@ private fun BookingDetailContent(
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         allowedNext.forEach { target ->
+                            val buttonBg = when (target) {
+                                BookingStatus.OPSIYON -> Color(0xFF1E88E5) // Canlı Mavi
+                                BookingStatus.ONAYLANDI -> Color(0xFF2E7D32) // Canlı Yeşil
+                                BookingStatus.IPTAL -> Color(0xFFC62828) // Canlı Kırmızı
+                                BookingStatus.TAMAMLANDI -> Color(0xFF00838F) // Turkuaz
+                                else -> Color(0xFF0D9488)
+                            }
+
                             Button(
                                 onClick = { onStatusChange(target) },
                                 shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = buttonBg,
+                                    contentColor = Color.White
+                                ),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
                             ) {
-                                Text(target.displayName, fontSize = 12.sp)
+                                Text(
+                                    text = target.displayName,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
                             }
                         }
                     }
@@ -243,7 +266,9 @@ private fun PaymentSummaryTab(booking: Booking) {
                     Text("💳 Ödeme Detayı & Esnek Alanlar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val unitPrice = booking.totalPrice / maxOf(1, booking.paxCount)
                     DetailPriceRow("Kişi Sayısı (Pax):", "${booking.paxCount} Kişi")
+                    DetailPriceRow("Kişi Başı Pax Fiyatı:", "$unitPrice ${booking.currency}")
                     DetailPriceRow("Para Birimi:", booking.currency)
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     DetailPriceRow("TOPLAM TUTAR:", "${booking.totalPrice} ${booking.currency}", isBold = true)

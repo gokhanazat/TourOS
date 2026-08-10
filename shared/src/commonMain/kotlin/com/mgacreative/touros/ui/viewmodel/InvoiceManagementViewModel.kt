@@ -37,23 +37,19 @@ class InvoiceManagementViewModel(
         loadData()
     }
 
+    private fun resolveTenantId(userTenantId: String?): String {
+        val tid = userTenantId?.trim()
+        return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else "00000000-0000-0000-0000-000000000001"
+    }
+
     fun loadData() {
         viewModelScope.launch {
             _uiState.value = InvoiceManagementUiState.Loading
             val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
+            val tenantId = resolveTenantId(user?.tenantId)
 
             val res = financeRepository.getInvoices(tenantId)
-            val fetched = res.getOrDefault(emptyList())
-
-            val invoices = if (fetched.isEmpty()) {
-                listOf(
-                    Invoice("inv1", "INV-B-202608-001", "b1", "sale", "Hans Müller", "1234567890", 10000.0, 20.0, 2000.0, 12000.0, "TRY", "issued", "2026-08-06", "2026-08-13", "Kapadokya Tur Satış Faturası", tenantId),
-                    Invoice("inv2", "INV-B-202608-002", "b2", "sale", "Sarah Jenkins", "9876543210", 20000.0, 20.0, 4000.0, 24000.0, "TRY", "paid", "2026-08-05", "2026-08-12", "Ege Turu Satış Faturası", tenantId)
-                )
-            } else {
-                fetched
-            }
+            val invoices = res.getOrDefault(emptyList()).filter { it.status != "deleted" }
 
             _uiState.value = InvoiceManagementUiState.Success(invoices = invoices)
         }
@@ -61,20 +57,25 @@ class InvoiceManagementViewModel(
 
     fun createNewInvoice(
         invoiceNo: String,
+        invoiceType: String,
         customerName: String,
         customerTaxNo: String?,
         totalAmount: Double,
         notes: String?
     ) {
         viewModelScope.launch {
+            val currentState = _uiState.value as? InvoiceManagementUiState.Success ?: return@launch
+            _uiState.value = currentState.copy(isCreatingInvoice = true, notificationMessage = null)
+
             val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
+            val tenantId = resolveTenantId(user?.tenantId)
 
             val subtotal = ((totalAmount / 1.20) * 100).toInt() / 100.0
             val taxAmount = ((totalAmount - subtotal) * 100).toInt() / 100.0
 
             val invoice = Invoice(
                 invoiceNo = invoiceNo,
+                invoiceType = invoiceType,
                 customerName = customerName,
                 customerTaxNo = customerTaxNo,
                 subtotal = subtotal,
@@ -82,36 +83,68 @@ class InvoiceManagementViewModel(
                 taxAmount = taxAmount,
                 totalAmount = totalAmount,
                 currency = "TRY",
-                status = "draft",
+                status = "issued",
                 notes = notes,
                 tenantId = tenantId
             )
 
             val res = createInvoiceUseCase(invoice)
             res.onSuccess {
-                loadData()
+                val updatedRes = financeRepository.getInvoices(tenantId)
+                val updatedInvoices = updatedRes.getOrDefault(emptyList()).filter { it.status != "deleted" }
+                val typeLabel = if (invoiceType == "purchase") "Gider Faturası" else "Satış Gelir Faturası"
+                _uiState.value = InvoiceManagementUiState.Success(
+                    invoices = updatedInvoices,
+                    isCreatingInvoice = false,
+                    notificationMessage = "✅ $typeLabel (${invoice.invoiceNo}) veritabanına kaydedildi!"
+                )
             }.onFailure { err ->
-                _uiState.value = InvoiceManagementUiState.Error(err.message ?: "Fatura oluşturulamadı.")
+                _uiState.value = InvoiceManagementUiState.Error(err.message ?: "Fatura kaydı başarısız oldu.")
             }
+        }
+    }
+
+    fun cancelInvoice(invoiceId: String) {
+        viewModelScope.launch {
+            val user = getCurrentUserUseCase()
+            val tenantId = resolveTenantId(user?.tenantId)
+            financeRepository.updateInvoiceStatus(invoiceId, "canceled")
+            val updatedRes = financeRepository.getInvoices(tenantId)
+            val updatedInvoices = updatedRes.getOrDefault(emptyList()).filter { it.status != "deleted" }
+            _uiState.value = InvoiceManagementUiState.Success(
+                invoices = updatedInvoices,
+                notificationMessage = "🚫 Fatura başarıyla iptal edildi."
+            )
+        }
+    }
+
+    fun deleteInvoice(invoiceId: String) {
+        viewModelScope.launch {
+            val user = getCurrentUserUseCase()
+            val tenantId = resolveTenantId(user?.tenantId)
+            financeRepository.updateInvoiceStatus(invoiceId, "deleted")
+            val updatedRes = financeRepository.getInvoices(tenantId)
+            val updatedInvoices = updatedRes.getOrDefault(emptyList()).filter { it.status != "deleted" }
+            _uiState.value = InvoiceManagementUiState.Success(
+                invoices = updatedInvoices,
+                notificationMessage = "🗑️ Fatura kaydı veritabanından silindi."
+            )
         }
     }
 
     fun exportInvoicePdf(invoice: Invoice) {
         viewModelScope.launch {
             val currentState = _uiState.value as? InvoiceManagementUiState.Success ?: return@launch
-
             val res = exportInvoicePdfUseCase(invoice)
-            res.onSuccess { pdfUrl ->
-                val updatedInvoices = currentState.invoices.map {
-                    if (it.id == invoice.id) it.copy(status = "issued") else it
-                }
+            res.onSuccess { url ->
                 _uiState.value = currentState.copy(
-                    invoices = updatedInvoices,
-                    notificationMessage = "📄 Fatura (${invoice.invoiceNo}) PDF olarak dışa aktarıldı ve Belge Yönetimi'ne kaydedildi.",
-                    exportedPdfUrl = pdfUrl
+                    exportedPdfUrl = url,
+                    notificationMessage = "📄 PDF Dışa Aktarıldı: $url"
                 )
             }.onFailure { err ->
-                _uiState.value = InvoiceManagementUiState.Error(err.message ?: "PDF aktarımı başarısız.")
+                _uiState.value = currentState.copy(
+                    notificationMessage = "PDF Oluşturma Uyarısı: ${err.message}"
+                )
             }
         }
     }

@@ -17,20 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mgacreative.touros.domain.model.DepartureOption
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.B2CTourDetailCheckoutViewModel
 
-private data class GalleryPhotoItem(val id: String, val title: String, val icon: String)
-
-private val sampleGalleryPhotos = listOf(
-    GalleryPhotoItem("g1", "Göreme Vadisi", "🎈"),
-    GalleryPhotoItem("g2", "Gün Doğumu", "🌄"),
-    GalleryPhotoItem("g3", "Uçhisar Kalesi", "🏰"),
-    GalleryPhotoItem("g4", "Mahsen Tadım", "🍷")
-)
 
 /**
  * B2C Tur Detay & Rezervasyon Ekranı — TourOS 0.3
@@ -50,18 +43,18 @@ fun B2CTourDetailCheckoutScreen(
         viewModel.loadTourDetail(tourId)
     }
 
-    var selectedDate by remember { mutableStateOf("15 Ağustos 2026") }
-    var selectedPhotoIndex by remember { mutableStateOf(0) }
+    var selectedDate by remember { mutableStateOf("") }
     var isCheckoutFormOpen by remember { mutableStateOf(false) }
+    var paymentMethod by remember { mutableStateOf("KREDİ_KARTI") } // KREDİ_KARTI, BANKA_HAVALESİ, NAKİT
 
-    var passengerName by remember { mutableStateOf("Elif Yılmaz") }
-    var passengerPhone by remember { mutableStateOf("+90 532 111 2233") }
-    var passengerEmail by remember { mutableStateOf("elif.yilmaz@email.com") }
+    var passengerName by remember { mutableStateOf("") }
+    var passengerPhone by remember { mutableStateOf("") }
+    var passengerEmail by remember { mutableStateOf("") }
 
-    var cardHolder by remember { mutableStateOf("ELIF YILMAZ") }
-    var cardNumber by remember { mutableStateOf("4543 2100 8899 4242") }
-    var cardExpiry by remember { mutableStateOf("12/28") }
-    var cvv by remember { mutableStateOf("321") }
+    var cardHolder by remember { mutableStateOf("") }
+    var cardNumber by remember { mutableStateOf("") }
+    var cardExpiry by remember { mutableStateOf("") }
+    var cvv by remember { mutableStateOf("") }
 
     val detail = state.tourDetail
 
@@ -70,7 +63,7 @@ fun B2CTourDetailCheckoutScreen(
         topBar = {
             TourOSTopBar(
                 title = "Tur Detayı & Rezervasyon",
-                subtitle = detail.title.ifBlank { "Kapadokya VIP Balon Turu" },
+                subtitle = detail.title,
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -114,18 +107,78 @@ fun B2CTourDetailCheckoutScreen(
                 }
             }
 
-            // ── 1. BÜYÜK KAPAK GÖRSELİ + GALERİ ÜSTTE ──────────────────────────
+            // ── 1. BÜYÜK KAPAK GÖRSELİ ÜSTTE ──────────────────────────
             item {
-                HeroImageAndGalleryBanner(
-                    title = detail.title.ifBlank { "Kapadokya VIP Balon & Vadi Turu" },
-                    category = detail.category.ifBlank { "Balon & Vadi" },
-                    rating = detail.rating.takeIf { it > 0 } ?: 4.9,
-                    selectedPhotoIndex = selectedPhotoIndex,
-                    onPhotoSelect = { idx -> selectedPhotoIndex = idx }
+                HeroImageBanner(
+                    title = detail.title,
+                    category = detail.category,
+                    rating = detail.rating,
+                    coverImageUrl = detail.coverImageUrl
                 )
             }
 
-            // ── 2. TUR GENEL BİLGİLERİ VE PROGRAM ÖZETİ ─────────────────────────
+            // ── 2. KALKIŞ TARİHLERİ SEÇİMİ ───────────────────────────
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = TourOSSpacing.large),
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                ) {
+                    Text(
+                        "🗓️ Kalkış Tarihleri Seçimi",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    )
+
+                    val departures = detail.availableDepartures
+
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(departures) { dep ->
+                            val isSelected = (state.selectedDepartureId == dep.id) || (selectedDate == dep.departureDate)
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Surface
+                                ),
+                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                modifier = Modifier
+                                    .border(
+                                        width = if (isSelected) 2.dp else 1.dp,
+                                        color = if (isSelected) TourOSColors.Primary else TourOSColors.Border,
+                                        shape = RoundedCornerShape(TourOSSpacing.cornerRadius)
+                                    )
+                                    .clickable {
+                                        viewModel.selectDeparture(dep.id, dep.departureDate)
+                                        selectedDate = dep.departureDate
+                                    }
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        dep.departureDate,
+                                        style = TourOSTypography.Label.copy(
+                                            color = if (isSelected) TourOSColors.Primary else TourOSColors.TextPrimary
+                                        )
+                                    )
+                                    val itemPrice = dep.price ?: detail.price
+                                    if (itemPrice > 0) {
+                                        Text(
+                                            "₺ ${formatDetailMoney(itemPrice)}",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── 3. TUR GENEL BİLGİLERİ VE PROGRAM ÖZETİ ─────────────────────────
             item {
                 Column(
                     modifier = Modifier
@@ -144,7 +197,7 @@ fun B2CTourDetailCheckoutScreen(
                                 style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
                             )
                             Text(
-                                detail.description.ifBlank { "Kapadokya'nın eşsiz vadileri üzerinde gün doğumu sıcak hava balonu deneyimi ve bölgenin tarihi manastır gezisi." },
+                                detail.description.ifBlank { "Açıklama belirtilmemiş." },
                                 style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
                             )
 
@@ -155,7 +208,7 @@ fun B2CTourDetailCheckoutScreen(
                                 style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
                             )
                             Text(
-                                detail.itinerarySummary.ifBlank { "05:00 Otelden transfer -> 05:45 Balon kalkış -> 07:30 Şampanya kutlaması -> 09:30 Göreme Açık Hava Müzesi rehberli gezi -> 13:00 Öğle yemeği." },
+                                detail.itinerarySummary.ifBlank { "Tur programı bilgisi bulunmuyor." },
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                             )
                         }
@@ -174,9 +227,12 @@ fun B2CTourDetailCheckoutScreen(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("✅ Dahil Hizmetler", style = TourOSTypography.Label.copy(color = TourOSColors.Success))
-                                val included = if (detail.includedServices.isNotEmpty()) detail.includedServices else listOf("VIP Otel Transferi", "Sıcak Hava Balonu", "Öğle Yemeği", "Profesyonel Rehber")
-                                included.forEach { s ->
-                                    Text("• $s", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary))
+                                if (detail.includedServices.isNotEmpty()) {
+                                    detail.includedServices.forEach { s ->
+                                        Text("• $s", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary))
+                                    }
+                                } else {
+                                    Text("Belirtilmemiş", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                 }
                             }
                         }
@@ -189,9 +245,12 @@ fun B2CTourDetailCheckoutScreen(
                         ) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Text("❌ Dahil Olmayanlar", style = TourOSTypography.Label.copy(color = TourOSColors.Secondary))
-                                val excluded = if (detail.excludedServices.isNotEmpty()) detail.excludedServices else listOf("Kişisel Harcamalar", "Müze Giriş Biletleri", "İçecekler")
-                                excluded.forEach { s ->
-                                    Text("• $s", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary))
+                                if (detail.excludedServices.isNotEmpty()) {
+                                    detail.excludedServices.forEach { s ->
+                                        Text("• $s", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary))
+                                    }
+                                } else {
+                                    Text("Belirtilmemiş", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                 }
                             }
                         }
@@ -220,7 +279,7 @@ fun B2CTourDetailCheckoutScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        "💳 3D Secure Güvenli Ödeme",
+                                        "📝 Rezervasyon & Ödeme İşlemi",
                                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
                                     )
 
@@ -229,83 +288,297 @@ fun B2CTourDetailCheckoutScreen(
                                     }
                                 }
 
-                                TourOSTextField(
-                                    value = passengerName,
-                                    onValueChange = { passengerName = it },
-                                    label = "Yolcu Adı Soyadı",
-                                    placeholder = "Elif Yılmaz",
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                if (state.checkoutResult != null) {
+                                    val res = state.checkoutResult!!
+                                    val uriHandler = androidx.compose.ui.platform.LocalUriHandler.current
+                                    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                                .background(TourOSColors.SuccessContainer)
+                                                .padding(TourOSSpacing.medium)
+                                        ) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(
+                                                    "🎉 Rezervasyon Başarıyla Oluşturuldu!",
+                                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Success)
+                                                )
+                                                Text(
+                                                    "Kod: ${res.bookingCode} | Tutar: ₺ ${formatDetailMoney(res.totalAmount)}",
+                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                                                )
+                                            }
+                                        }
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                                ) {
-                                    TourOSTextField(
-                                        value = passengerPhone,
-                                        onValueChange = { passengerPhone = it },
-                                        label = "Telefon",
-                                        placeholder = "+90 532 111 2233",
-                                        modifier = Modifier.weight(1f)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                        ) {
+                                            Button(
+                                                onClick = {
+                                                    if (res.whatsappCustomerDirectUrl.isNotBlank()) {
+                                                        runCatching { uriHandler.openUri(res.whatsappCustomerDirectUrl) }
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = androidx.compose.ui.graphics.Color(0xFF25D366)
+                                                ),
+                                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                                modifier = Modifier.weight(1f).height(48.dp)
+                                            ) {
+                                                Text(
+                                                    "💬 Müşteriye",
+                                                    style = TourOSTypography.TitleMedium.copy(
+                                                        color = androidx.compose.ui.graphics.Color.White
+                                                    )
+                                                )
+                                            }
+
+                                            Button(
+                                                onClick = {
+                                                    if (res.whatsappDirectUrl.isNotBlank()) {
+                                                        runCatching { uriHandler.openUri(res.whatsappDirectUrl) }
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = androidx.compose.ui.graphics.Color(0xFF128C7E)
+                                                ),
+                                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                                modifier = Modifier.weight(1f).height(48.dp)
+                                            ) {
+                                                Text(
+                                                    "💬 Acentaya",
+                                                    style = TourOSTypography.TitleMedium.copy(
+                                                        color = androidx.compose.ui.graphics.Color.White
+                                                    )
+                                                )
+                                            }
+
+                                            TourOSButton(
+                                                text = "Formu Kapat",
+                                                onClick = { isCheckoutFormOpen = false },
+                                                variant = TourOSButtonVariant.SECONDARY,
+                                                modifier = Modifier.weight(1f).height(48.dp)
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    // 1. ÖDEME YÖNTEMİ SEÇİM CHİPLERİ
+                                    Text(
+                                        "💳 Ödeme Yöntemi Seçiniz",
+                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
                                     )
-                                    TourOSTextField(
-                                        value = passengerEmail,
-                                        onValueChange = { passengerEmail = it },
-                                        label = "E-Posta",
-                                        placeholder = "elif@email.com",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
 
-                                TourOSTextField(
-                                    value = cardHolder,
-                                    onValueChange = { cardHolder = it },
-                                    label = "Kart Üzerindeki İsim",
-                                    placeholder = "ELIF YILMAZ",
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                TourOSTextField(
-                                    value = cardNumber,
-                                    onValueChange = { cardNumber = it },
-                                    label = "Kart Numarası",
-                                    placeholder = "4543 2100 8899 4242",
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                                ) {
-                                    TourOSTextField(
-                                        value = cardExpiry,
-                                        onValueChange = { cardExpiry = it },
-                                        label = "SKT (AA/YY)",
-                                        placeholder = "12/28",
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    TourOSTextField(
-                                        value = cvv,
-                                        onValueChange = { cvv = it },
-                                        label = "CVV",
-                                        placeholder = "321",
-                                        visualTransformation = PasswordVisualTransformation(),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-
-                                TourOSButton(
-                                    text = "💳 ₺ ${formatDetailMoney(state.totalPrice)} Öde & Rezervasyonu Tamamla",
-                                    onClick = {
-                                        viewModel.processCheckout(
-                                            passengerName, passengerPhone, passengerEmail,
-                                            cardHolder, cardNumber, cardExpiry, cvv
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                    ) {
+                                        PaymentOptionChip(
+                                            title = "💳 Kredi Kartı",
+                                            isSelected = paymentMethod == "KREDİ_KARTI",
+                                            onClick = { paymentMethod = "KREDİ_KARTI" },
+                                            modifier = Modifier.weight(1f)
                                         )
-                                    },
-                                    enabled = !state.isLoading && passengerName.isNotBlank() && cardHolder.isNotBlank(),
-                                    variant = TourOSButtonVariant.PRIMARY,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
+                                        PaymentOptionChip(
+                                            title = "🏦 Havale / EFT",
+                                            isSelected = paymentMethod == "BANKA_HAVALESİ",
+                                            onClick = { paymentMethod = "BANKA_HAVALESİ" },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        PaymentOptionChip(
+                                            title = "💵 Kapıda / Nakit",
+                                            isSelected = paymentMethod == "NAKİT",
+                                            onClick = { paymentMethod = "NAKİT" },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+
+                                    HorizontalDivider(color = TourOSColors.Divider)
+
+                                    // 2. YOLCU VE İLETİŞİM BİLGİLERİ (Giriş Alanları)
+                                    Text(
+                                        "👤 Yolcu & İletişim Bilgileri",
+                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                                    )
+
+                                    TourOSTextField(
+                                        value = passengerName,
+                                        onValueChange = { passengerName = it },
+                                        label = "Yolcu Adı Soyadı",
+                                        placeholder = "Adınız ve Soyadınız",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                    ) {
+                                        TourOSTextField(
+                                            value = passengerPhone,
+                                            onValueChange = { passengerPhone = it },
+                                            label = "Telefon",
+                                            placeholder = "+90 5xx xxx xx xx",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        TourOSTextField(
+                                            value = passengerEmail,
+                                            onValueChange = { passengerEmail = it },
+                                            label = "E-Posta",
+                                            placeholder = "ornek@eposta.com",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+
+                                    HorizontalDivider(color = TourOSColors.Divider)
+
+                                    // 3. SEÇİLEN ÖDEME YÖNTEMİNE GÖRE İÇERİK
+                                    when (paymentMethod) {
+                                        "KREDİ_KARTI" -> {
+                                            TourOSTextField(
+                                                value = cardHolder,
+                                                onValueChange = { cardHolder = it },
+                                                label = "Kart Üzerindeki İsim",
+                                                placeholder = "Kart sahibinin adı",
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+
+                                            TourOSTextField(
+                                                value = cardNumber,
+                                                onValueChange = { cardNumber = it },
+                                                label = "Kart Numarası",
+                                                placeholder = "0000 0000 0000 0000",
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                            ) {
+                                                TourOSTextField(
+                                                    value = cardExpiry,
+                                                    onValueChange = { cardExpiry = it },
+                                                    label = "SKT (AA/YY)",
+                                                    placeholder = "AA/YY",
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                TourOSTextField(
+                                                    value = cvv,
+                                                    onValueChange = { cvv = it },
+                                                    label = "CVV",
+                                                    placeholder = "123",
+                                                    visualTransformation = PasswordVisualTransformation(),
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+
+                                            TourOSButton(
+                                                text = "💳 ₺ ${formatDetailMoney(state.totalPrice)} Kredi Kartı İle Öde",
+                                                onClick = {
+                                                    viewModel.processCheckout(
+                                                        passengerName = passengerName,
+                                                        phone = passengerPhone,
+                                                        email = passengerEmail,
+                                                        paymentMethod = "KREDİ_KARTI",
+                                                        cardHolder = cardHolder,
+                                                        cardNumber = cardNumber,
+                                                        expiry = cardExpiry,
+                                                        cvv = cvv
+                                                    )
+                                                },
+                                                enabled = !state.isLoading && passengerName.isNotBlank() && cardHolder.isNotBlank(),
+                                                variant = TourOSButtonVariant.PRIMARY,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+
+                                        "BANKA_HAVALESİ" -> {
+                                            TourOSCard(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                backgroundColor = TourOSColors.Surface,
+                                                contentPadding = TourOSSpacing.medium
+                                            ) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Text(
+                                                        "🏦 Acente Banka & IBAN Bilgileri",
+                                                        style = TourOSTypography.Label.copy(color = TourOSColors.Primary)
+                                                    )
+                                                    Text(
+                                                        "Acente: ${detail.agencyName}",
+                                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                                                    )
+                                                    if (!detail.bankName.isNullOrBlank()) {
+                                                        Text(
+                                                            "Banka: ${detail.bankName}",
+                                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                                        )
+                                                    }
+                                                    if (!detail.iban.isNullOrBlank()) {
+                                                        Text(
+                                                            "IBAN: ${detail.iban}",
+                                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                                                        )
+                                                    }
+                                                    if (!detail.accountHolder.isNullOrBlank()) {
+                                                        Text(
+                                                            "Hesap Sahibi: ${detail.accountHolder}",
+                                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                                        )
+                                                    }
+                                                    Text(
+                                                        "Ödeme açıklamasına rezervasyon kodunuzu eklemeyi unutmayınız.",
+                                                        style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary)
+                                                    )
+                                                }
+                                            }
+
+                                            TourOSButton(
+                                                text = "🏦 ₺ ${formatDetailMoney(state.totalPrice)} Havale / EFT İle Tamamla",
+                                                onClick = {
+                                                    viewModel.processCheckout(
+                                                        passengerName = passengerName,
+                                                        phone = passengerPhone,
+                                                        email = passengerEmail,
+                                                        paymentMethod = "BANKA_HAVALESİ"
+                                                    )
+                                                },
+                                                enabled = !state.isLoading && passengerName.isNotBlank(),
+                                                variant = TourOSButtonVariant.PRIMARY,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+
+                                        "NAKİT" -> {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                                    .background(TourOSColors.SecondaryContainer.copy(alpha = 0.5f))
+                                                    .padding(TourOSSpacing.medium)
+                                            ) {
+                                                Text(
+                                                    "💵 Tur günü rehberimize veya acente yetkilimize nakit ödeme yapabilirsiniz.",
+                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Secondary)
+                                                )
+                                            }
+
+                                            TourOSButton(
+                                                text = "💵 ₺ ${formatDetailMoney(state.totalPrice)} Nakit Ödeme İle Tamamla",
+                                                onClick = {
+                                                    viewModel.processCheckout(
+                                                        passengerName = passengerName,
+                                                        phone = passengerPhone,
+                                                        email = passengerEmail,
+                                                        paymentMethod = "NAKİT"
+                                                    )
+                                                },
+                                                enabled = !state.isLoading && passengerName.isNotBlank(),
+                                                variant = TourOSButtonVariant.PRIMARY,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -315,90 +588,74 @@ fun B2CTourDetailCheckoutScreen(
     }
 }
 
-// ─── BÜYÜK KAPAK GÖRSELİ + GALERİ BANNERI ─────────────────────────────────────
+// ─── BÜYÜK KAPAK GÖRSELİ BANNERI ─────────────────────────────────────
 
 @Composable
-private fun HeroImageAndGalleryBanner(
+private fun HeroImageBanner(
     title: String,
     category: String,
     rating: Double,
-    selectedPhotoIndex: Int,
-    onPhotoSelect: (Int) -> Unit
+    coverImageUrl: String? = null
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp)
+            .clip(RoundedCornerShape(bottomStart = TourOSSpacing.cornerRadiusSmall, bottomEnd = TourOSSpacing.cornerRadiusSmall))
+            .background(TourOSColors.PrimaryContainer)
     ) {
-        // BÜYÜK KAPAK GÖRSELİ (HERO BANNER 220.DP)
+        val imgUrl = coverImageUrl?.takeIf { it.isNotBlank() }
+
+        if (imgUrl != null) {
+            coil3.compose.AsyncImage(
+                model = imgUrl,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            )
+        }
+
+        // YAZILARIN OKUNMASI İÇİN GRADIENT OVERLAY
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .background(TourOSColors.PrimaryContainer)
-                .padding(TourOSSpacing.large)
-        ) {
-            TourOSStatusBadge(
-                text = category,
-                backgroundColor = TourOSColors.Primary,
-                textColor = TourOSColors.OnPrimary,
-                modifier = Modifier.align(Alignment.TopStart)
-            )
+                .fillMaxSize()
+                .background(
+                    androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.2f),
+                            Color.Black.copy(alpha = 0.75f)
+                        )
+                    )
+                )
+        )
 
-            TourOSStatusBadge(
-                text = "⭐ $rating Müşteri Puanı",
-                backgroundColor = TourOSColors.SecondaryContainer,
-                textColor = TourOSColors.Secondary,
-                modifier = Modifier.align(Alignment.TopEnd)
-            )
+        Box(modifier = Modifier.fillMaxSize().padding(TourOSSpacing.large)) {
+            if (category.isNotBlank()) {
+                TourOSStatusBadge(
+                    text = category,
+                    backgroundColor = TourOSColors.Primary,
+                    textColor = TourOSColors.OnPrimary,
+                    modifier = Modifier.align(Alignment.TopStart)
+                )
+            }
+
+            if (rating > 0) {
+                TourOSStatusBadge(
+                    text = "⭐ $rating Müşteri Puanı",
+                    backgroundColor = TourOSColors.SecondaryContainer,
+                    textColor = TourOSColors.Secondary,
+                    modifier = Modifier.align(Alignment.TopEnd)
+                )
+            }
 
             Column(
                 modifier = Modifier.align(Alignment.BottomStart),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    sampleGalleryPhotos.getOrNull(selectedPhotoIndex)?.icon ?: "🎈",
-                    style = TourOSTypography.DisplaySmall
-                )
-                Text(
                     title,
-                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                    style = TourOSTypography.TitleLarge.copy(color = Color.White)
                 )
-            }
-        }
-
-        // FOTOĞRAF GALERİSİ THUMBNAIL SLIDER
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = TourOSSpacing.large),
-            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-        ) {
-            items(sampleGalleryPhotos.size) { idx ->
-                val photo = sampleGalleryPhotos[idx]
-                val isSelected = idx == selectedPhotoIndex
-
-                Box(
-                    modifier = Modifier
-                        .size(68.dp, 52.dp)
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Surface)
-                        .border(
-                            width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) TourOSColors.Primary else TourOSColors.Border,
-                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
-                        )
-                        .clickable { onPhotoSelect(idx) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "${photo.icon} ${photo.title}",
-                        style = TourOSTypography.Caption.copy(
-                            color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
-                        ),
-                        textAlign = TextAlign.Center,
-                        maxLines = 2
-                    )
-                }
             }
         }
     }
@@ -486,4 +743,42 @@ private fun StickyReservationBottomBar(
 private fun formatDetailMoney(amount: Double): String {
     val rounded = (amount * 100).toLong() / 100.0
     return rounded.toString()
+}
+
+@Composable
+private fun PaymentOptionChip(
+    title: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Surface
+        ),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+        modifier = modifier
+            .border(
+                width = if (isSelected) 2.dp else 1.dp,
+                color = if (isSelected) TourOSColors.Primary else TourOSColors.Border,
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+            )
+            .clickable { onClick() }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                title,
+                style = TourOSTypography.Caption.copy(
+                    color = if (isSelected) TourOSColors.Primary else TourOSColors.TextPrimary
+                ),
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+        }
+    }
 }

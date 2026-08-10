@@ -17,12 +17,18 @@ data class Tour(
     val basePrice: Double = 0.0,
     val childPrice06: Double = 0.0,
     val childPrice712: Double = 0.0,
+    val adultCostPrice: Double = 0.0,
+    val childCostPrice06: Double = 0.0,
+    val childCostPrice712: Double = 0.0,
     val capacity: Int = 20,
     val minParticipants: Int = 1,
     val maxParticipants: Int = 30,
     val description: String? = null,
     val cancellationPolicy: String? = null,
     val insuranceDetails: String? = null,
+    val includedServices: String? = null,
+    val excludedServices: String? = null,
+    val coverImageUrl: String? = null,
     val tenantId: String = "",
     val isActive: Boolean = true
 )

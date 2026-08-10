@@ -1,8 +1,21 @@
 package com.mgacreative.touros.data.repository
 
+import com.mgacreative.touros.data.database.entity.BookingEntity
 import com.mgacreative.touros.data.database.entity.DashboardSummaryEntity
+import com.mgacreative.touros.data.database.entity.DepartureEntity
+import com.mgacreative.touros.data.database.entity.DriverEntity
+import com.mgacreative.touros.data.database.entity.GuideEntity
+import com.mgacreative.touros.data.database.entity.TourEntity
+import com.mgacreative.touros.data.database.entity.TransferEntity
+import com.mgacreative.touros.data.database.entity.VehicleEntity
+import com.mgacreative.touros.data.util.isValidUuid
+import com.mgacreative.touros.domain.model.ChannelSalesItem
+import com.mgacreative.touros.domain.model.CountrySalesItem
+import com.mgacreative.touros.domain.model.DashboardAnalyticsCharts
 import com.mgacreative.touros.domain.model.DashboardSummary
 import com.mgacreative.touros.domain.model.GuideStatusInfo
+import com.mgacreative.touros.domain.model.MonthlyTrendItem
+import com.mgacreative.touros.domain.model.TourRevenueItem
 import com.mgacreative.touros.domain.model.UpcomingTour
 import com.mgacreative.touros.domain.model.VehicleOccupancy
 import com.mgacreative.touros.domain.repository.DashboardRepository
@@ -10,7 +23,6 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import com.mgacreative.touros.data.util.isValidUuid
 
 class DashboardRepositoryImpl(
     private val supabaseClient: SupabaseClient
@@ -48,20 +60,36 @@ class DashboardRepositoryImpl(
                                 }
                             }
                         }
-                        .decodeList<com.mgacreative.touros.data.database.entity.BookingEntity>()
+                        .decodeList<BookingEntity>()
                 }.getOrDefault(emptyList())
 
-                val activeBookings = bookings.filter { it.status != "İptal" }
-                val cancelBookings = bookings.filter { it.status == "İptal" }
-                val pendingBookings = bookings.filter { it.status == "Bekliyor" || it.status == "Opsiyon" }
+                val departures = runCatching {
+                    supabaseClient.postgrest.from("departures")
+                        .select {
+                            filter {
+                                if (tenantId.isValidUuid()) {
+                                    eq("tenant_id", tenantId)
+                                }
+                            }
+                        }
+                        .decodeList<DepartureEntity>()
+                }.getOrDefault(emptyList())
+
+                val activeBookings = bookings.filter { it.status != "İptal" && it.status != "Cancelled" }
+                val cancelBookings = bookings.filter { it.status == "İptal" || it.status == "Cancelled" }
+                val pendingBookings = bookings.filter { it.status == "Bekliyor" || it.status == "Opsiyon" || it.status == "Pending" }
 
                 val monthlyTotal = activeBookings.sumOf { it.totalPrice }
                 val pendingTotal = pendingBookings.sumOf { it.totalPrice }
 
+                val totalCap = departures.sumOf { it.capacity ?: 0 }
+                val totalBooked = departures.sumOf { it.bookedCount }
+                val calculatedOccupancy = if (totalCap > 0) (totalBooked.toDouble() * 100.0 / totalCap.toDouble()) else 0.0
+
                 DashboardSummary(
-                    dailySales = monthlyTotal * 0.15,
+                    dailySales = if (monthlyTotal > 0) monthlyTotal * 0.1 else 0.0,
                     monthlySales = monthlyTotal,
-                    occupancyRate = 82.5,
+                    occupancyRate = (calculatedOccupancy * 10).toInt() / 10.0,
                     cancellationCount = cancelBookings.size,
                     pendingPaymentsAmount = pendingTotal
                 )
@@ -71,6 +99,18 @@ class DashboardRepositoryImpl(
 
     override suspend fun getUpcomingTours(tenantId: String): Result<List<UpcomingTour>> {
         return runCatching {
+            val tours = runCatching {
+                supabaseClient.postgrest.from("tours")
+                    .select {
+                        filter {
+                            if (tenantId.isValidUuid()) {
+                                eq("tenant_id", tenantId)
+                            }
+                        }
+                    }
+                    .decodeList<TourEntity>()
+            }.getOrDefault(emptyList())
+
             val departures = runCatching {
                 supabaseClient.postgrest.from("departures")
                     .select {
@@ -80,26 +120,34 @@ class DashboardRepositoryImpl(
                             }
                         }
                     }
-                    .decodeList<com.mgacreative.touros.data.database.entity.DepartureEntity>()
+                    .decodeList<DepartureEntity>()
             }.getOrDefault(emptyList())
 
             if (departures.isNotEmpty()) {
                 departures.take(5).map { dep ->
+                    val matchedTour = tours.find { it.id == dep.tourId }
                     UpcomingTour(
                         id = dep.id,
-                        tourTitle = "Kapadokya Balon & Vadi Turu",
+                        tourTitle = matchedTour?.title ?: "Tur Paket #${dep.tourId.take(4)}",
                         departureDate = dep.departureDate,
                         bookedCount = dep.bookedCount,
-                        capacity = dep.capacity ?: 30,
+                        capacity = dep.capacity ?: matchedTour?.capacity ?: 30,
                         status = dep.status
                     )
                 }
+            } else if (tours.isNotEmpty()) {
+                tours.take(5).mapIndexed { idx, tour ->
+                    UpcomingTour(
+                        id = tour.id ?: "$idx",
+                        tourTitle = tour.title,
+                        departureDate = "Yakında",
+                        bookedCount = 0,
+                        capacity = tour.capacity,
+                        status = if (tour.isActive) "Aktif" else "Planlandı"
+                    )
+                }
             } else {
-                listOf(
-                    UpcomingTour("1", "Kapadokya Gurme ve Balon Turu", "2026-08-10", 24, 30, "planned"),
-                    UpcomingTour("2", "Ege Kıyıları & Pamukkale Turu", "2026-08-12", 18, 25, "planned"),
-                    UpcomingTour("3", "Karadeniz Yaylalar Kültür Turu", "2026-08-15", 38, 40, "planned")
-                )
+                emptyList()
             }
         }
     }
@@ -115,7 +163,7 @@ class DashboardRepositoryImpl(
                             }
                         }
                     }
-                    .decodeList<com.mgacreative.touros.data.database.entity.VehicleEntity>()
+                    .decodeList<VehicleEntity>()
             }.getOrDefault(emptyList())
 
             val transfers = runCatching {
@@ -127,7 +175,7 @@ class DashboardRepositoryImpl(
                             }
                         }
                     }
-                    .decodeList<com.mgacreative.touros.data.database.entity.TransferEntity>()
+                    .decodeList<TransferEntity>()
             }.getOrDefault(emptyList())
 
             val drivers = runCatching {
@@ -139,50 +187,134 @@ class DashboardRepositoryImpl(
                             }
                         }
                     }
-                    .decodeList<com.mgacreative.touros.data.database.entity.DriverEntity>()
+                    .decodeList<DriverEntity>()
             }.getOrDefault(emptyList())
 
             if (vehicles.isNotEmpty()) {
-                vehicles.take(5).map { v ->
+                vehicles.map { v ->
                     val vehicleTransfers = transfers.filter { it.vehicleId == v.id }
                     val totalOccupied = vehicleTransfers.sumOf { it.paxCount }
                     val activeTransfer = vehicleTransfers.firstOrNull()
                     val driver = drivers.find { it.id == activeTransfer?.driverId }
 
+                    val safeCapacity = if (v.capacity > 0) v.capacity else 20
                     VehicleOccupancy(
                         id = v.id,
                         plateNumber = v.plateNumber,
                         modelName = "${v.brand ?: ""} ${v.model ?: ""}".trim().ifEmpty { v.vehicleType.uppercase() },
                         driverName = driver?.fullName ?: "Atanmadı",
-                        occupiedSeats = if (totalOccupied > 0) totalOccupied.coerceAtMost(v.capacity) else (v.capacity * 0.75).toInt(),
-                        totalCapacity = if (v.capacity > 0) v.capacity else 46,
+                        occupiedSeats = totalOccupied.coerceAtMost(safeCapacity),
+                        totalCapacity = safeCapacity,
                         assignedTourTitle = activeTransfer?.destination ?: "Transfer Görevi"
                     )
                 }
             } else {
-                listOf(
-                    VehicleOccupancy("1", "34 TOUR 01", "Mercedes Travego 15 SHD", "Ahmet Yılmaz", 38, 46, "Karadeniz Yaylalar Turu"),
-                    VehicleOccupancy("2", "34 VIP 99", "Mercedes Sprinter VIP", "Mehmet Kaya", 14, 16, "Kapadokya VIP Transfer"),
-                    VehicleOccupancy("3", "34 LUX 77", "Mercedes V-Class Maybach", "Caner Demir", 5, 6, "İstanbul Şehir VIP Transfer")
-                )
+                emptyList()
             }
         }
     }
 
     override suspend fun getGuideStatuses(tenantId: String): Result<List<GuideStatusInfo>> {
         return runCatching {
-            listOf(
-                GuideStatusInfo("1", "Canan Öztürk", "0532 100 2030", listOf("Türkçe", "İngilizce"), "Görevde", "Kapadokya Balon Turu"),
-                GuideStatusInfo("2", "Murat Arslan", "0542 220 3040", listOf("Türkçe", "Almanca"), "Müsait", null),
-                GuideStatusInfo("3", "Zeynep Karaca", "0505 330 4050", listOf("Türkçe", "Fransızca"), "Görevde", "Karadeniz Yaylalar Turu"),
-                GuideStatusInfo("4", "Burak Celal", "0555 440 5060", listOf("Türkçe", "İspanyolca"), "Müsait", null)
-            )
+            val guides = runCatching {
+                supabaseClient.postgrest.from("guides")
+                    .select {
+                        filter {
+                            if (tenantId.isValidUuid()) {
+                                eq("tenant_id", tenantId)
+                            }
+                        }
+                    }
+                    .decodeList<GuideEntity>()
+            }.getOrDefault(emptyList())
+
+            if (guides.isNotEmpty()) {
+                guides.map { g ->
+                    GuideStatusInfo(
+                        id = g.id,
+                        fullName = g.fullName,
+                        phone = g.phone ?: "-",
+                        languages = g.languages ?: listOf("Türkçe"),
+                        status = if (g.isActive) "Müsait" else "Görevde",
+                        assignedTourTitle = null
+                    )
+                }
+            } else {
+                emptyList()
+            }
         }
     }
 
-    override suspend fun getAnalyticsCharts(tenantId: String): Result<com.mgacreative.touros.domain.model.DashboardAnalyticsCharts> {
+    override suspend fun getAnalyticsCharts(tenantId: String): Result<DashboardAnalyticsCharts> {
         return runCatching {
-            com.mgacreative.touros.domain.model.DashboardAnalyticsCharts()
+            val bookings = runCatching {
+                supabaseClient.postgrest.from("bookings")
+                    .select {
+                        filter {
+                            if (tenantId.isValidUuid()) {
+                                eq("tenant_id", tenantId)
+                            }
+                        }
+                    }
+                    .decodeList<BookingEntity>()
+            }.getOrDefault(emptyList())
+
+            val tours = runCatching {
+                supabaseClient.postgrest.from("tours")
+                    .select {
+                        filter {
+                            if (tenantId.isValidUuid()) {
+                                eq("tenant_id", tenantId)
+                            }
+                        }
+                    }
+                    .decodeList<TourEntity>()
+            }.getOrDefault(emptyList())
+
+            if (bookings.isNotEmpty()) {
+                val totalRevenue = bookings.sumOf { it.totalPrice }.coerceAtLeast(1.0)
+
+                val countryGroup = tours.groupBy { it.country.ifBlank { "Türkiye" } }
+                val countryItems = countryGroup.map { (country, tourList) ->
+                    val rev = tourList.sumOf { t -> bookings.filter { b -> b.productName == t.title }.sumOf { it.totalPrice } }
+                    val pct = (rev * 100 / totalRevenue).toFloat()
+                    CountrySalesItem(countryName = country, revenue = rev, percentage = pct)
+                }.sortedByDescending { it.revenue }
+
+                val tourItems = tours.map { tour ->
+                    val rev = bookings.filter { it.productName == tour.title }.sumOf { it.totalPrice }
+                    TourRevenueItem(tourTitle = tour.title, revenue = rev)
+                }.sortedByDescending { it.revenue }.take(4)
+
+                val channelGroup = bookings.groupBy { it.operatorName ?: "B2C Web Mobil" }
+                val channelItems = channelGroup.map { (channel, bList) ->
+                    val amount = bList.sumOf { it.totalPrice }
+                    val pct = (amount * 100 / totalRevenue).toFloat()
+                    ChannelSalesItem(channelName = channel, amount = amount, percentage = pct)
+                }
+
+                DashboardAnalyticsCharts(
+                    monthlyTrends = listOf(
+                        MonthlyTrendItem("Son Dönem", totalRevenue)
+                    ),
+                    countrySales = countryItems.ifEmpty {
+                        listOf(CountrySalesItem("Türkiye", totalRevenue, 100f))
+                    },
+                    tourRevenues = tourItems.ifEmpty {
+                        tours.take(4).map { TourRevenueItem(it.title, it.basePrice) }
+                    },
+                    channelSales = channelItems.ifEmpty {
+                        listOf(ChannelSalesItem("Doğrudan Web", totalRevenue, 100f))
+                    }
+                )
+            } else {
+                DashboardAnalyticsCharts(
+                    monthlyTrends = emptyList(),
+                    countrySales = emptyList(),
+                    tourRevenues = emptyList(),
+                    channelSales = emptyList()
+                )
+            }
         }
     }
 }

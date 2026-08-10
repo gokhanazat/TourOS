@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.Invoice
@@ -23,11 +25,12 @@ import com.mgacreative.touros.ui.viewmodel.InvoiceManagementUiState
 import com.mgacreative.touros.ui.viewmodel.InvoiceManagementViewModel
 
 /**
- * Fatura Oluşturma & Gerçek Zamanlı PDF Önizleme — TourOS 0.3
+ * Fatura Yönetimi & E-Fatura — TourOS Canlı Veri Tabanlı & İptal/Sil Destekli Sürüm
  *
- * Sol: Düzenlenebilir Fatura Formu
- * Sağ: Gerçek Zamanlı PDF Önizlemesi (A4 Mockup)
- * Expanded (≥768dp): Yan yana | Compact (<768dp): Sekmeli (Form / PDF)
+ * Sekmeler:
+ * 1. ✏️ Yeni Fatura Oluştur (Gelir & Gider Faturası Türü Seçimli)
+ * 2. 📄 Gerçek Zamanlı PDF Önizleme
+ * 3. 📋 Kayıtlı Faturalar Listesi (İptal Etme & Silme Destekli)
  */
 @Composable
 fun InvoiceManagementScreen(
@@ -36,28 +39,29 @@ fun InvoiceManagementScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Düzenlenebilir Fatura Formu State'leri (Gerçek zamanlı PDF için)
-    var invoiceNo by remember { mutableStateOf("INV-202608-003") }
-    var customerName by remember { mutableStateOf("Ahmet Yılmaz") }
-    var customerTaxNo by remember { mutableStateOf("12345678901") }
-    var serviceDescription by remember { mutableStateOf("Kapadokya VIP Tur & Konaklama Paketi") }
-    var subtotalStr by remember { mutableStateOf("15000") }
+    var selectedMainTab by remember { mutableStateOf(0) }
+
+    // Düzenlenebilir Fatura Formu State'leri
+    var invoiceType by remember { mutableStateOf("sale") } // "sale" (Gelir) veya "purchase" (Gider)
+    var invoiceNo by remember { mutableStateOf("") }
+    var customerName by remember { mutableStateOf("") }
+    var customerTaxNo by remember { mutableStateOf("") }
+    var serviceDescription by remember { mutableStateOf("") }
+    var subtotalStr by remember { mutableStateOf("") }
     var taxRateStr by remember { mutableStateOf("20") }
-    var notes by remember { mutableStateOf("İşbu fatura 7 gün içerisinde ödenmelidir.") }
+    var notes by remember { mutableStateOf("") }
 
     val subtotal = subtotalStr.toDoubleOrNull() ?: 0.0
     val taxRate = taxRateStr.toDoubleOrNull() ?: 20.0
     val taxAmount = subtotal * (taxRate / 100.0)
     val totalAmount = subtotal + taxAmount
 
-    var compactTabIndex by remember { mutableStateOf(0) }
-
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Fatura Oluşturma & PDF",
-                subtitle = "Fatura düzenleme ve gerçek zamanlı PDF önizleme",
+                title = "Fatura Yönetimi & E-Fatura",
+                subtitle = "Gelir/Gider faturası düzenleme, canlı PDF önizleme ve fatura iptal/silme",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -78,127 +82,98 @@ fun InvoiceManagementScreen(
                 }
             }
             is InvoiceManagementUiState.Success -> {
-                BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    val isExpanded = maxWidth >= 768.dp
-
-                    if (isExpanded) {
-                        // ── MASAÜSTÜ / TABLET: SOLDA FORM, SAĞDA PDF ÖNİZLEME (YAN YANA) ─
-                        Row(
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(TourOSSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                ) {
+                    // Bildirim Mesajı
+                    if (state.notificationMessage != null) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(TourOSSpacing.large),
-                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.SuccessContainer)
+                                .padding(TourOSSpacing.medium)
                         ) {
-                            // SOL: Düzenlenebilir Fatura Formu Panel
-                            Column(
-                                modifier = Modifier.weight(1f).fillMaxHeight(),
-                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                            ) {
-                                Text(
-                                    "✏️ Fatura Formu & Bilgiler",
-                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
-                                )
-
-                                InvoiceFormPanel(
-                                    invoiceNo = invoiceNo, onInvoiceNoChange = { invoiceNo = it },
-                                    customerName = customerName, onCustomerNameChange = { customerName = it },
-                                    customerTaxNo = customerTaxNo, onCustomerTaxNoChange = { customerTaxNo = it },
-                                    serviceDescription = serviceDescription, onServiceDescriptionChange = { serviceDescription = it },
-                                    subtotalStr = subtotalStr, onSubtotalChange = { subtotalStr = it },
-                                    taxRateStr = taxRateStr, onTaxRateChange = { taxRateStr = it },
-                                    notes = notes, onNotesChange = { notes = it },
-                                    onSaveInvoice = {
-                                        viewModel.createNewInvoice(invoiceNo, customerName, customerTaxNo.ifBlank { null }, totalAmount, notes.ifBlank { null })
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-
-                            VerticalDivider(color = TourOSColors.Divider, thickness = 1.dp)
-
-                            // SAĞ: Gerçek Zamanlı PDF Önizleme Panel (A4 Formatı)
-                            Column(
-                                modifier = Modifier.weight(1.1f).fillMaxHeight(),
-                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                            ) {
-                                Text(
-                                    "📄 Gerçek Zamanlı PDF Önizlemesi",
-                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
-                                )
-
-                                RealTimePdfPreviewPanel(
-                                    invoiceNo = invoiceNo,
-                                    customerName = customerName,
-                                    customerTaxNo = customerTaxNo,
-                                    serviceDescription = serviceDescription,
-                                    subtotal = subtotal,
-                                    taxRate = taxRate,
-                                    taxAmount = taxAmount,
-                                    totalAmount = totalAmount,
-                                    notes = notes,
-                                    onExportPdf = {
-                                        state.invoices.firstOrNull()?.let { viewModel.exportInvoicePdf(it) }
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                            Text(
+                                state.notificationMessage!!,
+                                style = TourOSTypography.Label.copy(color = TourOSColors.Success),
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                    } else {
-                        // ── MOBİL: SEKMELİ (FORM DÜZENLE / PDF ÖNİZLEME) ─────────────
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(TourOSSpacing.medium),
-                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                        ) {
-                            PrimaryTabRow(
-                                selectedTabIndex = compactTabIndex,
-                                containerColor = TourOSColors.Background,
-                                contentColor = TourOSColors.Primary
-                            ) {
-                                Tab(
-                                    selected = compactTabIndex == 0,
-                                    onClick = { compactTabIndex = 0 },
-                                    text = { Text("✏️ Fatura Formu", style = TourOSTypography.Label) }
-                                )
-                                Tab(
-                                    selected = compactTabIndex == 1,
-                                    onClick = { compactTabIndex = 1 },
-                                    text = { Text("📄 PDF Önizleme", style = TourOSTypography.Label) }
-                                )
-                            }
+                    }
 
-                            when (compactTabIndex) {
-                                0 -> InvoiceFormPanel(
-                                    invoiceNo = invoiceNo, onInvoiceNoChange = { invoiceNo = it },
-                                    customerName = customerName, onCustomerNameChange = { customerName = it },
-                                    customerTaxNo = customerTaxNo, onCustomerTaxNoChange = { customerTaxNo = it },
-                                    serviceDescription = serviceDescription, onServiceDescriptionChange = { serviceDescription = it },
-                                    subtotalStr = subtotalStr, onSubtotalChange = { subtotalStr = it },
-                                    taxRateStr = taxRateStr, onTaxRateChange = { taxRateStr = it },
-                                    notes = notes, onNotesChange = { notes = it },
-                                    onSaveInvoice = {
-                                        viewModel.createNewInvoice(invoiceNo, customerName, customerTaxNo.ifBlank { null }, totalAmount, notes.ifBlank { null })
-                                    },
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                1 -> RealTimePdfPreviewPanel(
-                                    invoiceNo = invoiceNo,
+                    // ── ANA SEKMELER (HEM MASAÜSTÜ HEM MOBİLDE GÖRÜNÜR) ─────────────
+                    PrimaryTabRow(
+                        selectedTabIndex = selectedMainTab,
+                        containerColor = TourOSColors.Background,
+                        contentColor = TourOSColors.Primary
+                    ) {
+                        Tab(
+                            selected = selectedMainTab == 0,
+                            onClick = { selectedMainTab = 0 },
+                            text = { Text("✏️ Fatura Oluştur", style = TourOSTypography.Label, fontWeight = FontWeight.Bold) }
+                        )
+                        Tab(
+                            selected = selectedMainTab == 1,
+                            onClick = { selectedMainTab = 1 },
+                            text = { Text("📄 PDF Önizleme", style = TourOSTypography.Label, fontWeight = FontWeight.Bold) }
+                        )
+                        Tab(
+                            selected = selectedMainTab == 2,
+                            onClick = { selectedMainTab = 2 },
+                            text = { Text("📋 Kayıtlı Faturalar (${state.invoices.size})", style = TourOSTypography.Label, fontWeight = FontWeight.Bold) }
+                        )
+                    }
+
+                    when (selectedMainTab) {
+                        0 -> InvoiceFormPanel(
+                            invoiceType = invoiceType, onInvoiceTypeChange = { invoiceType = it },
+                            invoiceNo = invoiceNo, onInvoiceNoChange = { invoiceNo = it },
+                            customerName = customerName, onCustomerNameChange = { customerName = it },
+                            customerTaxNo = customerTaxNo, onCustomerTaxNoChange = { customerTaxNo = it },
+                            serviceDescription = serviceDescription, onServiceDescriptionChange = { serviceDescription = it },
+                            subtotalStr = subtotalStr, onSubtotalChange = { subtotalStr = it },
+                            taxRateStr = taxRateStr, onTaxRateChange = { taxRateStr = it },
+                            notes = notes, onNotesChange = { notes = it },
+                            onSaveInvoice = {
+                                viewModel.createNewInvoice(
+                                    invoiceNo = invoiceNo.ifBlank { "INV-${(1000..9999).random()}" },
+                                    invoiceType = invoiceType,
                                     customerName = customerName,
-                                    customerTaxNo = customerTaxNo,
-                                    serviceDescription = serviceDescription,
-                                    subtotal = subtotal,
-                                    taxRate = taxRate,
-                                    taxAmount = taxAmount,
+                                    customerTaxNo = customerTaxNo.ifBlank { null },
                                     totalAmount = totalAmount,
-                                    notes = notes,
-                                    onExportPdf = {
-                                        state.invoices.firstOrNull()?.let { viewModel.exportInvoicePdf(it) }
-                                    },
-                                    modifier = Modifier.fillMaxSize()
+                                    notes = notes.ifBlank { null }
                                 )
-                            }
-                        }
+                            },
+                            isSaving = state.isCreatingInvoice,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        1 -> RealTimePdfPreviewPanel(
+                            invoiceType = invoiceType,
+                            invoiceNo = invoiceNo,
+                            customerName = customerName,
+                            customerTaxNo = customerTaxNo,
+                            serviceDescription = serviceDescription,
+                            subtotal = subtotal,
+                            taxRate = taxRate,
+                            taxAmount = taxAmount,
+                            totalAmount = totalAmount,
+                            notes = notes,
+                            onExportPdf = {
+                                state.invoices.firstOrNull()?.let { viewModel.exportInvoicePdf(it) }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        2 -> SavedInvoicesList(
+                            invoices = state.invoices,
+                            onExportPdf = { viewModel.exportInvoicePdf(it) },
+                            onCancelInvoice = { viewModel.cancelInvoice(it) },
+                            onDeleteInvoice = { viewModel.deleteInvoice(it) }
+                        )
                     }
                 }
             }
@@ -206,10 +181,11 @@ fun InvoiceManagementScreen(
     }
 }
 
-// ─── Sol Panel: Düzenlenebilir Fatura Formu ──────────────────────────────────
+// ─── 1. Sekme: Fatura Düzenleme Formu ──────────────────────────────────────────
 
 @Composable
 private fun InvoiceFormPanel(
+    invoiceType: String, onInvoiceTypeChange: (String) -> Unit,
     invoiceNo: String, onInvoiceNoChange: (String) -> Unit,
     customerName: String, onCustomerNameChange: (String) -> Unit,
     customerTaxNo: String, onCustomerTaxNoChange: (String) -> Unit,
@@ -218,6 +194,7 @@ private fun InvoiceFormPanel(
     taxRateStr: String, onTaxRateChange: (String) -> Unit,
     notes: String, onNotesChange: (String) -> Unit,
     onSaveInvoice: () -> Unit,
+    isSaving: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     TourOSCard(
@@ -229,12 +206,39 @@ private fun InvoiceFormPanel(
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
             modifier = Modifier.fillMaxSize()
         ) {
+            // FATURA TÜRÜ SEÇİMİ (GELİR / GİDER)
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Fatura Türü Seçiniz:", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                        FilterChip(
+                            selected = invoiceType == "sale",
+                            onClick = { onInvoiceTypeChange("sale") },
+                            label = { Text("📈 Satış Faturası (Gelir)", style = TourOSTypography.Caption, fontWeight = FontWeight.Bold) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TourOSColors.SuccessContainer,
+                                selectedLabelColor = TourOSColors.Success
+                            )
+                        )
+                        FilterChip(
+                            selected = invoiceType == "purchase",
+                            onClick = { onInvoiceTypeChange("purchase") },
+                            label = { Text("📉 Alış / Gider Faturası (Gider)", style = TourOSTypography.Caption, fontWeight = FontWeight.Bold) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TourOSColors.PrimaryContainer,
+                                selectedLabelColor = TourOSColors.Primary
+                            )
+                        )
+                    }
+                }
+            }
+
             item {
                 TourOSTextField(
                     value = invoiceNo,
                     onValueChange = onInvoiceNoChange,
                     label = "Fatura Seri / No",
-                    placeholder = "INV-202608-003",
+                    placeholder = "Örn: INV-202608-001",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -243,8 +247,8 @@ private fun InvoiceFormPanel(
                 TourOSTextField(
                     value = customerName,
                     onValueChange = onCustomerNameChange,
-                    label = "Müşteri Adı / Unvanı",
-                    placeholder = "Ahmet Yılmaz",
+                    label = if (invoiceType == "purchase") "Tedarikçi / Satıcı Adı" else "Müşteri Adı / Unvanı",
+                    placeholder = if (invoiceType == "purchase") "Örn: Travego Otobüs İşletmeleri A.Ş." else "Örn: Ahmet Yılmaz",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -254,7 +258,7 @@ private fun InvoiceFormPanel(
                     value = customerTaxNo,
                     onValueChange = onCustomerTaxNoChange,
                     label = "Vergi No / T.C. Kimlik",
-                    placeholder = "12345678901",
+                    placeholder = "Örn: 12345678901",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -264,7 +268,7 @@ private fun InvoiceFormPanel(
                     value = serviceDescription,
                     onValueChange = onServiceDescriptionChange,
                     label = "Hizmet / Kalem Açıklaması",
-                    placeholder = "Kapadokya Tur Hizmeti...",
+                    placeholder = "Örn: Kapadokya VIP Tur Paket Hizmeti Bedeli",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -278,7 +282,7 @@ private fun InvoiceFormPanel(
                         value = subtotalStr,
                         onValueChange = onSubtotalChange,
                         label = "Matrah (KDV Hariç ₺)",
-                        placeholder = "15000",
+                        placeholder = "Örn: 15000",
                         modifier = Modifier.weight(1f)
                     )
                     TourOSTextField(
@@ -296,7 +300,7 @@ private fun InvoiceFormPanel(
                     value = notes,
                     onValueChange = onNotesChange,
                     label = "Fatura Notları & Banka Bilgileri",
-                    placeholder = "7 gün içinde ödenmelidir...",
+                    placeholder = "Örn: 7 gün içinde ödenmelidir...",
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -307,10 +311,10 @@ private fun InvoiceFormPanel(
 
             item {
                 TourOSButton(
-                    text = "💾 Faturayı Kaydet ve Kes",
+                    text = if (isSaving) "Kaydediliyor..." else "💾 Faturayı Veritabanına Kaydet",
                     onClick = onSaveInvoice,
                     variant = TourOSButtonVariant.PRIMARY,
-                    enabled = customerName.isNotBlank() && subtotalStr.toDoubleOrNull() != null,
+                    enabled = customerName.isNotBlank() && subtotalStr.toDoubleOrNull() != null && !isSaving,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -318,10 +322,11 @@ private fun InvoiceFormPanel(
     }
 }
 
-// ─── Sağ Panel: Gerçek Zamanlı PDF Önizlemesi (A4 Görünümü) ───────────────────
+// ─── 2. Sekme: Canlı PDF Önizleme ──────────────────────────────────────────────
 
 @Composable
 private fun RealTimePdfPreviewPanel(
+    invoiceType: String,
     invoiceNo: String,
     customerName: String,
     customerTaxNo: String,
@@ -343,7 +348,6 @@ private fun RealTimePdfPreviewPanel(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // A4 PDF Belge Mockup İçeriği
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -354,7 +358,6 @@ private fun RealTimePdfPreviewPanel(
                     .padding(TourOSSpacing.large)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    // PDF Başlığı & Logo
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -363,7 +366,8 @@ private fun RealTimePdfPreviewPanel(
                         Column {
                             Text(
                                 "TourOS Seyahat Acentası A.Ş.",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
                                 "Turizm & Seyahat Hizmetleri",
@@ -372,23 +376,20 @@ private fun RealTimePdfPreviewPanel(
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
-                                "E-FATURA",
-                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                                if (invoiceType == "purchase") "GİDER FATURASI" else "SATIŞ E-FATURASI",
+                                style = TourOSTypography.TitleLarge.copy(color = if (invoiceType == "purchase") TourOSColors.Primary else TourOSColors.Success),
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "No: ${invoiceNo.ifBlank { "INV-0000" }}",
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary)
-                            )
-                            Text(
-                                "Tarih: 07.08.2026",
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                "No: ${invoiceNo.ifBlank { "INV-DRAFT" }}",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
 
                     HorizontalDivider(color = TourOSColors.Primary, thickness = 2.dp)
 
-                    // Alıcı / Müşteri Bilgileri
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -397,10 +398,15 @@ private fun RealTimePdfPreviewPanel(
                             .padding(TourOSSpacing.medium)
                     ) {
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("SAYIN (ALICI):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                             Text(
-                                customerName.ifBlank { "[Müşteri Adı Girilmedi]" },
-                                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                                if (invoiceType == "purchase") "SATICI (TEDARİKÇİ):" else "ALICI (MÜŞTERİ):",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                customerName.ifBlank { "[Unvan Girilmedi]" },
+                                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
                                 "Vergi / TC No: ${customerTaxNo.ifBlank { "—" }}",
@@ -409,7 +415,6 @@ private fun RealTimePdfPreviewPanel(
                         }
                     }
 
-                    // Kalem Tablosu
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -422,8 +427,8 @@ private fun RealTimePdfPreviewPanel(
                                     .background(TourOSColors.PrimaryContainer)
                                     .padding(horizontal = TourOSSpacing.small, vertical = 4.dp)
                             ) {
-                                Text("Hizmet Açıklaması", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), modifier = Modifier.weight(2f))
-                                Text("Matrah (₺)", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                                Text("Hizmet / Açıklama", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(2f))
+                                Text("Matrah (₺)", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
                             }
                             Row(
                                 modifier = Modifier
@@ -445,7 +450,6 @@ private fun RealTimePdfPreviewPanel(
                         }
                     }
 
-                    // Toplam Alt Tablosu
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.End,
@@ -456,11 +460,11 @@ private fun RealTimePdfPreviewPanel(
                         HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.width(160.dp))
                         Text(
                             "GENEL TOPLAM: ₺ ${formatMoney(totalAmount)}",
-                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                            fontWeight = FontWeight.Bold
                         )
                     }
 
-                    // Fatura Notları
                     if (notes.isNotBlank()) {
                         Text(
                             "Not: $notes",
@@ -472,13 +476,131 @@ private fun RealTimePdfPreviewPanel(
 
             Spacer(Modifier.height(TourOSSpacing.medium))
 
-            // Dışa Aktar & PDF İndir Butonu
             TourOSButton(
                 text = "📄 PDF Dışa Aktar & İndir",
                 onClick = onExportPdf,
                 variant = TourOSButtonVariant.SECONDARY,
                 modifier = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+// ─── 3. Sekme: Kayıtlı Faturalar Listesi (İptal & Sil Destekli) ───────────────
+
+@Composable
+private fun SavedInvoicesList(
+    invoices: List<Invoice>,
+    onExportPdf: (Invoice) -> Unit,
+    onCancelInvoice: (String) -> Unit,
+    onDeleteInvoice: (String) -> Unit
+) {
+    var typeFilter by remember { mutableStateOf("ALL") } // ALL, SALE, PURCHASE
+
+    val filteredInvoices = invoices.filter { inv ->
+        when (typeFilter) {
+            "SALE" -> inv.invoiceType == "sale"
+            "PURCHASE" -> inv.invoiceType == "purchase"
+            else -> true
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        // Filtre Butonları
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            item {
+                FilterChip(
+                    selected = typeFilter == "ALL",
+                    onClick = { typeFilter = "ALL" },
+                    label = { Text("Tüm Faturalar (${invoices.size})", style = TourOSTypography.Caption) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = typeFilter == "SALE",
+                    onClick = { typeFilter = "SALE" },
+                    label = { Text("📈 Satış / Gelir (${invoices.count { it.invoiceType == "sale" }})", style = TourOSTypography.Caption) }
+                )
+            }
+            item {
+                FilterChip(
+                    selected = typeFilter == "PURCHASE",
+                    onClick = { typeFilter = "PURCHASE" },
+                    label = { Text("📉 Alış / Gider (${invoices.count { it.invoiceType == "purchase" }})", style = TourOSTypography.Caption) }
+                )
+            }
+        }
+
+        if (filteredInvoices.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(TourOSSpacing.large),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Henüz kaydedilmiş bir fatura bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            ) {
+                items(filteredInvoices) { inv ->
+                    val isCanceled = inv.status == "canceled"
+                    val isPurchase = inv.invoiceType == "purchase"
+
+                    TourOSCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = if (isCanceled) TourOSColors.Surface.copy(alpha = 0.6f) else TourOSColors.Surface,
+                        contentPadding = TourOSSpacing.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(inv.invoiceNo, style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+                                    Text(
+                                        if (isPurchase) "GİDER" else "GELİR",
+                                        style = TourOSTypography.Caption.copy(color = if (isPurchase) TourOSColors.Primary else TourOSColors.Success),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    if (isCanceled) {
+                                        Text("[İPTAL EDİLDİ]", style = TourOSTypography.Caption.copy(color = TourOSColors.Error), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                                Text(inv.customerName, style = TourOSTypography.BodyMedium, fontWeight = FontWeight.Bold)
+                                Text("Genel Toplam: ₺ ${formatMoney(inv.totalAmount)}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                                TourOSButton(
+                                    text = "📄 PDF",
+                                    onClick = { onExportPdf(inv) },
+                                    variant = TourOSButtonVariant.SECONDARY
+                                )
+
+                                if (!isCanceled && inv.id.isNotBlank()) {
+                                    TourOSButton(
+                                        text = "🚫 İptal",
+                                        onClick = { onCancelInvoice(inv.id) },
+                                        variant = TourOSButtonVariant.SECONDARY
+                                    )
+                                }
+
+                                if (inv.id.isNotBlank()) {
+                                    IconButton(onClick = { onDeleteInvoice(inv.id) }) {
+                                        Text("🗑️", style = TourOSTypography.TitleMedium)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

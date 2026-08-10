@@ -2,7 +2,9 @@ package com.mgacreative.touros.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mgacreative.touros.domain.model.Expense
 import com.mgacreative.touros.domain.model.SupplierTransaction
+import com.mgacreative.touros.domain.repository.FinanceRepository
 import com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase
 import com.mgacreative.touros.domain.usecase.ProcessSupplierExpenseUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,12 +20,14 @@ sealed interface SupplierExpenseUiState {
         val totalHotelDebt: Double = 0.0,
         val totalVehicleDebt: Double = 0.0,
         val totalGuideDebt: Double = 0.0,
+        val isCreatingExpense: Boolean = false,
         val notificationMessage: String? = null
     ) : SupplierExpenseUiState
     data class Error(val message: String) : SupplierExpenseUiState
 }
 
 class SupplierExpenseViewModel(
+    private val financeRepository: FinanceRepository,
     private val processSupplierExpenseUseCase: ProcessSupplierExpenseUseCase,
     private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) : ViewModel() {
@@ -35,27 +39,51 @@ class SupplierExpenseViewModel(
         loadData()
     }
 
+    private fun resolveTenantId(userTenantId: String?): String {
+        val tid = userTenantId?.trim()
+        return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else "00000000-0000-0000-0000-000000000001"
+    }
+
     fun loadData(categoryFilter: String? = null) {
         viewModelScope.launch {
             _uiState.value = SupplierExpenseUiState.Loading
             val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
+            val tenantId = resolveTenantId(user?.tenantId)
 
-            val fallbackList = listOf(
-                SupplierTransaction("st1", "Hilton Istanbul Bosphorus", "hotel", "dep-101", "debt", 45000.0, "TRY", "Kapadokya Tur Konaklama Bedeli (15 Oda)", false, tenantId, "2026-08-05"),
-                SupplierTransaction("st2", "Lüks Otobüs A.Ş.", "vehicle", "dep-101", "debt", 18000.0, "TRY", "34 TOUR 01 Travego 4 Günlük Transfer Bedeli", false, tenantId, "2026-08-04"),
-                SupplierTransaction("st3", "Zeynep Arslan", "guide", "dep-101", "debt", 8500.0, "TRY", "Rehberlik Yevmiye ve Harcırah Bedeli", false, tenantId, "2026-08-05"),
-                SupplierTransaction("st4", "Swissôtel Maçka", "hotel", "dep-102", "debt", 32000.0, "TRY", "Ege Turu 8 Oda Kapanış Bedeli", true, tenantId, "2026-08-01")
-            )
+            val res = financeRepository.getExpenses(tenantId)
+            val fetchedExpenses = res.getOrDefault(emptyList())
 
-            var filtered = fallbackList
+            val transactions = fetchedExpenses.map { exp ->
+                val supplierType = when {
+                    exp.category.lowercase().contains("otel") || exp.category.lowercase().contains("hotel") -> "hotel"
+                    exp.category.lowercase().contains("araç") || exp.category.lowercase().contains("otobüs") || exp.category.lowercase().contains("transfer") || exp.category.lowercase().contains("yakıt") -> "vehicle"
+                    exp.category.lowercase().contains("rehber") -> "guide"
+                    else -> "other"
+                }
+
+                SupplierTransaction(
+                    id = exp.id,
+                    supplierName = exp.description.takeIf { it.isNotBlank() } ?: "Tedarikçi Firma",
+                    supplierType = supplierType,
+                    departureId = exp.departureId ?: "dep-genel",
+                    transactionType = "debt",
+                    amount = exp.amount,
+                    currency = exp.currency,
+                    description = "${exp.category} - ${exp.description}",
+                    isSettled = true,
+                    tenantId = tenantId,
+                    createdAt = exp.expenseDate.take(10).ifBlank { "Bugün" }
+                )
+            }
+
+            var filtered = transactions
             if (categoryFilter != null) {
                 filtered = filtered.filter { it.supplierType == categoryFilter }
             }
 
-            val hotelDebt = fallbackList.filter { it.supplierType == "hotel" && !it.isSettled }.sumOf { it.amount }
-            val vehicleDebt = fallbackList.filter { it.supplierType == "vehicle" && !it.isSettled }.sumOf { it.amount }
-            val guideDebt = fallbackList.filter { it.supplierType == "guide" && !it.isSettled }.sumOf { it.amount }
+            val hotelDebt = transactions.filter { it.supplierType == "hotel" }.sumOf { it.amount }
+            val vehicleDebt = transactions.filter { it.supplierType == "vehicle" }.sumOf { it.amount }
+            val guideDebt = transactions.filter { it.supplierType == "guide" }.sumOf { it.amount }
 
             _uiState.value = SupplierExpenseUiState.Success(
                 transactions = filtered,
@@ -69,6 +97,46 @@ class SupplierExpenseViewModel(
 
     fun setCategoryFilter(category: String?) {
         loadData(category)
+    }
+
+    fun createSupplierExpense(
+        supplierName: String,
+        supplierType: String, // "hotel", "vehicle", "guide", "other"
+        amount: Double,
+        categoryName: String,
+        notes: String?
+    ) {
+        viewModelScope.launch {
+            val currentState = _uiState.value as? SupplierExpenseUiState.Success ?: return@launch
+            _uiState.value = currentState.copy(isCreatingExpense = true, notificationMessage = null)
+
+            val user = getCurrentUserUseCase()
+            val tenantId = resolveTenantId(user?.tenantId)
+
+            val expenseCategory = when (supplierType) {
+                "hotel" -> "Otel Konaklama Gideri"
+                "vehicle" -> "Araç & Yakıt Transfer Gideri"
+                "guide" -> "Kokartlı Rehber Hakedişi"
+                else -> categoryName.ifBlank { "Operasyonel Gider" }
+            }
+
+            val newExpense = Expense(
+                category = expenseCategory,
+                amount = amount,
+                currency = "TRY",
+                description = "$supplierName - ${notes ?: expenseCategory}",
+                departureId = "EXP-${(1000..9999).random()}",
+                notes = notes,
+                tenantId = tenantId
+            )
+
+            val res = financeRepository.createExpense(newExpense)
+            res.onSuccess {
+                loadData()
+            }.onFailure { err ->
+                _uiState.value = SupplierExpenseUiState.Error(err.message ?: "Gider kaydı veritabanına işlenemedi.")
+            }
+        }
     }
 
     fun settleTransaction(transaction: SupplierTransaction) {

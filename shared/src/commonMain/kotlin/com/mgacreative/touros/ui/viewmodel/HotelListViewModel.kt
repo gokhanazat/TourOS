@@ -12,7 +12,13 @@ import kotlinx.coroutines.launch
 
 sealed interface HotelListUiState {
     data object Loading : HotelListUiState
-    data class Success(val hotels: List<Hotel> = emptyList()) : HotelListUiState
+    data class Success(
+        val allHotels: List<Hotel> = emptyList(),
+        val filteredHotels: List<Hotel> = emptyList(),
+        val searchQuery: String = "",
+        val selectedStarFilter: Int? = null,
+        val selectedStatusFilter: Boolean? = null
+    ) : HotelListUiState
     data class Error(val message: String) : HotelListUiState
 }
 
@@ -32,22 +38,79 @@ class HotelListViewModel(
         viewModelScope.launch {
             _uiState.value = HotelListUiState.Loading
             val user = getCurrentUserUseCase()
-            val tenantId = user?.tenantId ?: "tenant_id"
+            val tenantId = user?.tenantId ?: ""
 
             val result = hotelRepository.getHotels(tenantId)
             result.onSuccess { hotels ->
-                val fallbackHotels = if (hotels.isEmpty()) {
-                    listOf(
-                        Hotel("1", "Grand Cave Suites", "grand-cave-suites", 5, "Göreme Mah. No:12", "Nevşehir", "Türkiye", "0384 271 2000", "info@grandcave.com", "https://grandcave.com", "Kapadokya vadilerine bakan lüks mağara otel.", "https://images.unsplash.com/photo-1566073771259-6a8506099945"),
-                        Hotel("2", "Ramada Resort Kapadokya", "ramada-resort", 4, "Ürgüp Cad. No:45", "Nevşehir", "Türkiye", "0384 341 8000", "info@ramadacapadocia.com", "https://ramada.com", "Açık/kapalı havuzlu ve konforlu kongre oteli.", "https://images.unsplash.com/photo-1582719508461-905c673771fd"),
-                        Hotel("3", "Bodrum Sunset Boutique Hotel", "bodrum-sunset", 4, "Turgutreis Mah. No:8", "Muğla", "Türkiye", "0252 382 1000", "contact@bodrumsunset.com", "https://bodrumsunset.com", "Denize sıfır butik konaklama tesisi.", "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4")
-                    )
-                } else hotels
+                val currentSearch = (_uiState.value as? HotelListUiState.Success)?.searchQuery ?: ""
+                val currentStar = (_uiState.value as? HotelListUiState.Success)?.selectedStarFilter
+                val currentStatus = (_uiState.value as? HotelListUiState.Success)?.selectedStatusFilter
 
-                _uiState.value = HotelListUiState.Success(fallbackHotels)
+                val filtered = applyFilters(hotels, currentSearch, currentStar, currentStatus)
+
+                _uiState.value = HotelListUiState.Success(
+                    allHotels = hotels,
+                    filteredHotels = filtered,
+                    searchQuery = currentSearch,
+                    selectedStarFilter = currentStar,
+                    selectedStatusFilter = currentStatus
+                )
             }.onFailure { err ->
                 _uiState.value = HotelListUiState.Error(err.message ?: "Oteller yüklenirken hata oluştu")
             }
+        }
+    }
+
+    fun onSearchQueryChanged(query: String) {
+        val state = _uiState.value as? HotelListUiState.Success ?: return
+        val filtered = applyFilters(state.allHotels, query, state.selectedStarFilter, state.selectedStatusFilter)
+        _uiState.value = state.copy(searchQuery = query, filteredHotels = filtered)
+    }
+
+    fun onStarFilterSelected(star: Int?) {
+        val state = _uiState.value as? HotelListUiState.Success ?: return
+        val filtered = applyFilters(state.allHotels, state.searchQuery, star, state.selectedStatusFilter)
+        _uiState.value = state.copy(selectedStarFilter = star, filteredHotels = filtered)
+    }
+
+    fun onStatusFilterSelected(status: Boolean?) {
+        val state = _uiState.value as? HotelListUiState.Success ?: return
+        val filtered = applyFilters(state.allHotels, state.searchQuery, state.selectedStarFilter, status)
+        _uiState.value = state.copy(selectedStatusFilter = status, filteredHotels = filtered)
+    }
+
+    fun onToggleHotelStatus(hotelId: String, currentStatus: Boolean) {
+        viewModelScope.launch {
+            val state = _uiState.value as? HotelListUiState.Success ?: return@launch
+            val targetHotel = state.allHotels.find { it.id == hotelId } ?: return@launch
+            val updated = targetHotel.copy(isActive = !currentStatus)
+
+            val res = hotelRepository.updateHotel(updated)
+            if (res.isSuccess) {
+                val newAll = state.allHotels.map { if (it.id == hotelId) updated else it }
+                val filtered = applyFilters(newAll, state.searchQuery, state.selectedStarFilter, state.selectedStatusFilter)
+                _uiState.value = state.copy(allHotels = newAll, filteredHotels = filtered)
+            }
+        }
+    }
+
+    private fun applyFilters(
+        hotels: List<Hotel>,
+        query: String,
+        starFilter: Int?,
+        statusFilter: Boolean?
+    ): List<Hotel> {
+        return hotels.filter { h ->
+            val matchesQuery = query.isBlank() ||
+                    h.name.contains(query, ignoreCase = true) ||
+                    (h.city ?: "").contains(query, ignoreCase = true) ||
+                    (h.address ?: "").contains(query, ignoreCase = true) ||
+                    (h.phone ?: "").contains(query, ignoreCase = true)
+
+            val matchesStar = starFilter == null || h.starRating == starFilter
+            val matchesStatus = statusFilter == null || h.isActive == statusFilter
+
+            matchesQuery && matchesStar && matchesStatus
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -9,19 +10,27 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.mgacreative.touros.domain.model.Hotel
 import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
@@ -38,20 +47,25 @@ import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.HotelListUiState
 import com.mgacreative.touros.ui.viewmodel.HotelListViewModel
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * TourOS 0.3 Tasarım Sistemine uygun Otel Listeleme ve Yönetim Ekranı.
- * - Tur listesiyle tutarlı kart ve tablo düzeni (Expanded: TourOSDataTable, Compact: TourOSCard).
- * - Otel kartında yıldız derecelendirmesi ikon ile, konumu ikincil metin renginde (TextSecondary).
+ * - Tur listesiyle birebir aynı tasarım dili ve adaptif tablo/kart yapısı.
+ * - Üstte Arama ve Yıldız/Durum Filtre Çubuğu.
+ * - Expanded: TourOSDataTable, Compact: Görsel ağırlıklı Otel Kartları.
  */
 @Composable
 fun HotelListScreen(
-    viewModel: HotelListViewModel,
     onAddHotelClick: () -> Unit = {},
-    onEditHotelClick: (String) -> Unit = {}
+    onEditHotelClick: (String) -> Unit = {},
+    viewModel: HotelListViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadHotels()
+    }
 
     Scaffold(
         topBar = {
@@ -76,75 +90,174 @@ fun HotelListScreen(
                 .padding(TourOSSpacing.large),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
         ) {
-            // Arama ve Filtre Barı
+            // Arama ve Filtreleme Çubuğu Kartı
             TourOSCard(
                 modifier = Modifier.fillMaxWidth(),
                 backgroundColor = TourOSColors.Background,
                 borderColor = TourOSColors.Border,
-                contentPadding = TourOSSpacing.medium
+                contentPadding = TourOSSpacing.large
             ) {
-                TourOSTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = "🔍 Otel adı, şehir veya adres bilgisi ile arayın...",
-                    modifier = Modifier.fillMaxWidth()
-                )
+                val successState = uiState as? HotelListUiState.Success
+
+                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                    TourOSTextField(
+                        value = successState?.searchQuery ?: "",
+                        onValueChange = { viewModel.onSearchQueryChanged(it) },
+                        placeholder = "🔍 Otel adı, şehir, adres veya telefon ile ara...",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Yıldız Çipleri
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                        ) {
+                            val selectedStar = successState?.selectedStarFilter
+                            FilterChip(
+                                selected = selectedStar == null,
+                                onClick = { viewModel.onStarFilterSelected(null) },
+                                label = { Text("Tüm Yıldızlar", style = TourOSTypography.BodyMedium) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.PrimaryContainer,
+                                    selectedLabelColor = TourOSColors.Primary
+                                )
+                            )
+
+                            listOf(5, 4, 3, 2).forEach { star ->
+                                val isSelected = selectedStar == star
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { viewModel.onStarFilterSelected(star) },
+                                    label = { Text("$star ⭐ Otel", style = TourOSTypography.BodyMedium) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = TourOSColors.PrimaryContainer,
+                                        selectedLabelColor = TourOSColors.Primary
+                                    )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+
+                        // Durum Filtresi (Aktif / Pasif)
+                        Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                            val selectedStatus = successState?.selectedStatusFilter
+                            FilterChip(
+                                selected = selectedStatus == null,
+                                onClick = { viewModel.onStatusFilterSelected(null) },
+                                label = { Text("Tümü", style = TourOSTypography.BodyMedium) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.PrimaryContainer,
+                                    selectedLabelColor = TourOSColors.Primary
+                                )
+                            )
+                            FilterChip(
+                                selected = selectedStatus == true,
+                                onClick = { viewModel.onStatusFilterSelected(true) },
+                                label = { Text("🟢 Aktif", style = TourOSTypography.BodyMedium) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.SuccessContainer,
+                                    selectedLabelColor = TourOSColors.Success
+                                )
+                            )
+                            FilterChip(
+                                selected = selectedStatus == false,
+                                onClick = { viewModel.onStatusFilterSelected(false) },
+                                label = { Text("⚪ Pasif", style = TourOSTypography.BodyMedium) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = TourOSColors.SecondaryContainer,
+                                    selectedLabelColor = TourOSColors.Secondary
+                                )
+                            )
+                        }
+                    }
+                }
             }
 
-            // Adaptif Tablo / Kart Listesi
-            BoxWithConstraints(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            // Adaptif Tablo / Kart Görünümü
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
                 val isCompact = maxWidth < 768.dp
 
                 when (val state = uiState) {
                     is HotelListUiState.Loading -> {
-                        TourOSLoadingIndicator(message = "Otel listesi yükleniyor...")
+                        TourOSLoadingIndicator(message = "Oteller yükleniyor...")
                     }
                     is HotelListUiState.Error -> {
                         TourOSEmptyState(
                             title = "Hata Oluştu",
                             description = state.message,
                             actionButtonText = "Yeniden Dene",
-                            onActionClick = { }
+                            onActionClick = { viewModel.loadHotels() }
                         )
                     }
                     is HotelListUiState.Success -> {
-                        val filteredHotels = state.hotels.filter {
-                            searchQuery.isBlank() ||
-                                    it.name.contains(searchQuery, ignoreCase = true) ||
-                                    (it.city ?: "").contains(searchQuery, ignoreCase = true)
-                        }
-
-                        if (filteredHotels.isEmpty()) {
+                        if (state.filteredHotels.isEmpty()) {
                             TourOSEmptyState(
-                                title = "Kayıtlı Otel Bulunamadı",
-                                description = "Henüz sisteme eklenmiş bir konaklama tesisi yok veya arama kriterine uygun otel bulunamadı.",
+                                title = "Otel Bulunamadı",
+                                description = "Filtre kriterlerinize uygun konaklama tesisi bulunmamaktadır.",
                                 actionButtonText = "+ Yeni Otel Ekle",
                                 onActionClick = onAddHotelClick
                             )
                         } else {
                             val hotelColumns = listOf(
                                 TourOSColumn<Hotel>(title = "OTEL ADI & KONUM", weight = 2.5f) { hotel ->
-                                    Column {
-                                        Text(text = hotel.name, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-                                        Text(
-                                            text = "📍 ${hotel.city ?: "Şehir Belirtilmedi"}, ${hotel.country}",
-                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                                        )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        HotelThumbnail(imageUrl = hotel.coverImageUrl, name = hotel.name)
+                                        Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+                                        Column {
+                                            Text(text = hotel.name, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                            Text(
+                                                text = "📍 ${hotel.city ?: "Şehir Belirtilmedi"}, ${hotel.country}",
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary)
+                                            )
+                                        }
                                     }
                                 },
-                                TourOSColumn<Hotel>(title = "DERECE", weight = 1.2f) { hotel ->
+                                TourOSColumn<Hotel>(title = "DERECE", weight = 1.3f) { hotel ->
                                     val stars = "⭐".repeat(hotel.starRating ?: 4)
                                     TourOSStatusBadge(
                                         text = "$stars ${hotel.starRating ?: 4} Yıldız",
-                                        backgroundColor = TourOSColors.Secondary.copy(alpha = 0.15f),
+                                        backgroundColor = TourOSColors.SecondaryContainer,
                                         textColor = TourOSColors.Secondary
                                     )
                                 },
-                                TourOSColumn<Hotel>(title = "İLETİŞİM", weight = 1.5f) { hotel ->
-                                    Text(
-                                        text = "📞 ${hotel.phone ?: "-"}",
-                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
-                                    )
+                                TourOSColumn<Hotel>(title = "İLETİŞİM", weight = 1.8f) { hotel ->
+                                    Column {
+                                        Text(text = "📞 ${hotel.phone ?: "-"}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
+                                        if (!hotel.email.isNullOrBlank()) {
+                                            Text(text = hotel.email, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        }
+                                    }
+                                },
+                                TourOSColumn<Hotel>(title = "DURUM", weight = 1.2f) { hotel ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Switch(
+                                            checked = hotel.isActive,
+                                            onCheckedChange = { viewModel.onToggleHotelStatus(hotel.id, hotel.isActive) },
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = TourOSColors.Background,
+                                                checkedTrackColor = TourOSColors.Primary
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.width(TourOSSpacing.small))
+                                        Text(
+                                            text = if (hotel.isActive) "Aktif" else "Pasif",
+                                            style = TourOSTypography.BodyMedium.copy(
+                                                color = if (hotel.isActive) TourOSColors.Success else TourOSColors.TextDisabled
+                                            )
+                                        )
+                                    }
                                 },
                                 TourOSColumn<Hotel>(title = "İŞLEM", weight = 1f) { hotel ->
                                     TourOSButton(
@@ -156,7 +269,7 @@ fun HotelListScreen(
                             )
 
                             TourOSDataTable(
-                                items = filteredHotels,
+                                items = state.filteredHotels,
                                 columns = hotelColumns,
                                 isCompact = isCompact,
                                 modifier = Modifier.fillMaxSize(),
@@ -168,20 +281,25 @@ fun HotelListScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.Top
                                         ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(text = hotel.name, style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
-                                                // Konum İkincil Metin Renginde (TextSecondary)
-                                                Text(
-                                                    text = "📍 ${hotel.city ?: "Şehir Belirtilmedi"}, ${hotel.country}",
-                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
-                                                )
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                HotelThumbnail(imageUrl = hotel.coverImageUrl, name = hotel.name)
+                                                Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+                                                Column {
+                                                    Text(text = hotel.name, style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary))
+                                                    Text(
+                                                        text = "📍 ${hotel.city ?: "Şehir Belirtilmedi"}, ${hotel.country}",
+                                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                                                    )
+                                                }
                                             }
 
-                                            // Yıldız Derecesi İkon ile
                                             val stars = "⭐".repeat(hotel.starRating ?: 4)
                                             TourOSStatusBadge(
                                                 text = stars,
-                                                backgroundColor = TourOSColors.Secondary.copy(alpha = 0.15f),
+                                                backgroundColor = TourOSColors.SecondaryContainer,
                                                 textColor = TourOSColors.Secondary
                                             )
                                         }
@@ -204,11 +322,22 @@ fun HotelListScreen(
                                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                             )
 
-                                            TourOSButton(
-                                                text = "Düzenle",
-                                                onClick = { onEditHotelClick(hotel.id) },
-                                                variant = TourOSButtonVariant.SECONDARY
-                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Switch(
+                                                    checked = hotel.isActive,
+                                                    onCheckedChange = { viewModel.onToggleHotelStatus(hotel.id, hotel.isActive) },
+                                                    colors = SwitchDefaults.colors(
+                                                        checkedThumbColor = TourOSColors.Background,
+                                                        checkedTrackColor = TourOSColors.Primary
+                                                    )
+                                                )
+                                                Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+                                                TourOSButton(
+                                                    text = "Düzenle",
+                                                    onClick = { onEditHotelClick(hotel.id) },
+                                                    variant = TourOSButtonVariant.SECONDARY
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -217,6 +346,31 @@ fun HotelListScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HotelThumbnail(imageUrl: String?, name: String) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+            .background(TourOSColors.PrimaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        if (!imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = "🏨",
+                style = TourOSTypography.TitleLarge
+            )
         }
     }
 }

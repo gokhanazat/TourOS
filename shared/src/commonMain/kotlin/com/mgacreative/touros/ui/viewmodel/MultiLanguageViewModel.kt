@@ -50,6 +50,7 @@ class MultiLanguageViewModel(
     }
 
     fun selectLanguage(language: AppLanguageItem) {
+        com.mgacreative.touros.ui.localization.AppLanguageManager.setLanguage(language.code)
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(selectedLanguage = language, isLoading = true)
             val user = getCurrentUserUseCase()

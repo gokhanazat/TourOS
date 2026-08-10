@@ -6,6 +6,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
@@ -30,6 +31,9 @@ actual fun rememberFilePickerLauncher(
 
     return { launcher.launch(mimeType) }
 }
+
+@Composable
+actual fun Modifier.onFileDrop(onFilesDropped: (List<String>) -> Unit): Modifier = this
 
 private fun getFileNameFromUri(context: Context, uri: Uri): String? {
     return context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->

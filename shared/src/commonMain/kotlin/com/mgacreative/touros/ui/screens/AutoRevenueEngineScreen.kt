@@ -1,5 +1,6 @@
 package com.mgacreative.touros.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,18 +9,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
+import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.AutoRevenueEngineViewModel
 import com.mgacreative.touros.ui.viewmodel.AutoRevenueLogItem
 import com.mgacreative.touros.ui.viewmodel.AutoRevenueUiState
 
 /**
- * 3.1.2 Otomatik Gelir Kaydı Motoru Ekranı.
+ * 3.1.2 Otomatik Gelir Kaydı Motoru Ekranı — TourOS Canlı Veri Sürümü
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AutoRevenueEngineScreen(
     viewModel: AutoRevenueEngineViewModel,
@@ -28,12 +31,14 @@ fun AutoRevenueEngineScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("⚡ Otomatik Gelir Kaydı Motoru", fontWeight = FontWeight.Bold) },
+            TourOSTopBar(
+                title = "Otomatik Gelir Kaydı Motoru",
+                subtitle = "Onaylanan rezervasyonların matrah ve KDV otomatik fatura akışı",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
                     }
                 }
             )
@@ -43,60 +48,112 @@ fun AutoRevenueEngineScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(TourOSSpacing.large),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
             when (val state = uiState) {
                 is AutoRevenueUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = TourOSColors.Primary)
                     }
                 }
+
                 is AutoRevenueUiState.Error -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Hata: ${state.message}", color = MaterialTheme.colorScheme.error)
+                        Text("Hata: ${state.message}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error))
                     }
                 }
+
                 is AutoRevenueUiState.Success -> {
                     // 1. Accounting Engine Durum Kartı
-                    Card(
+                    TourOSCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f))
+                        backgroundColor = TourOSColors.PrimaryContainer,
+                        contentPadding = TourOSSpacing.large
                     ) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                Text("⚡ Accounting Engine (Aktif Motor)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFDCFCE7)) {
-                                    Text("🟢 Otomatik Tetikleyici Aktif", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF15803D), modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "⚡ Accounting Engine (Aktif Motor)",
+                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                        .background(TourOSColors.SuccessContainer)
+                                        .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        "🟢 Otomatik Tetikleyici Aktif",
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
-                            Text("Onaylanan her rezervasyon için veritabanında KDV matrah hesaplaması yapılıp anında otomatik satış faturası (Invoice) oluşturulur.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Text(
+                                "Onaylanan her rezervasyon için veritabanında KDV matrah hesaplaması yapılıp anında otomatik satış faturası (Invoice) oluşturulur.",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                            )
 
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            HorizontalDivider(color = TourOSColors.Divider)
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 Column {
-                                    Text("Toplam Muhasebeleşen Ciro", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("${state.totalRevenue} TRY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text("Toplam Muhasebeleşen Ciro", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                    Text(
+                                        "₺ ${formatMoney(state.totalRevenue)}",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
-                                Column {
-                                    Text("Tahakkuk Eden KDV (%20)", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("${state.totalTaxCollected} TRY", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Tahakkuk Eden KDV (%20)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                    Text(
+                                        "₺ ${formatMoney(state.totalTaxCollected)}",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary),
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
                     }
 
                     // 2. Gelir Kayıt Günlüğü (Log List)
-                    Text("🧾 Otomatik Gelir Kaydı Günlüğü & Faturalar:", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "🧾 Otomatik Gelir Kaydı Günlüğü & Faturalar (${state.logs.size}):",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
+                    )
 
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth().weight(1f)
-                    ) {
-                        items(state.logs) { log ->
-                            AutoRevenueLogCard(log = log)
+                    if (state.logs.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Henüz veritabanında işlenmiş otomatik gelir kaydı bulunmamaktadır.",
+                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                            )
+                        }
+                    } else {
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                            modifier = Modifier.fillMaxWidth().weight(1f)
+                        ) {
+                            items(state.logs) { log ->
+                                AutoRevenueLogCard(log = log)
+                            }
                         }
                     }
                 }
@@ -106,39 +163,68 @@ fun AutoRevenueEngineScreen(
 }
 
 @Composable
-fun AutoRevenueLogCard(log: AutoRevenueLogItem) {
-    Card(
+private fun AutoRevenueLogCard(log: AutoRevenueLogItem) {
+    TourOSCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        contentPadding = TourOSSpacing.medium
     ) {
-        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("📌 Rezervasyon: ${log.bookingCode}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Text("🧾 ${log.invoiceNo}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "📌 Rezervasyon: ${log.bookingCode}",
+                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                    fontWeight = FontWeight.Bold
+                )
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.SecondaryContainer)
+                        .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
+                ) {
+                    Text(
+                        "🧾 ${log.invoiceNo}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
-            Text("👤 Müşteri: ${log.customerName} | 📅 Tarih: ${log.autoProcessedAt}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "👤 Müşteri: ${log.customerName}  ·  📅 Tarih: ${log.autoProcessedAt}",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            HorizontalDivider(color = TourOSColors.Divider)
 
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Column {
-                    Text("Matrah (KDV Haric)", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${log.subtotal} TRY", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Matrah (KDV Hariç)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(log.subtotal)}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
                 }
+
                 Column {
-                    Text("KDV (%20)", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${log.taxAmount} TRY", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
+                    Text("KDV (%20)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(log.taxAmount)}", style = TourOSTypography.Label.copy(color = TourOSColors.Secondary), fontWeight = FontWeight.Bold)
                 }
-                Column {
-                    Text("Fatura Toplamı", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text("${log.totalAmount} TRY", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Fatura Toplamı", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("₺ ${formatMoney(log.totalAmount)}", style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
                 }
             }
         }
     }
+}
+
+private fun formatMoney(amount: Double): String {
+    val rounded = (amount * 100).toLong() / 100.0
+    return rounded.toString()
 }

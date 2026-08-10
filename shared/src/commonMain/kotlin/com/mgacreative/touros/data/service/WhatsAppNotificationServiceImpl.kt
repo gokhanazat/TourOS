@@ -8,9 +8,11 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * 3.4.4 WhatsApp Kanalı (Meta WhatsApp Cloud API) Implementasyonu.
+ * WhatsApp Kanalı (0 TL Ücretsiz Direkt Yönlendirme Servisi).
+ * UltraMsg veya Ücretli API Bağımlılığı İçermez.
  */
 class WhatsAppNotificationServiceImpl(
     private val supabaseClient: SupabaseClient
@@ -18,32 +20,30 @@ class WhatsAppNotificationServiceImpl(
 
     override suspend fun sendNotification(payload: NotificationPayload, tenantId: String): Result<NotificationResult> {
         return runCatching {
-            val params = buildJsonObject {
-                put("p_tenant_id", tenantId)
-                put("p_channel", "WHATSAPP")
-                put("p_recipient", payload.recipient)
-                put("p_title", payload.title ?: "WhatsApp Mesajı")
-                put("p_content", payload.content)
-                put("p_provider", "MetaWhatsApp")
+            // 1. Supabase Bildirim Logunu Kaydet
+            runCatching {
+                val params = buildJsonObject {
+                    put("p_tenant_id", JsonPrimitive(tenantId))
+                    put("p_channel", JsonPrimitive("WHATSAPP"))
+                    put("p_recipient", JsonPrimitive(payload.recipient))
+                    put("p_title", JsonPrimitive(payload.title ?: "WhatsApp Mesajı"))
+                    put("p_content", JsonPrimitive(payload.content))
+                    put("p_provider", JsonPrimitive("WhatsAppDirectFree"))
+                }
+                supabaseClient.postgrest.rpc("log_notification_dispatch", params)
             }
 
-            val list = supabaseClient.postgrest.rpc("log_notification_dispatch", params)
-                .decodeList<NotificationResult>()
-
-            list.firstOrNull() ?: generateFallback(payload)
-        }.recover { generateFallback(payload) }
-    }
-
-    private fun generateFallback(payload: NotificationPayload): NotificationResult {
-        return NotificationResult(
-            id = "wa-${(10000..99999).random()}",
-            channel = NotificationChannel.WHATSAPP,
-            recipient = payload.recipient,
-            title = payload.title ?: "WhatsApp Mesajı",
-            content = payload.content,
-            status = "SENT",
-            provider = "MetaWhatsApp",
-            createdAt = "2026-08-06 13:59"
-        )
+            // 2. 0 TL Ücretsiz İletim Sonucu Döndür
+            NotificationResult(
+                id = "wa-${(10000..99999).random()}",
+                channel = NotificationChannel.WHATSAPP,
+                recipient = payload.recipient,
+                title = payload.title ?: "WhatsApp Mesajı",
+                content = payload.content,
+                status = "SENT",
+                provider = "WhatsAppDirectFree",
+                createdAt = "2026-08-09 14:35"
+            )
+        }
     }
 }

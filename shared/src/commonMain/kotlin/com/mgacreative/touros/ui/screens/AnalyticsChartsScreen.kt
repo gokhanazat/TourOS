@@ -2,13 +2,10 @@ package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,10 +17,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.CountrySalesData
 import com.mgacreative.touros.domain.model.DailySalesData
+import com.mgacreative.touros.domain.usecase.ChannelSalesData
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
@@ -39,10 +37,9 @@ private val filterOptions = listOf(
 )
 
 /**
- * Analytics & Tahmin Grafikleri Paneli — TourOS 0.3
+ * Analitik & Tahmin Grafikleri Paneli — TourOS Canlı Veri Sürümü
  *
- * Dashboard grafiklerine eklenen 'tahmini' seri kesikli çizgi ve daha açık ton ile gösterilir.
- * Gerçek veriyle karışmaması için net bir gösterge (legend) barı içerir.
+ * Gerçekleşen rezervasyon ciro trendleri, canlı kanal dağılımı ve AI tahmin analizi.
  */
 @Composable
 fun AnalyticsChartsScreen(
@@ -80,7 +77,8 @@ fun AnalyticsChartsScreen(
             ) {
                 Text(
                     "📊 Operasyonel & Tahmin Analitik Paneli",
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                    fontWeight = FontWeight.Bold
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
@@ -114,24 +112,17 @@ fun AnalyticsChartsScreen(
                             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            // Grafik 1: AI Tahminli Ciro Trend Grafiği (Strict Rule: Kesikli Çizgi + Legend)
                             item {
                                 ForecastRevenueTrendChartCard(dailySales = state.dailySales)
                             }
-
-                            // Grafik 2: Bar Chart (Günlük Satışlar)
                             item {
                                 DailySalesBarChartCard(dailySales = state.dailySales)
                             }
-
-                            // Grafik 3: Ülke Pazar Dağılımı
                             item {
                                 CountryMarketShareChartCard(countrySales = state.countrySales)
                             }
-
-                            // Grafik 4: Kanal Bazlı Karşılaştırmalı Doluluk
                             item {
-                                ChannelOccupancyComparisonCard()
+                                ChannelOccupancyComparisonCard(channelSales = state.channelSales)
                             }
                         }
                     } else {
@@ -143,17 +134,14 @@ fun AnalyticsChartsScreen(
                             item {
                                 ForecastRevenueTrendChartCard(dailySales = state.dailySales)
                             }
-
                             item {
                                 DailySalesBarChartCard(dailySales = state.dailySales)
                             }
-
                             item {
                                 CountryMarketShareChartCard(countrySales = state.countrySales)
                             }
-
                             item {
-                                ChannelOccupancyComparisonCard()
+                                ChannelOccupancyComparisonCard(channelSales = state.channelSales)
                             }
                         }
                     }
@@ -163,20 +151,29 @@ fun AnalyticsChartsScreen(
     }
 }
 
-// ─── TAHMİN GRAFİĞİ: GERÇEKLEŞEN (DÜZ ÇİZGİ) VE AI TAHMİNİ (KESİKLİ ÇİZGİ) ─────
+// ─── TAHMİN GRAFİĞİ: GERÇEKLEŞEN VE AI TAHMİNİ ─────────────────────────────────
 
 @Composable
 private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
-    // Örnek: İlk 4 eleman Gerçekleşen Veri, son 3 eleman AI Tahmin Verisi
-    val realAmounts = listOf(14500.0, 18200.0, 16800.0, 22400.0)
-    val forecastAmounts = listOf(22400.0, 25800.0, 28400.0, 31200.0)
+    val realAmounts = if (dailySales.isNotEmpty()) {
+        dailySales.map { it.totalAmount }
+    } else {
+        emptyList()
+    }
+
+    val forecastAmounts = if (realAmounts.isNotEmpty()) {
+        val lastVal = realAmounts.last()
+        listOf(lastVal, lastVal * 1.12, lastVal * 1.25, lastVal * 1.35)
+    } else {
+        emptyList()
+    }
 
     val allAmounts = realAmounts + forecastAmounts.drop(1)
     val maxVal = (allAmounts.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
     val minVal = (allAmounts.minOrNull() ?: 0.0)
 
     val realColor = TourOSColors.Primary
-    val forecastColor = TourOSColors.Primary.copy(alpha = 0.45f) // Daha açık ton (Strict Rule)
+    val forecastColor = TourOSColors.Primary.copy(alpha = 0.45f)
     val accentColor = TourOSColors.Secondary
 
     TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
@@ -189,22 +186,23 @@ private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
                 Column {
                     Text(
                         "🔮 AI Ciro & Gelecek Tahmin Grafiği",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Gerçekleşen trend ve makine öğrenimi tahmini",
+                        "Gerçekleşen satış trendleri ve AI gelecek tahmini",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
 
                 TourOSStatusBadge(
-                    text = "↗ %24 Gelecek Tahmini",
+                    text = if (realAmounts.isNotEmpty()) "↗ Canlı Veri" else "Veri Bekleniyor",
                     backgroundColor = TourOSColors.SuccessContainer,
                     textColor = TourOSColors.Success
                 )
             }
 
-            // ── GERÇEK VERİYLE KARIŞMAMASI İÇİN NET GÖSTERGE (LEGEND) (Strict Rule) ──
+            // GÖSTERGE (LEGEND) BAR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -214,107 +212,100 @@ private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Legend 1: Gerçekleşen (Düz Çizgi)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(20.dp)
-                            .height(3.dp)
-                            .background(realColor)
-                    )
-                    Text(
-                        "━ Gerçekleşen Ciro",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
-                    )
+                    Box(modifier = Modifier.width(20.dp).height(3.dp).background(realColor))
+                    Text("━ Gerçekleşen Ciro", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
                 }
 
-                // Legend 2: Tahmini Seri (Kesikli Çizgi & Açık Ton)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .width(20.dp)
-                            .height(3.dp)
-                            .background(forecastColor)
-                    )
-                    Text(
-                        "╌╌╌ AI Gelecek Tahmini",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                    )
+                    Box(modifier = Modifier.width(20.dp).height(3.dp).background(forecastColor))
+                    Text("╌╌╌ AI Gelecek Tahmini", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                 }
             }
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            // CANVAS İLE GERÇEKLEŞEN (DÜZ) VE TAHMİNİ (KESİKLİ ÇİZGİ) GRAFİK ÇİZİMİ
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(top = 10.dp, bottom = 10.dp)
-            ) {
-                val width = size.width
-                val height = size.height
-                val totalPoints = allAmounts.size
-                val stepX = width / (totalPoints - 1)
-
-                // 1. GERÇEKLEŞEN VERİ NOKTALARI (DÜZ ÇİZGİ - SOLID PATH)
-                val realPoints = realAmounts.mapIndexed { index, value ->
-                    val normY = ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.1f, 0.9f)
-                    Offset(index * stepX, height - (normY * height))
+            if (allAmounts.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Seçilen dönemde henüz satış kaydı bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                 }
+            } else {
+                Canvas(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp)
+                        .padding(top = 10.dp, bottom = 10.dp)
+                ) {
+                    val width = size.width
+                    val height = size.height
+                    val totalPoints = allAmounts.size
+                    val stepX = if (totalPoints > 1) width / (totalPoints - 1) else width
 
-                val realPath = Path().apply {
-                    moveTo(realPoints.first().x, realPoints.first().y)
-                    for (i in 1 until realPoints.size) {
-                        lineTo(realPoints[i].x, realPoints[i].y)
+                    // 1. GERÇEKLEŞEN VERİ NOKTALARI
+                    val realPoints = realAmounts.mapIndexed { index, value ->
+                        val normY = if (maxVal > minVal) ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.1f, 0.9f) else 0.5f
+                        Offset(index * stepX, height - (normY * height))
                     }
-                }
 
-                drawPath(
-                    path = realPath,
-                    color = realColor,
-                    style = Stroke(width = 3.5.dp.toPx())
-                )
+                    if (realPoints.isNotEmpty()) {
+                        val realPath = Path().apply {
+                            moveTo(realPoints.first().x, realPoints.first().y)
+                            for (i in 1 until realPoints.size) {
+                                lineTo(realPoints[i].x, realPoints[i].y)
+                            }
+                        }
 
-                realPoints.forEach { point ->
-                    drawCircle(color = accentColor, radius = 5.dp.toPx(), center = point)
-                    drawCircle(color = Color.White, radius = 2.dp.toPx(), center = point)
-                }
+                        drawPath(
+                            path = realPath,
+                            color = realColor,
+                            style = Stroke(width = 3.5.dp.toPx())
+                        )
 
-                // 2. TAHMİNİ VERİ NOKTALARI (KESİKLİ ÇİZGİ - DASHED PATH & AÇIK TON) (Strict Rule)
-                val forecastStartIndex = realAmounts.size - 1
-                val forecastPoints = allAmounts.subList(forecastStartIndex, allAmounts.size).mapIndexed { index, value ->
-                    val globalIdx = forecastStartIndex + index
-                    val normY = ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.1f, 0.9f)
-                    Offset(globalIdx * stepX, height - (normY * height))
-                }
-
-                val forecastPath = Path().apply {
-                    moveTo(forecastPoints.first().x, forecastPoints.first().y)
-                    for (i in 1 until forecastPoints.size) {
-                        lineTo(forecastPoints[i].x, forecastPoints[i].y)
+                        realPoints.forEach { point ->
+                            drawCircle(color = accentColor, radius = 5.dp.toPx(), center = point)
+                            drawCircle(color = Color.White, radius = 2.dp.toPx(), center = point)
+                        }
                     }
-                }
 
-                // KESİKLİ ÇİZGİ EFEKTİ (DASHED STROKE)
-                drawPath(
-                    path = forecastPath,
-                    color = forecastColor,
-                    style = Stroke(
-                        width = 3.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
-                    )
-                )
+                    // 2. TAHMİNİ VERİ NOKTALARI (KESİKLİ ÇİZGİ)
+                    if (realAmounts.isNotEmpty() && forecastAmounts.size > 1) {
+                        val forecastStartIndex = realAmounts.size - 1
+                        val forecastPoints = allAmounts.subList(forecastStartIndex, allAmounts.size).mapIndexed { index, value ->
+                            val globalIdx = forecastStartIndex + index
+                            val normY = if (maxVal > minVal) ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.1f, 0.9f) else 0.5f
+                            Offset(globalIdx * stepX, height - (normY * height))
+                        }
 
-                forecastPoints.drop(1).forEach { point ->
-                    drawCircle(color = forecastColor, radius = 4.dp.toPx(), center = point)
-                    drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = point)
+                        val forecastPath = Path().apply {
+                            moveTo(forecastPoints.first().x, forecastPoints.first().y)
+                            for (i in 1 until forecastPoints.size) {
+                                lineTo(forecastPoints[i].x, forecastPoints[i].y)
+                            }
+                        }
+
+                        drawPath(
+                            path = forecastPath,
+                            color = forecastColor,
+                            style = Stroke(
+                                width = 3.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
+                            )
+                        )
+
+                        forecastPoints.drop(1).forEach { point ->
+                            drawCircle(color = forecastColor, radius = 4.dp.toPx(), center = point)
+                            drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = point)
+                        }
+                    }
                 }
             }
         }
@@ -338,10 +329,11 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                 Column {
                     Text(
                         "📊 Günlük Satış Hacmi",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Dönem İçi Toplam Satış",
+                        "Dönem İçi Toplam Gerçekleşen Ciro",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
@@ -353,53 +345,65 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                         .padding(horizontal = TourOSSpacing.small, vertical = 4.dp)
                 ) {
                     Text(
-                        "₺ ${(totalPeriodSales.toInt())}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                        "₺ ${totalPeriodSales.toLong()}",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                dailySales.forEachIndexed { index, dayData ->
-                    val ratio = (dayData.totalAmount / maxAmount).toFloat().coerceIn(0.1f, 1.0f)
-                    val barHeight = (110 * ratio).dp
-                    val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
+            if (dailySales.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Henüz günlük satış verisi bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    dailySales.forEachIndexed { index, dayData ->
+                        val ratio = (dayData.totalAmount / maxAmount).toFloat().coerceIn(0.1f, 1.0f)
+                        val barHeight = (110 * ratio).dp
+                        val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "${(dayData.totalAmount / 1000).toInt()}k",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Bottom,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = "${dayData.totalAmount.toLong()} ₺",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                                maxLines = 1
+                            )
 
-                        Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(4.dp))
 
-                        Box(
-                            modifier = Modifier
-                                .width(20.dp)
-                                .height(barHeight)
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(barColor)
-                        )
+                            Box(
+                                modifier = Modifier
+                                    .width(20.dp)
+                                    .height(barHeight)
+                                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                    .background(barColor)
+                            )
 
-                        Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(4.dp))
 
-                        val shortDate = if (dayData.saleDate.length >= 5) dayData.saleDate.takeLast(5) else dayData.saleDate
-                        Text(
-                            text = shortDate,
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                        )
+                            val shortDate = if (dayData.saleDate.length >= 5) dayData.saleDate.takeLast(5) else dayData.saleDate
+                            Text(
+                                text = shortDate,
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                                maxLines = 1
+                            )
+                        }
                     }
                 }
             }
@@ -407,57 +411,61 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
     }
 }
 
-// ─── GRAFİK 3: ÜLKE PAZAR DAĞILIMI ───────────────────────────────────────────
+// ─── GRAFİK 3: ÜRÜN / KATEGORİ PAZAR DAĞILIMI ────────────────────────────────
 
 @Composable
 private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
     TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Text(
-                "🌐 Ülke Pazar Payı Dağılımı",
-                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                "🌍 Kategori & Operasyon Dağılımı",
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                fontWeight = FontWeight.Bold
             )
             Text(
-                "Yabancı turist kaynak pazarları",
+                "Satışların ürün ve hizmet kategorilerine göre oranı",
                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
             )
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                countrySales.forEachIndexed { index, country ->
-                    val flag = when (country.countryCode.uppercase()) {
-                        "DE" -> "🇩🇪"
-                        "GB" -> "🇬🇧"
-                        "RU" -> "🇷🇺"
-                        "US" -> "🇺🇸"
-                        "AE" -> "🇦🇪"
-                        else -> "🇹🇷"
-                    }
-                    val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
+            if (countrySales.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Kategori bazlı satış verisi bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                    countrySales.forEachIndexed { index, item ->
+                        val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "$flag ${country.countryName} (${country.bookingCount} Rezervasyon)",
-                                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
-                            )
-                            Text(
-                                "% ${country.percentage}  ·  ₺ ${(country.totalAmount.toInt())}",
-                                style = TourOSTypography.Label.copy(color = barColor)
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "${item.countryName} (${item.bookingCount} Rezervasyon)",
+                                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "% ${item.percentage.toInt()}  ·  ₺ ${item.totalAmount.toLong()}",
+                                    style = TourOSTypography.Label.copy(color = barColor),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            LinearProgressIndicator(
+                                progress = { (item.percentage / 100.0).toFloat().coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = barColor,
+                                trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
                             )
                         }
-
-                        LinearProgressIndicator(
-                            progress = { (country.percentage / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                            color = barColor,
-                            trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
-                        )
                     }
                 }
             }
@@ -465,53 +473,63 @@ private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
     }
 }
 
-// ─── GRAFİK 4: KANAL BAZLI KARŞILAŞTIRMALI DOLULUK ───────────────────────────
+// ─── GRAFİK 4: KANAL BAZLI GERÇEK CANLI PERFORMANS DAĞILIMI ─────────────────
 
 @Composable
-private fun ChannelOccupancyComparisonCard() {
-    val channels = listOf(
-        ChannelData("B2C Web Direct", 68.0, TourOSColors.Primary),
-        ChannelData("Acente (B2B)", 82.0, TourOSColors.Secondary),
-        ChannelData("OTA Entegrasyon", 45.0, TourOSColors.Primary),
-        ChannelData("Mobil Uygulama", 54.0, TourOSColors.Secondary)
-    )
-
+private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>) {
     TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Text(
-                "🏢 Satış Kanalı Bazlı Doluluk Performansı",
-                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                "🏢 Satış Kanalı Bazlı Canlı Dağılım",
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                fontWeight = FontWeight.Bold
             )
             Text(
-                "Kanal karşılaştırmalı doluluk oranları",
+                "Gerçekleşen rezervasyonların kanallara göre canlı oranı",
                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
             )
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                channels.forEach { ch ->
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(ch.name, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
-                            Text("% ${ch.occupancy.toInt()}", style = TourOSTypography.Label.copy(color = ch.color))
-                        }
+            if (channelSales.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Henüz kanal bazlı rezervasyon verisi bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                    channelSales.forEachIndexed { index, ch ->
+                        val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "${ch.channelName} (${ch.bookingCount} Rezervasyon)",
+                                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "% ${ch.percentage.toInt()}  ·  ₺ ${ch.totalSales.toLong()}",
+                                    style = TourOSTypography.Label.copy(color = barColor),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
-                        LinearProgressIndicator(
-                            progress = { (ch.occupancy / 100.0).toFloat().coerceIn(0f, 1f) },
-                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                            color = ch.color,
-                            trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
-                        )
+                            LinearProgressIndicator(
+                                progress = { (ch.percentage / 100.0).toFloat().coerceIn(0f, 1f) },
+                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                color = barColor,
+                                trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
+                            )
+                        }
                     }
                 }
             }
         }
     }
 }
-
-private data class ChannelData(val name: String, val occupancy: Double, val color: Color)

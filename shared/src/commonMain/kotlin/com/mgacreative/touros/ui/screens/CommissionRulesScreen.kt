@@ -75,7 +75,7 @@ fun CommissionRulesScreen(
                             CommissionSimulatorCard(
                                 rules = state.rules,
                                 simulatedResultText = state.simulatedResultText,
-                                onSimulate = { price, rule -> viewModel.simulateCalculation(price, rule) }
+                                onSimulate = { price, rule -> viewModel.simulateCommission(price, rule) }
                             )
                         }
 
@@ -117,7 +117,7 @@ fun CommissionRulesScreen(
                             item {
                                 CommissionRulesTable(
                                     rules = state.rules,
-                                    onSimulateClick = { viewModel.simulateCalculation(10000.0, it) }
+                                    onSimulateClick = { viewModel.simulateCommission(10000.0, it) }
                                 )
                             }
                         } else {
@@ -125,7 +125,7 @@ fun CommissionRulesScreen(
                             items(state.rules) { rule ->
                                 CommissionRuleCard(
                                     rule = rule,
-                                    onSimulateClick = { viewModel.simulateCalculation(10000.0, rule) }
+                                    onSimulateClick = { viewModel.simulateCommission(10000.0, rule) }
                                 )
                             }
                         }
@@ -136,7 +136,7 @@ fun CommissionRulesScreen(
                         CreateCommissionRuleDialog(
                             onDismiss = { showCreateDialog = false },
                             onCreate = { name, agent, tour, type, rate, fixed ->
-                                viewModel.saveRule(name, agent, tour, type, rate, fixed)
+                                viewModel.saveNewRule(name, agent, tour, type, rate, fixed)
                                 showCreateDialog = false
                             }
                         )

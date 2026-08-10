@@ -18,6 +18,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -40,8 +42,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import com.mgacreative.touros.data.database.entity.AgencyStorefrontTourItem
+import com.mgacreative.touros.domain.model.Hotel
 import com.mgacreative.touros.ui.components.TourOSButton
+import com.mgacreative.touros.ui.components.TourOSButtonVariant
 import com.mgacreative.touros.ui.components.TourOSDropdown
 import com.mgacreative.touros.ui.components.TourOSTextField
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -74,9 +80,11 @@ data class StorefrontHotelCardItem(
 @Composable
 fun AgencyStorefrontScreen(
     onNavigateToTourDetail: (String) -> Unit = {},
+    onNavigateToHotelDetail: (String) -> Unit = {},
     viewModel: AgencyStorefrontViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     var departureCityInput by remember { mutableStateOf("İstanbul") }
     var destinationInput by remember { mutableStateOf("") }
@@ -93,6 +101,7 @@ fun AgencyStorefrontScreen(
     var showAllToursView by remember { mutableStateOf(false) }
     var showAllHotelsView by remember { mutableStateOf(false) }
     var showAllOperatorProductsView by remember { mutableStateOf(false) }
+    var selectedHotelDetail by remember { mutableStateOf<Hotel?>(null) }
 
     // Rezervasyon & İletişim Form State'leri
     var contactName by remember { mutableStateOf("") }
@@ -172,24 +181,8 @@ fun AgencyStorefrontScreen(
                         }
                         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                            items(sampleHotels) { h ->
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(TourOSSpacing.medium),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(text = h.name, style = TourOSTypography.TitleMedium, fontWeight = FontWeight.Bold)
-                                            Text(text = "📍 ${h.location} • ${h.boardType} • ⭐ ${h.rating}", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
-                                        }
-                                        Text(text = h.pricePerNight, style = TourOSTypography.TitleMedium, color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
-                                    }
-                                }
+                            items(state.hotels) { h ->
+                                RegisteredHotelCard(hotel = h, onClickInspect = { onNavigateToHotelDetail(h.id) })
                             }
                         }
                     }
@@ -219,53 +212,89 @@ fun AgencyStorefrontScreen(
                 // ── NORMAL KESİNTİSİZ LANDING PAGE SAYFA AKIŞI ────────────────────────────
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
 
-                    // ── 1. CLEAN HEADER BANNER ALANI (YAZILAR KALDIRILDI, ÖZEL LOGO SOL ÜSTTE) ─
+                    // ── 1. CLEAN HEADER BANNER ALANI (GÖRSEL BANNER, ÖZEL LOGO SOL ÜSTTE) ─
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                                .background(TourOSColors.Primary),
-                            contentAlignment = Alignment.TopStart
-                        ) {
-                            // Sol Üst Özel Logo Rozeti ve İletişim Rozeti
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .background(Color.White, RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = state.branding.customLogoUrl?.takeIf { it.isNotBlank() } ?: "🏢 ACENTE LOGO",
-                                            style = TourOSTypography.TitleMedium,
-                                            color = TourOSColors.Primary,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                    }
-                                }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp)
+            .background(TourOSColors.Primary),
+        contentAlignment = Alignment.TopStart
+    ) {
+        val headerImg = state.branding.headerImageUrl
+        if (!headerImg.isNullOrBlank()) {
+            val imgModel = remember(headerImg) {
+                val trimmed = headerImg.trim()
+                if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("file://")) {
+                    trimmed
+                } else {
+                    "file://$trimmed"
+                }
+            }
+            AsyncImage(
+                model = imgModel,
+                contentDescription = "Header Banner",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
 
-                                Box(
-                                    modifier = Modifier
-                                        .background(Color.Black.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
-                                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                                ) {
-                                    Text(
-                                        text = "📞 0850 300 00 00",
-                                        style = TourOSTypography.BodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
+        // Sol Üst Özel Logo Rozeti ve İletişim Rozeti
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .background(Color.White, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    val customLogo = state.branding.customLogoUrl
+                    if (!customLogo.isNullOrBlank()) {
+                        val logoModel = remember(customLogo) {
+                            val trimmed = customLogo.trim()
+                            if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("file://")) {
+                                trimmed
+                            } else {
+                                "file://$trimmed"
                             }
                         }
+                        AsyncImage(
+                            model = logoModel,
+                            contentDescription = "Acente Logosu",
+                            modifier = Modifier.height(36.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        Text(
+                            text = state.branding.heroTitle.ifBlank { "🏢 ACENTE LOGO" },
+                            style = TourOSTypography.TitleMedium,
+                            color = TourOSColors.Primary,
+                            fontWeight = FontWeight.Black
+                        )
                     }
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "📞 ${state.branding.contactPhone?.takeIf { it.isNotBlank() } ?: "0850 300 00 00"}",
+                    style = TourOSTypography.BodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
 
                     // ── 2. HEADER ALTINA ALINMIŞ ARAMA BLOĞU + OPERATÖR FİLTRESİ ───────────────
                     item {
@@ -283,7 +312,7 @@ fun AgencyStorefrontScreen(
                             ) {
                                 Column(modifier = Modifier.padding(TourOSSpacing.medium)) {
                                     Text(
-                                        text = "🔍 Tur ve Otel Arama Motoru",
+                                        text = "🔍 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur ve Otel Arama Motoru"),
                                         style = TourOSTypography.TitleMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = TourOSColors.TextPrimary
@@ -299,14 +328,14 @@ fun AgencyStorefrontScreen(
                                             TourOSTextField(
                                                 value = departureCityInput,
                                                 onValueChange = { departureCityInput = it },
-                                                label = "Kalkış Şehri (Nereden)"
+                                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kalkış Şehri (Nereden)")
                                             )
                                         }
                                         Box(modifier = Modifier.weight(1.2f)) {
                                             TourOSTextField(
                                                 value = destinationInput,
                                                 onValueChange = { destinationInput = it },
-                                                label = "Nereye (Ülke / Bölge / Otel)"
+                                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Nereye (Ülke / Bölge / Otel)")
                                             )
                                         }
                                         Box(modifier = Modifier.weight(1.3f)) {
@@ -314,19 +343,19 @@ fun AgencyStorefrontScreen(
                                                 items = operatorOptions,
                                                 selectedItem = selectedOperatorFilter,
                                                 onItemSelected = { selectedOperatorFilter = it },
-                                                itemLabel = { it },
-                                                label = "Tur Operatörü Filtresi"
+                                                itemLabel = { com.mgacreative.touros.ui.localization.AppLanguageManager.translate(it) },
+                                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Operatörü Filtresi")
                                             )
                                         }
                                         Box(modifier = Modifier.weight(0.9f)) {
                                             TourOSTextField(
                                                 value = maxBudgetInput,
                                                 onValueChange = { maxBudgetInput = it },
-                                                label = "Maks. Bütçe (₺)"
+                                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Maks. Bütçe (₺)")
                                             )
                                         }
                                         TourOSButton(
-                                            text = "TURLARI ARA 🔍",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TURLARI ARA 🔍"),
                                             onClick = {
                                                 val b = maxBudgetInput.toDoubleOrNull() ?: 100000.0
                                                 viewModel.loadStorefront(countryFilter = destinationInput, maxBudget = b)
@@ -347,7 +376,7 @@ fun AgencyStorefrontScreen(
                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "Hızlı Operatör Filtresi:", style = TourOSTypography.Label, fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary)
+                            Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hızlı Operatör Filtresi:"), style = TourOSTypography.Label, fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary)
                             operatorOptions.drop(1).forEach { opName ->
                                 val isSelected = selectedOperatorFilter == opName
                                 Box(
@@ -373,8 +402,8 @@ fun AgencyStorefrontScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text(text = "🔥 Turlar", style = TourOSTypography.TitleLarge, fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
-                                    Text(text = "Acente tarafından özel oluşturulan manuel tur paketleri.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                                    Text(text = "🔥 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Turlar"), style = TourOSTypography.TitleLarge, fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
+                                    Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente tarafından özel oluşturulan manuel tur paketleri."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                                 }
 
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
@@ -399,7 +428,7 @@ fun AgencyStorefrontScreen(
 
                                     Spacer(modifier = Modifier.width(TourOSSpacing.small))
                                     TourOSButton(
-                                        text = "Tümünü Göster ➔",
+                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tümünü Göster ➔"),
                                         onClick = { showAllToursView = true }
                                     )
                                 }
@@ -467,8 +496,8 @@ fun AgencyStorefrontScreen(
                                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
                                 modifier = Modifier.padding(horizontal = TourOSSpacing.large)
                             ) {
-                                items(sampleHotels) { hotel ->
-                                    SletatCarouselHotelCard(hotel = hotel)
+                                items(state.hotels) { hotel ->
+                                    RegisteredHotelCard(hotel = hotel, onClickInspect = { onNavigateToHotelDetail(hotel.id) })
                                 }
                             }
                         }
@@ -563,32 +592,56 @@ fun AgencyStorefrontScreen(
                                         }
 
                                         TourOSButton(
-                                            text = "REZERVASYON TALEBİ GÖNDER ➔",
-                                            onClick = {
-                                                if (contactName.isNotBlank() && contactPhone.isNotBlank()) {
-                                                    reservationSuccessMsg = "✓ Talebiniz başarıyla alındı! Danışmanımız sizinle iletişime geçecektir."
-                                                } else {
-                                                    reservationSuccessMsg = "Lütfen Ad Soyad ve Telefon alanlarını doldurun."
-                                                }
-                                            }
-                                        )
+                                             text = "REZERVASYON TALEBİ GÖNDER ➔",
+                                             onClick = {
+                                                 if (contactName.isNotBlank() && contactPhone.isNotBlank()) {
+                                                     val targetMail = state.branding.contactEmail?.takeIf { it.isNotBlank() } ?: "destek@touros.com"
+                                                     reservationSuccessMsg = "✓ Talebiniz alındı! Rezervasyon detayları $targetMail adresine ve temsilcinize iletildi."
+                                                 } else {
+                                                     reservationSuccessMsg = "Lütfen Ad Soyad ve Telefon alanlarını doldurun."
+                                                 }
+                                             }
+                                         )
                                     }
                                 }
 
                                 Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f)),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.3f)),
-                                    modifier = Modifier.weight(1f)
-                                ) {
-                                    Column(modifier = Modifier.padding(TourOSSpacing.large)) {
-                                        Text(text = "🏢 Acente İletişim Bilgileri", style = TourOSTypography.TitleMedium, color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-                                        Text(text = "📍 Adres: Şişli / İstanbul", style = TourOSTypography.BodyMedium)
-                                        Text(text = "📞 Destek Hattı: 0850 300 00 00", style = TourOSTypography.BodyMedium, fontWeight = FontWeight.Bold)
-                                        Text(text = "✉️ E-posta: destek@touros.com", style = TourOSTypography.BodyMedium)
-                                    }
-                                }
+                                     shape = RoundedCornerShape(12.dp),
+                                     colors = CardDefaults.cardColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f)),
+                                     border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.3f)),
+                                     modifier = Modifier.weight(1f)
+                                 ) {
+                                     Column(modifier = Modifier.padding(TourOSSpacing.large)) {
+                                         Text(text = "🏢 Acente İletişim Bilgileri", style = TourOSTypography.TitleMedium, color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                                         Text(text = "📍 Adres: ${state.branding.contactAddress?.takeIf { it.isNotBlank() } ?: "Şişli / İstanbul"}", style = TourOSTypography.BodyMedium)
+                                         Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                         Text(text = "📞 Destek Hattı: ${state.branding.contactPhone?.takeIf { it.isNotBlank() } ?: "0850 300 00 00"}", style = TourOSTypography.BodyMedium, fontWeight = FontWeight.Bold)
+                                         Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                         Text(text = "✉️ E-posta: ${state.branding.contactEmail?.takeIf { it.isNotBlank() } ?: "destek@touros.com"}", style = TourOSTypography.BodyMedium)
+
+                                         val whatsappNum = state.branding.whatsappNumber?.takeIf { it.isNotBlank() }
+                                         if (whatsappNum != null) {
+                                             Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                                             Box(
+                                                 modifier = Modifier
+                                                     .fillMaxWidth()
+                                                     .clip(RoundedCornerShape(8.dp))
+                                                     .background(Color(0xFF25D366))
+                                                     .clickable { /* WhatsApp Action */ }
+                                                     .padding(vertical = 10.dp, horizontal = 14.dp),
+                                                 contentAlignment = Alignment.Center
+                                             ) {
+                                                 Text(
+                                                     text = "💬 WhatsApp ile İletişime Geç ($whatsappNum)",
+                                                     style = TourOSTypography.Label,
+                                                     color = Color.White,
+                                                     fontWeight = FontWeight.Bold
+                                                 )
+                                             }
+                                         }
+                                     }
+                                 }
                             }
                         }
                     }
@@ -597,6 +650,13 @@ fun AgencyStorefrontScreen(
                 }
             }
         }
+    }
+
+    selectedHotelDetail?.let { hotel ->
+        HotelDetailDialog(
+            hotel = hotel,
+            onDismiss = { selectedHotelDetail = null }
+        )
     }
 }
 
@@ -616,15 +676,28 @@ private fun SletatCarouselTourCard(
                 modifier = Modifier.fillMaxWidth().height(150.dp).background(TourOSColors.PrimaryContainer),
                 contentAlignment = Alignment.TopStart
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Box(modifier = Modifier.background(TourOSColors.Error, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                        Text(text = "%15 İNDİRİM", style = TourOSTypography.Label, color = TourOSColors.OnError, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Box(modifier = Modifier.background(TourOSColors.Success, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                        Text(text = "⭐ 9.2", style = TourOSTypography.Label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                if (!item.coverImageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = item.coverImageUrl,
+                        contentDescription = item.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                if (item.operatorName.isNotBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .background(TourOSColors.Primary.copy(alpha = 0.9f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = item.operatorName,
+                            style = TourOSTypography.Label,
+                            color = TourOSColors.OnPrimary,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
@@ -640,7 +713,6 @@ private fun SletatCarouselTourCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text(text = "${(item.finalPrice * 1.15).toInt()} ₺", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary, textDecoration = TextDecoration.LineThrough)
                         Text(text = "${item.finalPrice} ₺", style = TourOSTypography.TitleMedium, fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
                     }
                     TourOSButton(text = "İncele ➔", onClick = onClickDetail)
@@ -651,39 +723,153 @@ private fun SletatCarouselTourCard(
 }
 
 @Composable
-private fun SletatCarouselHotelCard(hotel: StorefrontHotelCardItem) {
+private fun RegisteredHotelCard(
+    hotel: Hotel,
+    onClickInspect: () -> Unit
+) {
+    val starsText = "⭐".repeat((hotel.starRating ?: 4).coerceIn(1, 5))
+    val cover = hotel.coverImageUrl?.takeIf { it.isNotBlank() }
+        ?: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop"
+
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = Modifier.width(260.dp)
+        modifier = Modifier.width(280.dp)
     ) {
         Column {
             Box(
-                modifier = Modifier.fillMaxWidth().height(130.dp).background(TourOSColors.SecondaryContainer),
-                contentAlignment = Alignment.TopEnd
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .background(TourOSColors.SecondaryContainer)
             ) {
-                Box(modifier = Modifier.padding(8.dp).background(TourOSColors.Primary, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
-                    Text(text = "⭐ ${hotel.rating}", style = TourOSTypography.Label, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                AsyncImage(
+                    model = cover,
+                    contentDescription = hotel.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .background(TourOSColors.Primary.copy(alpha = 0.9f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = starsText,
+                        style = TourOSTypography.Label,
+                        color = Color.White,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
             Column(modifier = Modifier.padding(TourOSSpacing.medium)) {
-                Text(text = hotel.name, style = TourOSTypography.TitleMedium, fontWeight = FontWeight.Bold, maxLines = 1, color = TourOSColors.TextPrimary)
-                Text(text = "📍 ${hotel.location} • ${hotel.boardType}", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary, maxLines = 1)
-                Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                Text(
+                    text = hotel.name,
+                    style = TourOSTypography.TitleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    color = TourOSColors.TextPrimary
+                )
+                Text(
+                    text = "📍 ${hotel.city ?: "Türkiye"}, ${hotel.country}",
+                    style = TourOSTypography.Caption,
+                    color = TourOSColors.TextSecondary,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                Text(
+                    text = hotel.description?.takeIf { it.isNotBlank() } ?: "Lüks konaklama ve özel acente hizmetleri sunan tesis.",
+                    style = TourOSTypography.BodyMedium,
+                    fontSize = 12.sp,
+                    color = TourOSColors.TextSecondary,
+                    maxLines = 2
+                )
+                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(text = hotel.pricePerNight, style = TourOSTypography.TitleMedium, fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
-                    TourOSButton(text = "Detay", onClick = {})
+                    TourOSButton(text = "İncele ➔", onClick = onClickInspect)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun HotelDetailDialog(
+    hotel: Hotel,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(
+                    text = hotel.name,
+                    style = TourOSTypography.TitleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TourOSColors.TextPrimary
+                )
+                Text(
+                    text = "⭐".repeat((hotel.starRating ?: 4).coerceIn(1, 5)) + " • 📍 ${hotel.city ?: "Türkiye"}, ${hotel.country}",
+                    style = TourOSTypography.BodyMedium,
+                    color = TourOSColors.Primary
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                val cover = hotel.coverImageUrl?.takeIf { it.isNotBlank() }
+                    ?: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&auto=format&fit=crop"
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                ) {
+                    AsyncImage(
+                        model = cover,
+                        contentDescription = hotel.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
+                Text(
+                    text = "🏨 Otel Tanıtımı & Açıklama",
+                    style = TourOSTypography.TitleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TourOSColors.Primary
+                )
+                Text(
+                    text = hotel.description?.takeIf { it.isNotBlank() } ?: "Acentemiz tarafından özel olarak anlaşılan ve misafirlerimize sunulan tesis.",
+                    style = TourOSTypography.BodyMedium,
+                    color = TourOSColors.TextSecondary
+                )
+            }
+        },
+        confirmButton = {
+            TourOSButton(
+                text = "Formu Kapat",
+                onClick = onDismiss,
+                variant = TourOSButtonVariant.SECONDARY
+            )
+        }
+    )
 }
 
 @Composable

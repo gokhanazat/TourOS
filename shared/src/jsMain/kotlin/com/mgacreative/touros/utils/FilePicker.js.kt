@@ -2,6 +2,7 @@ package com.mgacreative.touros.utils
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import kotlinx.browser.document
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Uint8Array
@@ -39,3 +40,6 @@ actual fun rememberFilePickerLauncher(
         }
     }
 }
+
+@Composable
+actual fun Modifier.onFileDrop(onFilesDropped: (List<String>) -> Unit): Modifier = this

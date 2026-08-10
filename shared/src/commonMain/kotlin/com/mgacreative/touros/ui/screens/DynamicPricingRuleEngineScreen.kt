@@ -9,10 +9,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -113,9 +115,10 @@ fun DynamicPricingRuleEngineScreen(
                             selectedSeason = state.selectedSeason,
                             selectedAgencyTier = state.selectedAgencyTier,
                             selectedCountry = state.selectedCountry,
-                            basePrice = eval.basePrice,
+                            basePrice = state.basePrice,
                             adjustedPrice = eval.adjustedPrice,
                             totalAdjustmentPercent = eval.totalAdjustmentPercent,
+                            onBasePriceChange = { viewModel.updateBasePrice(it) },
                             onOccupancyChange = { viewModel.updateOccupancyRate(it) },
                             onSeasonChange = { viewModel.updateSeason(it) },
                             onAgencyTierChange = { viewModel.updateAgencyTier(it) },
@@ -179,9 +182,10 @@ fun DynamicPricingRuleEngineScreen(
                                 selectedSeason = state.selectedSeason,
                                 selectedAgencyTier = state.selectedAgencyTier,
                                 selectedCountry = state.selectedCountry,
-                                basePrice = eval.basePrice,
+                                basePrice = state.basePrice,
                                 adjustedPrice = eval.adjustedPrice,
                                 totalAdjustmentPercent = eval.totalAdjustmentPercent,
+                                onBasePriceChange = { viewModel.updateBasePrice(it) },
                                 onOccupancyChange = { viewModel.updateOccupancyRate(it) },
                                 onSeasonChange = { viewModel.updateSeason(it) },
                                 onAgencyTierChange = { viewModel.updateAgencyTier(it) },
@@ -360,11 +364,14 @@ private fun LivePriceSimulationPanel(
     basePrice: Double,
     adjustedPrice: Double,
     totalAdjustmentPercent: Double,
+    onBasePriceChange: (Double) -> Unit,
     onOccupancyChange: (Double) -> Unit,
     onSeasonChange: (String) -> Unit,
     onAgencyTierChange: (String) -> Unit,
     onCountryChange: (String) -> Unit
 ) {
+    var basePriceText by remember(basePrice) { mutableStateOf(if (basePrice == 0.0) "" else basePrice.toInt().toString()) }
+
     Column(
         verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
         modifier = Modifier.fillMaxWidth()
@@ -451,7 +458,7 @@ private fun LivePriceSimulationPanel(
             }
         }
 
-        // 2. PARAMETRE AYARLARI KARTI (DOLULUK, SEZON, ACENTE TIER)
+        // 2. PARAMETRE AYARLARI KARTI (BAZ FİYAT, DOLULUK, SEZON, ACENTE TIER)
         TourOSCard(
             modifier = Modifier.fillMaxWidth(),
             backgroundColor = TourOSColors.Surface,
@@ -461,6 +468,22 @@ private fun LivePriceSimulationPanel(
                 Text(
                     "🎛️ Simülatör Koşul Parametreleri",
                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                )
+
+                // BAZ TUR FİYATI GİRİŞ ALANI (Strict Rule)
+                TourOSTextField(
+                    value = basePriceText,
+                    onValueChange = { input ->
+                        basePriceText = input
+                        val parsed = input.toDoubleOrNull()
+                        if (parsed != null && parsed >= 0) {
+                            onBasePriceChange(parsed)
+                        }
+                    },
+                    label = "Baz Tur Fiyatı (₺)",
+                    placeholder = "Örn: 2500",
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
                 )
 
                 Text(

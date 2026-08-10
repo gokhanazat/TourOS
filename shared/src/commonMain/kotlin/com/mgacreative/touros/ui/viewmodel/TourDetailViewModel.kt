@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+
 sealed interface TourDetailUiState {
     data object Loading : TourDetailUiState
     data class Success(val tourDetail: TourDetail) : TourDetailUiState
@@ -16,7 +19,8 @@ sealed interface TourDetailUiState {
 }
 
 class TourDetailViewModel(
-    private val getTourDetailUseCase: GetTourDetailUseCase
+    private val getTourDetailUseCase: GetTourDetailUseCase,
+    private val supabaseClient: SupabaseClient
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<TourDetailUiState>(TourDetailUiState.Loading)
@@ -34,6 +38,21 @@ class TourDetailViewModel(
                         error.message ?: "Tur detayları yüklenirken hata oluştu"
                     )
                 }
+        }
+    }
+
+    fun deleteDeparture(departureId: String, tourId: String) {
+        viewModelScope.launch {
+            runCatching {
+                supabaseClient.postgrest.from("departures")
+                    .delete {
+                        filter {
+                            eq("id", departureId)
+                        }
+                    }
+            }.onSuccess {
+                loadTourDetail(tourId)
+            }
         }
     }
 }

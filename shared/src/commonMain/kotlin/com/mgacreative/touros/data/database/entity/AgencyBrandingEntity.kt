@@ -16,6 +16,10 @@ data class AgencyBrandingEntity(
     @SerialName("primary_color") val primaryColor: String = "#1F4E5F",
     @SerialName("footer_text") val footerText: String = "© 2026 Tüm Hakları Saklıdır",
     @SerialName("header_image_url") val headerImageUrl: String? = null,
+    @SerialName("contact_phone") val contactPhone: String? = null,
+    @SerialName("contact_email") val contactEmail: String? = null,
+    @SerialName("whatsapp_number") val whatsappNumber: String? = null,
+    @SerialName("contact_address") val contactAddress: String? = null,
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("updated_at") val updatedAt: String = ""
 )

@@ -30,6 +30,7 @@ fun TourOSTextField(
     readOnly: Boolean = false,
     singleLine: Boolean = true,
     maxLines: Int = 1,
+    minLines: Int = 1,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -61,6 +62,7 @@ fun TourOSTextField(
             keyboardOptions = keyboardOptions,
             singleLine = singleLine,
             maxLines = maxLines,
+            minLines = minLines,
             shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = TourOSColors.Background,

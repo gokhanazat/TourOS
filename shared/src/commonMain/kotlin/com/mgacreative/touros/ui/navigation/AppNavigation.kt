@@ -25,6 +25,8 @@ import com.mgacreative.touros.ui.components.TourOSNavItem
 import com.mgacreative.touros.ui.components.TourOSSidebar
 import com.mgacreative.touros.ui.screens.*
 import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.viewmodel.DepartureFormViewModel
+import com.mgacreative.touros.ui.viewmodel.HotelFormViewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -36,7 +38,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import com.mgacreative.touros.ui.theme.TourOSTypography
+import androidx.compose.runtime.collectAsState
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 
 // ─── Auth-only route'ları (shell gizlenir) ────────────────────────────────────
 private val authRoutePatterns = listOf(
@@ -49,20 +52,22 @@ private fun NavDestination?.isAuthRoute(): Boolean =
 
 // ─── Menü Öğeleri ─────────────────────────────────────────────────────────────
 private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
-    TourOSNavItem("Dashboard",        DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
-    TourOSNavItem("Turlar",           ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
-    TourOSNavItem("Rezervasyon",      BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
-    TourOSNavItem("Oteller",          HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
-    TourOSNavItem("Tur Operatörleri", AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
-    TourOSNavItem("Ürünler",           AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-    TourOSNavItem("Acente Web Sayfası", AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
-    TourOSNavItem("Fiyat & Kampanya", DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
-    TourOSNavItem("OTA Hub",          OTADashboardRoute,            isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true),
-    TourOSNavItem("Finans",           FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
-    TourOSNavItem("Müşteriler & CRM",  CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
-    TourOSNavItem("Analitik & Trend", AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
-    TourOSNavItem("Destek & SSS",     FaqSupportChatRoute,          isSelected = currentRoute?.contains("FaqSupportChatRoute") == true),
-    TourOSNavItem("Ayarlar & Dil",    SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
+    TourOSNavItem(AppLanguageManager.translate("Dashboard"),        DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Turlar"),           ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Rezervasyon"),      BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Oteller"),          HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Tur Operatörleri"), AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Ürünler"),           AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Acente Web Sayfası"), AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Fiyat & Kampanya"), DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Finans"),           FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Fatura Yönetimi"),  InvoiceManagementRoute,       isSelected = currentRoute?.contains("InvoiceManagementRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Cari Hesaplar"),    CurrentAccountRoute,          isSelected = currentRoute?.contains("CurrentAccountRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Gider Girişi"),     SupplierExpenseRoute,         isSelected = currentRoute?.contains("SupplierExpenseRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Müşteriler & CRM"),  CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Analitik & Trend"), AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Raporlar"),         ReportsRoute,                 isSelected = currentRoute?.contains("ReportsRoute") == true),
+    TourOSNavItem(AppLanguageManager.translate("Ayarlar & Dil"),    SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
 )
 
 
@@ -73,6 +78,7 @@ private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
  */
 @Composable
 fun AppNavigation() {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -91,7 +97,7 @@ fun AppNavigation() {
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= 768.dp
-        val navItems = buildNavItems(currentRoute)
+        val navItems = remember(currentRoute, currentLanguage) { buildNavItems(currentRoute) }
 
         // Mobil Bottom Bar için "☰ Menü" Butonlu Liste
         val menuDummyRoute = "HamburgerMenuOpen"
@@ -341,7 +347,8 @@ private fun AppNavHost(navController: NavHostController) {
                 tourId = route.tourId,
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToEdit = { id -> navController.navigate(TourFormRoute(id)) },
-                onNavigateToMediaGallery = { id -> navController.navigate(TourMediaGalleryRoute(id)) }
+                onNavigateToMediaGallery = { id -> navController.navigate(TourMediaGalleryRoute(id)) },
+                onNavigateToDepartureForm = { tourId, departureId -> navController.navigate(DepartureFormRoute(tourId, departureId)) }
             )
         }
 
@@ -365,9 +372,19 @@ private fun AppNavHost(navController: NavHostController) {
             TourCalendarScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        composable<DepartureFormRoute> {
+        composable<DepartureFormRoute> { back ->
+            val route: DepartureFormRoute = back.toRoute()
+            val viewModel: DepartureFormViewModel = koinViewModel()
+            androidx.compose.runtime.LaunchedEffect(route.tourId, route.departureId) {
+                if (route.tourId.isNotBlank()) {
+                    viewModel.updateTourId(route.tourId)
+                }
+                if (!route.departureId.isNullOrBlank()) {
+                    viewModel.loadDeparture(route.departureId)
+                }
+            }
             DepartureFormScreen(
-                viewModel = koinViewModel(),
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -423,13 +440,18 @@ private fun AppNavHost(navController: NavHostController) {
             HotelListScreen(
                 viewModel = koinViewModel(),
                 onAddHotelClick = { navController.navigate(HotelFormRoute()) },
-                onEditHotelClick = { id -> navController.navigate(HotelContractRoute(hotelId = id)) }
+                onEditHotelClick = { id -> navController.navigate(HotelFormRoute(hotelId = id)) }
             )
         }
 
-        composable<HotelFormRoute> {
+        composable<HotelFormRoute> { back ->
+            val route: HotelFormRoute = back.toRoute()
+            val viewModel: HotelFormViewModel = koinViewModel()
+            androidx.compose.runtime.LaunchedEffect(route.hotelId) {
+                route.hotelId?.let { viewModel.loadHotelForEdit(it) }
+            }
             HotelFormScreen(
-                viewModel = koinViewModel(),
+                viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -539,7 +561,13 @@ private fun AppNavHost(navController: NavHostController) {
         // ─── Finans ───────────────────────────────────────────────────────────
 
         composable<FinancialReportsRoute> {
-            FinancialReportsScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
+            FinancialReportsScreen(
+                viewModel = koinViewModel(),
+                onNavigateToInvoice = { navController.navigate(InvoiceManagementRoute) },
+                onNavigateToCurrentAccount = { navController.navigate(CurrentAccountRoute) },
+                onNavigateToSupplierExpense = { navController.navigate(SupplierExpenseRoute) },
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<InvoiceManagementRoute> {
@@ -584,7 +612,9 @@ private fun AppNavHost(navController: NavHostController) {
 
         // ─── Raporlar ─────────────────────────────────────────────────────────
 
-        composable<ReportsRoute> { /* Placeholder */ }
+        composable<ReportsRoute> {
+            ReportsScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
+        }
         composable<CustomersRoute> { /* Placeholder */ }
 
         composable<AnalyticsChartsRoute> {
@@ -627,8 +657,13 @@ private fun AppNavHost(navController: NavHostController) {
             B2CTourSearchScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
 
-        composable<B2CTourDetailCheckoutRoute> {
-            B2CTourDetailCheckoutScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
+        composable<B2CTourDetailCheckoutRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<B2CTourDetailCheckoutRoute>()
+            B2CTourDetailCheckoutScreen(
+                viewModel = koinViewModel(),
+                tourId = route.tourId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<B2CLiveLocationRoute> {
@@ -649,13 +684,6 @@ private fun AppNavHost(navController: NavHostController) {
 
         // ─── OTA / Gelişmiş ───────────────────────────────────────────────────
 
-        composable<OTADashboardRoute> {
-            OTADashboardScreen(
-                viewModel = koinViewModel(),
-                onNavigateToLogs = { providerId -> navController.navigate(SyncLogsRoute(providerIdFilter = providerId)) }
-            )
-        }
-
         composable<AgencyOperatorConnectionsRoute> {
             com.mgacreative.touros.ui.screens.AgencyOperatorConnectionsScreen()
         }
@@ -666,7 +694,17 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<AgencyStorefrontRoute> {
             com.mgacreative.touros.ui.screens.AgencyStorefrontScreen(
-                onNavigateToTourDetail = { tourId -> navController.navigate(B2CTourDetailCheckoutRoute(tourId = tourId)) }
+                onNavigateToTourDetail = { tourId -> navController.navigate(B2CTourDetailCheckoutRoute(tourId = tourId)) },
+                onNavigateToHotelDetail = { hotelId -> navController.navigate(B2CHotelDetailCheckoutRoute(hotelId = hotelId)) }
+            )
+        }
+
+        composable<B2CHotelDetailCheckoutRoute> { back ->
+            val route: B2CHotelDetailCheckoutRoute = back.toRoute()
+            com.mgacreative.touros.ui.screens.B2CHotelDetailCheckoutScreen(
+                viewModel = koinViewModel(),
+                hotelId = route.hotelId,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -697,6 +735,7 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<CustomerSegmentationRoute> {
             CustomerSegmentationScreen(
+                viewModel = koinViewModel(),
                 onNavigateBack = { navController.popBackStack() }
             )
         }

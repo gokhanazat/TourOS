@@ -6,6 +6,7 @@ import com.mgacreative.touros.domain.model.CompanySeason
 import com.mgacreative.touros.domain.model.CompanySettings
 import com.mgacreative.touros.domain.usecase.GetCompanySettingsUseCase
 import com.mgacreative.touros.domain.usecase.UpdateCompanySettingsUseCase
+import com.mgacreative.touros.domain.usecase.UploadCompanyHeaderBannerUseCase
 import com.mgacreative.touros.domain.usecase.UploadCompanyLogoUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,13 +18,14 @@ sealed interface CompanySettingsUiState {
     data object Loading : CompanySettingsUiState
     data class Success(val settings: CompanySettings) : CompanySettingsUiState
     data class Error(val message: String) : CompanySettingsUiState
-    data object Saving : CompanySettingsUiState
+    data class Saving(val settings: CompanySettings = CompanySettings(id = "", name = "")) : CompanySettingsUiState
 }
 
 class CompanySettingsViewModel(
     private val getCompanySettingsUseCase: GetCompanySettingsUseCase,
     private val updateCompanySettingsUseCase: UpdateCompanySettingsUseCase,
-    private val uploadCompanyLogoUseCase: UploadCompanyLogoUseCase
+    private val uploadCompanyLogoUseCase: UploadCompanyLogoUseCase,
+    private val uploadCompanyHeaderBannerUseCase: UploadCompanyHeaderBannerUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<CompanySettingsUiState>(CompanySettingsUiState.Idle)
@@ -44,7 +46,7 @@ class CompanySettingsViewModel(
                     _uiState.value = CompanySettingsUiState.Success(
                         CompanySettings(
                             id = validCompanyId,
-                            name = "TourOS Seyahat Acentesi",
+                            name = "",
                             taxRate = 20.0,
                             supportedCurrencies = listOf("TRY", "EUR", "USD"),
                             supportedLanguages = listOf("tr", "en")
@@ -54,10 +56,9 @@ class CompanySettingsViewModel(
         }
     }
 
-
     fun saveSettings(settings: CompanySettings) {
         viewModelScope.launch {
-            _uiState.value = CompanySettingsUiState.Saving
+            _uiState.value = CompanySettingsUiState.Saving(settings)
             updateCompanySettingsUseCase(settings)
                 .onSuccess { updated ->
                     _uiState.value = CompanySettingsUiState.Success(updated)
@@ -75,7 +76,7 @@ class CompanySettingsViewModel(
         viewModelScope.launch {
             val currentState = _uiState.value
             if (currentState is CompanySettingsUiState.Success) {
-                _uiState.value = CompanySettingsUiState.Saving
+                _uiState.value = CompanySettingsUiState.Saving(currentState.settings)
                 uploadCompanyLogoUseCase(companyId, fileBytes, fileName)
                     .onSuccess { logoUrl ->
                         val updated = currentState.settings.copy(logoUrl = logoUrl)
@@ -85,6 +86,26 @@ class CompanySettingsViewModel(
                     .onFailure { exception ->
                         _uiState.value = CompanySettingsUiState.Error(
                             exception.message ?: "Logo yüklenirken hata oluştu"
+                        )
+                    }
+            }
+        }
+    }
+
+    fun uploadHeaderBanner(companyId: String, fileBytes: ByteArray, fileName: String) {
+        viewModelScope.launch {
+            val currentState = _uiState.value
+            if (currentState is CompanySettingsUiState.Success) {
+                _uiState.value = CompanySettingsUiState.Saving(currentState.settings)
+                uploadCompanyHeaderBannerUseCase(companyId, fileBytes, fileName)
+                    .onSuccess { headerUrl ->
+                        val updated = currentState.settings.copy(headerImageUrl = headerUrl)
+                        _uiState.value = CompanySettingsUiState.Success(updated)
+                        _userMessage.value = "Header banner görseli başarıyla yüklendi"
+                    }
+                    .onFailure { exception ->
+                        _uiState.value = CompanySettingsUiState.Error(
+                            exception.message ?: "Header görseli yüklenirken hata oluştu"
                         )
                     }
             }

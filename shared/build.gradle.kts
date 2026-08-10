@@ -96,6 +96,10 @@ kotlin {
             implementation(libs.m3.adaptive)
             implementation(libs.m3.adaptive.layout)
             implementation(libs.m3.adaptive.navigation)
+
+            // Coil 3 Image Loading
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor3)
         }
 
         androidMain.dependencies {

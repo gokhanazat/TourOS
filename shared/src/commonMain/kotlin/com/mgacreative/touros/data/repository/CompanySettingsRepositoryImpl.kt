@@ -1,5 +1,6 @@
 package com.mgacreative.touros.data.repository
 
+import com.mgacreative.touros.data.database.entity.AgencyBrandingEntity
 import com.mgacreative.touros.data.database.entity.CompanyEntity
 import com.mgacreative.touros.data.util.isValidUuid
 import com.mgacreative.touros.domain.model.CompanySeason
@@ -20,6 +21,7 @@ class CompanySettingsRepositoryImpl(
 ) : CompanySettingsRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
+    private var cachedSettings: CompanySettings? = null
 
     override suspend fun getCompanySettings(companyId: String): Result<CompanySettings> {
         return runCatching {
@@ -32,43 +34,105 @@ class CompanySettingsRepositoryImpl(
                         }
                     }
                     .decodeSingle<CompanyEntity>()
-            }.getOrElse {
-                CompanyEntity(
+            }.getOrNull()
+
+            val branding = runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .select {
+                        filter {
+                            eq("agency_id", targetId)
+                        }
+                    }
+                    .decodeSingle<AgencyBrandingEntity>()
+            }.getOrNull()
+
+            if (entity != null) {
+                val seasons = runCatching {
+                    json.decodeFromString<List<CompanySeason>>(entity.seasons)
+                }.getOrDefault(emptyList())
+
+                val loaded = CompanySettings(
+                    id = entity.id,
+                    name = entity.name.ifBlank { cachedSettings?.name ?: "" },
+                    legalTitle = entity.legalTitle ?: cachedSettings?.legalTitle ?: "",
+                    taxOffice = entity.taxOffice ?: cachedSettings?.taxOffice ?: "",
+                    taxNumber = entity.taxNumber ?: cachedSettings?.taxNumber ?: "",
+                    tradeRegistryNo = entity.tradeRegistryNo ?: cachedSettings?.tradeRegistryNo ?: "",
+                    mersisNo = entity.mersisNo ?: cachedSettings?.mersisNo ?: "",
+                    address = entity.address ?: cachedSettings?.address ?: "",
+                    phone = entity.phone ?: cachedSettings?.phone ?: "",
+                    email = entity.email ?: cachedSettings?.email ?: "",
+                    companyType = entity.companyType,
+                    operatorCode = entity.operatorCode,
+                    logoUrl = entity.logoUrl ?: branding?.customLogoUrl ?: cachedSettings?.logoUrl,
+                    themeColor = entity.themeColor.ifBlank { cachedSettings?.themeColor ?: "#1F4E5F" },
+                    taxRate = entity.taxRate,
+                    seasons = seasons.ifEmpty { cachedSettings?.seasons ?: emptyList() },
+                    supportedCurrencies = entity.supportedCurrencies,
+                    supportedLanguages = entity.supportedLanguages,
+                    headerImageUrl = branding?.headerImageUrl ?: cachedSettings?.headerImageUrl,
+                    heroSubtitle = branding?.heroSubtitle ?: cachedSettings?.heroSubtitle ?: "",
+                    footerText = branding?.footerText ?: cachedSettings?.footerText ?: "",
+                    webEmail = branding?.contactEmail ?: cachedSettings?.webEmail ?: "",
+                    webPhone = branding?.contactPhone ?: cachedSettings?.webPhone ?: "",
+                    webWhatsapp = branding?.whatsappNumber ?: cachedSettings?.webWhatsapp ?: "",
+                    webAddress = branding?.contactAddress ?: cachedSettings?.webAddress ?: "",
+                    bankName = entity.bankName ?: cachedSettings?.bankName,
+                    iban = entity.iban ?: cachedSettings?.iban,
+                    accountHolder = entity.accountHolder ?: cachedSettings?.accountHolder,
+                    paypalEmail = entity.paypalEmail ?: cachedSettings?.paypalEmail,
+                    paypalMeUrl = entity.paypalMeUrl ?: cachedSettings?.paypalMeUrl
+                )
+                cachedSettings = loaded
+                loaded
+            } else {
+                cachedSettings ?: CompanySettings(
                     id = targetId,
-                    name = "TourOS Agency",
-                    logoUrl = null,
-                    themeColor = "#1976D2",
+                    name = "",
                     taxRate = 20.0,
-                    seasons = "[]",
                     supportedCurrencies = listOf("TRY", "EUR", "USD"),
                     supportedLanguages = listOf("tr", "en")
                 )
             }
-
-            val seasons = runCatching {
-                json.decodeFromString<List<CompanySeason>>(entity.seasons)
-            }.getOrDefault(emptyList())
-
-            CompanySettings(
-                id = entity.id,
-                name = entity.name,
-                logoUrl = entity.logoUrl,
-                themeColor = entity.themeColor,
-                taxRate = entity.taxRate,
-                seasons = seasons,
-                supportedCurrencies = entity.supportedCurrencies,
-                supportedLanguages = entity.supportedLanguages
-            )
         }
     }
 
     override suspend fun updateCompanySettings(settings: CompanySettings): Result<CompanySettings> {
         return runCatching {
+            cachedSettings = settings
             val seasonsJson = json.encodeToString(settings.seasons)
             val targetId = if (settings.id.isValidUuid()) settings.id else "00000000-0000-0000-0000-000000000001"
 
-            val updatePayload = buildJsonObject {
+            val slugValue = settings.name.lowercase()
+                .replace(" ", "-")
+                .replace("ğ", "g")
+                .replace("ü", "u")
+                .replace("ş", "s")
+                .replace("ı", "i")
+                .replace("ö", "o")
+                .replace("ç", "c")
+                .ifBlank { "company-${targetId.take(8)}" }
+
+            val upsertPayload = buildJsonObject {
+                put("id", targetId)
+                put("tenant_id", targetId)
+                put("slug", slugValue)
+                put("company_type", "acente")
+                put("operator_code", "ACT")
                 put("name", settings.name)
+                put("legal_title", settings.legalTitle)
+                put("tax_office", settings.taxOffice)
+                put("tax_number", settings.taxNumber)
+                put("trade_registry_no", settings.tradeRegistryNo)
+                put("mersis_no", settings.mersisNo)
+                put("address", settings.address)
+                put("phone", settings.phone)
+                put("email", settings.email)
+                settings.bankName?.let { put("bank_name", it) }
+                settings.iban?.let { put("iban", it) }
+                settings.accountHolder?.let { put("account_holder", it) }
+                settings.paypalEmail?.let { put("paypal_email", it) }
+                settings.paypalMeUrl?.let { put("paypal_me_url", it) }
                 settings.logoUrl?.let { put("logo_url", it) }
                 put("theme_color", settings.themeColor)
                 put("tax_rate", settings.taxRate)
@@ -81,18 +145,18 @@ class CompanySettingsRepositoryImpl(
                 }
             }
 
-            runCatching {
-                supabaseClient.postgrest.from("companies")
-                    .update(updatePayload) {
-                        filter {
-                            eq("id", targetId)
-                        }
-                    }
-            }
+            supabaseClient.postgrest.from("companies")
+                .upsert(upsertPayload)
 
             val brandingPayload = buildJsonObject {
                 put("agency_id", targetId)
                 put("hero_title", settings.name)
+                put("hero_subtitle", settings.heroSubtitle)
+                put("footer_text", settings.footerText)
+                put("contact_phone", settings.webPhone.ifBlank { settings.phone })
+                put("contact_email", settings.webEmail.ifBlank { settings.email })
+                put("whatsapp_number", settings.webWhatsapp)
+                put("contact_address", settings.webAddress.ifBlank { settings.address })
                 settings.logoUrl?.let { put("custom_logo_url", it) }
                 settings.headerImageUrl?.let { put("header_image_url", it) }
             }
@@ -113,24 +177,83 @@ class CompanySettingsRepositoryImpl(
     ): Result<String> {
         return runCatching {
             val targetId = if (companyId.isValidUuid()) companyId else "00000000-0000-0000-0000-000000000001"
-            val path = "company_${targetId}_$fileName"
+            val cleanFileName = fileName
+                .substringAfterLast("/")
+                .substringAfterLast("\\")
+                .lowercase()
+                .replace(" ", "_")
+                .replace("ğ", "g")
+                .replace("ü", "u")
+                .replace("ş", "s")
+                .replace("ı", "i")
+                .replace("ö", "o")
+                .replace("ç", "c")
+                .replace("i̇", "i")
+                .filter { it.isLetterOrDigit() || it == '.' || it == '_' || it == '-' }
+
+            val sanitizedPath = "company_${targetId}_${cleanFileName.ifBlank { "logo.png" }}"
             val bucket = supabaseClient.storage.from("company-logos")
-            bucket.upload(path, fileBytes) {
+            bucket.upload(sanitizedPath, fileBytes) {
                 upsert = true
             }
-            val publicUrl = bucket.publicUrl(path)
+            val publicUrl = bucket.publicUrl(sanitizedPath)
 
             val logoPayload = buildJsonObject {
                 put("logo_url", publicUrl)
             }
 
-            supabaseClient.postgrest.from("companies")
-                .update(logoPayload) {
-                    filter {
-                        eq("id", targetId)
+            runCatching {
+                supabaseClient.postgrest.from("companies")
+                    .update(logoPayload) {
+                        filter {
+                            eq("id", targetId)
+                        }
                     }
-                }
+            }
 
+            publicUrl
+        }
+    }
+
+    override suspend fun uploadHeaderBanner(
+        companyId: String,
+        fileBytes: ByteArray,
+        fileName: String
+    ): Result<String> {
+        return runCatching {
+            val targetId = if (companyId.isValidUuid()) companyId else "00000000-0000-0000-0000-000000000001"
+            val cleanFileName = fileName
+                .substringAfterLast("/")
+                .substringAfterLast("\\")
+                .lowercase()
+                .replace(" ", "_")
+                .replace("ğ", "g")
+                .replace("ü", "u")
+                .replace("ş", "s")
+                .replace("ı", "i")
+                .replace("ö", "o")
+                .replace("ç", "c")
+                .replace("i̇", "i")
+                .filter { it.isLetterOrDigit() || it == '.' || it == '_' || it == '-' }
+
+            val sanitizedPath = "company_${targetId}_header_${cleanFileName.ifBlank { "header.png" }}"
+            val bucket = supabaseClient.storage.from("company-logos")
+            bucket.upload(sanitizedPath, fileBytes) {
+                upsert = true
+            }
+            val publicUrl = bucket.publicUrl(sanitizedPath)
+
+            val headerPayload = buildJsonObject {
+                put("agency_id", targetId)
+                put("header_image_url", publicUrl)
+            }
+
+            runCatching {
+                supabaseClient.postgrest.from("agency_branding")
+                    .upsert(headerPayload)
+            }
+
+            cachedSettings = cachedSettings?.copy(headerImageUrl = publicUrl)
             publicUrl
         }
     }

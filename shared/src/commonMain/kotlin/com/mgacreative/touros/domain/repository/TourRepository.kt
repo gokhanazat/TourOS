@@ -14,4 +14,5 @@ interface TourRepository {
     suspend fun updateTour(tour: Tour): Result<Tour>
     suspend fun toggleTourStatus(tourId: String, isActive: Boolean): Result<Unit>
     suspend fun deleteTour(id: String): Result<Unit>
+    suspend fun uploadTourCoverImage(tourId: String, fileBytes: ByteArray, fileName: String): Result<String>
 }

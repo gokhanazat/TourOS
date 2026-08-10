@@ -31,7 +31,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.mgacreative.touros.domain.model.Departure
 import com.mgacreative.touros.domain.model.Itinerary
 import com.mgacreative.touros.domain.model.TourDetail
@@ -61,6 +63,7 @@ fun TourDetailScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToEdit: (String) -> Unit = {},
     onNavigateToMediaGallery: (String) -> Unit = {},
+    onNavigateToDepartureForm: (String, String?) -> Unit = { _, _ -> },
     viewModel: TourDetailViewModel = koinViewModel()
 ) {
     LaunchedEffect(tourId) {
@@ -118,6 +121,8 @@ fun TourDetailScreen(
                 is TourDetailUiState.Success -> {
                     TourDetailContent(
                         tourDetail = state.tourDetail,
+                        onNavigateToDepartureForm = onNavigateToDepartureForm,
+                        onDeleteDepartureClick = { depId -> viewModel.deleteDeparture(depId, state.tourDetail.tour.id) },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -132,6 +137,8 @@ fun TourDetailScreen(
 @Composable
 fun TourDetailContent(
     tourDetail: TourDetail,
+    onNavigateToDepartureForm: (String, String?) -> Unit = { _, _ -> },
+    onDeleteDepartureClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val tour = tourDetail.tour
@@ -157,22 +164,31 @@ fun TourDetailContent(
             contentPadding = TourOSSpacing.large
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                // Cover Image Placeholder Banner
+                // Cover Image Banner
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(200.dp)
                         .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
                         .background(TourOSColors.PrimaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "🏔️", style = TourOSTypography.DisplaySmall)
-                        Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                        Text(
-                            text = "${tour.city}, ${tour.country}",
-                            style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                    if (!tour.coverImageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = tour.coverImageUrl,
+                            contentDescription = tour.title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
                         )
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(text = "🏔️", style = TourOSTypography.DisplaySmall)
+                            Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                            Text(
+                                text = "${tour.city}, ${tour.country}",
+                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                            )
+                        }
                     }
                 }
 
@@ -250,7 +266,12 @@ fun TourDetailContent(
 
             when (selectedTabIndex) {
                 0 -> OverviewSection(tour = tour, itineraries = tourDetail.itineraries, isExpanded = isExpanded)
-                1 -> DeparturesSection(departures = tourDetail.departures)
+                1 -> DeparturesSection(
+                    tourId = tour.id,
+                    departures = tourDetail.departures,
+                    onAddDepartureClick = onNavigateToDepartureForm,
+                    onDeleteDepartureClick = onDeleteDepartureClick
+                )
                 2 -> TermsAndConditionsSection(tour = tour)
             }
         }
@@ -401,46 +422,86 @@ private fun ItineraryItemCard(item: Itinerary) {
 }
 
 @Composable
-private fun DeparturesSection(departures: List<Departure>) {
-    if (departures.isEmpty()) {
-        TourOSEmptyState(
-            title = "Tanımlı Kalkış Yok",
-            description = "Bu tur için henüz aktif bir kalkış veya hareket tarihi eklenmemiş."
-        )
-    } else {
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
-            modifier = Modifier.fillMaxSize()
+private fun DeparturesSection(
+    tourId: String,
+    departures: List<Departure>,
+    onAddDepartureClick: (String, String?) -> Unit,
+    onDeleteDepartureClick: (String) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = TourOSSpacing.medium),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            items(departures) { dep ->
-                TourOSCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    backgroundColor = TourOSColors.Background,
-                    borderColor = TourOSColors.Border,
-                    contentPadding = TourOSSpacing.large
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "📅 Kalkış: ${dep.departureDate} ${dep.returnDate?.let { "- Dönüş: $it" } ?: ""}",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
-                            )
-                            Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                            Text(
-                                text = "👥 Doluluk: ${dep.bookedCount} / ${dep.capacity ?: "Sınırsız"} Kişi",
-                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
-                            )
-                        }
+            Text(
+                text = "Kalkış Seferleri (${departures.size})",
+                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+            )
+            TourOSButton(
+                text = "➕ Yeni Kalkış Tarihi Ekle",
+                onClick = { onAddDepartureClick(tourId, null) },
+                variant = TourOSButtonVariant.PRIMARY
+            )
+        }
 
-                        TourOSStatusBadge(
-                            text = dep.status.uppercase(),
-                            backgroundColor = TourOSColors.PrimaryContainer,
-                            textColor = TourOSColors.Primary
-                        )
+        if (departures.isEmpty()) {
+            TourOSEmptyState(
+                title = "Tanımlı Kalkış Yok",
+                description = "Bu tur için henüz aktif bir kalkış veya hareket tarihi eklenmemiş.",
+                actionButtonText = "➕ Kalkış Tarihi Ekle",
+                onActionClick = { onAddDepartureClick(tourId, null) }
+            )
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(departures) { dep ->
+                    TourOSCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = TourOSColors.Background,
+                        borderColor = TourOSColors.Border,
+                        contentPadding = TourOSSpacing.large
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "📅 Kalkış: ${dep.departureDate} ${dep.returnDate?.let { "- Dönüş: $it" } ?: ""}",
+                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                )
+                                Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                Text(
+                                    text = "👥 Doluluk: ${dep.bookedCount} / ${dep.capacity ?: "Sınırsız"} Kişi",
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                            ) {
+                                TourOSStatusBadge(
+                                    text = dep.status.uppercase(),
+                                    backgroundColor = TourOSColors.PrimaryContainer,
+                                    textColor = TourOSColors.Primary
+                                )
+                                TourOSButton(
+                                    text = "✏️ Düzenle",
+                                    onClick = { onAddDepartureClick(tourId, dep.id) },
+                                    variant = TourOSButtonVariant.SECONDARY
+                                )
+                                TourOSButton(
+                                    text = "🗑️ Sil",
+                                    onClick = { onDeleteDepartureClick(dep.id) },
+                                    variant = TourOSButtonVariant.TERTIARY
+                                )
+                            }
+                        }
                     }
                 }
             }

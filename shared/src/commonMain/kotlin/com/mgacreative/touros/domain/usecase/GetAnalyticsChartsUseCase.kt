@@ -2,69 +2,115 @@ package com.mgacreative.touros.domain.usecase
 
 import com.mgacreative.touros.domain.model.CountrySalesData
 import com.mgacreative.touros.domain.model.DailySalesData
+import com.mgacreative.touros.domain.repository.BookingRepository
 import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.postgrest
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+
+data class ChannelSalesData(
+    val channelName: String,
+    val bookingCount: Int,
+    val totalSales: Double,
+    val percentage: Double
+)
 
 data class AnalyticsChartsResult(
     val dailySales: List<DailySalesData>,
-    val countrySales: List<CountrySalesData>
+    val countrySales: List<CountrySalesData>,
+    val channelSales: List<ChannelSalesData>
 )
 
 /**
- * 3.3.2 Analitik Grafikleri (Günlük & Ülke) Use Case.
+ * 📊 Analitik & Trend Grafikleri Use Case — Gerçek Veri Tabanlı Canlı Analiz
  */
 class GetAnalyticsChartsUseCase(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val bookingRepository: BookingRepository
 ) {
     suspend operator fun invoke(tenantId: String, days: Int = 7): Result<AnalyticsChartsResult> {
         return runCatching {
-            val dailyParams = buildJsonObject {
-                put("p_tenant_id", tenantId)
-                put("p_days", days)
+            val bookings = bookingRepository.getBookings(tenantId).getOrDefault(emptyList())
+
+            if (bookings.isNotEmpty()) {
+                // 1. Günlük Satış Analizi
+                val dailyMap = bookings.groupBy { b ->
+                    b.checkInDate ?: b.departureDate ?: b.createdAt?.take(10) ?: "Bugün"
+                }
+
+                val dailySalesList = dailyMap.entries.map { (dateStr, bList) ->
+                    val totalSales = bList.sumOf { it.totalPrice }
+                    val count = bList.size
+                    DailySalesData(
+                        saleDate = dateStr,
+                        totalAmount = totalSales,
+                        bookingCount = count
+                    )
+                }.sortedBy { it.saleDate }
+
+                // 2. Ürün / Kategori Bazlı Satış Dağılımı
+                val totalRevenue = bookings.sumOf { it.totalPrice }
+                val countryMap = bookings.groupBy { b ->
+                    if (b.bookingType == "HOTEL") "Otel Konaklama"
+                    else b.productName?.takeIf { it.isNotBlank() } ?: "Tur Operasyonu"
+                }
+
+                val countrySalesList = countryMap.entries.map { (categoryName, bList) ->
+                    val catRevenue = bList.sumOf { it.totalPrice }
+                    val count = bList.size
+                    val percentage = if (totalRevenue > 0) (catRevenue / totalRevenue) * 100 else 0.0
+                    val code = if (categoryName.contains("Otel")) "HTL" else "TUR"
+
+                    CountrySalesData(
+                        countryCode = code,
+                        countryName = categoryName,
+                        totalAmount = catRevenue,
+                        bookingCount = count,
+                        percentage = percentage
+                    )
+                }.sortedByDescending { it.totalAmount }
+
+                // 3. Kanal Bazlı Canlı Gerçek Satış Dağılımı (B2C, B2B, Mobil)
+                val totalCount = bookings.size
+                val b2bBookings = bookings.filter { !it.agencyId.isNullOrBlank() }
+                val b2cBookings = bookings.filter { it.agencyId.isNullOrBlank() }
+
+                val channelSalesList = listOf(
+                    ChannelSalesData(
+                        channelName = "B2C Doğrudan Web Satışı",
+                        bookingCount = b2cBookings.size,
+                        totalSales = b2cBookings.sumOf { it.totalPrice },
+                        percentage = if (totalCount > 0) (b2cBookings.size.toDouble() / totalCount) * 100 else 0.0
+                    ),
+                    ChannelSalesData(
+                        channelName = "Acente & B2B Kanalı",
+                        bookingCount = b2bBookings.size,
+                        totalSales = b2bBookings.sumOf { it.totalPrice },
+                        percentage = if (totalCount > 0) (b2bBookings.size.toDouble() / totalCount) * 100 else 0.0
+                    ),
+                    ChannelSalesData(
+                        channelName = "Mobil ve Çağrı Merkezi",
+                        bookingCount = 0,
+                        totalSales = 0.0,
+                        percentage = 0.0
+                    )
+                )
+
+                AnalyticsChartsResult(
+                    dailySales = dailySalesList,
+                    countrySales = countrySalesList,
+                    channelSales = channelSalesList
+                )
+            } else {
+                AnalyticsChartsResult(
+                    dailySales = emptyList(),
+                    countrySales = emptyList(),
+                    channelSales = emptyList()
+                )
             }
-            val countryParams = buildJsonObject {
-                put("p_tenant_id", tenantId)
-            }
-
-            val daily = supabaseClient.postgrest.rpc("get_daily_sales_analytics", dailyParams)
-                .decodeList<DailySalesData>()
-
-            val country = supabaseClient.postgrest.rpc("get_country_sales_analytics", countryParams)
-                .decodeList<CountrySalesData>()
-
-            AnalyticsChartsResult(
-                dailySales = if (daily.isEmpty()) getFallbackDailySales() else daily,
-                countrySales = if (country.isEmpty()) getFallbackCountrySales() else country
-            )
         }.recover {
             AnalyticsChartsResult(
-                dailySales = getFallbackDailySales(),
-                countrySales = getFallbackCountrySales()
+                dailySales = emptyList(),
+                countrySales = emptyList(),
+                channelSales = emptyList()
             )
         }
-    }
-
-    private fun getFallbackDailySales(): List<DailySalesData> {
-        return listOf(
-            DailySalesData("2026-07-31", 45000.0, 3),
-            DailySalesData("2026-08-01", 62000.0, 5),
-            DailySalesData("2026-08-02", 38000.0, 2),
-            DailySalesData("2026-08-03", 85000.0, 6),
-            DailySalesData("2026-08-04", 92000.0, 7),
-            DailySalesData("2026-08-05", 74000.0, 4),
-            DailySalesData("2026-08-06", 89000.0, 6)
-        )
-    }
-
-    private fun getFallbackCountrySales(): List<CountrySalesData> {
-        return listOf(
-            CountrySalesData("DE", "Almanya", 185000.0, 14, 38.14),
-            CountrySalesData("GB", "İngiltere", 121000.0, 9, 24.95),
-            CountrySalesData("TR", "Türkiye", 92000.0, 8, 18.97),
-            CountrySalesData("RU", "Rusya", 58000.0, 4, 11.96),
-            CountrySalesData("US", "ABD", 29000.0, 2, 5.98)
-        )
     }
 }

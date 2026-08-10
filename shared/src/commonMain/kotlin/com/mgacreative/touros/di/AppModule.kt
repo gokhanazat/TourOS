@@ -120,6 +120,7 @@ val useCaseModule = module {
     factory { GetCompanySettingsUseCase(get()) }
     factory { UpdateCompanySettingsUseCase(get()) }
     factory { UploadCompanyLogoUseCase(get()) }
+    factory { com.mgacreative.touros.domain.usecase.UploadCompanyHeaderBannerUseCase(get()) }
     factory { CheckSessionUseCase(get()) }
     factory { ForgotPasswordUseCase(get()) }
     factory { VerifyEmailUseCase(get()) }
@@ -186,8 +187,8 @@ val useCaseModule = module {
     factory { com.mgacreative.touros.domain.usecase.ProcessPaymentWebhookUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetExchangeRatesUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.UpdateExchangeRatesUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetFinancialReportUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetAnalyticsChartsUseCase(get()) }
+    factory { com.mgacreative.touros.domain.usecase.GetFinancialReportUseCase(get(), get()) }
+    factory { com.mgacreative.touros.domain.usecase.GetAnalyticsChartsUseCase(get(), get()) }
     factory { com.mgacreative.touros.domain.usecase.GetPerformanceReportsUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ExportReportUseCase(get(), get()) }
     factory { com.mgacreative.touros.domain.usecase.UploadDocumentUseCase(get()) }
@@ -204,7 +205,7 @@ val useCaseModule = module {
     factory { com.mgacreative.touros.domain.usecase.GetB2BAgencyPrivateReportsUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.SearchB2CToursUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetB2CTourDetailUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.ProcessB2CCheckoutUseCase(get()) }
+    factory { com.mgacreative.touros.domain.usecase.ProcessB2CCheckoutUseCase(get(), getOrNull(), getOrNull()) }
     factory { com.mgacreative.touros.domain.usecase.GenerateQRTicketUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ScanValidateQRTicketUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetB2CCustomerVouchersUseCase(get()) }
@@ -225,7 +226,7 @@ val useCaseModule = module {
     factory { com.mgacreative.touros.domain.usecase.GetGuidePerformanceReportUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ProcessAutoRevenueUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ProcessSupplierExpenseUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetCurrentAccountsUseCase(get()) }
+    factory { com.mgacreative.touros.domain.usecase.GetCurrentAccountsUseCase(get(), get()) }
     factory { com.mgacreative.touros.domain.usecase.CreateInvoiceUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ExportInvoicePdfUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetCommissionRulesUseCase(get()) }
@@ -239,24 +240,26 @@ val useCaseModule = module {
 
 val viewModelModule = module {
     factory { AuthViewModel(get(), get(), get(), get()) }
-    factory { CompanySettingsViewModel(get(), get(), get()) }
+    factory { CompanySettingsViewModel(get(), get(), get(), get()) }
     factory { SplashViewModel(get()) }
     factory { ForgotPasswordViewModel(get()) }
     factory { InviteUserViewModel(get()) }
     factory { PermissionMatrixViewModel(get()) }
     factory { AssignedTasksViewModel(get(), get()) }
     factory { UserListViewModel(get(), get(), get()) }
-    factory { TourFormViewModel(get(), get(), get()) }
+    factory { TourFormViewModel(get(), get(), get(), get(), get()) }
     factory { TourListViewModel(get(), get(), get()) }
     factory { TourMediaGalleryViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.TourDetailViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.TourDetailViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CreateBookingWizardViewModel(get(), get(), get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.BookingListViewModel(get(), get(), get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.ReportsViewModel(get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.CustomerSegmentationViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.BookingDetailViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.DashboardViewModel(get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.DepartureFormViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.DepartureFormViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.HotelListViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.HotelFormViewModel(get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.HotelFormViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.RoomTypeManagementViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.HotelContractViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.SeasonPricingMatrixViewModel(get(), get(), get(), get()) }
@@ -270,8 +273,8 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.GuideMobileViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.GuideRatingViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.GuidePerformanceReportViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.AutoRevenueEngineViewModel(get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.SupplierExpenseViewModel(get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AutoRevenueEngineViewModel(get(), get(), get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.SupplierExpenseViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CurrentAccountViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.InvoiceManagementViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CommissionRulesViewModel(get(), get(), get(), get()) }
@@ -311,7 +314,8 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.FaqSupportChatViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AgencyOperatorConnectionsViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel(get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.AgencyStorefrontViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AgencyStorefrontViewModel(get(), get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.B2CHotelDetailCheckoutViewModel(get(), get(), get(), get()) }
 }
 
 /**

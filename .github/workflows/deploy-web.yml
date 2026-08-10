@@ -4,16 +4,26 @@ on:
   push:
     branches:
       - master
+      - main
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max-old-space-size=8192"
 
     steps:
       - name: Checkout repository
@@ -31,20 +41,28 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Build Compose Web (JS & Wasm) Distributions
-        run: ./gradlew :webApp:jsBrowserDistribution :webApp:wasmJsBrowserDistribution --no-daemon
+      - name: Build Compose Web (Wasm) Distribution
+        run: ./gradlew :webApp:wasmJsBrowserDistribution --no-daemon
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
 
-      - name: Deploy to GitHub Pages (Automatic)
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Prepare SPA 404 Fallback
+        run: cp webApp/build/dist/wasmJs/productionExecutable/index.html webApp/build/dist/wasmJs/productionExecutable/404.html
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./webApp/build/dist/js/productionExecutable
-          force_orphan: true
+          path: webApp/build/dist/wasmJs/productionExecutable
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Deploy to Cloudflare Pages (Optional)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
-        run: npx wrangler pages deploy webApp/build/dist/js/productionExecutable --project-name=touros --branch=master --commit-dirty=true
+        run: npx wrangler pages deploy webApp/build/dist/wasmJs/productionExecutable --project-name=touros --branch=master --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
 

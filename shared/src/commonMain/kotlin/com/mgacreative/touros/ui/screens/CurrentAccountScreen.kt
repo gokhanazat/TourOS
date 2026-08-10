@@ -1,10 +1,8 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -12,7 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.AccountTransactionDetail
@@ -24,20 +22,11 @@ import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.CurrentAccountUiState
 import com.mgacreative.touros.ui.viewmodel.CurrentAccountViewModel
 
-private data class AccountTypeFilter(val key: String?, val label: String, val icon: String)
-
-private val accountTypeFilters = listOf(
-    AccountTypeFilter(null, "Tüm Cariler", "📋"),
-    AccountTypeFilter("customer", "Müşteriler", "👤"),
-    AccountTypeFilter("agency", "Acenteler", "🏢"),
-    AccountTypeFilter("supplier", "Tedarikçiler", "🚚")
-)
-
 /**
- * Cari Hesaplar & Ekstre Dökümü — TourOS 0.3
+ * Cari Hesaplar & Mutabakat Ekranı — TourOS Canlı Veri & Benzersiz Cari Kodu Destekli Sürüm
  *
- * Üstte Bakiye Özeti (Büyük rakam, Primary renkte)
- * Altta Hareket Dökümü Tablosu (Borç ve Alacak sütunları başlıkla net şekilde ayrılmış).
+ * Müşteri, Acente ve Tedarikçilerin cari hesap borç/alacak takibi, ekstre dökümü.
+ * Benzersiz Cari Kodu (Örn: CAR-2026-001) ve TC/VKN No ile isim çakışmaları tamamen önlenmiştir.
  */
 @Composable
 fun CurrentAccountScreen(
@@ -50,8 +39,8 @@ fun CurrentAccountScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Cari Hesaplar & Ekstre",
-                subtitle = "Müşteri, acente ve tedarikçi bakiye dökümleri",
+                title = "Cari Hesaplar & Mutabakat",
+                subtitle = "Müşteri, acente ve tedarikçi bakiye dökümleri ve ekstreler",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -62,89 +51,80 @@ fun CurrentAccountScreen(
     ) { padding ->
         when (val state = uiState) {
             is CurrentAccountUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator(color = TourOSColors.Primary)
                 }
             }
+
             is CurrentAccountUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                    Text("Hata: ${state.message}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error))
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(padding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "Hata: ${state.message}",
+                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error)
+                    )
                 }
             }
+
             is CurrentAccountUiState.Success -> {
                 BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(padding)) {
                     val isExpanded = maxWidth >= 768.dp
 
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(TourOSSpacing.large),
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(TourOSSpacing.large),
                         verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        // ── 1. Üstte Bakiye Özeti (Büyük Rakam, Primary Renkte) ────
-                        item {
-                            TopBalanceSummarySection(
-                                totalCustomerReceivables = state.totalCustomerReceivables,
-                                totalSupplierPayables = state.totalSupplierPayables,
-                                netBalance = state.netBalance
-                            )
-                        }
+                        // ── 1. Üst Bakiye Özeti Kartı ─────────────────────────
+                        TopBalanceSummarySection(
+                            totalCustomerReceivables = state.totalCustomerReceivables,
+                            totalSupplierPayables = state.totalSupplierPayables,
+                            netBalance = state.netBalance
+                        )
 
-                        // ── 2. Arama ve Filtreler ──────────────────────────────
-                        item {
-                            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                TourOSTextField(
-                                    value = state.searchQuery,
-                                    onValueChange = { viewModel.onSearchQueryChanged(it) },
-                                    label = "Cari Arama",
-                                    placeholder = "Cari unvan veya isim ara...",
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                    items(accountTypeFilters) { filter ->
-                                        FilterChip(
-                                            selected = state.selectedEntityType == filter.key,
-                                            onClick = { viewModel.setFilter(filter.key) },
-                                            label = {
-                                                Text("${filter.icon} ${filter.label}", style = TourOSTypography.Caption)
-                                            },
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = TourOSColors.PrimaryContainer,
-                                                selectedLabelColor = TourOSColors.Primary
-                                            )
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        // ── 2. Arama & Filtre Çubuğu ─────────────────────────
+                        SearchAndFilterBar(
+                            searchQuery = state.searchQuery,
+                            onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
+                            selectedEntityType = state.selectedEntityType,
+                            onEntityTypeSelected = { viewModel.setFilter(it) }
+                        )
 
                         // ── 3. Cari Hesap Listesi ──────────────────────────────
-                        item {
-                            Text(
-                                "📋 Cari Hesap Listesi (${state.accounts.size})",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
-                            )
-                        }
+                        Text(
+                            "📋 Cari Hesap Listesi (${state.accounts.size})",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.Bold
+                        )
 
                         if (state.accounts.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().height(160.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        "Filtreye uygun cari hesap bulunamadı.",
-                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
+                            Box(
+                                modifier = Modifier.fillMaxWidth().height(160.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "Filtreye uygun veya veritabanında kaydedilmiş cari hesap bulunamadı.",
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                    textAlign = TextAlign.Center
+                                )
                             }
                         } else {
-                            items(state.accounts) { account ->
-                                CurrentAccountCard(
-                                    account = account,
-                                    onStatementClick = { viewModel.selectAccountForStatement(account) }
-                                )
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                            ) {
+                                items(state.accounts) { account ->
+                                    CurrentAccountCard(
+                                        account = account,
+                                        onStatementClick = { viewModel.selectAccountForStatement(account) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -184,35 +164,37 @@ private fun TopBalanceSummarySection(
         ) {
             Text(
                 "NET GENEL BAKİYE",
-                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                fontWeight = FontWeight.Bold
             )
 
-            // BÜYÜK RAKAM (PRIMARY RENKTE)
             Text(
                 text = "₺ ${formatMoney(netBalance)}",
-                style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary),
+                fontWeight = FontWeight.Bold
             )
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            // 2'li Alt Detay (Müşteri Alacakları vs Tedarikçi Borçları)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceAround
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📈 Müşteri Alacakları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("📈 Müşteri Alacakları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                     Text(
                         "₺ ${formatMoney(totalCustomerReceivables)}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                        fontWeight = FontWeight.Bold
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📉 Tedarikçi Borçları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("📉 Tedarikçi Borçları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                     Text(
                         "₺ ${formatMoney(totalSupplierPayables)}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -220,48 +202,117 @@ private fun TopBalanceSummarySection(
     }
 }
 
-// ─── Cari Hesap Özeti Kartı ───────────────────────────────────────────────────
+// ─── Arama & Filtre Çubuğu ────────────────────────────────────────────────────
+
+@Composable
+private fun SearchAndFilterBar(
+    searchQuery: String,
+    onSearchQueryChanged: (String) -> Unit,
+    selectedEntityType: String?,
+    onEntityTypeSelected: (String?) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+        TourOSTextField(
+            value = searchQuery,
+            onValueChange = onSearchQueryChanged,
+            label = "Cari Arama",
+            placeholder = "Cari Adı, Cari Kodu (CAR-...) veya Vergi/TC No ile ara...",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        ) {
+            FilterChip(
+                selected = selectedEntityType == null,
+                onClick = { onEntityTypeSelected(null) },
+                label = { Text("Tüm Cariler", style = TourOSTypography.Caption) }
+            )
+            FilterChip(
+                selected = selectedEntityType == "customer",
+                onClick = { onEntityTypeSelected("customer") },
+                label = { Text("👤 Müşteriler", style = TourOSTypography.Caption) }
+            )
+            FilterChip(
+                selected = selectedEntityType == "agency",
+                onClick = { onEntityTypeSelected("agency") },
+                label = { Text("🏢 Acenteler", style = TourOSTypography.Caption) }
+            )
+            FilterChip(
+                selected = selectedEntityType == "supplier",
+                onClick = { onEntityTypeSelected("supplier") },
+                label = { Text("🏨 Tedarikçiler", style = TourOSTypography.Caption) }
+            )
+        }
+    }
+}
+
+// ─── Cari Hesap Kartı (Cari Kodu & Vergi No Rozet Destekli) ───────────────────
 
 @Composable
 private fun CurrentAccountCard(
     account: CurrentAccountItem,
     onStatementClick: () -> Unit
 ) {
-    val (typeIcon, typeTitle) = when (account.entityType) {
-        "customer" -> "👤" to "Müşteri"
-        "agency"   -> "🏢" to "Acente"
-        "supplier" -> "🚚" to "Tedarikçi"
-        else       -> "📌" to "Cari"
+    val typeTitle = when (account.entityType) {
+        "customer" -> "Müşteri"
+        "agency" -> "Acente"
+        "supplier" -> "Tedarikçi"
+        else -> "Cari"
     }
 
-    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+    val typeIcon = when (account.entityType) {
+        "customer" -> "👤"
+        "agency" -> "🏢"
+        "supplier" -> "🏨"
+        else -> "📌"
+    }
+
+    val codeText = account.accountCode.ifBlank { "CAR-${account.entityId.take(6).uppercase()}" }
+
+    TourOSCard(
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = TourOSSpacing.medium
+    ) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(TourOSColors.PrimaryContainer)
-                        .padding(horizontal = TourOSSpacing.small, vertical = 3.dp)
-                ) {
-                    Text(
-                        "$typeIcon $typeTitle",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                            .background(TourOSColors.PrimaryContainer)
+                            .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
+                    ) {
+                        Text(
+                            "$typeIcon $typeTitle • $codeText",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    if (!account.taxNo.isNullOrBlank()) {
+                        Text(
+                            "VKN/TC: ${account.taxNo}",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                        )
+                    }
                 }
 
                 Text(
-                    "Son İşlem: ${account.lastTransactionDate}",
+                    "Son İşlem: ${account.lastTransactionDate.ifBlank { "—" }}",
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                 )
             }
 
             Text(
                 account.entityName,
-                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                fontWeight = FontWeight.Bold
             )
 
             if (!account.phone.isNullOrBlank() || !account.email.isNullOrBlank()) {
@@ -273,7 +324,6 @@ private fun CurrentAccountCard(
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            // Sütun Başlıklarıyla Net Bakiye Özeti
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -291,7 +341,8 @@ private fun CurrentAccountCard(
                     Text("Net Bakiye", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text(
                         "₺ ${formatMoney(account.balance)} ${account.currency}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -306,7 +357,7 @@ private fun CurrentAccountCard(
     }
 }
 
-// ─── Hareket Dökümü Ekstre Modalı (Borç / Alacak Sütunları Başlıkla Ayrılmış) ──
+// ─── Hareket Dökümü Ekstre Modalı ─────────────────────────────────────────────
 
 @Composable
 private fun AccountStatementModal(
@@ -315,17 +366,21 @@ private fun AccountStatementModal(
     isExpanded: Boolean,
     onDismiss: () -> Unit
 ) {
+    val codeText = account.accountCode.ifBlank { "CAR-${account.entityId.take(6).uppercase()}" }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
                 Text(
                     "📋 Cari Hareket Dökümü & Ekstre",
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
-                    account.entityName,
-                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary)
+                    "${account.entityName} [$codeText]",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                    fontWeight = FontWeight.Bold
                 )
             }
         },
@@ -334,7 +389,6 @@ private fun AccountStatementModal(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
-                // Bakiye Özeti
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -347,77 +401,54 @@ private fun AccountStatementModal(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Güncel Bakiye:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
+                        Text("Güncel Bakiye:", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
                         Text(
                             "₺ ${formatMoney(account.balance)} ${account.currency}",
-                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                // HAREKET DÖKÜMÜ TABLOSU (BORÇ VE ALACAK SÜTUNLARI NET BAŞLIKLARLA AYRILMIŞ)
                 TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                     Column {
-                        // Tablo Başlık Şeridi (Borç (TL) ve Alacak (TL) Net Ayrılmış)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(TourOSColors.Primary)
                                 .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
                         ) {
-                            Text("Tarih", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), modifier = Modifier.weight(0.9f))
-                            Text("Açıklama / Ref", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), modifier = Modifier.weight(1.5f))
-                            Text("Borç (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), modifier = Modifier.weight(1.0f))
-                            Text("Alacak (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), modifier = Modifier.weight(1.0f))
-                            Text("Bakiye (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), modifier = Modifier.weight(1.0f))
+                            Text("Tarih", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.9f))
+                            Text("Açıklama / Ref", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
+                            Text("Borç (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
+                            Text("Alacak (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
+                            Text("Bakiye (TL)", style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
                         }
 
-                        // Satırlar
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().height(260.dp),
-                            verticalArrangement = Arrangement.spacedBy(0.dp)
-                        ) {
-                            items(details) { item ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(TourOSColors.Surface)
-                                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // Tarih
-                                    Text(item.date, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(0.9f))
-
-                                    // Açıklama / Ref
-                                    Column(modifier = Modifier.weight(1.5f)) {
-                                        Text(item.description, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
-                                        if (!item.referenceNo.isNullOrBlank()) {
-                                            Text("Ref: ${item.referenceNo}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                                        }
+                        if (details.isEmpty()) {
+                            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                                Text("Hareket detayı bulunamadı.", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                verticalArrangement = Arrangement.spacedBy(0.dp)
+                            ) {
+                                items(details) { item ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(item.date, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(0.9f))
+                                        Text(item.description, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
+                                        Text(formatMoney(item.debit), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(1.0f))
+                                        Text(formatMoney(item.credit), style = TourOSTypography.Caption.copy(color = TourOSColors.Success), modifier = Modifier.weight(1.0f))
+                                        Text(formatMoney(item.balance), style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
                                     }
-
-                                    // BORÇ (TL) SÜTUNU
-                                    Text(
-                                        text = if (item.debit > 0) "₺ ${formatMoney(item.debit)}" else "—",
-                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                                        modifier = Modifier.weight(1.0f)
-                                    )
-
-                                    // ALACAK (TL) SÜTUNU
-                                    Text(
-                                        text = if (item.credit > 0) "₺ ${formatMoney(item.credit)}" else "—",
-                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                                        modifier = Modifier.weight(1.0f)
-                                    )
-
-                                    // BAKİYE (TL) SÜTUNU
-                                    Text(
-                                        text = "₺ ${formatMoney(item.balance)}",
-                                        style = TourOSTypography.Label.copy(color = TourOSColors.Primary),
-                                        modifier = Modifier.weight(1.0f)
-                                    )
+                                    HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
                                 }
-                                HorizontalDivider(color = TourOSColors.Divider, thickness = 0.5.dp)
                             }
                         }
                     }

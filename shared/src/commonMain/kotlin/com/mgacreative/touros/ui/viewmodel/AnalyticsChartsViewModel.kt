@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.domain.model.CountrySalesData
 import com.mgacreative.touros.domain.model.DailySalesData
+import com.mgacreative.touros.domain.usecase.ChannelSalesData
 import com.mgacreative.touros.domain.usecase.GetAnalyticsChartsUseCase
 import com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.launch
 data class AnalyticsChartsUiState(
     val dailySales: List<DailySalesData> = emptyList(),
     val countrySales: List<CountrySalesData> = emptyList(),
+    val channelSales: List<ChannelSalesData> = emptyList(),
     val selectedDays: Int = 7,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
@@ -42,6 +44,7 @@ class AnalyticsChartsViewModel(
                 _uiState.value = _uiState.value.copy(
                     dailySales = result.dailySales,
                     countrySales = result.countrySales,
+                    channelSales = result.channelSales,
                     isLoading = false
                 )
             }.onFailure { err ->

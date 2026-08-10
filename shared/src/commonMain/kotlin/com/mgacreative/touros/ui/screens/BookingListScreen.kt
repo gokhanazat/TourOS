@@ -164,20 +164,37 @@ fun BookingListScreen(
                             )
                         } else {
                             val bookingColumns = listOf(
-                                TourOSColumn<Booking>(title = "REZERVASYON KODU & MÜŞTERİ", weight = 2.5f) { booking ->
+                                TourOSColumn<Booking>(title = "REZERVASYON KODU & MÜŞTERİ", weight = 2.2f) { booking ->
                                     Column {
                                         Text(text = booking.bookingCode, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
                                         Text(text = booking.customerName, style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                         Text(text = "📞 ${booking.customerPhone ?: '-'} • ✉️ ${booking.customerEmail ?: '-'}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 },
-                                TourOSColumn<Booking>(title = "PAX (KİŞİ)", weight = 1f) { booking ->
-                                    Text(text = "👥 ${booking.paxCount} Kişi", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
+                                TourOSColumn<Booking>(title = "ACENTE / OPERATÖR", weight = 1.8f) { booking ->
+                                    Text(text = "🏢 ${booking.operatorName}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                 },
-                                TourOSColumn<Booking>(title = "TUTAR", weight = 1.2f) { booking ->
-                                    Text(text = "${booking.totalPrice} ${booking.currency}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                                TourOSColumn<Booking>(title = "ÜRÜN / HİZMET ADI & TARİH", weight = 2.5f) { booking ->
+                                    val isHotel = booking.bookingType == "HOTEL" || !booking.hotelId.isNullOrBlank()
+                                    val icon = if (isHotel) "🏨" else "🚌"
+                                    val dateInfo = if (isHotel && !booking.checkInDate.isNullOrBlank()) {
+                                        "📅 Giriş: ${booking.checkInDate} (${booking.nights} Gece)"
+                                    } else {
+                                        "📅 Kalkış: ${booking.departureDate}"
+                                    }
+                                    Column {
+                                        Text(text = "$icon ${booking.productName}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
+                                        Text(text = dateInfo, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
+                                    }
                                 },
-                                TourOSColumn<Booking>(title = "DURUM", weight = 1.5f) { booking ->
+                                TourOSColumn<Booking>(title = "PAX / TUTAR", weight = 1.5f) { booking ->
+                                    val unitPrice = booking.totalPrice / maxOf(1, booking.paxCount)
+                                    Column {
+                                        Text(text = "${booking.totalPrice} ${booking.currency}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                                        Text(text = "👥 ${booking.paxCount} Kişi ($unitPrice ₺/Pax)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                    }
+                                },
+                                TourOSColumn<Booking>(title = "DURUM", weight = 1.3f) { booking ->
                                     val (badgeBg, badgeText) = getStatusColors(booking.status)
                                     TourOSStatusBadge(
                                         text = booking.status.displayName,
@@ -185,11 +202,11 @@ fun BookingListScreen(
                                         textColor = badgeText
                                     )
                                 },
-                                TourOSColumn<Booking>(title = "İŞLEM", weight = 1.5f) { booking ->
+                                TourOSColumn<Booking>(title = "İŞLEM", weight = 1.2f) { booking ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                                         TourOSButton(
                                             text = "Detay ›",
-                                            onClick = { onNavigateToBookingDetail(booking.id) },
+                                            onClick = { onNavigateToBookingDetail(booking.id.ifBlank { booking.bookingCode }) },
                                             variant = TourOSButtonVariant.TERTIARY
                                         )
                                     }
@@ -201,8 +218,17 @@ fun BookingListScreen(
                                 columns = bookingColumns,
                                 isCompact = isCompact,
                                 modifier = Modifier.fillMaxSize(),
-                                onItemClick = { onNavigateToBookingDetail(it.id) },
+                                onItemClick = { onNavigateToBookingDetail(it.id.ifBlank { it.bookingCode }) },
                                 compactCardContent = { booking ->
+                                    val targetId = booking.id.ifBlank { booking.bookingCode }
+                                    val isHotel = booking.bookingType == "HOTEL" || !booking.hotelId.isNullOrBlank()
+                                    val icon = if (isHotel) "🏨" else "📍"
+                                    val dateText = if (isHotel && !booking.checkInDate.isNullOrBlank()) {
+                                        "📅 Giriş: ${booking.checkInDate} (${booking.nights} Gece)"
+                                    } else {
+                                        "📅 Kalkış: ${booking.departureDate}"
+                                    }
+
                                     // COMPACT MOBİL KART (Durum Rozeti Sağ Üstte)
                                     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                                         Row(
@@ -225,8 +251,12 @@ fun BookingListScreen(
                                         }
 
                                         Text(
-                                            text = "📞 ${booking.customerPhone ?: '-'}  •  👥 ${booking.paxCount} Kişi",
-                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                                            text = "🏢 ${booking.operatorName}  •  $icon ${booking.productName}",
+                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                                        )
+                                        Text(
+                                            text = "$dateText  •  📞 ${booking.customerPhone ?: '-'}  •  👥 ${booking.paxCount} Kişi",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                         )
 
                                         Row(
@@ -245,7 +275,7 @@ fun BookingListScreen(
                                                     allowedNext.take(2).forEach { target ->
                                                         TourOSButton(
                                                             text = target.displayName,
-                                                            onClick = { viewModel.updateBookingStatus(booking.id, booking.status, target) },
+                                                            onClick = { viewModel.updateBookingStatus(targetId, booking.status, target) },
                                                             variant = TourOSButtonVariant.SECONDARY
                                                         )
                                                     }

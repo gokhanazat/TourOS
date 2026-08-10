@@ -88,49 +88,50 @@ class HotelRepositoryImpl(
 
     override suspend fun createHotel(hotel: Hotel): Result<Hotel> {
         return runCatching {
-            val entity = HotelEntity(
-                name = hotel.name,
-                slug = hotel.name.lowercase().replace(" ", "-"),
-                starRating = hotel.starRating,
-                address = hotel.address,
-                city = hotel.city,
-                country = hotel.country,
-                phone = hotel.phone,
-                email = hotel.email,
-                website = hotel.website,
-                description = hotel.description,
-                coverImageUrl = hotel.coverImageUrl,
-                isActive = hotel.isActive,
-                tenantId = hotel.tenantId
-            )
+            val validTenantId = if (hotel.tenantId.isValidUuid()) hotel.tenantId else "00000000-0000-0000-0000-000000000001"
+            val entityJson = buildJsonObject {
+                put("name", hotel.name)
+                put("slug", hotel.name.lowercase().replace(" ", "-"))
+                put("city", hotel.city)
+                put("country", hotel.country.ifBlank { "Türkiye" })
+                if (!hotel.address.isNullOrBlank()) put("address", hotel.address)
+                put("star_rating", hotel.starRating ?: 4)
+                if (!hotel.phone.isNullOrBlank()) put("phone", hotel.phone)
+                if (!hotel.email.isNullOrBlank()) put("email", hotel.email)
+                if (!hotel.website.isNullOrBlank()) put("website", hotel.website)
+                if (!hotel.description.isNullOrBlank()) put("description", hotel.description)
+                if (!hotel.coverImageUrl.isNullOrBlank()) put("cover_image_url", hotel.coverImageUrl)
+                put("is_active", hotel.isActive)
+                put("tenant_id", validTenantId)
+            }
             val created = supabaseClient.postgrest.from("hotels")
-                .insert(entity) { select() }
+                .insert(entityJson) { select() }
                 .decodeSingle<HotelEntity>()
 
-            hotel.copy(id = created.id)
+            hotel.copy(id = created.id, tenantId = created.tenantId)
         }
     }
 
     override suspend fun updateHotel(hotel: Hotel): Result<Hotel> {
         return runCatching {
-            val entity = HotelEntity(
-                id = hotel.id,
-                name = hotel.name,
-                slug = hotel.name.lowercase().replace(" ", "-"),
-                starRating = hotel.starRating,
-                address = hotel.address,
-                city = hotel.city,
-                country = hotel.country,
-                phone = hotel.phone,
-                email = hotel.email,
-                website = hotel.website,
-                description = hotel.description,
-                coverImageUrl = hotel.coverImageUrl,
-                isActive = hotel.isActive,
-                tenantId = hotel.tenantId
-            )
+            val validTenantId = if (hotel.tenantId.isValidUuid()) hotel.tenantId else "00000000-0000-0000-0000-000000000001"
+            val entityJson = buildJsonObject {
+                put("name", hotel.name)
+                put("slug", hotel.name.lowercase().replace(" ", "-"))
+                put("city", hotel.city)
+                put("country", hotel.country.ifBlank { "Türkiye" })
+                if (!hotel.address.isNullOrBlank()) put("address", hotel.address)
+                put("star_rating", hotel.starRating ?: 4)
+                if (!hotel.phone.isNullOrBlank()) put("phone", hotel.phone)
+                if (!hotel.email.isNullOrBlank()) put("email", hotel.email)
+                if (!hotel.website.isNullOrBlank()) put("website", hotel.website)
+                if (!hotel.description.isNullOrBlank()) put("description", hotel.description)
+                if (!hotel.coverImageUrl.isNullOrBlank()) put("cover_image_url", hotel.coverImageUrl)
+                put("is_active", hotel.isActive)
+                put("tenant_id", validTenantId)
+            }
             supabaseClient.postgrest.from("hotels")
-                .update(entity) { filter { eq("id", hotel.id) } }
+                .update(entityJson) { filter { eq("id", hotel.id) } }
             hotel
         }
     }
@@ -309,6 +310,7 @@ class HotelRepositoryImpl(
                     id = entity.id,
                     hotelId = entity.hotelId,
                     roomTypeId = entity.roomTypeId,
+                    roomTypeName = entity.roomTypeName,
                     seasonName = entity.seasonName,
                     startDate = entity.startDate,
                     endDate = entity.endDate,
@@ -317,6 +319,9 @@ class HotelRepositoryImpl(
                     triplePrice = entity.triplePrice,
                     extraBedPrice = entity.extraBedPrice,
                     childPrice = entity.childPrice,
+                    costPrice = entity.costPrice,
+                    salePrice = entity.salePrice,
+                    allotment = entity.allotment,
                     currency = entity.currency,
                     mealPlan = entity.mealPlan,
                     minStayDays = entity.minStayDays,
@@ -333,6 +338,7 @@ class HotelRepositoryImpl(
             val entity = HotelSeasonRateEntity(
                 hotelId = rate.hotelId,
                 roomTypeId = rate.roomTypeId,
+                roomTypeName = rate.roomTypeName,
                 seasonName = rate.seasonName,
                 startDate = rate.startDate,
                 endDate = rate.endDate,
@@ -341,6 +347,9 @@ class HotelRepositoryImpl(
                 triplePrice = rate.triplePrice,
                 extraBedPrice = rate.extraBedPrice,
                 childPrice = rate.childPrice,
+                costPrice = rate.costPrice,
+                salePrice = rate.salePrice,
+                allotment = rate.allotment,
                 currency = rate.currency,
                 mealPlan = rate.mealPlan,
                 minStayDays = rate.minStayDays,
@@ -361,6 +370,7 @@ class HotelRepositoryImpl(
                 id = rate.id,
                 hotelId = rate.hotelId,
                 roomTypeId = rate.roomTypeId,
+                roomTypeName = rate.roomTypeName,
                 seasonName = rate.seasonName,
                 startDate = rate.startDate,
                 endDate = rate.endDate,
@@ -369,6 +379,9 @@ class HotelRepositoryImpl(
                 triplePrice = rate.triplePrice,
                 extraBedPrice = rate.extraBedPrice,
                 childPrice = rate.childPrice,
+                costPrice = rate.costPrice,
+                salePrice = rate.salePrice,
+                allotment = rate.allotment,
                 currency = rate.currency,
                 mealPlan = rate.mealPlan,
                 minStayDays = rate.minStayDays,
@@ -385,6 +398,14 @@ class HotelRepositoryImpl(
         return runCatching {
             supabaseClient.postgrest.from("hotel_season_rates")
                 .delete { filter { eq("id", id) } }
+            true
+        }
+    }
+
+    override suspend fun deleteSeasonRatesForHotel(hotelId: String): Result<Boolean> {
+        return runCatching {
+            supabaseClient.postgrest.from("hotel_season_rates")
+                .delete { filter { eq("hotel_id", hotelId) } }
             true
         }
     }

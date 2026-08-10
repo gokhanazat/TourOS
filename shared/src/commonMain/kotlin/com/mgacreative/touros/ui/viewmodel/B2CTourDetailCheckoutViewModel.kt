@@ -17,6 +17,8 @@ data class B2CTourDetailCheckoutUiState(
     val selectedTab: Int = 0, // 0: Detaylar, 1: Ödeme & Rezervasyon
     val tourDetail: B2CTourDetail = B2CTourDetail(),
     val paxCount: Int = 1,
+    val selectedDepartureId: String? = null,
+    val selectedDepartureDate: String? = null,
     val checkoutResult: B2CCheckoutResult? = null,
     val isLoading: Boolean = false,
     val notificationMessage: String? = null,
@@ -42,8 +44,11 @@ class B2CTourDetailCheckoutViewModel(
 
             val res = getB2CTourDetailUseCase(tourId, tenantId)
             res.onSuccess { detail ->
+                val firstDeparture = detail.availableDepartures.firstOrNull()
                 _uiState.value = _uiState.value.copy(
                     tourDetail = detail,
+                    selectedDepartureId = firstDeparture?.id,
+                    selectedDepartureDate = firstDeparture?.departureDate,
                     isLoading = false
                 )
             }.onFailure { err ->
@@ -65,7 +70,26 @@ class B2CTourDetailCheckoutViewModel(
         }
     }
 
-    fun processCheckout(passengerName: String, phone: String, email: String, cardHolder: String, cardNumber: String, expiry: String, cvv: String) {
+    fun selectDeparture(departureId: String, date: String) {
+        val selectedDep = _uiState.value.tourDetail.availableDepartures.find { it.id == departureId || it.departureDate == date }
+        val updatedPrice = selectedDep?.price?.takeIf { it > 0 } ?: _uiState.value.tourDetail.price
+        _uiState.value = _uiState.value.copy(
+            selectedDepartureId = departureId,
+            selectedDepartureDate = date,
+            tourDetail = _uiState.value.tourDetail.copy(price = updatedPrice)
+        )
+    }
+
+    fun processCheckout(
+        passengerName: String,
+        phone: String,
+        email: String,
+        paymentMethod: String = "KREDİ_KARTI",
+        cardHolder: String = "",
+        cardNumber: String = "",
+        expiry: String = "",
+        cvv: String = ""
+    ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             val user = getCurrentUserUseCase()
@@ -73,28 +97,34 @@ class B2CTourDetailCheckoutViewModel(
 
             val req = B2CCheckoutRequest(
                 tourId = _uiState.value.tourDetail.tourId,
-                departureId = "dep-201",
+                departureId = _uiState.value.selectedDepartureId ?: "dep-201",
                 passengerName = passengerName,
                 passengerPhone = phone,
                 passengerEmail = email,
                 paxCount = _uiState.value.paxCount,
-                cardNumberMasked = if (cardNumber.length >= 4) "**** **** **** ${cardNumber.takeLast(4)}" else "**** **** **** 4242",
-                cardHolder = cardHolder,
+                totalAmount = _uiState.value.totalPrice,
+                cardNumberMasked = if (cardNumber.length >= 4) "**** **** **** ${cardNumber.takeLast(4)}" else if (paymentMethod == "NAKİT") "NAKİT ÖDEME" else if (paymentMethod == "PAYPAL") "PAYPAL ÖDEME" else "BANKA HAVALESİ",
+                cardHolder = cardHolder.ifBlank { passengerName },
                 cardExpiry = expiry,
                 cvv = cvv
             )
 
             val res = processB2CCheckoutUseCase(req, tenantId)
             res.onSuccess { result ->
+                val message = when (paymentMethod) {
+                    "BANKA_HAVALESİ" -> "🎉 Havale/EFT Talebi Alındı! Rezervasyon Kodu: ${result.bookingCode}. Ödeme onayının ardından rezervasyonunuz kesinleşecektir."
+                    "NAKİT" -> "🎉 Nakit Ödeme Talebi Alındı! Rezervasyon Kodu: ${result.bookingCode}. Ödeme tur günü tahsil edilecektir."
+                    else -> "🎉 Kredi Kartı Ödemesi Başarılı! Rezervasyon Kodu: ${result.bookingCode} | Ref: ${result.paymentReference}"
+                }
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     checkoutResult = result,
-                    notificationMessage = "🎉 Ödeme Başarılı! Rezervasyon Kodu: ${result.bookingCode} | Ref: ${result.paymentReference}"
+                    notificationMessage = message
                 )
             }.onFailure { err ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    errorMessage = err.message ?: "Ödeme işlemi gerçekleştirilemedi."
+                    errorMessage = err.message ?: "İşlem gerçekleştirilemedi."
                 )
             }
         }

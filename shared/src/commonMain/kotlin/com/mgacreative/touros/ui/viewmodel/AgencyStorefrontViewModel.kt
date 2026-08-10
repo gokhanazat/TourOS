@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.data.database.entity.AgencyBrandingEntity
 import com.mgacreative.touros.data.database.entity.AgencyStorefrontTourItem
+import com.mgacreative.touros.domain.model.Hotel
+import com.mgacreative.touros.domain.repository.CompanySettingsRepository
+import com.mgacreative.touros.domain.repository.HotelRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,13 +20,16 @@ sealed interface AgencyStorefrontUiState {
     data object Loading : AgencyStorefrontUiState
     data class Success(
         val branding: AgencyBrandingEntity,
-        val tours: List<AgencyStorefrontTourItem>
+        val tours: List<AgencyStorefrontTourItem>,
+        val hotels: List<Hotel>
     ) : AgencyStorefrontUiState
     data class Error(val message: String) : AgencyStorefrontUiState
 }
 
 class AgencyStorefrontViewModel(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val companySettingsRepository: CompanySettingsRepository,
+    private val hotelRepository: HotelRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<AgencyStorefrontUiState>(AgencyStorefrontUiState.Loading)
@@ -42,9 +48,26 @@ class AgencyStorefrontViewModel(
         viewModelScope.launch {
             _uiState.value = AgencyStorefrontUiState.Loading
             runCatching {
+                val companySettings = companySettingsRepository.getCompanySettings("00000000-0000-0000-0000-000000000001").getOrNull()
+
                 val brandingParams = buildJsonObject { put("p_agency_id", "00000000-0000-0000-0000-000000000001") }
-                val branding = supabaseClient.postgrest.rpc("get_agency_branding", brandingParams)
-                    .decodeSingleOrNull<AgencyBrandingEntity>() ?: AgencyBrandingEntity()
+                val rpcBranding = runCatching {
+                    supabaseClient.postgrest.rpc("get_agency_branding", brandingParams)
+                        .decodeSingleOrNull<AgencyBrandingEntity>()
+                }.getOrNull()
+
+                val branding = AgencyBrandingEntity(
+                    agencyId = "00000000-0000-0000-0000-000000000001",
+                    heroTitle = companySettings?.name?.takeIf { it.isNotBlank() } ?: rpcBranding?.heroTitle ?: "Hayalinizdeki Turu Keşfedin",
+                    heroSubtitle = companySettings?.heroSubtitle?.takeIf { it.isNotBlank() } ?: rpcBranding?.heroSubtitle ?: "En iyi tur operatörlerinden karşılaştırmalı teklifler",
+                    customLogoUrl = companySettings?.logoUrl ?: rpcBranding?.customLogoUrl,
+                    headerImageUrl = companySettings?.headerImageUrl ?: rpcBranding?.headerImageUrl,
+                    footerText = companySettings?.footerText?.takeIf { it.isNotBlank() } ?: rpcBranding?.footerText ?: "© 2026 Tüm Hakları Saklıdır",
+                    contactEmail = companySettings?.webEmail?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactEmail ?: companySettings?.email,
+                    contactPhone = companySettings?.webPhone?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactPhone ?: companySettings?.phone,
+                    whatsappNumber = companySettings?.webWhatsapp?.takeIf { it.isNotBlank() } ?: rpcBranding?.whatsappNumber,
+                    contactAddress = companySettings?.webAddress?.takeIf { it.isNotBlank() } ?: rpcBranding?.contactAddress ?: companySettings?.address
+                )
 
                 val searchParams = buildJsonObject {
                     put("p_agency_id", "00000000-0000-0000-0000-000000000001")
@@ -53,87 +76,67 @@ class AgencyStorefrontViewModel(
                     put("p_max_nights", maxNights)
                     put("p_max_budget", maxBudget)
                 }
-                val loadedTours = supabaseClient.postgrest.rpc("search_agency_storefront_tours", searchParams)
-                    .decodeList<AgencyStorefrontTourItem>()
+                val loadedTours = runCatching {
+                    supabaseClient.postgrest.rpc("search_agency_storefront_tours", searchParams)
+                        .decodeList<AgencyStorefrontTourItem>()
+                }.getOrDefault(emptyList())
 
-                val tours = if (loadedTours.isNotEmpty()) loadedTours else defaultSampleTours
+                val toursTableResult = runCatching {
+                    supabaseClient.postgrest.from("tours")
+                        .select {
+                            filter {
+                                eq("is_active", true)
+                            }
+                        }
+                        .decodeList<com.mgacreative.touros.data.database.entity.TourEntity>()
+                        .map { entity ->
+                            AgencyStorefrontTourItem(
+                                tourId = entity.id ?: "",
+                                title = entity.title,
+                                code = entity.code,
+                                country = entity.country,
+                                city = entity.city,
+                                nights = entity.durationDays,
+                                basePrice = entity.basePrice,
+                                finalPrice = entity.basePrice,
+                                operatorName = companySettings?.name?.takeIf { it.isNotBlank() } ?: "TourOS Operatör",
+                                comparedOperatorCount = 1,
+                                coverImageUrl = entity.coverImageUrl
+                            )
+                        }
+                }.getOrDefault(emptyList())
 
-                AgencyStorefrontUiState.Success(branding = branding, tours = tours)
+                val combinedTours = (loadedTours + toursTableResult).distinctBy { it.tourId }
+
+                val registeredHotels = hotelRepository.getHotels("00000000-0000-0000-0000-000000000001")
+                    .getOrDefault(emptyList())
+                    .filter { it.isActive }
+
+                AgencyStorefrontUiState.Success(branding = branding, tours = combinedTours, hotels = registeredHotels)
             }.onSuccess { state ->
                 _uiState.value = state
             }.onFailure {
-                // Mock Travelata/Sletat.ru style aggregated fallback data
+                val companySettings = companySettingsRepository.getCompanySettings("00000000-0000-0000-0000-000000000001").getOrNull()
+                val registeredHotels = hotelRepository.getHotels("00000000-0000-0000-0000-000000000001")
+                    .getOrDefault(emptyList())
+                    .filter { it.isActive }
+
                 _uiState.value = AgencyStorefrontUiState.Success(
                     branding = AgencyBrandingEntity(
-                        heroTitle = "Hayalinizdeki Turu Keşfedin",
-                        heroSubtitle = "80+ Tur Operatöründen Karşılaştırmalı Fiyat Garantisi"
+                        heroTitle = companySettings?.name?.takeIf { it.isNotBlank() } ?: "Hayalinizdeki Turu Keşfedin",
+                        heroSubtitle = companySettings?.heroSubtitle?.takeIf { it.isNotBlank() } ?: "80+ Tur Operatöründen Karşılaştırmalı Fiyat Garantisi",
+                        customLogoUrl = companySettings?.logoUrl,
+                        headerImageUrl = companySettings?.headerImageUrl,
+                        footerText = companySettings?.footerText?.takeIf { it.isNotBlank() } ?: "© 2026 Tüm Hakları Saklıdır",
+                        contactEmail = companySettings?.webEmail?.takeIf { it.isNotBlank() } ?: companySettings?.email,
+                        contactPhone = companySettings?.webPhone?.takeIf { it.isNotBlank() } ?: companySettings?.phone,
+                        whatsappNumber = companySettings?.webWhatsapp,
+                        contactAddress = companySettings?.webAddress?.takeIf { it.isNotBlank() } ?: companySettings?.address
                     ),
-                    tours = defaultSampleTours
+                    tours = emptyList(),
+                    hotels = registeredHotels
                 )
             }
         }
     }
-
-    private val defaultSampleTours = listOf(
-        AgencyStorefrontTourItem(
-            tourId = "t-001",
-            title = "Kapadokya Balon & Vadi Turu (3 Gece 4 Gün)",
-            code = "ANK-00001",
-            country = "Türkiye",
-            city = "Nevşehir",
-            nights = 3,
-            basePrice = 10800.0,
-            finalPrice = 12500.0,
-            operatorName = "Ankara Turizm A.Ş. / Coral Travel",
-            comparedOperatorCount = 3
-        ),
-        AgencyStorefrontTourItem(
-            tourId = "t-002",
-            title = "Mavi Yolculuk Göcek Koyu & Fethiye (5 Gece)",
-            code = "IST-00045",
-            country = "Türkiye",
-            city = "Muğla",
-            nights = 5,
-            basePrice = 16400.0,
-            finalPrice = 18900.0,
-            operatorName = "Ege Maritim Ltd. / Anex Tour",
-            comparedOperatorCount = 4
-        ),
-        AgencyStorefrontTourItem(
-            tourId = "t-003",
-            title = "Antalya All-Inclusive Luxury Resort & Rafting (7 Gece)",
-            code = "ANT-00102",
-            country = "Türkiye",
-            city = "Antalya",
-            nights = 7,
-            basePrice = 21200.0,
-            finalPrice = 24500.0,
-            operatorName = "Pegas Touristik",
-            comparedOperatorCount = 5
-        ),
-        AgencyStorefrontTourItem(
-            tourId = "t-004",
-            title = "Dubai Çöl Safari & Burj Khalifa Turu (4 Gece)",
-            code = "DXB-0089",
-            country = "BAE",
-            city = "Dubai",
-            nights = 4,
-            basePrice = 27800.0,
-            finalPrice = 32000.0,
-            operatorName = "Fun & Sun",
-            comparedOperatorCount = 3
-        ),
-        AgencyStorefrontTourItem(
-            tourId = "t-005",
-            title = "Klasik İtalya: Roma, Floransa & Venedik (6 Gece)",
-            code = "ITA-00301",
-            country = "İtalya",
-            city = "Roma",
-            nights = 6,
-            basePrice = 24800.0,
-            finalPrice = 28500.0,
-            operatorName = "Sunmar",
-            comparedOperatorCount = 4
-        )
-    )
 }

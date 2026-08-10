@@ -15,8 +15,26 @@ data class FinancialReportsUiState(
     val summary: FinancialReportSummary = FinancialReportSummary(),
     val isLoading: Boolean = false,
     val dateFilter: String = "30_DAYS", // 30_DAYS, THIS_MONTH, THIS_YEAR
+    val selectedCompany: String = "Tüm Şirketler",
+    val companyOptions: List<String> = listOf("Tüm Şirketler", "Merkez Acente", "Antalya Şube"),
+    val selectedCurrency: String = "TRY ₺",
+    val currencyOptions: List<String> = listOf("TRY ₺", "EUR €", "USD $"),
     val errorMessage: String? = null
-)
+) {
+    val currencySymbol: String
+        get() = when {
+            selectedCurrency.contains("EUR") || selectedCurrency.contains("€") -> "€"
+            selectedCurrency.contains("USD") || selectedCurrency.contains("$") -> "$"
+            else -> "₺"
+        }
+
+    val currencyRate: Double
+        get() = when {
+            selectedCurrency.contains("EUR") || selectedCurrency.contains("€") -> 0.026 // ~1 EUR = 38.5 TRY
+            selectedCurrency.contains("USD") || selectedCurrency.contains("$") -> 0.028 // ~1 USD = 36.0 TRY
+            else -> 1.0
+        }
+}
 
 class FinancialReportsViewModel(
     private val getFinancialReportUseCase: GetFinancialReportUseCase,
@@ -58,5 +76,13 @@ class FinancialReportsViewModel(
     fun setDateFilter(filter: String) {
         _uiState.value = _uiState.value.copy(dateFilter = filter)
         loadReports()
+    }
+
+    fun setSelectedCompany(company: String) {
+        _uiState.value = _uiState.value.copy(selectedCompany = company)
+    }
+
+    fun setSelectedCurrency(currency: String) {
+        _uiState.value = _uiState.value.copy(selectedCurrency = currency)
     }
 }

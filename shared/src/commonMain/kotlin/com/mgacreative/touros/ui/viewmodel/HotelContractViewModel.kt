@@ -93,40 +93,7 @@ class HotelContractViewModel(
     }
 
     private fun createSampleContracts(hotelId: String, roomTypes: List<RoomType>): List<HotelContract> {
-        return listOf(
-            HotelContract(
-                id = "c1",
-                hotelId = hotelId,
-                roomTypeId = roomTypes.firstOrNull()?.id ?: "r1",
-                seasonName = "Yaz 2026 Sezonu",
-                startDate = "2026-06-01",
-                endDate = "2026-09-30",
-                pricePerNight = 2500.0,
-                currency = "TRY",
-                allotment = 10,
-                releaseDays = 7,
-                mealPlan = "BB",
-                notes = "Erken rezervasyon %15 indirimli yaz dönemi kontratı.",
-                isActive = true,
-                createdAt = "2026-01-15"
-            ),
-            HotelContract(
-                id = "c2",
-                hotelId = hotelId,
-                roomTypeId = roomTypes.getOrNull(1)?.id ?: "r2",
-                seasonName = "Kış 2025/2026 Sezonu",
-                startDate = "2025-11-01",
-                endDate = "2026-03-31",
-                pricePerNight = 1800.0,
-                currency = "TRY",
-                allotment = 5,
-                releaseDays = 14,
-                mealPlan = "HB",
-                notes = "Kış dönemi yarım pansiyon kontratı.",
-                isActive = false,
-                createdAt = "2025-10-01"
-            )
-        )
+        return emptyList()
     }
 
 

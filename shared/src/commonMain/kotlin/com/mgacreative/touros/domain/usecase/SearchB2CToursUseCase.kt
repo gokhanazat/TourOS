@@ -26,28 +26,47 @@ class SearchB2CToursUseCase(
                 if (filter.searchQuery.isNotBlank()) put("p_search_query", filter.searchQuery)
             }
 
-            val list = supabaseClient.postgrest.rpc("search_b2c_tours", params)
-                .decodeList<B2CTourItem>()
+            val rpcResult = runCatching {
+                supabaseClient.postgrest.rpc("search_b2c_tours", params)
+                    .decodeList<B2CTourItem>()
+            }.getOrDefault(emptyList())
 
-            if (list.isEmpty()) getFallbackTours(filter) else list
-        }.recover { getFallbackTours(filter) }
-    }
+            if (rpcResult.isNotEmpty()) {
+                rpcResult
+            } else {
+                // Fallback: Query real 'tours' table directly from Supabase DB
+                supabaseClient.postgrest.from("tours")
+                    .select {
+                        filter {
+                            eq("is_active", true)
+                        }
+                    }
+                    .decodeList<com.mgacreative.touros.data.database.entity.TourEntity>()
+                    .map { entity ->
+                        B2CTourItem(
+                            tourId = entity.id ?: "",
+                            tourCode = entity.code,
+                            title = entity.title,
+                            category = entity.category,
+                            destinationCountry = entity.country,
+                            durationDays = entity.durationDays,
+                            price = entity.basePrice,
+                            currency = "TRY",
+                            rating = 5.0,
+                            reviewCount = 0,
+                            coverImageUrl = entity.coverImageUrl ?: "",
+                            nextDepartureDate = ""
+                        )
+                    }
+                    .filter { item ->
+                        val matchesCategory = filter.category.isNullOrBlank() || item.category.contains(filter.category, ignoreCase = true)
+                        val matchesCountry = filter.country.isNullOrBlank() || item.destinationCountry.contains(filter.country, ignoreCase = true)
+                        val matchesPrice = (filter.minPrice == null || item.price >= filter.minPrice) && (filter.maxPrice == null || item.price <= filter.maxPrice)
+                        val matchesQuery = filter.searchQuery.isBlank() || item.title.contains(filter.searchQuery, ignoreCase = true)
 
-    private fun getFallbackTours(filter: B2CTourSearchFilter): List<B2CTourItem> {
-        val all = listOf(
-            B2CTourItem("t101", "TUR-KAP", "Kapadokya Balon & Vadi Turu", "Kültür Turu", "Türkiye", 3, 2500.0, "TRY", 4.90, 156, "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff", "15.08.2026"),
-            B2CTourItem("t102", "TUR-EGE", "Ege Sahilleri & Antik Kentler", "Deniz & Mavi Tur", "Türkiye", 5, 4800.0, "TRY", 4.82, 98, "https://images.unsplash.com/photo-1533105079780-92b9be482077", "18.08.2026"),
-            B2CTourItem("t103", "TUR-KAR", "Karadeniz Yaylalar & Doğa Gezisi", "Doğa & Yayla", "Türkiye", 4, 3200.0, "TRY", 4.95, 210, "https://images.unsplash.com/photo-1506744038136-46273834b3fb", "20.08.2026"),
-            B2CTourItem("t104", "TUR-ROM", "Roma & Vatikan Kültür Turu", "Kültür Turu", "İtalya", 4, 18500.0, "TRY", 4.78, 64, "https://images.unsplash.com/photo-1552832230-c0197dd311b5", "25.08.2026")
-        )
-
-        return all.filter { item ->
-            val matchesCategory = filter.category.isNullOrBlank() || item.category.contains(filter.category, ignoreCase = true)
-            val matchesCountry = filter.country.isNullOrBlank() || item.destinationCountry.contains(filter.country, ignoreCase = true)
-            val matchesPrice = (filter.minPrice == null || item.price >= filter.minPrice) && (filter.maxPrice == null || item.price <= filter.maxPrice)
-            val matchesQuery = filter.searchQuery.isBlank() || item.title.contains(filter.searchQuery, ignoreCase = true)
-
-            matchesCategory && matchesCountry && matchesPrice && matchesQuery
+                        matchesCategory && matchesCountry && matchesPrice && matchesQuery
+                    }
+            }
         }
     }
 }
