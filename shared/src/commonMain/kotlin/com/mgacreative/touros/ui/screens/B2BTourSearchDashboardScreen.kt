@@ -343,8 +343,8 @@ fun B2BTourSearchDashboardScreen(
                                     "TOURS" -> pType.contains("TOUR") || pType.contains("PACKAGE") || (pType.isBlank() && !pType.contains("FLIGHT"))
                                     "HOTELS" -> pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank())
                                     "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank()
-                                    "LOCAL_TOURS" -> opName.contains("YEREL") || opName.contains("MGA") || pType.contains("LOCAL")
-                                    "LOCAL_HOTELS" -> opName.contains("YEREL") || opName.contains("ACENTE") || item.hotelCategory > 0
+                                    "LOCAL_TOURS" -> opName.contains("YEREL") || opName.contains("MGA") || pType.contains("LOCAL_TOUR")
+                                    "LOCAL_HOTELS" -> opName.contains("YEREL") || opName.contains("ACENTE") || pType.contains("LOCAL_HOTEL")
                                     else -> true
                                 }
                             }

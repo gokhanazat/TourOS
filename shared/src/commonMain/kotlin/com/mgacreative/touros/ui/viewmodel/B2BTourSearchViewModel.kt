@@ -80,7 +80,8 @@ sealed class B2BTourSearchUiState {
 
 class B2BTourSearchViewModel(
     private val supabaseClient: SupabaseClient,
-    private val bookingRepository: BookingRepository
+    private val bookingRepository: BookingRepository,
+    private val hotelRepository: com.mgacreative.touros.domain.repository.HotelRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<B2BTourSearchUiState>(B2BTourSearchUiState.Loading)
@@ -129,9 +130,35 @@ class B2BTourSearchViewModel(
                 println("⚠️ Supabase search load warning: ${err.message}")
             }
 
-            // Hem Supabase'den gelenleri hem de oturum boyunca yüklenen hafızadaki ürünleri birleştir
+            var localHotelProducts = emptyList<UnifiedProductEntity>()
+            if (hotelRepository != null) {
+                runCatching {
+                    hotelRepository.getHotels(tenantId = "", city = null).getOrNull() ?: emptyList()
+                }.onSuccess { hotels ->
+                    localHotelProducts = hotels.map { h ->
+                        UnifiedProductEntity(
+                            id = "local-hotel-${h.id}",
+                            hotelName = h.name,
+                            tourName = "${h.name} - Yerel Otel",
+                            country = h.country.ifBlank { "Türkiye" },
+                            region = h.city.ifBlank { "Yerel Bölge" },
+                            departureCity = "Yerel Otel",
+                            hotelCategory = h.starRating,
+                            price = 120.0,
+                            currency = "EUR",
+                            operatorName = "Yerel Oteller",
+                            productType = "LOCAL_HOTEL",
+                            roomType = "Standart Oda",
+                            mealType = "Her Şey Dahil (AI)",
+                            coverImageUrl = h.coverImageUrl
+                        )
+                    }
+                }
+            }
+
+            // Hem Supabase'den gelenleri hem Yerel Otelleri hem de hafızadaki ürünleri birleştir
             val memoryItems = AgencyProductPublishingViewModel.getPersistentProducts()
-            val combined = (items + memoryItems).distinctBy { it.id }
+            val combined = (items + localHotelProducts + memoryItems).distinctBy { it.id }
             val filtered = filterProducts(combined)
 
             _uiState.value = B2BTourSearchUiState.Success(
