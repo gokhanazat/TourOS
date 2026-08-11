@@ -782,15 +782,6 @@ fun GlobalWebPublicScreen(
                                     }
                                 }
                             }
-
-                            if (currentUser != null) {
-                                Spacer(modifier = Modifier.width(10.dp))
-                                TourOSButton(
-                                    text = "← Admin Paneline Dön 🔙",
-                                    onClick = onNavigateBack,
-                                    variant = TourOSButtonVariant.SECONDARY
-                                )
-                            }
                         }
                     }
                 }
