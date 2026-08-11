@@ -159,7 +159,6 @@ fun DashboardScreen(
             }
         }
     }
-}
 
 @Composable
 private fun KpiGridSection(summary: DashboardSummary, columnsCount: Int) {
