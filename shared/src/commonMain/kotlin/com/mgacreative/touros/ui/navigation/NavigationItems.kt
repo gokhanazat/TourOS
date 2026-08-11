@@ -58,6 +58,11 @@ val navigationGroups = listOf(
                 title = "Ürünler",
                 route = AgencyProductPublishingRoute,
                 icon = "inventory_2"
+            ),
+            NavigationItem(
+                title = "Rezervasyonlar",
+                route = BookingsRoute,
+                icon = "book_online"
             )
         )
     ),
