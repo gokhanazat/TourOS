@@ -909,10 +909,10 @@ fun GlobalWebPublicScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             listOf(
-                                "ALL" to "🏖️ Tüm Paketler",
-                                "HOTEL" to "🏨 Sadece Otel",
-                                "FLIGHT" to "✈️ Uçuşlar",
-                                "LAST_MINUTE" to "🔥 Son Dakika"
+                                "ALL" to "Tüm Paketler",
+                                "HOTEL" to "Sadece Otel",
+                                "FLIGHT" to "Uçuşlar",
+                                "LAST_MINUTE" to "Son Dakika"
                             ).forEach { (tabKey, tabTitle) ->
                                 val isSelected = selectedSearchCategoryTab == tabKey
                                 Box(
@@ -952,7 +952,7 @@ fun GlobalWebPublicScreen(
                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                             ) {
                                 Text("Nereden", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold))
-                                Text("✈️ Moskova (VKO)", style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                Text("Moskova (VKO)", style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp))
                             }
 
                             // 2. Destinasyon Seçimi (Ülke / Şehir)
@@ -973,7 +973,7 @@ fun GlobalWebPublicScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "📍 $selectedDestinationFilter",
+                                            text = selectedDestinationFilter,
                                             style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -1042,7 +1042,7 @@ fun GlobalWebPublicScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "🏢 $selectedOperatorFilter",
+                                            text = selectedOperatorFilter,
                                             style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -1085,7 +1085,7 @@ fun GlobalWebPublicScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = if (selectedStarFilter == 0) "Tüm Yıldızlar" else "$selectedStarFilter ⭐",
+                                            text = if (selectedStarFilter == 0) "Tüm Yıldızlar" else "$selectedStarFilter Yıldız",
                                             style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                         )
                                         Text("▾", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B)))
@@ -1096,7 +1096,7 @@ fun GlobalWebPublicScreen(
                                     expanded = showStarDropdown,
                                     onDismissRequest = { showStarDropdown = false }
                                 ) {
-                                    listOf(0 to "Tüm Yıldızlar", 5 to "5 Yıldız ⭐⭐⭐⭐⭐", 4 to "4 Yıldız ⭐⭐⭐⭐", 3 to "3 Yıldız ⭐⭐⭐").forEach { (stars, label) ->
+                                    listOf(0 to "Tüm Yıldızlar", 5 to "5 Yıldız", 4 to "4 Yıldız", 3 to "3 Yıldız").forEach { (stars, label) ->
                                         DropdownMenuItem(
                                             text = { Text(label) },
                                             onClick = {
@@ -1121,7 +1121,7 @@ fun GlobalWebPublicScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Text(
-                                        text = "Turları Bul ⚡",
+                                        text = "Turları Bul",
                                         style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     )
                                 }
@@ -1198,7 +1198,7 @@ fun GlobalWebPublicScreen(
                             }
                             if (tourPackagesOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "🏖️",
+                                    titleIcon = "",
                                     title = "Paket Turlar",
                                     subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                     hotels = tourPackagesOnly,
@@ -1206,13 +1206,13 @@ fun GlobalWebPublicScreen(
                                 )
                             }
 
-                            // ── BLOK 2: 🏨 OTELLER (UÇUŞLAR HARİÇ) ──────────────────────────
+                            // ── BLOK 2: OTELLER (UÇUŞLAR HARİÇ) ──────────────────────────
                             val hotelsOnly = filteredHotels.filter { 
                                 it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && (it.category == "HOTEL" || it.stars >= 4)
                             }.ifEmpty { tourPackagesOnly }
                             if (hotelsOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "🏨",
+                                    titleIcon = "",
                                     title = "Oteller",
                                     subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
                                     hotels = hotelsOnly,
@@ -1220,13 +1220,13 @@ fun GlobalWebPublicScreen(
                                 )
                             }
 
-                            // ── BLOK 3: 🔥 SON DAKİKA (UÇUŞLAR HARİÇ) ───────────────────────
+                            // ── BLOK 3: SON DAKİKA (UÇUŞLAR HARİÇ) ───────────────────────
                             val lastMinuteOnly = filteredHotels.filter { 
                                 it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && (it.isLastMinute || (it.discountPercent ?: 0) > 0)
                             }.ifEmpty { tourPackagesOnly }
                             if (lastMinuteOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "🔥",
+                                    titleIcon = "",
                                     title = "Son Dakika",
                                     subtitle = "Acele edin ve %70'e varan muhteşem indirimlerden yararlanın!",
                                     hotels = lastMinuteOnly,
@@ -1684,7 +1684,9 @@ fun HorizontalProductSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(titleIcon, fontSize = 28.sp)
+                    if (titleIcon.isNotBlank()) {
+                        Text(titleIcon, fontSize = 28.sp)
+                    }
                     Column {
                         Text(
                             text = title,
