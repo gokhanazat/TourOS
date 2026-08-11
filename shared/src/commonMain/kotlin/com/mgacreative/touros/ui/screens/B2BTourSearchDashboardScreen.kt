@@ -260,7 +260,7 @@ fun B2BTourSearchDashboardScreen(
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = Color(0xFFF1F5F9),
-                            borderColor = Color(0xFFCBD5E1),
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                             shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
                         ) {
                             Row(
@@ -375,7 +375,7 @@ fun B2BTourSearchDashboardScreen(
                                     Surface(
                                         modifier = Modifier.fillMaxWidth().height(140.dp),
                                         color = Color.White,
-                                        borderColor = Color(0xFFCBD5E1),
+                                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Column(
@@ -418,7 +418,7 @@ fun B2BTourSearchDashboardScreen(
                                     Surface(
                                         modifier = Modifier.fillMaxWidth().height(100.dp),
                                         color = Color.White,
-                                        borderColor = Color(0xFFCBD5E1),
+                                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                                         shape = RoundedCornerShape(6.dp)
                                     ) {
                                         Column(
@@ -442,8 +442,9 @@ fun B2BTourSearchDashboardScreen(
                                         }
                                     }
 
+                                    val isInstantConf by viewModel.isInstantConfirmationOnly.collectAsState()
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = isInstantConfirmationOnly, onCheckedChange = { isInstantConfirmationOnly = it })
+                                        Checkbox(checked = isInstantConf, onCheckedChange = { viewModel.isInstantConfirmationOnly.value = it })
                                         Text("Anında onay", style = TourOSTypography.Caption.copy(fontSize = 10.sp))
                                     }
 
