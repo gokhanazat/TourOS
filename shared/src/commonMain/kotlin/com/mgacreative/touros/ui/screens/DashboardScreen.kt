@@ -75,17 +75,29 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            TourOSTopBar(
-                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
-                subtitle = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
-                actions = {
-                    TourOSButton(
-                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
-                        onClick = onNavigateToLogin,
-                        variant = TourOSButtonVariant.TERTIARY
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
+                        style = TourOSTypography.HeadlineSmall.copy(color = TourOSColors.TextPrimary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    )
+                    Text(
+                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
-            )
+                TourOSButton(
+                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
+                    onClick = onNavigateToLogin,
+                    variant = TourOSButtonVariant.TERTIARY
+                )
+            }
         },
         containerColor = TourOSColors.Surface,
         modifier = Modifier.fillMaxSize()

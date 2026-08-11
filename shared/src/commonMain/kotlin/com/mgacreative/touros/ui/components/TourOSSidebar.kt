@@ -102,25 +102,26 @@ fun TourOSSidebar(
 
         HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
 
-        // Menu Items (Gruplandırılmış veya Tekil Liste)
+        // Menu Items (Gruplandırılmış veya Tekil Liste - Daraltılmış Dar Satır Aralıklı)
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = TourOSSpacing.small, horizontal = TourOSSpacing.medium),
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)
+                .padding(vertical = 4.dp, horizontal = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             if (groups != null && groups.isNotEmpty()) {
                 groups.forEach { group ->
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = group.categoryTitle,
-                        style = TourOSTypography.Caption.copy(
-                            color = TourOSColors.TextSecondary,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            fontSize = 10.sp
+                        text = group.categoryTitle.uppercase(),
+                        style = TourOSTypography.TitleMedium.copy(
+                            color = TourOSColors.Primary,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                            fontSize = 14.sp,
+                            letterSpacing = 0.5.sp
                         ),
-                        modifier = Modifier.padding(horizontal = TourOSSpacing.small, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
 
                     group.items.forEach { item ->
@@ -141,12 +142,12 @@ fun TourOSSidebar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(TourOSSpacing.medium),
+                    .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(36.dp)
                         .clip(CircleShape)
                         .background(TourOSColors.PrimaryContainer),
                     contentAlignment = Alignment.Center
@@ -160,13 +161,13 @@ fun TourOSSidebar(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = userName,
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary, fontSize = 12.sp),
                         maxLines = 1
                     )
                     if (userRole.isNotBlank()) {
                         Text(
                             text = userRole,
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 11.sp),
                             maxLines = 1
                         )
                     }
@@ -193,23 +194,23 @@ private fun RenderSidebarItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(40.dp)
-            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+            .height(34.dp)
+            .clip(RoundedCornerShape(6.dp))
             .background(bg)
             .clickable { onItemSelect(item) }
-            .padding(horizontal = TourOSSpacing.medium),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (item.icon != null) {
             item.icon.invoke()
-            Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+            Spacer(modifier = Modifier.width(6.dp))
         }
         Text(
             text = item.title,
-            style = TourOSTypography.TitleMedium.copy(
+            style = TourOSTypography.BodyMedium.copy(
                 color = contentColor,
-                fontSize = 13.sp,
-                fontWeight = if (item.isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                fontSize = 12.sp,
+                fontWeight = if (item.isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Medium
             ),
             modifier = Modifier.weight(1f)
         )
