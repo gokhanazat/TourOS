@@ -125,49 +125,9 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
 
                     Text(
-                        text = "Giriş Türünü Seçin",
+                        text = "Sistem & Admin Giriş Paneli",
                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                     )
-
-                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-                    // ── GİRİŞ TÜRÜ SEKMELERİ (ACENTE VS ADMİN) ──────────────────────────
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(TourOSColors.Surface)
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        listOf(
-                            "ACENTE" to "Acente Girişi",
-                            "ADMIN" to "Admin / Sistem Girişi"
-                        ).forEach { (tabKey, tabTitle) ->
-                            val isSel = (selectedTab == tabKey)
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .clickable { 
-                                        selectedTab = tabKey 
-                                        localValidationError = null
-                                    },
-                                color = if (isSel) TourOSColors.Primary else Color.Transparent
-                            ) {
-                                Text(
-                                    text = tabTitle,
-                                    modifier = Modifier.padding(vertical = 10.dp),
-                                    style = TourOSTypography.Caption.copy(
-                                        color = if (isSel) Color.White else TourOSColors.TextSecondary,
-                                        fontWeight = if (isSel) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
-                                        fontSize = 11.sp
-                                    ),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
-                    }
                 }
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.large))
@@ -264,17 +224,9 @@ fun LoginScreen(
 
                 // Primary Submit Button
                 TourOSButton(
-                    text = if (selectedTab == "ACENTE") "Acente Girişi Yap" else "Sistem Admin Girişi Yap",
+                    text = "Admin Girişi Yap",
                     onClick = {
                         localValidationError = null
-                        val trimmedEmail = email.trim().lowercase()
-                        val isSystemAdminEmail = (trimmedEmail == "gkhnazat@gmail.com" || trimmedEmail == "mgazat@gmail.com")
-
-                        if (selectedTab == "ACENTE" && !isSystemAdminEmail && agencyCode.isBlank()) {
-                            localValidationError = "Acente girişi için Acente Kodu girmek zorunludur! (gkhnazat@gmail.com hariç tüm acenteler kod girmelidir)"
-                            return@TourOSButton
-                        }
-
                         viewModel.login(email, password)
                     },
                     modifier = Modifier.fillMaxWidth(),
