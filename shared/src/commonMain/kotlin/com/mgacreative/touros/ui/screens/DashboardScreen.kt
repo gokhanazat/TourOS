@@ -85,7 +85,7 @@ fun DashboardScreen(
                 Column {
                     Text(
                         text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
-                        style = TourOSTypography.HeadlineSmall.copy(color = TourOSColors.TextPrimary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                     )
                     Text(
                         text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
