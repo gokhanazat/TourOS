@@ -3,101 +3,155 @@ package com.mgacreative.touros.ui.navigation
 import com.mgacreative.touros.domain.model.UserRole
 
 /**
+ * Navigasyon Menü Grubu.
+ */
+data class NavigationGroup(
+    val title: String,
+    val items: List<NavigationItem>
+)
+
+/**
  * Navigasyon menü öğeleri ve rol bazlı erişim kontrolü.
  */
 data class NavigationItem(
     val title: String,
     val route: Any, // Serializable route
     val icon: String, // Material icon name
-    val allowedRoles: Set<UserRole>
+    val allowedRoles: Set<UserRole> = setOf(
+        UserRole.SYSTEM_ADMIN,
+        UserRole.TOUR_OPERATOR,
+        UserRole.SALES,
+        UserRole.ACCOUNTING,
+        UserRole.AGENT,
+        UserRole.GUIDE
+    )
 )
 
 /**
- * Rol bazlı navigasyon öğeleri.
- * Her rol sadece kendi yetkili olduğu menü öğelerini görür.
+ * Kategori bazlı gruplandırılmış navigasyon menüleri.
  */
-val navigationItems = listOf(
-    NavigationItem(
-        title = "Ana Sayfa",
-        route = DashboardRoute,
-        icon = "dashboard",
-        allowedRoles = setOf(
-            UserRole.SYSTEM_ADMIN,
-            UserRole.TOUR_OPERATOR,
-            UserRole.SALES,
-            UserRole.ACCOUNTING,
-            UserRole.AGENT,
-            UserRole.CUSTOMER
+val navigationGroups = listOf(
+    NavigationGroup(
+        title = "WEB YÖNETİMİ",
+        items = listOf(
+            NavigationItem(
+                title = "Web Yönetimi (CMS)",
+                route = GlobalWebCmsRoute,
+                icon = "language"
+            ),
+            NavigationItem(
+                title = "Canlı Web",
+                route = GlobalWebPublicRoute,
+                icon = "public"
+            )
         )
     ),
-    NavigationItem(
-        title = "Görevlerim",
-        route = AssignedTasksRoute,
-        icon = "assignment",
-        allowedRoles = setOf(
-            UserRole.GUIDE,
-            UserRole.DRIVER
+    NavigationGroup(
+        title = "TUR OPERATÖRLERİ",
+        items = listOf(
+            NavigationItem(
+                title = "Tur Operatörleri",
+                route = AgencyOperatorConnectionsRoute,
+                icon = "business"
+            ),
+            NavigationItem(
+                title = "Ürünler",
+                route = AgencyProductPublishingRoute,
+                icon = "inventory_2"
+            )
         )
     ),
-    NavigationItem(
-        title = "Turlar",
-        route = ToursRoute,
-        icon = "tour",
-        allowedRoles = setOf(
-            UserRole.SYSTEM_ADMIN,
-            UserRole.TOUR_OPERATOR,
-            UserRole.SALES,
-            UserRole.GUIDE
+    NavigationGroup(
+        title = "MUHASEBE",
+        items = listOf(
+            NavigationItem(
+                title = "Finans",
+                route = FinancialReportsRoute,
+                icon = "account_balance_wallet"
+            ),
+            NavigationItem(
+                title = "Fatura Yönetimi",
+                route = InvoiceManagementRoute,
+                icon = "receipt_long"
+            ),
+            NavigationItem(
+                title = "Cari Hesaplar",
+                route = CurrentAccountRoute,
+                icon = "receipt"
+            ),
+            NavigationItem(
+                title = "Gider Girişi",
+                route = SupplierExpenseRoute,
+                icon = "payments"
+            )
         )
     ),
-    NavigationItem(
-        title = "Rezervasyonlar",
-        route = BookingsRoute,
-        icon = "book_online",
-        allowedRoles = setOf(
-            UserRole.SYSTEM_ADMIN,
-            UserRole.TOUR_OPERATOR,
-            UserRole.SALES,
-            UserRole.AGENT,
-            UserRole.CUSTOMER
+    NavigationGroup(
+        title = "ANALİTİK",
+        items = listOf(
+            NavigationItem(
+                title = "Dashboard",
+                route = DashboardRoute,
+                icon = "dashboard"
+            ),
+            NavigationItem(
+                title = "Analitik & Trend",
+                route = AnalyticsChartsRoute,
+                icon = "trending_up"
+            ),
+            NavigationItem(
+                title = "Raporlar",
+                route = ReportsRoute,
+                icon = "analytics"
+            ),
+            NavigationItem(
+                title = "Müşteri & CRM",
+                route = CustomersRoute,
+                icon = "people"
+            )
         )
     ),
-    NavigationItem(
-        title = "Müşteriler",
-        route = CustomersRoute,
-        icon = "people",
-        allowedRoles = setOf(
-            UserRole.SYSTEM_ADMIN,
-            UserRole.TOUR_OPERATOR,
-            UserRole.SALES
+    NavigationGroup(
+        title = "YEREL",
+        items = listOf(
+            NavigationItem(
+                title = "Yerel Tur",
+                route = ToursRoute,
+                icon = "tour"
+            ),
+            NavigationItem(
+                title = "Yerel Otel",
+                route = HotelListRoute,
+                icon = "hotel"
+            )
         )
     ),
-    NavigationItem(
-        title = "Raporlar",
-        route = ReportsRoute,
-        icon = "analytics",
-        allowedRoles = setOf(
-            UserRole.SYSTEM_ADMIN,
-            UserRole.TOUR_OPERATOR,
-            UserRole.ACCOUNTING
-        )
-    ),
-    NavigationItem(
-        title = "Ayarlar",
-        route = SettingsRoute,
-        icon = "settings",
-        allowedRoles = setOf(
-            UserRole.SYSTEM_ADMIN,
-            UserRole.TOUR_OPERATOR
+    NavigationGroup(
+        title = "AYARLAR",
+        items = listOf(
+            NavigationItem(
+                title = "Ayarlar & Dil",
+                route = SettingsRoute,
+                icon = "settings"
+            )
         )
     )
 )
+
+val navigationItems = navigationGroups.flatMap { it.items }
 
 /**
  * Belirtilen rol için görünür navigasyon öğelerini filtreler.
  */
 fun getNavigationItemsForRole(role: UserRole): List<NavigationItem> {
     return navigationItems.filter { role in it.allowedRoles }
+}
+
+fun getNavigationGroupsForRole(role: UserRole): List<NavigationGroup> {
+    return navigationGroups.mapNotNull { group ->
+        val filtered = group.items.filter { role in it.allowedRoles }
+        if (filtered.isNotEmpty()) group.copy(items = filtered) else null
+    }
 }
 
 /**

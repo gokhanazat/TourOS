@@ -28,9 +28,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
+
+data class TourOSNavGroup(
+    val categoryTitle: String,
+    val items: List<TourOSNavItem>
+)
 
 data class TourOSNavItem(
     val title: String,
@@ -42,13 +48,14 @@ data class TourOSNavItem(
 
 /**
  * Expanded (Masaüstü/Tablet Landscape) Genişliği için Sabit Sol Sidebar / NavigationRail.
- * Logo + Menü Listesi + Alt Kullanıcı Bilgi Kartı içerir.
+ * Logo + Kategorize Gruplandırılmış Menü Listesi + Alt Kullanıcı Bilgi Kartı içerir.
  */
 @Composable
 fun TourOSSidebar(
     items: List<TourOSNavItem>,
     onItemSelect: (TourOSNavItem) -> Unit,
     modifier: Modifier = Modifier,
+    groups: List<TourOSNavGroup>? = null,
     userName: String = "",
     userRole: String = "",
     onLogoutClick: (() -> Unit)? = null
@@ -95,45 +102,34 @@ fun TourOSSidebar(
 
         HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
 
-        // Menu Items
+        // Menu Items (Gruplandırılmış veya Tekil Liste)
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(TourOSSpacing.medium),
+                .padding(vertical = TourOSSpacing.small, horizontal = TourOSSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)
         ) {
-            items.forEach { item ->
-                val bg = if (item.isSelected) TourOSColors.PrimaryContainer else Color.Transparent
-                val contentColor = if (item.isSelected) TourOSColors.Primary else TourOSColors.TextPrimary
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(bg)
-                        .clickable { onItemSelect(item) }
-                        .padding(horizontal = TourOSSpacing.medium),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (item.icon != null) {
-                        item.icon.invoke()
-                        Spacer(modifier = Modifier.width(TourOSSpacing.medium))
-                    }
+            if (groups != null && groups.isNotEmpty()) {
+                groups.forEach { group ->
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = item.title,
-                        style = TourOSTypography.TitleMedium.copy(color = contentColor),
-                        modifier = Modifier.weight(1f)
+                        text = group.categoryTitle,
+                        style = TourOSTypography.Caption.copy(
+                            color = TourOSColors.TextSecondary,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            fontSize = 10.sp
+                        ),
+                        modifier = Modifier.padding(horizontal = TourOSSpacing.small, vertical = 4.dp)
                     )
 
-                    if (item.badgeCount != null && item.badgeCount > 0) {
-                        TourOSStatusBadge(
-                            text = item.badgeCount.toString(),
-                            backgroundColor = TourOSColors.SecondaryContainer,
-                            textColor = TourOSColors.Secondary
-                        )
+                    group.items.forEach { item ->
+                        RenderSidebarItem(item = item, onItemSelect = onItemSelect)
                     }
+                }
+            } else {
+                items.forEach { item ->
+                    RenderSidebarItem(item = item, onItemSelect = onItemSelect)
                 }
             }
         }
@@ -182,6 +178,48 @@ fun TourOSSidebar(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun RenderSidebarItem(
+    item: TourOSNavItem,
+    onItemSelect: (TourOSNavItem) -> Unit
+) {
+    val bg = if (item.isSelected) TourOSColors.PrimaryContainer else Color.Transparent
+    val contentColor = if (item.isSelected) TourOSColors.Primary else TourOSColors.TextPrimary
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+            .background(bg)
+            .clickable { onItemSelect(item) }
+            .padding(horizontal = TourOSSpacing.medium),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (item.icon != null) {
+            item.icon.invoke()
+            Spacer(modifier = Modifier.width(TourOSSpacing.medium))
+        }
+        Text(
+            text = item.title,
+            style = TourOSTypography.TitleMedium.copy(
+                color = contentColor,
+                fontSize = 13.sp,
+                fontWeight = if (item.isSelected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+            ),
+            modifier = Modifier.weight(1f)
+        )
+
+        if (item.badgeCount != null && item.badgeCount > 0) {
+            TourOSStatusBadge(
+                text = item.badgeCount.toString(),
+                backgroundColor = TourOSColors.SecondaryContainer,
+                textColor = TourOSColors.Secondary
+            )
         }
     }
 }
