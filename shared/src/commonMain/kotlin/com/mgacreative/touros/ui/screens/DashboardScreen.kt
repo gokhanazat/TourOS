@@ -70,48 +70,26 @@ fun DashboardScreen(
     onNavigateToLogin: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel()
 ) {
-    val navigationType = calculateNavigationType()
-    val visibleItems = getNavigationItemsForRole(currentRole)
     val uiState by viewModel.uiState.collectAsState()
     val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
-    Row(modifier = Modifier.fillMaxSize()) {
-        if (navigationType == NavigationType.NAVIGATION_RAIL ||
-            navigationType == NavigationType.PERMANENT_NAVIGATION_DRAWER
-        ) {
-            NavigationRail(
-                modifier = Modifier.fillMaxHeight(),
-                containerColor = TourOSColors.Background
-            ) {
-                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-                visibleItems.forEach { item ->
-                    NavigationRailItem(
-                        selected = item.title == "Ana Sayfa",
-                        onClick = { },
-                        icon = { },
-                        label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.title), style = TourOSTypography.Caption) }
+    Scaffold(
+        topBar = {
+            TourOSTopBar(
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
+                subtitle = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
+                actions = {
+                    TourOSButton(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
+                        onClick = onNavigateToLogin,
+                        variant = TourOSButtonVariant.TERTIARY
                     )
                 }
-            }
-        }
-
-        Scaffold(
-            topBar = {
-                TourOSTopBar(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
-                    subtitle = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
-                    actions = {
-                        TourOSButton(
-                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
-                            onClick = onNavigateToLogin,
-                            variant = TourOSButtonVariant.TERTIARY
-                        )
-                    }
-                )
-            },
-            containerColor = TourOSColors.Surface,
-            modifier = Modifier.weight(1f)
-        ) { paddingValues ->
+            )
+        },
+        containerColor = TourOSColors.Surface,
+        modifier = Modifier.fillMaxSize()
+    ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
