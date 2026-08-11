@@ -140,17 +140,17 @@ class B2BTourSearchViewModel(
                             id = "local-hotel-${h.id}",
                             hotelName = h.name,
                             tourName = "${h.name} - Yerel Otel",
-                            country = h.country.ifBlank { "Türkiye" },
-                            region = h.city.ifBlank { "Yerel Bölge" },
+                            country = (h.country ?: "").ifBlank { "Türkiye" },
+                            region = (h.city ?: "").ifBlank { "Yerel Bölge" },
                             departureCity = "Yerel Otel",
-                            hotelCategory = h.starRating,
+                            hotelCategory = h.starRating ?: 4,
                             price = 120.0,
                             currency = "EUR",
                             operatorName = "Yerel Oteller",
                             productType = "LOCAL_HOTEL",
                             roomType = "Standart Oda",
                             mealType = "Her Şey Dahil (AI)",
-                            coverImageUrl = h.coverImageUrl
+                            pictureUrl = h.coverImageUrl ?: ""
                         )
                     }
                 }
