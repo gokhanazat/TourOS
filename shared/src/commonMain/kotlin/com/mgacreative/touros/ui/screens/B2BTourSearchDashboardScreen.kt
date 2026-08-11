@@ -46,11 +46,15 @@ fun B2BTourSearchDashboardScreen(
     val passengers by viewModel.passengers.collectAsState()
     val createdPnrCode by viewModel.createdPnrCode.collectAsState()
 
+    var activeSearchTab by remember { mutableStateOf("TOURS") } // "TOURS", "HOTELS", "FLIGHTS", "LOCAL_TOURS", "LOCAL_HOTELS"
     var departureCity by remember { mutableStateOf("Moskova") }
     var selectedRegion by remember { mutableStateOf("Antalya") }
     var nights by remember { mutableStateOf(7) }
     var adults by remember { mutableStateOf(2) }
-    var childs by remember { mutableStateOf(2) }
+    var childs by remember { mutableStateOf(0) }
+
+    var selectedMealTypes by remember { mutableStateOf(setOf("UAI", "AI", "FB", "HB", "BB")) }
+    var selectedOperators by remember { mutableStateOf(setOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Fun & Sun", "MGA Creative")) }
 
     var selectedStars by remember { mutableStateOf(setOf(3, 4, 5)) }
     var isInstantOnly by remember { mutableStateOf(false) }
@@ -93,74 +97,157 @@ fun B2BTourSearchDashboardScreen(
 
             when (activeStep) {
                 1 -> {
-                    // ── ADIM 1: ARAMA FİLTRELERİ VE SONUÇ KARTLARI ──────────────────
-                    TourOSCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        backgroundColor = TourOSColors.Surface,
-                        contentPadding = TourOSSpacing.medium
+                    // ── 5 SEKMELİ B2B ARAMA PANERİ ───────────────────────────────────────────
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(14.dp))
+                            .background(Color.White)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                            Text(
-                                text = "🔍 1. ${AppLanguageManager.translate("Tur & Otel Arama Kriterleri")}",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                            ) {
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                        // 1. ÜST SEKMELER (Turlar | Oteller | Uçuşlar | Yerel Turlar | Yerel Oteller)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFF0F172A)),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            listOf(
+                                "🏖️ Turlar" to "TOURS",
+                                "🏨 Oteller" to "HOTELS",
+                                "✈️ Uçuşlar" to "FLIGHTS",
+                                "📍 Yerel Turlar" to "LOCAL_TOURS",
+                                "🏢 Yerel Oteller" to "LOCAL_HOTELS"
+                            ).forEach { (label, key) ->
+                                val isSelected = (activeSearchTab == key)
+                                Surface(
+                                    modifier = Modifier
+                                        .clickable { activeSearchTab = key },
+                                    color = if (isSelected) Color(0xFF0284C7) else Color.Transparent
                                 ) {
-                                    TourOSTextField(
+                                    Text(
+                                        text = label,
+                                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                                        style = TourOSTypography.TitleMedium.copy(
+                                            color = Color.White,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            fontSize = 13.sp
+                                        )
+                                    )
+                                }
+                            }
+                        }
+
+                        // 2. MAVİ ARAMA BARI (Nereden | Nereye | Gece | Turist)
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = Color(0xFF0284C7)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
                                         value = departureCity,
                                         onValueChange = { departureCity = it },
-                                        label = AppLanguageManager.translate("Kalkış Şehri"),
-                                        placeholder = "Moskova / İstanbul",
-                                        modifier = Modifier.fillMaxWidth()
+                                        label = { Text("Nereden (Kalkış Şehri)", color = Color.White, fontSize = 11.sp) },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color.White,
+                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp)
                                     )
 
-                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                        OutlinedButton(
-                                            onClick = { selectedRegion = "Antalya" },
-                                            modifier = Modifier.weight(1f),
-                                            colors = ButtonDefaults.outlinedButtonColors(
-                                                containerColor = if (selectedRegion == "Antalya") TourOSColors.PrimaryContainer else Color.Transparent
-                                            )
-                                        ) {
-                                            Text("✈️ Antalya", style = TourOSTypography.Caption)
-                                        }
-                                        OutlinedButton(
-                                            onClick = { selectedRegion = "Bodrum" },
-                                            modifier = Modifier.weight(1f),
-                                            colors = ButtonDefaults.outlinedButtonColors(
-                                                containerColor = if (selectedRegion == "Bodrum") TourOSColors.PrimaryContainer else Color.Transparent
-                                            )
-                                        ) {
-                                            Text("✈️ Bodrum", style = TourOSTypography.Caption)
-                                        }
-                                    }
+                                    OutlinedTextField(
+                                        value = selectedRegion,
+                                        onValueChange = { selectedRegion = it },
+                                        label = { Text("Nereye (Destinasyon)", color = Color.White, fontSize = 11.sp) },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color.White,
+                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
 
-                                    Text(
-                                        text = "🌙 $nights ${AppLanguageManager.translate("Gece")}  ·  👥 $adults ${AppLanguageManager.translate("Yetişkin")} + $childs ${AppLanguageManager.translate("Çocuk")}",
-                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                                        fontWeight = FontWeight.SemiBold
+                                    OutlinedTextField(
+                                        value = "$nights Gece",
+                                        onValueChange = { },
+                                        readOnly = true,
+                                        label = { Text("Gece Sayısı", color = Color.White, fontSize = 11.sp) },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color.White,
+                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        modifier = Modifier.width(120.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+
+                                    OutlinedTextField(
+                                        value = "$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else ""),
+                                        onValueChange = { },
+                                        readOnly = true,
+                                        label = { Text("Turist Sayısı", color = Color.White, fontSize = 11.sp) },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = Color.White,
+                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                            focusedTextColor = Color.White,
+                                            unfocusedTextColor = Color.White
+                                        ),
+                                        modifier = Modifier.width(150.dp),
+                                        shape = RoundedCornerShape(8.dp)
                                     )
                                 }
 
-                                Column(
-                                    modifier = Modifier.weight(1.2f),
-                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-                                ) {
-                                    Text(
-                                        text = AppLanguageManager.translate("Otel Yıldızı & Konsept"),
-                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf("Antalya", "Bodrum", "Alanya", "Belek", "Kemer", "Marmaris", "İstanbul", "Dubay").forEach { reg ->
+                                        val isSel = (selectedRegion == reg)
+                                        Surface(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .clickable { selectedRegion = reg },
+                                            color = if (isSel) Color.White else Color.White.copy(alpha = 0.2f)
+                                        ) {
+                                            Text(
+                                                text = reg,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                                style = TourOSTypography.Caption.copy(
+                                                    color = if (isSel) Color(0xFF0284C7) else Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
-                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                        // 3. DETAYLI ARAMA PARAMETRELERİ GRİDİ (Görsel ve Veritabanı ile Birebir Uyumlu)
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // Otel Kategorisi Yıldızlar
+                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("⭐ Otel Kategorisi", style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                         (3..5).forEach { star ->
                                             val isSel = selectedStars.contains(star)
                                             FilterChip(
@@ -168,44 +255,76 @@ fun B2BTourSearchDashboardScreen(
                                                 onClick = {
                                                     selectedStars = if (isSel) selectedStars - star else selectedStars + star
                                                 },
-                                                label = { Text("⭐ $star*", style = TourOSTypography.Caption) }
+                                                label = { Text("$star ★", style = TourOSTypography.Caption.copy(fontSize = 11.sp)) }
                                             )
                                         }
                                     }
+                                }
 
-                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                        FilterChip(
-                                            selected = isInstantOnly,
-                                            onClick = { isInstantOnly = !isInstantOnly },
-                                            label = { Text("⚡ ${AppLanguageManager.translate("Anında Onay")}", style = TourOSTypography.Caption) }
-                                        )
-                                        FilterChip(
-                                            selected = isPromoOnly,
-                                            onClick = { isPromoOnly = !isPromoOnly },
-                                            label = { Text("🔥 ${AppLanguageManager.translate("Promo Fiyat")}", style = TourOSTypography.Caption) }
-                                        )
+                                // Beslenme Tipi
+                                Column(modifier = Modifier.weight(1.5f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🍽️ Beslenme Tipi", style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        listOf("UAI", "AI", "FB", "HB", "BB").forEach { mType ->
+                                            val isSel = selectedMealTypes.contains(mType)
+                                            FilterChip(
+                                                selected = isSel,
+                                                onClick = {
+                                                    selectedMealTypes = if (isSel) selectedMealTypes - mType else selectedMealTypes + mType
+                                                },
+                                                label = { Text(mType, style = TourOSTypography.Caption.copy(fontSize = 10.sp)) }
+                                            )
+                                        }
                                     }
                                 }
 
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                // Tur Operatörleri Onay Seçenekleri
+                                Column(modifier = Modifier.weight(1.5f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("🏢 Tur Operatörü", style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold))
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        listOf("Coral", "Pegas", "Anex", "Fun&Sun", "MGA").forEach { op ->
+                                            val fullName = when(op) {
+                                                "Coral" -> "Coral Travel"
+                                                "Pegas" -> "Pegas Touristik"
+                                                "Anex" -> "Anex Tour"
+                                                "Fun&Sun" -> "Fun & Sun"
+                                                else -> "MGA Creative"
+                                            }
+                                            val isSel = selectedOperators.contains(fullName)
+                                            FilterChip(
+                                                selected = isSel,
+                                                onClick = {
+                                                    selectedOperators = if (isSel) selectedOperators - fullName else selectedOperators + fullName
+                                                },
+                                                label = { Text(op, style = TourOSTypography.Caption.copy(fontSize = 10.sp)) }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    placeholder = { Text("Otel, Uçuş veya Tur Adı ile Canlı Süzme...") },
+                                    modifier = Modifier.width(420.dp),
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+
+                                Button(
+                                    onClick = { viewModel.performSearch() },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAB308)), // Görseldeki Canlı Sarı Buton
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.height(48.dp)
                                 ) {
-                                    TourOSTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        label = AppLanguageManager.translate("Otel / Tur Adı ile Canlı Ara"),
-                                        placeholder = "Ali Bey, Barut, Adalya...",
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                    TourOSButton(
-                                        text = "🔍 ${AppLanguageManager.translate("Turları Bul & Sorgula")}",
-                                        onClick = { viewModel.performSearch() },
-                                        variant = TourOSButtonVariant.PRIMARY,
-                                        modifier = Modifier.fillMaxWidth()
+                                    Text(
+                                        text = "🔍 TURLARI BULUN (CANLI SORGULA)",
+                                        style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 13.sp)
                                     )
                                 }
                             }
@@ -227,7 +346,19 @@ fun B2BTourSearchDashboardScreen(
                         }
 
                         is B2BTourSearchUiState.Success -> {
-                            val products = state.filteredProducts
+                            val rawProducts = state.filteredProducts
+                            val products = rawProducts.filter { item ->
+                                val pType = item.safeProductType.uppercase()
+                                val opName = item.safeOperatorName.uppercase()
+                                when (activeSearchTab) {
+                                    "TOURS" -> pType.contains("TOUR") || pType.contains("PACKAGE") || (pType.isBlank() && !pType.contains("FLIGHT"))
+                                    "HOTELS" -> pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank())
+                                    "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank()
+                                    "LOCAL_TOURS" -> opName.contains("YEREL") || opName.contains("MGA") || pType.contains("LOCAL")
+                                    "LOCAL_HOTELS" -> opName.contains("YEREL") || opName.contains("ACENTE") || item.hotelCategory > 0
+                                    else -> true
+                                }
+                            }
 
                             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                                 Row(

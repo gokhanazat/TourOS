@@ -279,6 +279,18 @@ fun GlobalWebPublicScreen(
 
     // Turist / Acente Modu & Login Modalı State'leri
     var userMode by remember { mutableStateOf("Turist") }
+    var agencyActiveTab by remember { mutableStateOf("CATALOG") } // "CATALOG", "BOOKINGS", "COMMISSIONS", "REPORTS", "SETTINGS"
+    var agencyBookings by remember { mutableStateOf<List<Booking>>(emptyList()) }
+    var isLoadingAgencyBookings by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userMode, agencyActiveTab) {
+        if (userMode == "Acente" && agencyActiveTab == "BOOKINGS") {
+            isLoadingAgencyBookings = true
+            val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+            agencyBookings = bookingRepository.getBookings(tid).getOrDefault(emptyList())
+            isLoadingAgencyBookings = false
+        }
+    }
     var showAgencyLoginModal by remember { mutableStateOf(false) }
     var agencyEmailInput by remember { mutableStateOf("") }
     var agencyPasswordInput by remember { mutableStateOf("") }
@@ -536,25 +548,32 @@ fun GlobalWebPublicScreen(
                                 Text("🏢", fontSize = 18.sp)
                             }
                             Column {
+                                val agencyCode = if (currentUser?.email == "mgazat@gmail.com" || currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role == com.mgacreative.touros.domain.model.UserRole.SYSTEM_ADMIN) {
+                                    "AGN-MASTER-8492"
+                                } else {
+                                    "AGN-" + (currentUser?.tenantId?.take(8)?.uppercase() ?: "8492")
+                                }
                                 Text("B2B Acente Portalı", style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
                                 Text(currentUser?.email ?: "Acente Yetkilisi", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Text("🔑 Acente Kodu: $agencyCode", style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 10.sp))
                             }
                         }
 
                         HorizontalDivider(color = Color(0xFF334155))
 
                         listOf(
-                            "📊 Canlı Tur Kataloğu" to true,
-                            "💰 Komisyon & Marjlar" to false,
-                            "📜 Gelen Rezervasyonlar" to false,
-                            "📈 Satış Raporları" to false,
-                            "⚙️ Acente Ayarları" to false
-                        ).forEach { (menuTitle, isSel) ->
+                            "📊 Canlı Tur Kataloğu" to "CATALOG",
+                            "📜 Gelen Rezervasyonlar" to "BOOKINGS",
+                            "💰 Komisyon & Marjlar" to "COMMISSIONS",
+                            "📈 Satış Raporları" to "REPORTS",
+                            "⚙️ Acente Ayarları" to "SETTINGS"
+                        ).forEach { (menuTitle, tabKey) ->
+                            val isSel = (agencyActiveTab == tabKey)
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable { },
+                                    .clickable { agencyActiveTab = tabKey },
                                 color = if (isSel) Color(0xFF1E293B) else Color.Transparent
                             ) {
                                 Text(
@@ -777,6 +796,22 @@ fun GlobalWebPublicScreen(
                 }
             }
 
+            if (userMode == "Acente" && agencyActiveTab == "BOOKINGS") {
+                item {
+                    AgencyBookingsModuleSection(
+                        bookings = agencyBookings,
+                        isLoading = isLoadingAgencyBookings,
+                        onRefresh = {
+                            coroutineScope.launch {
+                                isLoadingAgencyBookings = true
+                                val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+                                agencyBookings = bookingRepository.getBookings(tid).getOrDefault(emptyList())
+                                isLoadingAgencyBookings = false
+                            }
+                        }
+                    )
+                }
+            } else {
             // ── 2. HERO BANNER GÖRSELİ VE SLOGAN (HAFİF GÖLGE İLE BOYUTLANDIRILMIŞ) ────
             item {
                 Surface(
@@ -1186,6 +1221,7 @@ fun GlobalWebPublicScreen(
                         }
                     }
                 }
+            }
             }
 
             // ── 🌟 HİZMETLERİMİZ (OUR SERVICES - FOOTER ÜSTÜ 6'LI KURUMSAL SEKSİYON) ──
@@ -2253,5 +2289,234 @@ fun groupOffersByHotelName(rawOffers: List<PublicHotelOffer>): List<PublicHotelO
             operatorName = if (allOperators.isNotBlank()) allOperators else first.operatorName,
             agencyPrices = updatedPrices
         )
+    }
+}
+
+// ── 📜 ACENTA REZERVASYONLARI MODÜLÜ (PNR & BİLET YÖNETİMİ) ─────────────────
+@Composable
+fun AgencyBookingsModuleSection(
+    bookings: List<Booking>,
+    isLoading: Boolean,
+    onRefresh: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedTypeFilter by remember { mutableStateOf("HEPSİ") }
+
+    val filteredBookings = bookings.filter { b ->
+        (selectedTypeFilter == "HEPSİ" || 
+            (selectedTypeFilter == "FLIGHT" && (b.bookingType == "FLIGHT" || b.bookingCode.startsWith("PNR"))) ||
+            (selectedTypeFilter == "HOTEL" && (b.bookingType != "FLIGHT" && !b.bookingCode.startsWith("PNR")))) &&
+        (searchQuery.isBlank() || 
+            b.bookingCode.contains(searchQuery, ignoreCase = true) || 
+            b.customerName.contains(searchQuery, ignoreCase = true) || 
+            b.productName.contains(searchQuery, ignoreCase = true))
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        color = Color.White,
+        shape = RoundedCornerShape(16.dp),
+        shadowElevation = 2.dp,
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // Başlık ve Yenileme
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "📜 Gelen Acente Rezervasyonları & PNR Yönetimi",
+                        style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        text = "Acentenize ve referans kodunuza bağlı tüm bilet, tur ve otel rezervasyonlarının canlı listesi",
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF64748B))
+                    )
+                }
+
+                TourOSButton(
+                    text = "🔄 Canlı Yenile",
+                    onClick = onRefresh,
+                    variant = TourOSButtonVariant.SECONDARY
+                )
+            }
+
+            // Özet İstatistik Rozetleri
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StatMiniBadge("📋 Toplam Satış", "${bookings.size} Adet", Color(0xFF0284C7), Modifier.weight(1f))
+                StatMiniBadge("✈️ Uçuş (PNR)", "${bookings.count { it.bookingType == "FLIGHT" || it.bookingCode.startsWith("PNR") }} Adet", Color(0xFF0D5653), Modifier.weight(1f))
+                StatMiniBadge("🏨 Otel & Tur", "${bookings.count { it.bookingType != "FLIGHT" && !it.bookingCode.startsWith("PNR") }} Adet", Color(0xFFD97706), Modifier.weight(1f))
+                StatMiniBadge("🟢 Onaylanan", "${bookings.count { it.status == BookingStatus.ONAYLANDI || it.status.name == "CONFIRMED" }} Adet", Color(0xFF16A34A), Modifier.weight(1f))
+            }
+
+            HorizontalDivider(color = Color(0xFFE2E8F0))
+
+            // Arama ve Kategori Filtresi
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("PNR / Bilet Kodu veya Müşteri Adı ile Ara...") },
+                    modifier = Modifier.width(360.dp),
+                    shape = RoundedCornerShape(10.dp)
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("HEPSİ", "FLIGHT", "HOTEL").forEach { fType ->
+                        val label = when (fType) {
+                            "FLIGHT" -> "✈️ Uçuşlar"
+                            "HOTEL" -> "🏨 Oteller & Turlar"
+                            else -> "Tüm Biletler"
+                        }
+                        val isSel = (selectedTypeFilter == fType)
+                        Surface(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .clickable { selectedTypeFilter = fType },
+                            color = if (isSel) Color(0xFF0D5653) else Color(0xFFF1F5F9)
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                style = TourOSTypography.Caption.copy(
+                                    color = if (isSel) Color.White else Color(0xFF475569),
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    fontSize = 11.sp
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Bilet Listesi
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("⏳ Rezervasyonlar yükleniyor...", style = TourOSTypography.TitleMedium.copy(color = Color(0xFF64748B)))
+                }
+            } else if (filteredBookings.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("📭 Aradığınız kriterlere uygun henüz bir acente rezervasyonu bulunamadı.", style = TourOSTypography.BodyMedium.copy(color = Color(0xFF94A3B8)))
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    filteredBookings.forEach { booking ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF8FAFC),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(CircleShape)
+                                            .background(if (booking.bookingType == "FLIGHT" || booking.bookingCode.startsWith("PNR")) Color(0xFFEFF6FF) else Color(0xFFFEF3C7)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = if (booking.bookingType == "FLIGHT" || booking.bookingCode.startsWith("PNR")) "✈️" else "🏨",
+                                            fontSize = 20.sp
+                                        )
+                                    }
+
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Text(
+                                                text = "PNR / Kod: ${booking.bookingCode}",
+                                                style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(Color(0xFFDCFCE7))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("ONAYLANDI ✅", style = TourOSTypography.Caption.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 9.sp))
+                                            }
+                                        }
+
+                                        Text(
+                                            text = "👤 ${booking.customerName} • 📞 ${booking.customerPhone}",
+                                            style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontSize = 12.sp)
+                                        )
+
+                                        Text(
+                                            text = "📦 Ürün: ${booking.productName} • Operatör: ${booking.operatorName}",
+                                            style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
+                                        )
+                                    }
+                                }
+
+                                Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        text = "${booking.totalPrice.toInt()} ${booking.currency}",
+                                        style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                    )
+                                    Text(
+                                        text = "Acente Tenant: ${booking.tenantId.take(12)}...",
+                                        style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatMiniBadge(title: String, value: String, accentColor: Color, modifier: Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = accentColor.copy(alpha = 0.08f),
+        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(title, style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp))
+            Text(value, style = TourOSTypography.TitleLarge.copy(color = accentColor, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp))
+        }
     }
 }
