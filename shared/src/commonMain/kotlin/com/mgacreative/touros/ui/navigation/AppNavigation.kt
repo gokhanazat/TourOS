@@ -570,9 +570,9 @@ private fun AppNavHost(navController: NavHostController) {
         }
 
         composable<CreateBookingStep1Route> {
-            CreateBookingStep1Screen(
+            B2BTourSearchDashboardScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onCompleteStep1 = { navController.navigate(CreateBookingStep2Route) }
+                onNavigateToBookings = { navController.navigate(BookingsRoute) }
             )
         }
 

@@ -811,6 +811,21 @@ fun GlobalWebPublicScreen(
                         }
                     )
                 }
+            } else if (userMode == "Acente" && (agencyActiveTab == "CREATE_BOOKING" || agencyActiveTab == "CATALOG")) {
+                item {
+                    B2BTourSearchDashboardScreen(
+                        onNavigateBack = { agencyActiveTab = "BOOKINGS" },
+                        onNavigateToBookings = {
+                            agencyActiveTab = "BOOKINGS"
+                            coroutineScope.launch {
+                                isLoadingAgencyBookings = true
+                                val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+                                agencyBookings = bookingRepository.getBookings(tid).getOrDefault(emptyList())
+                                isLoadingAgencyBookings = false
+                            }
+                        }
+                    )
+                }
             } else {
             // ── 2. HERO BANNER GÖRSELİ VE SLOGAN (HAFİF GÖLGE İLE BOYUTLANDIRILMIŞ) ────
             item {
