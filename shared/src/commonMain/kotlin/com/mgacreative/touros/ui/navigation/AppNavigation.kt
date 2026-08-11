@@ -332,7 +332,7 @@ fun AppNavigation() {
 
 @Composable
 private fun AppNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = LoginRoute) {
+    NavHost(navController = navController, startDestination = SplashRoute) {
 
         // ─── Auth & Public Landing ──────────────────────────────────────────
 
