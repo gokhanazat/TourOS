@@ -16,7 +16,7 @@ data class NavigationGroup(
 data class NavigationItem(
     val title: String,
     val route: Any, // Serializable route
-    val icon: String, // Material icon name
+    val icon: String = "", // Material icon name
     val allowedRoles: Set<UserRole> = setOf(
         UserRole.SYSTEM_ADMIN,
         UserRole.TOUR_OPERATOR,
@@ -36,13 +36,11 @@ val navigationGroups = listOf(
         items = listOf(
             NavigationItem(
                 title = "Web Yönetimi (CMS)",
-                route = GlobalWebCmsRoute,
-                icon = "language"
+                route = GlobalWebCmsRoute
             ),
             NavigationItem(
                 title = "Canlı Web",
-                route = GlobalWebPublicRoute,
-                icon = "public"
+                route = GlobalWebPublicRoute
             )
         )
     ),
@@ -51,18 +49,15 @@ val navigationGroups = listOf(
         items = listOf(
             NavigationItem(
                 title = "Tur Operatörleri",
-                route = AgencyOperatorConnectionsRoute,
-                icon = "business"
+                route = AgencyOperatorConnectionsRoute
             ),
             NavigationItem(
                 title = "Ürünler",
-                route = AgencyProductPublishingRoute,
-                icon = "inventory_2"
+                route = AgencyProductPublishingRoute
             ),
             NavigationItem(
                 title = "Rezervasyonlar",
-                route = BookingsRoute,
-                icon = "book_online"
+                route = BookingsRoute
             )
         )
     ),
@@ -71,23 +66,19 @@ val navigationGroups = listOf(
         items = listOf(
             NavigationItem(
                 title = "Finans",
-                route = FinancialReportsRoute,
-                icon = "account_balance_wallet"
+                route = FinancialReportsRoute
             ),
             NavigationItem(
                 title = "Fatura Yönetimi",
-                route = InvoiceManagementRoute,
-                icon = "receipt_long"
+                route = InvoiceManagementRoute
             ),
             NavigationItem(
                 title = "Cari Hesaplar",
-                route = CurrentAccountRoute,
-                icon = "receipt"
+                route = CurrentAccountRoute
             ),
             NavigationItem(
                 title = "Gider Girişi",
-                route = SupplierExpenseRoute,
-                icon = "payments"
+                route = SupplierExpenseRoute
             )
         )
     ),
@@ -96,23 +87,19 @@ val navigationGroups = listOf(
         items = listOf(
             NavigationItem(
                 title = "Dashboard",
-                route = DashboardRoute,
-                icon = "dashboard"
+                route = DashboardRoute
             ),
             NavigationItem(
                 title = "Analitik & Trend",
-                route = AnalyticsChartsRoute,
-                icon = "trending_up"
+                route = AnalyticsChartsRoute
             ),
             NavigationItem(
                 title = "Raporlar",
-                route = ReportsRoute,
-                icon = "analytics"
+                route = ReportsRoute
             ),
             NavigationItem(
                 title = "Müşteri & CRM",
-                route = CustomersRoute,
-                icon = "people"
+                route = CustomersRoute
             )
         )
     ),
@@ -121,13 +108,11 @@ val navigationGroups = listOf(
         items = listOf(
             NavigationItem(
                 title = "Yerel Tur",
-                route = ToursRoute,
-                icon = "tour"
+                route = ToursRoute
             ),
             NavigationItem(
                 title = "Yerel Otel",
-                route = HotelListRoute,
-                icon = "hotel"
+                route = HotelListRoute
             )
         )
     ),
@@ -136,8 +121,7 @@ val navigationGroups = listOf(
         items = listOf(
             NavigationItem(
                 title = "Ayarlar & Dil",
-                route = SettingsRoute,
-                icon = "settings"
+                route = SettingsRoute
             )
         )
     )
