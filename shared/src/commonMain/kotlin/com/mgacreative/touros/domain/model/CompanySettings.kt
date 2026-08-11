@@ -47,5 +47,7 @@ data class CompanySettings(
     val iban: String? = null,
     val accountHolder: String? = null,
     val paypalEmail: String? = null,
-    val paypalMeUrl: String? = null
+    val paypalMeUrl: String? = null,
+    val defaultMasterAgencyId: String? = "00000000-0000-0000-0000-000000000001",
+    val defaultMasterAgencyCode: String? = "AGN-MASTER"
 )

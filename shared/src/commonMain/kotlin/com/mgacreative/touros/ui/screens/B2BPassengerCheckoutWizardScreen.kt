@@ -292,6 +292,48 @@ private fun PassengerFormCardItem(
                         )
                     }
                 }
+            } else {
+                // ── GÖRSEL 6: ÇOCUK/BEBEK YOLCU ÖZEL ALANLARI ("Ответственный за ребенка") ──
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
+                        .padding(TourOSSpacing.small),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "👨‍👦 ${AppLanguageManager.translate("Çocuktan Sorumlu Yetişkin (Ответственный за ребенка)")}:",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Turist 1 (Yetişkin / Lead)",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = passenger.isInfantSeatRequested,
+                            onCheckedChange = { isChecked ->
+                                onUpdatePassenger(passenger.copy(isInfantSeatRequested = isChecked))
+                            },
+                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                        )
+                        Text(
+                            text = AppLanguageManager.translate("İnfant İçin Uçakta Ayrı Koltuk"),
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                        )
+                    }
+                }
             }
         }
     }

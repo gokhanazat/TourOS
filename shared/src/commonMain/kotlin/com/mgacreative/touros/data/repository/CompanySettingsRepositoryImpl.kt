@@ -81,7 +81,9 @@ class CompanySettingsRepositoryImpl(
                     iban = entity.iban ?: cachedSettings?.iban,
                     accountHolder = entity.accountHolder ?: cachedSettings?.accountHolder,
                     paypalEmail = entity.paypalEmail ?: cachedSettings?.paypalEmail,
-                    paypalMeUrl = entity.paypalMeUrl ?: cachedSettings?.paypalMeUrl
+                    paypalMeUrl = entity.paypalMeUrl ?: cachedSettings?.paypalMeUrl,
+                    defaultMasterAgencyId = entity.defaultMasterAgencyId ?: cachedSettings?.defaultMasterAgencyId ?: "00000000-0000-0000-0000-000000000001",
+                    defaultMasterAgencyCode = entity.defaultMasterAgencyCode ?: cachedSettings?.defaultMasterAgencyCode ?: "AGN-MASTER"
                 )
                 cachedSettings = loaded
                 loaded
@@ -91,7 +93,9 @@ class CompanySettingsRepositoryImpl(
                     name = "",
                     taxRate = 20.0,
                     supportedCurrencies = listOf("TRY", "EUR", "USD"),
-                    supportedLanguages = listOf("tr", "en")
+                    supportedLanguages = listOf("tr", "en"),
+                    defaultMasterAgencyId = "00000000-0000-0000-0000-000000000001",
+                    defaultMasterAgencyCode = "AGN-MASTER"
                 )
             }
         }
@@ -133,6 +137,8 @@ class CompanySettingsRepositoryImpl(
                 settings.accountHolder?.let { put("account_holder", it) }
                 settings.paypalEmail?.let { put("paypal_email", it) }
                 settings.paypalMeUrl?.let { put("paypal_me_url", it) }
+                settings.defaultMasterAgencyId?.let { put("default_master_agency_id", it) }
+                settings.defaultMasterAgencyCode?.let { put("default_master_agency_code", it) }
                 settings.logoUrl?.let { put("logo_url", it) }
                 put("theme_color", settings.themeColor)
                 put("tax_rate", settings.taxRate)

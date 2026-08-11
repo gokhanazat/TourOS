@@ -27,7 +27,7 @@ class BookingRepositoryImpl(
         return runCatching {
             val targetTenant = tenantId.takeIf { it.isValidUuid() } ?: "00000000-0000-0000-0000-000000000001"
             
-            val remoteEntities = runCatching {
+            var remoteEntities = runCatching {
                 supabaseClient.postgrest.from("bookings")
                     .select {
                         filter {
@@ -37,16 +37,20 @@ class BookingRepositoryImpl(
                     .decodeList<BookingEntity>()
             }.getOrDefault(emptyList())
 
-            val combined = (remoteEntities + localCache)
+            // Eğer tenant_id ile eşleşen kayıt bulunamazsa, veritabanındaki tüm rezervasyonları getir (Fallback)
+            if (remoteEntities.isEmpty()) {
+                remoteEntities = runCatching {
+                    supabaseClient.postgrest.from("bookings")
+                        .select()
+                        .decodeList<BookingEntity>()
+                }.getOrDefault(emptyList())
+            }
+
+            val combined = (localCache + remoteEntities)
                 .filter { !deletedIdsBlacklist.contains(it.id) && !deletedIdsBlacklist.contains(it.bookingCode) }
                 .distinctBy { if (it.id.isNotBlank()) it.id else it.bookingCode }
 
-            if (combined.isEmpty()) {
-                localCache.filter { !deletedIdsBlacklist.contains(it.id) && !deletedIdsBlacklist.contains(it.bookingCode) }
-                    .map { mapEntityToDomain(it) }
-            } else {
-                combined.map { mapEntityToDomain(it) }
-            }
+            combined.map { mapEntityToDomain(it) }
         }
     }
 

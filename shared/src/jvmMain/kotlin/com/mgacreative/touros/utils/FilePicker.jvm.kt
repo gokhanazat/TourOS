@@ -14,21 +14,23 @@ actual fun rememberFilePickerLauncher(
 ): () -> Unit {
     return remember(mimeType, onFileSelected) {
         {
-            try {
-                val dialog = FileDialog(null as Frame?, "Görsel Seç", FileDialog.LOAD)
-                dialog.isVisible = true
-                val file = dialog.file
-                val directory = dialog.directory
-                if (file != null && directory != null) {
-                    val targetFile = File(directory, file)
-                    if (targetFile.exists() && targetFile.isFile) {
-                        val bytes = targetFile.readBytes()
-                        onFileSelected(targetFile.absolutePath, bytes)
+            Thread {
+                try {
+                    val dialog = FileDialog(null as Frame?, "Dosya Seç", FileDialog.LOAD)
+                    dialog.isVisible = true
+                    val file = dialog.file
+                    val directory = dialog.directory
+                    if (file != null && directory != null) {
+                        val targetFile = File(directory, file)
+                        if (targetFile.exists() && targetFile.isFile) {
+                            val bytes = targetFile.readBytes()
+                            onFileSelected(targetFile.name, bytes)
+                        }
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            }.start()
         }
     }
 }

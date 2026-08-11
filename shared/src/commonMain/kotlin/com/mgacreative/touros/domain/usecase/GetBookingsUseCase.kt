@@ -25,8 +25,8 @@ class GetBookingsUseCase(
                         (booking.customerPhone?.contains(searchQuery, ignoreCase = true) == true) ||
                         (booking.customerEmail?.contains(searchQuery, ignoreCase = true) == true)
 
-                val matchesStartDate = startDate.isNullOrBlank() || booking.createdAt >= startDate
-                val matchesEndDate = endDate.isNullOrBlank() || booking.createdAt <= endDate
+                val matchesStartDate = startDate.isNullOrBlank() || booking.createdAt.isBlank() || booking.createdAt >= startDate
+                val matchesEndDate = endDate.isNullOrBlank() || booking.createdAt.isBlank() || booking.createdAt <= endDate
 
                 matchesStatus && matchesTour && matchesSearch && matchesStartDate && matchesEndDate
             }

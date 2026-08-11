@@ -33,6 +33,8 @@ data class CompanyEntity(
     @SerialName("account_holder") val accountHolder: String? = null,
     @SerialName("paypal_email") val paypalEmail: String? = null,
     @SerialName("paypal_me_url") val paypalMeUrl: String? = null,
+    @SerialName("default_master_agency_id") val defaultMasterAgencyId: String? = "00000000-0000-0000-0000-000000000001",
+    @SerialName("default_master_agency_code") val defaultMasterAgencyCode: String? = "AGN-MASTER",
     @SerialName("tenant_id") val tenantId: String = "",
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("updated_at") val updatedAt: String = "",

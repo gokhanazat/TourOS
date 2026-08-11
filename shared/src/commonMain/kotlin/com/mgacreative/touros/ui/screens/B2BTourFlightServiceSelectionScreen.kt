@@ -231,7 +231,10 @@ fun B2BTourFlightServiceSelectionScreen(
 // ─── ADIM ADIM İLERLEME ÇUBUĞU BİLEŞENİ (WIZARD STEP BAR) ──────────────────────
 
 @Composable
-fun WizardStepHeaderBar(currentStep: Int) {
+fun WizardStepHeaderBar(
+    currentStep: Int,
+    onStepClick: ((Int) -> Unit)? = null
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
@@ -252,6 +255,9 @@ fun WizardStepHeaderBar(currentStep: Int) {
                             else -> TourOSColors.Surface
                         }
                     )
+                    .clickable(enabled = onStepClick != null) {
+                        onStepClick?.invoke(stepNo)
+                    }
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -331,7 +337,7 @@ private fun FlightOptionCardItem(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Uçuş Farkı",
+                        text = AppLanguageManager.translate("Uçuş Farkı"),
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 } else {
@@ -342,11 +348,60 @@ private fun FlightOptionCardItem(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Fark Yok (Pakete Dahil)",
+                            text = AppLanguageManager.translate("Fark Yok (Pakete Dahil)"),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+
+        // ── GÖRSEL 10: UÇUŞ DETAYLARI VE ZORUNLU EK ÜCRETLER (MANDATORY SURCHARGES BREAKDOWN) ──
+        if (isSelected) {
+            Spacer(modifier = Modifier.height(TourOSSpacing.small))
+            HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
+            Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
+                    .padding(TourOSSpacing.medium),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = "⚡ ${AppLanguageManager.translate("Zorunlu Uçuş Farkları ve Ek Ücret Dökümü (Mandatory Surcharges)")}",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "• ${AppLanguageManager.translate("Dönem Uçuş Farkı (TURKISH AIRLINES)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(text = "+34.333 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "• ${AppLanguageManager.translate("Sabah Gidiş Uçuş Ek Ücreti (02:05 VKO)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(text = "+14.137 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "• ${AppLanguageManager.translate("Akşam Dönüş Uçuş Ek Ücreti (18:40 AYT)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(text = "+18.176 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = "• ${AppLanguageManager.translate("Grup Havalimanı Transferi")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(text = AppLanguageManager.translate("Dahil (Включен)"), style = TourOSTypography.Caption.copy(color = TourOSColors.Success), fontWeight = FontWeight.Bold)
+                }
+
+                HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.3f))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(text = AppLanguageManager.translate("Toplam Zorunlu Ek Ücretler:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                    Text(text = "66.646 RUB", style = TourOSTypography.Label.copy(color = TourOSColors.Warning), fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -58,6 +58,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var agencyCode by remember { mutableStateOf("") }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -175,6 +176,16 @@ fun LoginScreen(
                     label = "Şifre",
                     placeholder = "••••••••",
                     visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                TourOSTextField(
+                    value = agencyCode,
+                    onValueChange = { agencyCode = it },
+                    label = "Acente Kodu (B2B SaaS)",
+                    placeholder = "Örn: AGN-ANEX / ACT-001",
                     modifier = Modifier.fillMaxWidth()
                 )
 

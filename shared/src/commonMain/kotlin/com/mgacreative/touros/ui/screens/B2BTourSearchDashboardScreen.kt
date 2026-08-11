@@ -56,7 +56,7 @@ fun B2BTourSearchDashboardScreen(
     var isInstantOnly by remember { mutableStateOf(false) }
     var isPromoOnly by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-
+    var activeStep by remember { mutableStateOf(1) }
     var showSuccessModal by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -81,365 +81,441 @@ fun B2BTourSearchDashboardScreen(
                 .padding(TourOSSpacing.large),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
         ) {
-            // ── BLOK 1: GÖRSEL 7 - ARAMA FİLTRELEME MOTORU ─────────────────────────
-            TourOSCard(
-                modifier = Modifier.fillMaxWidth(),
-                backgroundColor = TourOSColors.Surface,
-                contentPadding = TourOSSpacing.medium
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Text(
-                        text = "🔍 1. ${AppLanguageManager.translate("Tur & Otel Arama Kriterleri")}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                    ) {
-                        // 1. KISIM: DESTİNASYON & YOLCU SEÇİMİ
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-                        ) {
-                            TourOSTextField(
-                                value = departureCity,
-                                onValueChange = { departureCity = it },
-                                label = AppLanguageManager.translate("Kalkış Şehri"),
-                                placeholder = "Moskova / İstanbul",
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                OutlinedButton(
-                                    onClick = { selectedRegion = "Antalya" },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = if (selectedRegion == "Antalya") TourOSColors.PrimaryContainer else Color.Transparent
-                                    )
-                                ) {
-                                    Text("✈️ Antalya", style = TourOSTypography.Caption)
-                                }
-                                OutlinedButton(
-                                    onClick = { selectedRegion = "Bodrum" },
-                                    modifier = Modifier.weight(1f),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = if (selectedRegion == "Bodrum") TourOSColors.PrimaryContainer else Color.Transparent
-                                    )
-                                ) {
-                                    Text("✈️ Bodrum", style = TourOSTypography.Caption)
-                                }
-                            }
-
-                            Text(
-                                text = "🌙 $nights ${AppLanguageManager.translate("Gece")}  ·  👥 $adults ${AppLanguageManager.translate("Yetişkin")} + $childs ${AppLanguageManager.translate("Çocuk")}",
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
-                        // 2. KISIM: OTEL KATEGORİSİ & YILDIZ FİLTRELERİ
-                        Column(
-                            modifier = Modifier.weight(1.2f),
-                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-                        ) {
-                            Text(
-                                text = AppLanguageManager.translate("Otel Yıldızı & Konsept"),
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                (3..5).forEach { star ->
-                                    val isSel = selectedStars.contains(star)
-                                    FilterChip(
-                                        selected = isSel,
-                                        onClick = {
-                                            selectedStars = if (isSel) selectedStars - star else selectedStars + star
-                                        },
-                                        label = { Text("⭐ $star*", style = TourOSTypography.Caption) }
-                                    )
-                                }
-                            }
-
-                            Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                FilterChip(
-                                    selected = isInstantOnly,
-                                    onClick = { isInstantOnly = !isInstantOnly },
-                                    label = { Text("⚡ ${AppLanguageManager.translate("Anında Onay")}", style = TourOSTypography.Caption) }
-                                )
-                                FilterChip(
-                                    selected = isPromoOnly,
-                                    onClick = { isPromoOnly = !isPromoOnly },
-                                    label = { Text("🔥 ${AppLanguageManager.translate("Promo Fiyat")}", style = TourOSTypography.Caption) }
-                                )
-                            }
-                        }
-
-                        // 3. KISIM: ARAMA METNİ & AKSİYON BUTONU
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-                        ) {
-                            TourOSTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                label = AppLanguageManager.translate("Otel / Tur Adı ile Canlı Ara"),
-                                placeholder = "Ali Bey, Barut, Adalya...",
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            TourOSButton(
-                                text = "🔍 ${AppLanguageManager.translate("Turları Bul & Sorgula")}",
-                                onClick = { viewModel.performSearch() },
-                                variant = TourOSButtonVariant.PRIMARY,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
+            // ── ADIM YÖNLENDİRME ÇUBUĞU (STEPPER NAVIGATION BAR) ─────────────────
+            WizardStepHeaderBar(
+                currentStep = activeStep,
+                onStepClick = { step ->
+                    if (step == 1 || selectedProduct != null) {
+                        activeStep = step
                     }
                 }
-            }
+            )
 
-            // ── BLOK 2: GÖRSEL 8 - MATRİS SONUÇ KARTLARI ─────────────────────────────
-            when (val state = uiState) {
-                is B2BTourSearchUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = TourOSColors.Primary)
-                    }
-                }
-
-                is B2BTourSearchUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(text = state.message, color = TourOSColors.Error, style = TourOSTypography.BodyMedium)
-                    }
-                }
-
-                is B2BTourSearchUiState.Success -> {
-                    val products = state.filteredProducts
-
-                    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "📊 2. ${AppLanguageManager.translate("Bulunan Tur Seçenekleri")} (${products.size} ${AppLanguageManager.translate("Tur Bulundu")})",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Text(
-                                text = AppLanguageManager.translate("Sıralama: Fiyata Göre (En Düşük)"),
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                            )
-                        }
-
-                        products.forEach { item ->
-                            val isSelected = selectedProduct?.id == item.id
-                            TourResultMatrixCard(
-                                product = item,
-                                isSelected = isSelected,
-                                onSelectForBooking = {
-                                    viewModel.selectProductForBooking(item)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            HorizontalDivider(color = TourOSColors.Divider)
-
-            // ── BLOK 3 & 4: TUR SEÇİLİNCE AÇILAN ALT REZERVASYON PANELİ ──────────────
-            val curProduct = selectedProduct
-            if (curProduct == null) {
-                // Tur seçilmediğinde gösterilen yönlendirme kutusu
-                TourOSCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    backgroundColor = TourOSColors.Surface,
-                    contentPadding = TourOSSpacing.medium
-                ) {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "👆 ${AppLanguageManager.translate("Yukarıdaki listeden bir tur kartının üzerindeki '⚡ Turu Seç & Detaylandır' butonuna bastığınızda; uçuş alternatifleri, sigorta/transfer ekstraları ve yolcu formu bu alanda açılacaktır.")}",
-                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            } else {
-                val basePrice = curProduct.price * 1.125
-                val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
-                val extrasTotalEur = extraServices.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
-                val extrasTotalRub = extrasTotalEur * 100.0
-                val grandTotalRub = basePrice + flightDelta + extrasTotalRub
-
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Text(
-                        text = "✈️ 3. ${AppLanguageManager.translate("Alternatif Uçuşlar & Ekstra Hizmetler")}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    // SEÇİLİ TUR ÖZET KARTI
+            when (activeStep) {
+                1 -> {
+                    // ── ADIM 1: ARAMA FİLTRELERİ VE SONUÇ KARTLARI ──────────────────
                     TourOSCard(
                         modifier = Modifier.fillMaxWidth(),
-                        backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f),
+                        backgroundColor = TourOSColors.Surface,
                         contentPadding = TourOSSpacing.medium
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    text = "🏨 ${curProduct.hotelName} ⭐".repeat(curProduct.hotelCategory.coerceAtMost(5)),
-                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "🛏️ ${curProduct.roomType.ifBlank { "FAMILY ROOM" }}  ·  🍽️ ${curProduct.mealType.ifBlank { "Ultra All Inclusive" }}",
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                                )
-                                Text(
-                                    text = "📅 ${curProduct.departureDate ?: "21.08.2026"} (7 ${AppLanguageManager.translate("Gece")})  ·  👥 2 ADL + 2 CHD  ·  📍 ${curProduct.region}",
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                            Text(
+                                text = "🔍 1. ${AppLanguageManager.translate("Tur & Otel Arama Kriterleri")}",
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                                fontWeight = FontWeight.Bold
+                            )
 
-                            Column(horizontalAlignment = Alignment.End) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    TourOSTextField(
+                                        value = departureCity,
+                                        onValueChange = { departureCity = it },
+                                        label = AppLanguageManager.translate("Kalkış Şehri"),
+                                        placeholder = "Moskova / İstanbul",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                        OutlinedButton(
+                                            onClick = { selectedRegion = "Antalya" },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = if (selectedRegion == "Antalya") TourOSColors.PrimaryContainer else Color.Transparent
+                                            )
+                                        ) {
+                                            Text("✈️ Antalya", style = TourOSTypography.Caption)
+                                        }
+                                        OutlinedButton(
+                                            onClick = { selectedRegion = "Bodrum" },
+                                            modifier = Modifier.weight(1f),
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                containerColor = if (selectedRegion == "Bodrum") TourOSColors.PrimaryContainer else Color.Transparent
+                                            )
+                                        ) {
+                                            Text("✈️ Bodrum", style = TourOSTypography.Caption)
+                                        }
+                                    }
+
+                                    Text(
+                                        text = "🌙 $nights ${AppLanguageManager.translate("Gece")}  ·  👥 $adults ${AppLanguageManager.translate("Yetişkin")} + $childs ${AppLanguageManager.translate("Çocuk")}",
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+
+                                Column(
+                                    modifier = Modifier.weight(1.2f),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    Text(
+                                        text = AppLanguageManager.translate("Otel Yıldızı & Konsept"),
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                        (3..5).forEach { star ->
+                                            val isSel = selectedStars.contains(star)
+                                            FilterChip(
+                                                selected = isSel,
+                                                onClick = {
+                                                    selectedStars = if (isSel) selectedStars - star else selectedStars + star
+                                                },
+                                                label = { Text("⭐ $star*", style = TourOSTypography.Caption) }
+                                            )
+                                        }
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                        FilterChip(
+                                            selected = isInstantOnly,
+                                            onClick = { isInstantOnly = !isInstantOnly },
+                                            label = { Text("⚡ ${AppLanguageManager.translate("Anında Onay")}", style = TourOSTypography.Caption) }
+                                        )
+                                        FilterChip(
+                                            selected = isPromoOnly,
+                                            onClick = { isPromoOnly = !isPromoOnly },
+                                            label = { Text("🔥 ${AppLanguageManager.translate("Promo Fiyat")}", style = TourOSTypography.Caption) }
+                                        )
+                                    }
+                                }
+
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    TourOSTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        label = AppLanguageManager.translate("Otel / Tur Adı ile Canlı Ara"),
+                                        placeholder = "Ali Bey, Barut, Adalya...",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    TourOSButton(
+                                        text = "🔍 ${AppLanguageManager.translate("Turları Bul & Sorgula")}",
+                                        onClick = { viewModel.performSearch() },
+                                        variant = TourOSButtonVariant.PRIMARY,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // ARAMA SONUÇLARI MATRİSİ
+                    when (val state = uiState) {
+                        is B2BTourSearchUiState.Loading -> {
+                            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = TourOSColors.Primary)
+                            }
+                        }
+
+                        is B2BTourSearchUiState.Error -> {
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Text(text = state.message, color = TourOSColors.Error, style = TourOSTypography.BodyMedium)
+                            }
+                        }
+
+                        is B2BTourSearchUiState.Success -> {
+                            val products = state.filteredProducts
+
+                            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "📊 2. ${AppLanguageManager.translate("Bulunan Tur Seçenekleri")} (${products.size} ${AppLanguageManager.translate("Tur Bulundu")})",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        text = AppLanguageManager.translate("Sıralama: Fiyata Göre (En Düşük)"),
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                    )
+                                }
+
+                                products.forEach { item ->
+                                    val isSelected = selectedProduct?.id == item.id
+                                    TourResultMatrixCard(
+                                        product = item,
+                                        isSelected = isSelected,
+                                        onSelectForBooking = {
+                                            viewModel.selectProductForBooking(item)
+                                            // Tur seçildiğinde anında Adım 2'ye (Uçuş & Ekstra Hizmetler) geçiş yap:
+                                            activeStep = 2
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                2 -> {
+                    // ── ADIM 2: UÇUŞ SEÇİMİ VE EKSTRA HİZMETLER ────────────────────────
+                    val curProduct = selectedProduct
+                    if (curProduct == null) {
+                        TourOSCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            backgroundColor = TourOSColors.Surface,
+                            contentPadding = TourOSSpacing.medium
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "⚠️ ${AppLanguageManager.translate("Lütfen öncelikle Adım 1'den bir tur seçiniz.")}",
+                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Warning),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                                    TourOSButton(
+                                        text = "← ${AppLanguageManager.translate("Adım 1: Tur Aramaya Dön")}",
+                                        onClick = { activeStep = 1 },
+                                        variant = TourOSButtonVariant.SECONDARY
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        val basePrice = curProduct.price * 1.125
+
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = AppLanguageManager.translate("Konaklama Net"),
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                                )
-                                Text(
-                                    text = "${basePrice.toInt()} ${curProduct.currency}",
+                                    text = "✈️ 2. ${AppLanguageManager.translate("Alternatif Uçuşlar & Ekstra Hizmetler")}",
                                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
                                     fontWeight = FontWeight.Bold
                                 )
+
+                                TourOSButton(
+                                    text = "← ${AppLanguageManager.translate("Arama Sonuçlarına Dön")}",
+                                    onClick = { activeStep = 1 },
+                                    variant = TourOSButtonVariant.SECONDARY
+                                )
+                            }
+
+                            // SEÇİLİ TUR ÖZET KARTI
+                            TourOSCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f),
+                                contentPadding = TourOSSpacing.medium
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text = "🏨 ${curProduct.hotelName} ⭐".repeat(curProduct.hotelCategory.coerceAtMost(5)),
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "🛏️ ${curProduct.roomType.ifBlank { "FAMILY ROOM" }}  ·  🍽️ ${curProduct.mealType.ifBlank { "Ultra All Inclusive" }}",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                        Text(
+                                            text = "📅 ${curProduct.departureDate ?: "21.08.2026"} (7 ${AppLanguageManager.translate("Gece")})  ·  👥 2 ADL + 2 CHD  ·  📍 ${curProduct.region}",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = AppLanguageManager.translate("Konaklama Net"),
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                        Text(
+                                            text = "${basePrice.toInt()} ${curProduct.currency}",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
+                            // UÇUŞ SEÇENEKLERİ (GÖRSEL 9 & 10)
+                            Text(
+                                text = "🛫 ${AppLanguageManager.translate("Uçuş Alternatifleri")} (${availableFlightOptions.size} ${AppLanguageManager.translate("Uçuş Çifti")})",
+                                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            availableFlightOptions.forEach { option ->
+                                FlightOptionCardItem(
+                                    option = option,
+                                    isSelected = selectedFlightOption?.id == option.id,
+                                    onSelect = { viewModel.selectedFlightOption.value = option }
+                                )
+                            }
+
+                            // EKSTRA HİZMETLER (GÖRSEL 3 & 4)
+                            Text(
+                                text = "🛡️ ${AppLanguageManager.translate("Sigorta ve VIP Transfer Ekstraları")}",
+                                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            extraServices.forEach { srv ->
+                                ExtraServiceCardItem(
+                                    service = srv,
+                                    onToggle = { viewModel.toggleExtraService(srv.id) }
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TourOSButton(
+                                    text = "➡️ ${AppLanguageManager.translate("İleri: Turist Bilgileri & Onaya Geç")}",
+                                    onClick = { activeStep = 3 },
+                                    variant = TourOSButtonVariant.PRIMARY
+                                )
                             }
                         }
-                    }
-
-                    // UÇUŞ SEÇENEKLERİ (GÖRSEL 9 & 10)
-                    Text(
-                        text = "🛫 ${AppLanguageManager.translate("Uçuş Alternatifleri")} (${availableFlightOptions.size} ${AppLanguageManager.translate("Uçuş Çifti")})",
-                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    availableFlightOptions.forEach { option ->
-                        FlightOptionCardItem(
-                            option = option,
-                            isSelected = selectedFlightOption?.id == option.id,
-                            onSelect = { viewModel.selectedFlightOption.value = option }
-                        )
-                    }
-
-                    // EKSTRA HİZMETLER (GÖRSEL 3 & 4)
-                    Text(
-                        text = "🛡️ ${AppLanguageManager.translate("Sigorta ve VIP Transfer Ekstraları")}",
-                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    extraServices.forEach { srv ->
-                        ExtraServiceCardItem(
-                            service = srv,
-                            onToggle = { viewModel.toggleExtraService(srv.id) }
-                        )
                     }
                 }
 
-                HorizontalDivider(color = TourOSColors.Divider)
-
-                // ── BLOK 4: YOLCU (TURİST) BİLGİLERİ FORMU (DİNAMİK YOLCU YÖNETİMİ) ───
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "👤 4. ${AppLanguageManager.translate("Yolcu (Turist) Pasaport Bilgileri")} (${passengers.size} ${AppLanguageManager.translate("Yolcu Kayıtlı")})",
-                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                            OutlinedButton(
-                                onClick = { viewModel.addPassenger() },
-                                colors = ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f))
-                            ) {
-                                Text("➕ ${AppLanguageManager.translate("Yolcu Ekle")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-
-                    passengers.forEachIndexed { idx, pax ->
-                        PassengerFormCardItem(
-                            passenger = pax,
-                            paxIndex = idx + 1,
-                            canRemove = passengers.size > 1,
-                            onRemove = { viewModel.removePassenger(pax.index) },
-                            onUpdatePassenger = { updated ->
-                                viewModel.passengers.value = viewModel.passengers.value.mapIndexed { i, old ->
-                                    if (i == idx) updated else old
+                3 -> {
+                    // ── ADIM 3: YOLCU BILGILERI FORMU VE REZERVASYON ONAYI ───────────────
+                    val curProduct = selectedProduct
+                    if (curProduct == null) {
+                        TourOSCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            backgroundColor = TourOSColors.Surface,
+                            contentPadding = TourOSSpacing.medium
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "⚠️ ${AppLanguageManager.translate("Lütfen öncelikle Adım 1'den bir tur seçiniz.")}",
+                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Warning),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                                    TourOSButton(
+                                        text = "← ${AppLanguageManager.translate("Adım 1: Tur Aramaya Dön")}",
+                                        onClick = { activeStep = 1 },
+                                        variant = TourOSButtonVariant.SECONDARY
+                                    )
                                 }
                             }
-                        )
-                    }
+                        }
+                    } else {
+                        val basePrice = curProduct.price * 1.125
+                        val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
+                        val extrasTotalEur = extraServices.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
+                        val extrasTotalRub = extrasTotalEur * 100.0
+                        val grandTotalRub = basePrice + flightDelta + extrasTotalRub
 
-                    // TOPLAM SATIŞ VE REZERVASYON TAMAMLAMA ÇUBUĞU
-                    TourOSCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f),
-                        contentPadding = TourOSSpacing.medium
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 Text(
-                                    text = AppLanguageManager.translate("TOPLAM REZERVASYON TUTARI"),
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                                    text = "👤 3. ${AppLanguageManager.translate("Yolcu (Turist) Pasaport Bilgileri")} (${passengers.size} ${AppLanguageManager.translate("Yolcu Kayıtlı")})",
+                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
                                     fontWeight = FontWeight.Bold
                                 )
-                                Text(
-                                    text = "${grandTotalRub.toInt()} ${curProduct.currency}",
-                                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "⚡ ${AppLanguageManager.translate("Anında Onaylı Operatör Kaydı")}",
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
-                                    fontWeight = FontWeight.Bold
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                    TourOSButton(
+                                        text = "← ${AppLanguageManager.translate("Geri: Uçuş/Hizmet Seçimi")}",
+                                        onClick = { activeStep = 2 },
+                                        variant = TourOSButtonVariant.SECONDARY
+                                    )
+                                    OutlinedButton(
+                                        onClick = { viewModel.addPassenger() },
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f))
+                                    ) {
+                                        Text("➕ ${AppLanguageManager.translate("Yolcu Ekle")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+
+                            passengers.forEachIndexed { idx, pax ->
+                                PassengerFormCardItem(
+                                    passenger = pax,
+                                    paxIndex = idx + 1,
+                                    canRemove = passengers.size > 1,
+                                    onRemove = { viewModel.removePassenger(pax.index) },
+                                    onUpdatePassenger = { updated ->
+                                        viewModel.passengers.value = viewModel.passengers.value.mapIndexed { i, old ->
+                                            if (i == idx) updated else old
+                                        }
+                                    }
                                 )
                             }
 
-                            Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                                TourOSButton(
-                                    text = AppLanguageManager.translate("Taslak Kaydet"),
-                                    onClick = { showSuccessModal = true },
-                                    variant = TourOSButtonVariant.SECONDARY
-                                )
-                                TourOSButton(
-                                    text = "🚀 ${AppLanguageManager.translate("Rezervasyonu Tamamla & Onayla (PNR Oluştur)")}",
-                                    onClick = {
-                                        viewModel.confirmBookingAndSaveToSupabase { pnrCode ->
-                                            showSuccessModal = true
-                                        }
-                                    },
-                                    variant = TourOSButtonVariant.PRIMARY
-                                )
+                            // TOPLAM SATIŞ VE REZERVASYON TAMAMLAMA ÇUBUĞU
+                            TourOSCard(
+                                modifier = Modifier.fillMaxWidth(),
+                                backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f),
+                                contentPadding = TourOSSpacing.medium
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = AppLanguageManager.translate("TOPLAM REZERVASYON TUTARI"),
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "${grandTotalRub.toInt()} ${curProduct.currency}",
+                                            style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "⚡ ${AppLanguageManager.translate("Anında Onaylı Operatör Kaydı")}",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                        TourOSButton(
+                                            text = AppLanguageManager.translate("Taslak Kaydet"),
+                                            onClick = { showSuccessModal = true },
+                                            variant = TourOSButtonVariant.SECONDARY
+                                        )
+                                        TourOSButton(
+                                            text = "🚀 ${AppLanguageManager.translate("Rezervasyonu Tamamla & Onayla (PNR Oluştur)")}",
+                                            onClick = {
+                                                viewModel.confirmBookingAndSaveToSupabase { pnrCode ->
+                                                    showSuccessModal = true
+                                                }
+                                            },
+                                            variant = TourOSButtonVariant.PRIMARY
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -551,29 +627,7 @@ private fun TourResultMatrixCard(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    if (isSelected) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(TourOSColors.SuccessContainer)
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "✓ Seçili Tur",
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
                 }
-
-                Text(
-                    text = "🆔 ID: ${product.id}  ·  📍 ${product.region}  ·  🏢 ${product.operatorName}",
-                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
-                    fontSize = 11.sp
-                )
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
@@ -659,7 +713,7 @@ private fun TourResultMatrixCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 TourOSButton(
-                    text = if (isSelected) "✓ ${AppLanguageManager.translate("Seçildi (Aşağıya İnceleyin)")}" else "⚡ ${AppLanguageManager.translate("Turu Seç & Detaylandır")}",
+                    text = if (isSelected) "✓ ${AppLanguageManager.translate("Seçildi ➔")}" else "⚡ ${AppLanguageManager.translate("Turu Seç & Detaylandır")}",
                     onClick = onSelectForBooking,
                     variant = if (isSelected) TourOSButtonVariant.SECONDARY else TourOSButtonVariant.PRIMARY
                 )
@@ -680,69 +734,120 @@ private fun FlightOptionCardItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSelect() },
-        backgroundColor = if (isSelected) TourOSColors.PrimaryContainer.copy(alpha = 0.15f) else TourOSColors.Surface,
+        backgroundColor = if (isSelected) TourOSColors.PrimaryContainer.copy(alpha = 0.2f) else TourOSColors.Surface,
         contentPadding = TourOSSpacing.medium
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            RadioButton(
-                selected = isSelected,
-                onClick = onSelect,
-                colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary)
-            )
-
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Text(
-                        text = "🛫 GİDİŞ: ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Text(
-                        text = "🛬 DÖNÜŞ: ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Text(
-                    text = "🧳 El Bagajı: ${option.handBaggageKg}kg  ·  Kayıtlı Bagaj: ${option.baggageKg}kg",
-                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                RadioButton(
+                    selected = isSelected,
+                    onClick = onSelect,
+                    colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary)
                 )
-            }
 
-            Column(horizontalAlignment = Alignment.End) {
-                if (option.priceDeltaRub > 0) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                        Text(
+                            text = "🛫 GİDİŞ: ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                        Text(
+                            text = "🛬 DÖNÜŞ: ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
                     Text(
-                        text = "+${option.priceDeltaRub.toInt()} RUB",
-                        style = TourOSTypography.Label.copy(color = TourOSColors.Warning),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Uçuş Farkı",
+                        text = "🧳 El Bagajı: ${option.handBaggageKg}kg  ·  Kayıtlı Bagaj: ${option.baggageKg}kg",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(TourOSColors.SuccessContainer)
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    if (option.priceDeltaRub > 0) {
                         Text(
-                            text = "Fark Yok (Pakete Dahil)",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
+                            text = "+${option.priceDeltaRub.toInt()} RUB",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Warning),
                             fontWeight = FontWeight.Bold
                         )
+                        Text(
+                            text = AppLanguageManager.translate("Uçuş Farkı"),
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(TourOSColors.SuccessContainer)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = AppLanguageManager.translate("Fark Yok (Pakete Dahil)"),
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── GÖRSEL 10: UÇUŞ DETAYLARI VE ZORUNLU EK ÜCRETLER (MANDATORY SURCHARGES BREAKDOWN) ──
+            if (isSelected) {
+                Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
+                Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
+                        .padding(TourOSSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "⚡ ${AppLanguageManager.translate("Zorunlu Uçuş Farkları ve Ek Ücret Dökümü (Mandatory Surcharges)")}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "• ${AppLanguageManager.translate("Dönem Uçuş Farkı (TURKISH AIRLINES)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        Text(text = "+34.333 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "• ${AppLanguageManager.translate("Sabah Gidiş Uçuş Ek Ücreti (02:05 VKO)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        Text(text = "+14.137 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "• ${AppLanguageManager.translate("Akşam Dönüş Uçuş Ek Ücreti (18:40 AYT)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        Text(text = "+18.176 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
+                    }
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "• ${AppLanguageManager.translate("Grup Havalimanı Transferi")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        Text(text = AppLanguageManager.translate("Dahil (Включен)"), style = TourOSTypography.Caption.copy(color = TourOSColors.Success), fontWeight = FontWeight.Bold)
+                    }
+
+                    HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.3f))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = AppLanguageManager.translate("Toplam Zorunlu Ek Ücretler:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                        Text(text = "66.646 RUB", style = TourOSTypography.Label.copy(color = TourOSColors.Warning), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -823,14 +928,14 @@ private fun ExtraServiceCardItem(
     }
 }
 
-// ─── YOLCU FORM KART BİLEŞENİ (GÖRSEL 5 & 6) ───────────────────────────────────
+// ─── GÖRSEL 5 & 6 ESİNTİLİ YOLCU FORM KART BİLEŞENİ ───────────────────────────
 
 @Composable
 private fun PassengerFormCardItem(
     passenger: PassengerInfo,
     paxIndex: Int,
-    canRemove: Boolean = false,
-    onRemove: () -> Unit = {},
+    canRemove: Boolean,
+    onRemove: () -> Unit,
     onUpdatePassenger: (PassengerInfo) -> Unit
 ) {
     TourOSCard(
@@ -839,6 +944,7 @@ private fun PassengerFormCardItem(
         contentPadding = TourOSSpacing.medium
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+            // BAŞLIK VE CİNSİYET SEÇİMİ (GÖRSEL 5)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -851,16 +957,14 @@ private fun PassengerFormCardItem(
                         fontWeight = FontWeight.Bold
                     )
                     if (canRemove) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "🗑️ ${AppLanguageManager.translate("Kaldır")}",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.Error),
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { onRemove() }
-                        )
+                        Spacer(modifier = Modifier.width(TourOSSpacing.small))
+                        IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
+                            Text("🗑️", fontSize = 12.sp)
+                        }
                     }
                 }
 
+                // CİNSİYET TOGGLE BUTONLARI (GÖRSEL 5 & 6)
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                     FilterChip(
                         selected = passenger.gender == "MALE",
@@ -877,6 +981,7 @@ private fun PassengerFormCardItem(
 
             HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
 
+            // FORM SATIRI 1: AD, SOYAD, DOĞUM TARİHİ
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
@@ -910,6 +1015,7 @@ private fun PassengerFormCardItem(
                 }
             }
 
+            // FORM SATIRI 2: UYRUK, PASAPORT NO, GEÇERLİLİK
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
@@ -943,6 +1049,7 @@ private fun PassengerFormCardItem(
                 }
             }
 
+            // FORM SATIRI 3: İLETİŞİM BİLGİLERİ (Sadece 1. Turist için)
             if (passenger.isPayer) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -964,6 +1071,48 @@ private fun PassengerFormCardItem(
                             label = AppLanguageManager.translate("E-posta Adresi"),
                             placeholder = "ahmet@gmail.com",
                             modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            } else {
+                // ── GÖRSEL 6: ÇOCUK/BEBEK YOLCU ÖZEL ALANLARI ("Ответственный за ребенка") ──
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
+                        .padding(TourOSSpacing.small),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "👨‍👦 ${AppLanguageManager.translate("Çocuktan Sorumlu Yetişkin (Ответственный за ребенка)")}:",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Turist 1 (Yetişkin / Lead)",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = passenger.isInfantSeatRequested,
+                            onCheckedChange = { isChecked ->
+                                onUpdatePassenger(passenger.copy(isInfantSeatRequested = isChecked))
+                            },
+                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                        )
+                        Text(
+                            text = AppLanguageManager.translate("İnfant İçin Uchakta Ayrı Koltuk"),
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                     }
                 }

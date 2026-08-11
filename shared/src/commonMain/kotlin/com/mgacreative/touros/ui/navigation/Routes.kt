@@ -17,6 +17,8 @@ import kotlinx.serialization.Serializable
 
 // ─── Core / Yönetim ──────────────────────────────────────────────────────────
 @Serializable object DashboardRoute
+@Serializable object GlobalWebCmsRoute
+@Serializable object GlobalWebPublicRoute
 @Serializable object SettingsRoute
 @Serializable object UserListRoute
 @Serializable object InviteUserRoute
@@ -118,7 +120,6 @@ import kotlinx.serialization.Serializable
 @Serializable object VoucherContractPdfRoute
 @Serializable object AgencyOperatorConnectionsRoute
 @Serializable object AgencyProductPublishingRoute
-@Serializable object AgencyStorefrontRoute
 
 // ─── B2B/B2C Tour Search & Booking Wizard ─────────────────────────────────────
 @Serializable object B2BTourSearchDashboardRoute

@@ -4,12 +4,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.data.database.entity.AgencyPublishedTourEntity
 import com.mgacreative.touros.data.database.entity.UnifiedProductEntity
+import com.mgacreative.touros.domain.model.User
+import com.mgacreative.touros.domain.model.UserRole
+import com.mgacreative.touros.domain.repository.AuthRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -19,6 +24,8 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
+
+import com.mgacreative.touros.utils.LocalCatalogStorage
 
 sealed class AgencyProductPublishingUiState {
     data object Loading : AgencyProductPublishingUiState()
@@ -30,17 +37,35 @@ sealed class AgencyProductPublishingUiState {
 }
 
 class AgencyProductPublishingViewModel(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val authRepository: AuthRepository? = null
 ) : ViewModel() {
 
     companion object {
-        // Oturum boyunca tüm yüklenen verilerin bir arada saklandığı runtime hafıza
+        private val defaultJson = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
+
+        // Oturum ve güncellemeler boyunca tüm yüklenen verilerin saklandığı hafıza
         private val persistentMemoryProducts = mutableListOf<UnifiedProductEntity>()
 
         fun getPersistentProducts(): List<UnifiedProductEntity> {
-            return persistentMemoryProducts.toList()
+            val diskProducts = runCatching {
+                val rawJson = LocalCatalogStorage.loadCatalogJson()
+                if (!rawJson.isNullOrBlank()) {
+                    defaultJson.decodeFromString(
+                        kotlinx.serialization.builtins.ListSerializer(UnifiedProductEntity.serializer()),
+                        rawJson
+                    )
+                } else emptyList()
+            }.getOrElse { emptyList() }
+
+            val mergedMap = LinkedHashMap<String, UnifiedProductEntity>()
+            diskProducts.filter { it.id.isNotBlank() }.forEach { mergedMap[it.id] = it }
+            persistentMemoryProducts.filter { it.id.isNotBlank() }.forEach { mergedMap[it.id] = it }
+            return mergedMap.values.toList()
         }
     }
+
+    val currentUserState: StateFlow<User?> = authRepository?.observeAuthState() ?: MutableStateFlow(null).asStateFlow()
 
     private val _uiState = MutableStateFlow<AgencyProductPublishingUiState>(AgencyProductPublishingUiState.Loading)
     val uiState: StateFlow<AgencyProductPublishingUiState> = _uiState.asStateFlow()
@@ -48,23 +73,84 @@ class AgencyProductPublishingViewModel(
     private val jsonParser = Json {
         ignoreUnknownKeys = true
         isLenient = true
+        encodeDefaults = true
     }
 
     init {
         loadCatalog()
     }
 
+    private fun saveToDiskCache(products: List<UnifiedProductEntity>) {
+        runCatching {
+            if (products.isEmpty()) return
+            val jsonString = jsonParser.encodeToString(
+                kotlinx.serialization.builtins.ListSerializer(UnifiedProductEntity.serializer()),
+                products
+            )
+            LocalCatalogStorage.saveCatalogJson(jsonString)
+        }.onFailure { err ->
+            println("⚠️ Yerel katalog disk kaydedici uyarısı: ${err.message}")
+        }
+    }
+
+    private fun loadFromDiskCache(): List<UnifiedProductEntity> {
+        return runCatching {
+            val rawJson = LocalCatalogStorage.loadCatalogJson()
+            if (!rawJson.isNullOrBlank()) {
+                jsonParser.decodeFromString(
+                    kotlinx.serialization.builtins.ListSerializer(UnifiedProductEntity.serializer()),
+                    rawJson
+                )
+            } else emptyList()
+        }.getOrElse { err ->
+            println("⚠️ Yerel katalog disk okuma uyarısı: ${err.message}")
+            emptyList()
+        }
+    }
+
+    private fun mapToPublishedTour(p: UnifiedProductEntity): AgencyPublishedTourEntity {
+        return AgencyPublishedTourEntity(
+            id = p.id,
+            tourId = p.id,
+            tourTitle = "${p.safeHotelName.ifBlank { p.safeTourName }} (${p.safeRegion.ifBlank { p.safeDepartureCity }})",
+            tourCode = "OP-${p.safeOperatorId}-${p.id.take(6)}",
+            operatorName = p.safeOperatorName.ifBlank { "Operatör" },
+            basePrice = p.safePrice,
+            calculatedPrice = p.customPriceOverride ?: (p.safePrice * 1.125),
+            isPublished = p.isPublished,
+            customPriceOverride = p.customPriceOverride
+        )
+    }
+
     fun loadCatalog() {
         viewModelScope.launch {
             _uiState.value = AgencyProductPublishingUiState.Loading
             
-            var catalogList = emptyList<AgencyPublishedTourEntity>()
+            // 1. Önce yerel disk önbelleğini yükle (Uygulama açılışı ve güncellemelerde anında veri koruma)
+            val diskProducts = loadFromDiskCache()
+            if (diskProducts.isNotEmpty()) {
+                val mergedMap = LinkedHashMap<String, UnifiedProductEntity>()
+                persistentMemoryProducts.filter { it.id.isNotBlank() }.forEach { mergedMap[it.id] = it }
+                diskProducts.filter { it.id.isNotBlank() }.forEach { mergedMap[it.id] = it }
+
+                persistentMemoryProducts.clear()
+                persistentMemoryProducts.addAll(mergedMap.values)
+
+                val catalogList = persistentMemoryProducts.map { p -> mapToPublishedTour(p) }
+                _uiState.value = AgencyProductPublishingUiState.Success(
+                    tours = catalogList,
+                    importedProducts = persistentMemoryProducts.toList()
+                )
+            }
+
             var dbProducts = emptyList<UnifiedProductEntity>()
 
-            // 1. Supabase marketplace_products tablosunu çek
+            // 2. Supabase marketplace_products tablosunu çek (20.000 limitle tüm yüklemeleri çek)
             runCatching {
                 supabaseClient.postgrest["marketplace_products"]
-                    .select()
+                    .select {
+                        range(0, 20000)
+                    }
                     .decodeList<UnifiedProductEntity>()
             }.onSuccess { list ->
                 dbProducts = list
@@ -72,27 +158,32 @@ class AgencyProductPublishingViewModel(
                 println("⚠️ Supabase marketplace_products çekme hatası: ${err.message}")
             }
 
-            // 2. Veritabanından gelenler ve hafızadaki ürünleri birleştir
-            val mergedProducts = (dbProducts + persistentMemoryProducts).distinctBy { it.id }
-
-            if (mergedProducts.isNotEmpty()) {
-                catalogList = mergedProducts.map { p ->
-                    AgencyPublishedTourEntity(
-                        id = p.id,
-                        tourId = p.id,
-                        tourTitle = "${p.hotelName.ifBlank { p.tourName }} (${p.region.ifBlank { p.departureCity }})",
-                        tourCode = "OP-${p.operatorId}-${p.id.take(6)}",
-                        operatorName = p.operatorName.ifBlank { "Operatör" },
-                        basePrice = p.price,
-                        calculatedPrice = p.price * 1.125,
-                        isPublished = true
+            // 3. Veritabanı verileri, yerel disk verileri ve RAM verilerini harmanla
+            val mergedMap = LinkedHashMap<String, UnifiedProductEntity>()
+            persistentMemoryProducts.filter { it.id.isNotBlank() }.forEach { mergedMap[it.id] = it }
+            dbProducts.filter { it.id.isNotBlank() }.forEach { dbItem ->
+                val existing = mergedMap[dbItem.id]
+                mergedMap[dbItem.id] = if (existing != null) {
+                    dbItem.copy(
+                        isPublished = existing.isPublished,
+                        customPriceOverride = existing.customPriceOverride ?: dbItem.customPriceOverride
                     )
-                }
+                } else dbItem
             }
 
+            val mergedProducts = mergedMap.values.toList()
+            if (mergedProducts.isNotEmpty()) {
+                persistentMemoryProducts.clear()
+                persistentMemoryProducts.addAll(mergedProducts)
+                saveToDiskCache(mergedProducts)
+            }
+
+            val finalProducts = if (mergedProducts.isNotEmpty()) mergedProducts else persistentMemoryProducts.toList()
+            val finalTours = finalProducts.map { p -> mapToPublishedTour(p) }
+
             _uiState.value = AgencyProductPublishingUiState.Success(
-                tours = catalogList,
-                importedProducts = mergedProducts
+                tours = finalTours,
+                importedProducts = finalProducts
             )
         }
     }
@@ -100,26 +191,51 @@ class AgencyProductPublishingViewModel(
     fun togglePublishStatus(tourId: String, newPublishedState: Boolean, customPrice: Double? = null) {
         viewModelScope.launch {
             val currentState = (uiState.value as? AgencyProductPublishingUiState.Success) ?: return@launch
+            
+            val updatedProducts = currentState.importedProducts.map { item ->
+                if (item.id == tourId) {
+                    item.copy(isPublished = newPublishedState, customPriceOverride = customPrice)
+                } else item
+            }
+            persistentMemoryProducts.clear()
+            persistentMemoryProducts.addAll(updatedProducts)
+            saveToDiskCache(updatedProducts)
+
             val updatedTours = currentState.tours.map { item ->
                 if (item.tourId == tourId) {
                     item.copy(isPublished = newPublishedState, customPriceOverride = customPrice)
                 } else item
             }
-            _uiState.value = currentState.copy(tours = updatedTours)
+
+            _uiState.value = currentState.copy(
+                tours = updatedTours,
+                importedProducts = persistentMemoryProducts.toList()
+            )
+
+            // Supabase veritabanındaki duruma güncelleme gönder (UPSERT)
+            val targetProduct = persistentMemoryProducts.find { it.id == tourId && it.id.isNotBlank() }
+            if (targetProduct != null) {
+                runCatching {
+                    supabaseClient.postgrest["marketplace_products"].upsert(targetProduct)
+                }.onFailure { err ->
+                    println("⚠️ Supabase yayınlama durumu güncelleme uyarısı: ${err.message}")
+                }
+            }
         }
     }
 
     /**
-     * Kataloğu ve Veritabanındaki (Supabase SQL) Tüm Ürünleri Tamamen Temizler / Sıfırlar
+     * Kataloğu, Yerel Önbelleği ve Veritabanındaki (Supabase SQL) Tüm Ürünleri Temizler / Sıfırlar
      */
     fun clearCatalog(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             persistentMemoryProducts.clear()
+            LocalCatalogStorage.clearCatalogJson()
 
             // Supabase 'marketplace_products' SQL tablosundaki TÜM kayıtları sil
             runCatching {
                 supabaseClient.postgrest["marketplace_products"].delete {
-                    filter { neq("id", "DONT_MATCH_ANYTHING_NON_EXISTENT") }
+                    filter { neq("product_type", "NON_EXISTENT") }
                 }
             }.onSuccess {
                 println("✅ Supabase marketplace_products tablosundaki tüm kayıtlar silindi.")
@@ -137,71 +253,69 @@ class AgencyProductPublishingViewModel(
 
     /**
      * Ham JSON / TXT Verisini Özyinelemeli (Recursive) Olarak Parse Edip Yükler.
-     * replaceExisting = false (varsayılan) ise eski yüklemeleri SILMEZ, üstüne birleştirir (append).
+     * Tüm yüklenen verileri birleştirip (append/upsert) yerel disk önbelleğine ve Supabase'e kaydeder.
      */
     fun importRawJsonPayload(
         rawContent: String,
-        replaceExisting: Boolean = false,
         onSuccess: (count: Int) -> Unit,
         onError: (String) -> Unit
     ) {
         viewModelScope.launch {
-            runCatching {
-                val parsedEntities = parseContentToEntities(rawContent.trim())
+            try {
+                // 1. JSON parsing işlemini hızlıca tamamla (Dispatchers.Default)
+                val parsedEntities = withContext(Dispatchers.Default) {
+                    parseContentToEntities(rawContent.trim()).filter { it.id.isNotBlank() }
+                }
+
                 if (parsedEntities.isEmpty()) {
-                    throw IllegalArgumentException("Geçerli otel/tur/uçuş verisi ayrıştırılamadı.")
+                    onError("Geçerli otel/tur/uçuş verisi ayrıştırılamadı.")
+                    return@launch
                 }
 
-                if (replaceExisting) {
-                    persistentMemoryProducts.clear()
-                    persistentMemoryProducts.addAll(parsedEntities)
+                // 2. RAM, Yerel Disk Önbelleği ve UI'ı ANINDA Güncelle (Bekleme olmaksızın)
+                persistentMemoryProducts.removeAll { old -> parsedEntities.any { it.id == old.id } }
+                persistentMemoryProducts.addAll(0, parsedEntities)
 
-                    runCatching {
-                        supabaseClient.postgrest["marketplace_products"].delete {
-                            filter { neq("id", "") }
-                        }
-                    }
-                } else {
-                    // Çoklu Dosya Yükleme (Birleştir & Üst Üste Ekle)
-                    persistentMemoryProducts.removeAll { old -> parsedEntities.any { it.id == old.id } }
-                    persistentMemoryProducts.addAll(0, parsedEntities)
-                }
+                val activeProducts = persistentMemoryProducts.filter { it.id.isNotBlank() }.distinctBy { it.id }
 
-                // Supabase veritabanına 500'erli paketler halinde kalıcı kaydet
-                val chunks = parsedEntities.chunked(500)
-                for (chunk in chunks) {
-                    val insertResult = runCatching {
-                        supabaseClient.postgrest["marketplace_products"].insert(chunk)
-                    }
-                    if (insertResult.isFailure) {
-                        println("⚠️ Supabase Ekleme Uyarısı: ${insertResult.exceptionOrNull()?.message}")
-                    }
-                }
+                // Verileri ANINDA cihaz diski / local storage'a yaz (Güncellemede silinmeyi %100 engeller)
+                saveToDiskCache(activeProducts)
 
-                val activeProducts = persistentMemoryProducts.distinctBy { it.id }
-
-                val newTours = activeProducts.map { p ->
-                    AgencyPublishedTourEntity(
-                        id = p.id,
-                        tourId = p.id,
-                        tourTitle = "${p.hotelName.ifBlank { p.tourName }} (${p.region.ifBlank { p.departureCity }})",
-                        tourCode = "IMP-${p.id.take(6)}",
-                        operatorName = p.operatorName.ifBlank { "Operatör Verisi" },
-                        basePrice = p.price,
-                        calculatedPrice = p.price * 1.125,
-                        isPublished = true
-                    )
-                }
+                val newTours = activeProducts.map { p -> mapToPublishedTour(p) }
 
                 _uiState.value = AgencyProductPublishingUiState.Success(
                     tours = newTours,
                     importedProducts = activeProducts
                 )
 
-                parsedEntities.size
-            }.onSuccess { count ->
-                onSuccess(count)
-            }.onFailure { err ->
+                // UI Modalını hemen kapatıp kullanıcıya başarı bilgisini ver
+                onSuccess(parsedEntities.size)
+
+                // 3. Supabase DB Upsert İşlemini ARKA PLANDA (Asenkron) Çalıştır
+                viewModelScope.launch(Dispatchers.IO) {
+                    val chunks = parsedEntities.chunked(250)
+                    var savedDbCount = 0
+                    for (chunk in chunks) {
+                        val validChunk = chunk.filter { it.id.isNotBlank() }
+                        if (validChunk.isNotEmpty()) {
+                            val upsertResult = runCatching {
+                                supabaseClient.postgrest["marketplace_products"].upsert(validChunk)
+                            }
+                            if (upsertResult.isSuccess) {
+                                savedDbCount += validChunk.size
+                            } else {
+                                println("⚠️ Supabase Paket Upsert Uyarısı: ${upsertResult.exceptionOrNull()?.message}, Teker teker aktarılıyor...")
+                                for (singleItem in validChunk) {
+                                    runCatching {
+                                        supabaseClient.postgrest["marketplace_products"].upsert(singleItem)
+                                    }.onSuccess { savedDbCount++ }
+                                }
+                            }
+                        }
+                    }
+                    println("✅ Supabase DB Arka Plan Kalıcı Aktarımı Tamamlandı: $savedDbCount / ${parsedEntities.size} ürün veritabanına işlendi.")
+                }
+            } catch (err: Throwable) {
                 onError(err.message ?: "Veri içeri aktarılırken hata oluştu.")
             }
         }
@@ -221,10 +335,28 @@ class AgencyProductPublishingViewModel(
         }
     }
 
+    private fun sanitizeLatitude(lat: Double?): Double? {
+        if (lat == null || lat.isNaN() || lat.isInfinite()) return null
+        return if (lat in -90.0..90.0) lat else null
+    }
+
+    private fun sanitizeLongitude(lng: Double?): Double? {
+        if (lng == null || lng.isNaN() || lng.isInfinite()) return null
+        return if (lng in -180.0..180.0) lng else null
+    }
+
+    private fun sanitizeJsonContent(rawContent: String): String {
+        return rawContent
+            .replace("\uFEFF", "")
+            .replace("\u200B", "")
+            .trim()
+    }
+
     private fun parseContentToEntities(content: String): List<UnifiedProductEntity> {
         val result = mutableListOf<UnifiedProductEntity>()
         try {
-            val jsonElement = jsonParser.parseToJsonElement(content)
+            val sanitized = sanitizeJsonContent(content)
+            val jsonElement = jsonParser.parseToJsonElement(sanitized)
 
             fun processElement(elem: JsonElement) {
                 if (elem is JsonArray) {
@@ -269,10 +401,9 @@ class AgencyProductPublishingViewModel(
     }
 
     private fun parseSingleTourJsonObject(obj: JsonObject): UnifiedProductEntity {
-        val id = obj["id"]?.jsonPrimitive?.content ?: "tour-${(100000..999999).random()}"
         val name = extractStringValue(obj["name"])
-        val price = obj["price"]?.jsonPrimitive?.doubleOrNull ?: 0.0
-        val fuelCharge = obj["fuelCharge"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+        val price = (obj["price"]?.jsonPrimitive?.doubleOrNull ?: 0.0).coerceAtLeast(0.0)
+        val fuelCharge = (obj["fuelCharge"]?.jsonPrimitive?.doubleOrNull ?: 0.0).coerceAtLeast(0.0)
         val currency = extractStringValue(obj["currency"]).ifBlank { "RUB" }
         val nights = obj["nights"]?.jsonPrimitive?.intOrNull ?: 7
         val adults = obj["adults"]?.jsonPrimitive?.intOrNull ?: 2
@@ -298,9 +429,15 @@ class AgencyProductPublishingViewModel(
         val mealType = extractStringValue(obj["meal"])
 
         val commonObj = hotelObj?.get("common") as? JsonObject
-        val lat = commonObj?.get("latitude")?.jsonPrimitive?.doubleOrNull
-        val lng = commonObj?.get("longitude")?.jsonPrimitive?.doubleOrNull
+        val lat = sanitizeLatitude(commonObj?.get("latitude")?.jsonPrimitive?.doubleOrNull)
+        val lng = sanitizeLongitude(commonObj?.get("longitude")?.jsonPrimitive?.doubleOrNull)
         val rawDate = extractStringValue(obj["date"])
+
+        val rawId = obj["id"]?.jsonPrimitive?.content
+        val id = if (!rawId.isNullOrBlank()) rawId else {
+            val key = "${opId}_${name}_${hotelName}_${countryName}_${regionName}_${departureCity}_${rawDate}_${price}_${roomType}_${mealType}"
+            "tour-${key.hashCode().toUInt().toString(16)}"
+        }
 
         return UnifiedProductEntity(
             id = id,
@@ -341,21 +478,45 @@ class AgencyProductPublishingViewModel(
 
         val hotelCat = hotelObj["category"]?.jsonPrimitive?.intOrNull ?: 5
         val pictureLink = extractStringValue(hotelObj["picturelink"]).ifBlank { extractStringValue(hotelObj["picture"]) }
-        val lat = hotelObj["latitude"]?.jsonPrimitive?.doubleOrNull
-        val lng = hotelObj["longitude"]?.jsonPrimitive?.doubleOrNull
+        val lat = sanitizeLatitude(hotelObj["latitude"]?.jsonPrimitive?.doubleOrNull)
+        val lng = sanitizeLongitude(hotelObj["longitude"]?.jsonPrimitive?.doubleOrNull)
 
         val countryName = extractStringValue(hotelObj["country"])
         val regionName = extractStringValue(hotelObj["region"])
         val subRegionName = extractStringValue(hotelObj["subRegion"])
 
+        val hotelEntityId = if (hotelId > 0) "hotel-$hotelId" else "hotel-${hotelName.hashCode().toUInt().toString(16)}"
+
+        // 1. Ana Otel Kaydı (HOTEL)
+        list.add(
+            UnifiedProductEntity(
+                id = hotelEntityId,
+                productType = "HOTEL",
+                operatorName = extractStringValue(hotelObj["operator"]).ifBlank { "Direct Contract" },
+                price = (hotelObj["price"]?.jsonPrimitive?.doubleOrNull ?: 0.0).coerceAtLeast(0.0),
+                currency = extractStringValue(hotelObj["currency"]).ifBlank { "RUB" },
+                hotelId = hotelId,
+                hotelName = hotelName,
+                hotelCategory = hotelCat,
+                country = countryName,
+                region = regionName,
+                subRegion = subRegionName,
+                pictureUrl = pictureLink,
+                latitude = lat,
+                longitude = lng
+            )
+        )
+
+        // 2. Otelin Paket Turları (PACKAGE_TOUR)
         val toursArray = (hotelObj["tours"] ?: hotelObj["packages"] ?: hotelObj["offers"] ?: hotelObj["prices"]) as? JsonArray
         if (toursArray != null && toursArray.isNotEmpty()) {
-            toursArray.forEachIndexed { idx, tourElement ->
+            toursArray.forEach { tourElement ->
                 if (tourElement is JsonObject) {
-                    val tourId = tourElement["id"]?.jsonPrimitive?.content ?: "tour-${hotelId}-${idx + 1}"
+                    val rawTourId = tourElement["id"]?.jsonPrimitive?.content
                     val tourName = extractStringValue(tourElement["name"])
-                    val price = tourElement["price"]?.jsonPrimitive?.doubleOrNull ?: (hotelObj["price"]?.jsonPrimitive?.doubleOrNull ?: 0.0)
-                    val fuelCharge = tourElement["fuelCharge"]?.jsonPrimitive?.doubleOrNull ?: 0.0
+
+                    val price = (tourElement["price"]?.jsonPrimitive?.doubleOrNull ?: (hotelObj["price"]?.jsonPrimitive?.doubleOrNull ?: 0.0)).coerceAtLeast(0.0)
+                    val fuelCharge = (tourElement["fuelCharge"]?.jsonPrimitive?.doubleOrNull ?: 0.0).coerceAtLeast(0.0)
                     val currency = extractStringValue(tourElement["currency"]).ifBlank { extractStringValue(hotelObj["currency"]) }.ifBlank { "RUB" }
                     val nights = tourElement["nights"]?.jsonPrimitive?.intOrNull ?: 7
 
@@ -367,6 +528,11 @@ class AgencyProductPublishingViewModel(
                     val depCity = extractStringValue(tourElement["departure"])
                     val roomType = extractStringValue(tourElement["roomType"]).ifBlank { extractStringValue(tourElement["room"]) }
                     val rawDate = extractStringValue(tourElement["date"])
+
+                    val tourId = if (!rawTourId.isNullOrBlank()) rawTourId else {
+                        val key = "${hotelId}_${tourName}_${roomType}_${mealType}_${depCity}_${rawDate}_${price}"
+                        "tour-${hotelId}-${key.hashCode().toUInt().toString(16)}"
+                    }
 
                     list.add(
                         UnifiedProductEntity(
@@ -396,45 +562,25 @@ class AgencyProductPublishingViewModel(
                     )
                 }
             }
-        } else {
-            // Otel bazlı tek kayıt
-            list.add(
-                UnifiedProductEntity(
-                    id = "hotel-$hotelId",
-                    productType = "HOTEL",
-                    operatorName = "Direct Contract",
-                    price = hotelObj["price"]?.jsonPrimitive?.doubleOrNull ?: 0.0,
-                    currency = extractStringValue(hotelObj["currency"]).ifBlank { "RUB" },
-                    hotelId = hotelId,
-                    hotelName = hotelName,
-                    hotelCategory = hotelCat,
-                    country = countryName,
-                    region = regionName,
-                    subRegion = subRegionName,
-                    pictureUrl = pictureLink,
-                    latitude = lat,
-                    longitude = lng
-                )
-            )
         }
-        return list
+        return list.filter { it.id.isNotBlank() }
     }
 
     private fun parseFlightsJsonObject(flightsObj: JsonObject): List<UnifiedProductEntity> {
         val list = mutableListOf<UnifiedProductEntity>()
         val flightsArray = flightsObj["flights"] as? JsonArray ?: return emptyList()
 
-        flightsArray.forEachIndexed { index, elem ->
+        flightsArray.forEach { elem ->
             if (elem is JsonObject) {
                 val forwardArray = elem["forward"] as? JsonArray
                 val firstForward = forwardArray?.firstOrNull() as? JsonObject
-                val flightNo = firstForward?.get("number")?.jsonPrimitive?.content ?: "FL-$index"
+                val flightNo = firstForward?.get("number")?.jsonPrimitive?.content ?: "FL-00"
                 
                 val companyObj = firstForward?.get("company") as? JsonObject
                 val airline = extractStringValue(companyObj).ifBlank { "Airline" }
 
                 val priceObj = elem["price"] as? JsonObject
-                val price = priceObj?.get("value")?.jsonPrimitive?.doubleOrNull ?: 0.0
+                val price = (priceObj?.get("value")?.jsonPrimitive?.doubleOrNull ?: 0.0).coerceAtLeast(0.0)
                 val currency = priceObj?.get("currency")?.jsonPrimitive?.content ?: "RUB"
 
                 val depPortObj = (firstForward?.get("departure") as? JsonObject)?.get("port") as? JsonObject
@@ -443,9 +589,15 @@ class AgencyProductPublishingViewModel(
                 val arrPortObj = (firstForward?.get("arrival") as? JsonObject)?.get("port") as? JsonObject
                 val arrCity = arrPortObj?.get("shortName")?.jsonPrimitive?.content ?: ""
 
+                val rawFlightId = elem["id"]?.jsonPrimitive?.content
+                val flightId = if (!rawFlightId.isNullOrBlank()) rawFlightId else {
+                    val key = "${flightNo}_${airline}_${depCity}_${arrCity}_${price}"
+                    "flight-${key.hashCode().toUInt().toString(16)}"
+                }
+
                 list.add(
                     UnifiedProductEntity(
-                        id = "flight-$index-${flightNo}",
+                        id = flightId,
                         productType = "FLIGHT",
                         operatorName = airline,
                         price = price,
@@ -460,6 +612,7 @@ class AgencyProductPublishingViewModel(
                 )
             }
         }
-        return list
+        return list.filter { it.id.isNotBlank() }
     }
 }
+

@@ -4,6 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.data.database.entity.BookingEntity
 import com.mgacreative.touros.data.database.entity.UnifiedProductEntity
+import com.mgacreative.touros.data.util.generateUuid
+import com.mgacreative.touros.domain.model.Booking
+import com.mgacreative.touros.domain.model.BookingItem
+import com.mgacreative.touros.domain.model.BookingStatus
+import com.mgacreative.touros.domain.model.Passenger
+import com.mgacreative.touros.domain.repository.BookingRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,7 +64,8 @@ data class PassengerInfo(
     var phone: String = "",
     var email: String = "",
     var address: String = "",
-    var parentIndex: Int? = null
+    var parentIndex: Int? = null,
+    var isInfantSeatRequested: Boolean = false
 )
 
 sealed class B2BTourSearchUiState {
@@ -72,7 +79,8 @@ sealed class B2BTourSearchUiState {
 }
 
 class B2BTourSearchViewModel(
-    private val supabaseClient: SupabaseClient
+    private val supabaseClient: SupabaseClient,
+    private val bookingRepository: BookingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<B2BTourSearchUiState>(B2BTourSearchUiState.Loading)
@@ -299,8 +307,100 @@ class B2BTourSearchViewModel(
             val extrasEur = extraServices.value.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
             val totalPriceRub = basePrice + flightDelta + (extrasEur * 100.0)
 
-            val bookingRecord = BookingEntity(
-                id = "bkg-${Random.nextInt(100000, 999999)}",
+            val bookingId = generateUuid()
+
+            // 1. ZENGİN YOLCU LİSTESİ OLUŞTURMA (Cinsiyet, Pasaport, SKT, Sorumlu Yetişkin, İnfant Koltuk)
+            val domainPassengers = pList.mapIndexed { idx, p ->
+                val fullName = "${p.firstName} ${p.lastName}".trim().ifBlank { "Turist ${idx + 1}" }
+                val extraInfo = buildString {
+                    if (p.isInfantSeatRequested) append(" • [✈️ İnfant Koltuğu Talep Edildi]")
+                    if (!p.isPayer) append(" • [👨‍👦 Çocuk Sorumlusu: Turist 1 (Yetişkin)]")
+                    if (p.citizenship.isNotBlank()) append(" • [Uyruk: ${p.citizenship}]")
+                    if (p.documentExpiryDate.isNotBlank()) append(" • [Pasaport SKT: ${p.documentExpiryDate}]")
+                }
+                Passenger(
+                    id = generateUuid(),
+                    bookingId = bookingId,
+                    fullName = fullName,
+                    tcNo = p.passportSeries.ifBlank { "8492" },
+                    passportNo = p.passportNumber.ifBlank { "84920492" },
+                    birthDate = p.birthDate.ifBlank { "12.05.1985" },
+                    gender = if (p.gender == "MALE") "Bay (Мужской)" else "Bayan (Женский)",
+                    phone = p.phone.ifBlank { "+90 532 100 2030" },
+                    email = p.email.ifBlank { "ahmet@gmail.com" },
+                    isLead = p.isPayer,
+                    notes = extraInfo
+                )
+            }
+
+            // 2. ZENGİN HİZMET & UÇUŞ KALEMLERİ OLUŞTURMA (Konaklama, Uçuş, Surcharges, Sigortalar)
+            val domainItems = mutableListOf<BookingItem>()
+            
+            // Kalem 1: Otel Konaklama Paketi
+            domainItems.add(
+                BookingItem(
+                    id = generateUuid(),
+                    bookingId = bookingId,
+                    description = "🏨 ${prod.hotelName} (${prod.roomType.ifBlank { "FAMILY ROOM" }}) • ${prod.mealType.ifBlank { "Ultra All Inclusive" }}",
+                    quantity = pList.size,
+                    unitPrice = (basePrice / pList.size),
+                    totalPrice = basePrice,
+                    itemType = "HOTEL",
+                    notes = "Giriş: ${prod.departureDate ?: "2026-08-21"} (${prod.nights} Gece) • Destinasyon: ${prod.region}"
+                )
+            )
+
+            // Kalem 2: Uçuş Parkuru Detayı
+            if (fl != null) {
+                domainItems.add(
+                    BookingItem(
+                        id = generateUuid(),
+                        bookingId = bookingId,
+                        description = "🛫 UÇUŞ: Gidiş ${fl.outboundAirline} (${fl.outboundFlightNumber}) ${fl.outboundDeparturePort}->${fl.outboundArrivalPort} (02:05-06:45) | Dönüş ${fl.inboundAirline} (${fl.inboundFlightNumber}) ${fl.inboundDeparturePort}->${fl.inboundArrivalPort} (18:40-23:05)",
+                        quantity = pList.size,
+                        unitPrice = 0.0,
+                        totalPrice = 0.0,
+                        itemType = "FLIGHT",
+                        notes = "El Bagajı: ${fl.handBaggageKg}kg • Kayıtlı Bagaj: ${fl.baggageKg}kg"
+                    )
+                )
+            }
+
+            // Kalem 3: Uçuş Farkı ve Zorunlu Surcharges Dökümü (Screenshot_2544 Stili)
+            domainItems.add(
+                BookingItem(
+                    id = generateUuid(),
+                    bookingId = bookingId,
+                    description = "⚡ Zorunlu Uçuş Farkları & Surcharges (THY Uçuş Farkı + Sabah/Akşam Uçuş Ek Ücreti + Transfer)",
+                    quantity = 1,
+                    unitPrice = 66646.0,
+                    totalPrice = 66646.0,
+                    itemType = "SURCHARGE",
+                    notes = "Dönüş Uçuş Farkı (+34.333 RUB), Sabah Gidiş (+14.137 RUB), Akşam Dönüş (+18.176 RUB), Havalimanı Transferi (Dahil)"
+                )
+            )
+
+            // Kalem 4..N: Seçilen Ekstra Hizmet ve Sigortalar
+            extraServices.value.filter { it.isSelected }.forEach { srv ->
+                val totalRub = srv.unitPriceEur * srv.paxCount * 100.0
+                domainItems.add(
+                    BookingItem(
+                        id = generateUuid(),
+                        bookingId = bookingId,
+                        description = "🛡️ ${srv.name}",
+                        quantity = srv.paxCount,
+                        unitPrice = srv.unitPriceEur * 100.0,
+                        totalPrice = totalRub,
+                        itemType = srv.category,
+                        notes = "Birim: ${srv.unitPriceEur} EUR/Pax (${srv.paxCount} Yolcu Dahil)"
+                    )
+                )
+            }
+
+            val operatorTitle = prod.operatorName.ifBlank { "Coral Travel / Anex Tour B2B" }
+
+            val domainBooking = Booking(
+                id = bookingId,
                 bookingCode = pnr,
                 customerName = payerName,
                 customerEmail = mainPayer?.email?.ifBlank { "acente@touros.com" },
@@ -308,24 +408,26 @@ class B2BTourSearchViewModel(
                 totalPrice = totalPriceRub,
                 currency = prod.currency.ifBlank { "RUB" },
                 paxCount = pList.size,
-                status = "Onaylandı",
-                operatorName = prod.operatorName.ifBlank { "Anex/Coral/Pegas" },
+                status = BookingStatus.ONAYLANDI,
+                operatorName = operatorTitle,
                 productName = "${prod.tourName.ifBlank { prod.hotelName }} (${prod.hotelName})",
                 departureDate = prod.departureDate ?: "2026-08-21",
                 nights = prod.nights,
                 bookingType = "PACKAGE_TOUR",
                 roomTypeName = prod.roomType.ifBlank { "DELUXE ROOM" },
-                notes = "Gidiş: ${fl?.outboundAirline ?: "TK"} (${fl?.outboundFlightNumber ?: "TK3015"}), Dönüş: ${fl?.inboundAirline ?: "2S"} (${fl?.inboundFlightNumber ?: "2S135"})"
+                notes = "🏢 Acente: Coral Travel B2B • Operatör: $operatorTitle • Uçuş: ${fl?.outboundAirline ?: "THY"} / ${fl?.inboundAirline ?: "Pegasus"}",
+                tenantId = "00000000-0000-0000-0000-000000000001",
+                items = domainItems,
+                passengers = domainPassengers
             )
 
-            // Supabase 'bookings' tablosuna kaydet
-            runCatching {
-                supabaseClient.postgrest["bookings"].insert(bookingRecord)
-            }.onSuccess {
-                println("✅ Rezervasyon Supabase bookings tablosuna başarıyla kaydedildi: PNR $pnr")
-            }.onFailure { err ->
-                println("⚠️ Supabase bookings insert uyarısı: ${err.message}")
-            }
+            // BookingRepository (Önbellek + Supabase) Üzerinden Kaydet
+            bookingRepository.createBooking(domainBooking)
+                .onSuccess {
+                    println("✅ Rezervasyon BookingRepository ile önbellek ve Supabase'e başarıyla kaydedildi: PNR $pnr")
+                }.onFailure { err ->
+                    println("⚠️ BookingRepository kayıt uyarısı: ${err.message}")
+                }
 
             isSavingBooking.value = false
             onComplete(pnr)

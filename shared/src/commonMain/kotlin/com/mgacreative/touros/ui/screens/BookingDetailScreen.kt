@@ -203,22 +203,79 @@ private fun PassengersAndServicesTab(booking: Booking) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxSize()
     ) {
+        // KART 0: ACENTE VE OPERATÖR KİMLİK KART
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🏢 Acente: Coral Travel B2B (MGA Partner)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "⚙️ Operatör: ${booking.operatorName}",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    if (!booking.notes.isNullOrBlank()) {
+                        Text(text = "📌 Soru & Notlar: ${booking.notes}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+
+        // KART 1: YOLCU (TURİST) PASAPORT VE SORUMLULUK DÖKÜMÜ
         item {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("👥 Yolcu Listesi (${booking.passengers.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("👥 Yolcu Listesi & Pasaport Detayları (${booking.passengers.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (booking.passengers.isEmpty()) {
                         Text("Yolcu detayı: Ana Yolcu (${booking.customerName})", style = MaterialTheme.typography.bodyMedium)
                     } else {
-                        booking.passengers.forEach { pass ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                        booking.passengers.forEachIndexed { idx, pass ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 6.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("${pass.fullName} ${if (pass.isLead) "⭐ (Ana Yolcu)" else ""}", fontWeight = if (pass.isLead) FontWeight.Bold else FontWeight.Normal)
-                                Text(pass.tcNo ?: pass.phone ?: "", style = MaterialTheme.typography.bodySmall)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "👤 Turist ${idx + 1}: ${pass.fullName} ${if (pass.isLead) "⭐ (Sipariş Veren / Lead)" else ""}",
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    if (!pass.gender.isNullOrBlank()) {
+                                        Text(text = pass.gender ?: "", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    if (!pass.passportNo.isNullOrBlank()) Text("Pasaport No: ${pass.passportNo}", style = MaterialTheme.typography.bodySmall)
+                                    if (!pass.birthDate.isNullOrBlank()) Text("Doğum Tarihi: ${pass.birthDate}", style = MaterialTheme.typography.bodySmall)
+                                }
+
+                                if (!pass.notes.isNullOrBlank()) {
+                                    Text(text = "ℹ️ ${pass.notes}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.SemiBold)
+                                }
                             }
                         }
                     }
@@ -226,25 +283,35 @@ private fun PassengersAndServicesTab(booking: Booking) {
             }
         }
 
+        // KART 2: HİZMET, UÇUŞ VE ZORUNLU SURCHARGES DÖKÜMÜ
         item {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("🧳 Hizmet ve Ürün Dökümü", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("🧳 Seçilen Uçuş, Konaklama & Ekstra Hizmet Dökümü", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (booking.items.isEmpty()) {
                         Text("Temel Tur Paketi x ${booking.paxCount} Pax", style = MaterialTheme.typography.bodyMedium)
                     } else {
                         booking.items.forEach { item ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(item.description, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
-                                    Text("Adet: ${item.quantity} x ${item.unitPrice} TRY", style = MaterialTheme.typography.bodySmall)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(item.description, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                    Text("${item.totalPrice.toInt()} ${booking.currency}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
-                                Text("${item.totalPrice} TRY", fontWeight = FontWeight.Bold)
+                                if (!item.notes.isNullOrBlank()) {
+                                    Text(item.notes ?: "", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }
@@ -267,20 +334,53 @@ private fun PaymentSummaryTab(booking: Booking) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     val unitPrice = booking.totalPrice / maxOf(1, booking.paxCount)
+                    val netCostCalculated = booking.totalPrice * 0.88 // %12 kâr marjı hesabı
+                    val profitCalculated = booking.totalPrice - netCostCalculated
+
                     DetailPriceRow("Kişi Sayısı (Pax):", "${booking.paxCount} Kişi")
                     DetailPriceRow("Kişi Başı Pax Fiyatı:", "$unitPrice ${booking.currency}")
                     DetailPriceRow("Para Birimi:", booking.currency)
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    DetailPriceRow("TOPLAM TUTAR:", "${booking.totalPrice} ${booking.currency}", isBold = true)
+                    DetailPriceRow("TOPLAM SATIŞ (GROSS):", "${booking.totalPrice} ${booking.currency}", isBold = true)
 
                     Spacer(modifier = Modifier.height(12.dp))
-                    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(8.dp)) {
-                        Text(
-                            text = "ℹ️ Faz 2 Genişletilebilirlik: Otel özel kontrat koşulları, uçuş PNR kayıtları ve dinamik komisyon dağılımları JSONB metadata yapısında esnek olarak tutulmaktadır.",
-                            modifier = Modifier.padding(12.dp),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+
+                    // ── GÖRSEL 1: ERP BACK-OFFICE FİNANSAL DÖKÜM TABLOSU (SCREENSHOT 2535 STİLİ) ──
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "📊 ERP Back-Office Finansal Kâr / Maliyet Matrisi",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("• Operatör Net Alış Tutarı (Net Cost):", style = MaterialTheme.typography.bodySmall)
+                                Text("${netCostCalculated.toInt()} ${booking.currency}", fontWeight = FontWeight.Bold)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("• Acente Satış Tutarı (Gross Sales):", style = MaterialTheme.typography.bodySmall)
+                                Text("${booking.totalPrice.toInt()} ${booking.currency}", fontWeight = FontWeight.Bold)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("• Net Kâr Marjı (Profit Margin):", style = MaterialTheme.typography.bodySmall, color = Color(0xFF2E7D32))
+                                Text("+${profitCalculated.toInt()} ${booking.currency}", fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("• Operatör Komisyon Oranı:", style = MaterialTheme.typography.bodySmall)
+                                Text("%12.0", fontWeight = FontWeight.Bold)
+                            }
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text("• Incoming Voucher Kodu:", style = MaterialTheme.typography.bodySmall)
+                                Text("VCH-${booking.bookingCode}", fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }

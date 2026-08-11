@@ -20,6 +20,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.mgacreative.touros.domain.repository.AuthRepository
 import com.mgacreative.touros.ui.components.TourOSBottomBar
 import com.mgacreative.touros.ui.components.TourOSNavItem
 import com.mgacreative.touros.ui.components.TourOSSidebar
@@ -51,24 +52,33 @@ private fun NavDestination?.isAuthRoute(): Boolean =
     authRoutePatterns.any { this?.route?.contains(it) == true }
 
 // ─── Menü Öğeleri ─────────────────────────────────────────────────────────────
-private fun buildNavItems(currentRoute: String?): List<TourOSNavItem> = listOf(
-    TourOSNavItem(AppLanguageManager.translate("Dashboard"),        DashboardRoute,               isSelected = currentRoute?.contains("DashboardRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Turlar"),           ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Rezervasyon"),      BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Oteller"),          HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Tur Operatörleri"), AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Ürünler"),           AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Acente Web Sayfası"), AgencyStorefrontRoute,      isSelected = currentRoute?.contains("AgencyStorefrontRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Fiyat & Kampanya"), DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Finans"),           FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Fatura Yönetimi"),  InvoiceManagementRoute,       isSelected = currentRoute?.contains("InvoiceManagementRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Cari Hesaplar"),    CurrentAccountRoute,          isSelected = currentRoute?.contains("CurrentAccountRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Gider Girişi"),     SupplierExpenseRoute,         isSelected = currentRoute?.contains("SupplierExpenseRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Müşteriler & CRM"),  CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Analitik & Trend"), AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Raporlar"),         ReportsRoute,                 isSelected = currentRoute?.contains("ReportsRoute") == true),
-    TourOSNavItem(AppLanguageManager.translate("Ayarlar & Dil"),    SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
-)
+private fun buildNavItems(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavItem> {
+    val items = mutableListOf<TourOSNavItem>()
+    items.add(TourOSNavItem(AppLanguageManager.translate("Dashboard"), DashboardRoute, isSelected = currentRoute?.contains("DashboardRoute") == true))
+
+    if (isSystemAdmin) {
+        items.add(TourOSNavItem(AppLanguageManager.translate("Ana Web Yönetimi (CMS)"), GlobalWebCmsRoute, isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true))
+        items.add(TourOSNavItem(AppLanguageManager.translate("Canlı Web Platformu"), GlobalWebPublicRoute, isSelected = currentRoute?.contains("GlobalWebPublicRoute") == true))
+    }
+
+    items.addAll(listOf(
+        TourOSNavItem(AppLanguageManager.translate("Turlar"),           ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Rezervasyon"),      BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Oteller"),          HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Tur Operatörleri"), AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Ürünler"),           AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Fiyat & Kampanya"), DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Finans"),           FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Fatura Yönetimi"),  InvoiceManagementRoute,       isSelected = currentRoute?.contains("InvoiceManagementRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Cari Hesaplar"),    CurrentAccountRoute,          isSelected = currentRoute?.contains("CurrentAccountRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Gider Girişi"),     SupplierExpenseRoute,         isSelected = currentRoute?.contains("SupplierExpenseRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Müşteriler & CRM"),  CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Analitik & Trend"), AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Raporlar"),         ReportsRoute,                 isSelected = currentRoute?.contains("ReportsRoute") == true),
+        TourOSNavItem(AppLanguageManager.translate("Ayarlar & Dil"),    SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
+    ))
+    return items
+}
 
 
 /**
@@ -82,7 +92,15 @@ fun AppNavigation() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showShell = !backStackEntry?.destination.isAuthRoute()
+    val authRepository: AuthRepository = org.koin.compose.koinInject()
+    val currentUser by authRepository.observeAuthState().collectAsState()
+    val isSystemAdmin = currentUser?.role == com.mgacreative.touros.domain.model.UserRole.SYSTEM_ADMIN || currentUser?.email == "mgazat@gmail.com" || currentUser?.email == "gkhnazat@gmail.com"
+
+    val isUserLoggedIn = currentUser != null
+    val isAuthRoute = backStackEntry?.destination.isAuthRoute()
+    val isPublicWebRoute = currentRoute?.contains("GlobalWebPublicRoute") == true
+    // Yan sol menü dış ziyaretçide PASİF, sadece E-Posta + Şifre + Acente Kodu ile giren oturumlu acentelerde AKTİF
+    val showShell = isUserLoggedIn && !isAuthRoute && !isPublicWebRoute
 
     fun navigate(route: Any) {
         navController.navigate(route) {
@@ -97,7 +115,7 @@ fun AppNavigation() {
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= 768.dp
-        val navItems = remember(currentRoute, currentLanguage) { buildNavItems(currentRoute) }
+        val navItems = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavItems(currentRoute, isSystemAdmin) }
 
         // Mobil Bottom Bar için "☰ Menü" Butonlu Liste
         val menuDummyRoute = "HamburgerMenuOpen"
@@ -112,6 +130,19 @@ fun AppNavigation() {
             main4 + menuBtn
         }
 
+        val displayName = currentUser?.fullName?.ifBlank { currentUser?.email } ?: "Acente Yöneticisi"
+        val displayRole = currentUser?.role?.displayName ?: "SaaS Acentesi"
+
+        val handleLogout: () -> Unit = {
+            coroutineScope.launch {
+                authRepository.signOut()
+                if (drawerState.isOpen) drawerState.close()
+                navController.navigate(LoginRoute) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+        }
+
         if (isExpanded) {
             // ── Expanded: Sidebar sol, içerik sağda ──────────────────────────
             Row(modifier = Modifier.fillMaxSize()) {
@@ -119,8 +150,9 @@ fun AppNavigation() {
                     TourOSSidebar(
                         items = navItems,
                         onItemSelect = { navigate(it.route) },
-                        userName = "Admin",
-                        userRole = "Tour Operator"
+                        userName = displayName,
+                        userRole = displayRole,
+                        onLogoutClick = handleLogout
                     )
                 }
                 Box(modifier = Modifier.weight(1f).fillMaxSize()) {
@@ -144,8 +176,9 @@ fun AppNavigation() {
                                 }
                                 navigate(item.route)
                             },
-                            userName = "Admin",
-                            userRole = "Tour Operator"
+                            userName = displayName,
+                            userRole = displayRole,
+                            onLogoutClick = handleLogout
                         )
                     }
                 }
@@ -183,14 +216,14 @@ fun AppNavigation() {
 
 @Composable
 private fun AppNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = SplashRoute) {
+    NavHost(navController = navController, startDestination = GlobalWebPublicRoute) {
 
-        // ─── Auth ─────────────────────────────────────────────────────────────
+        // ─── Auth & Public Landing ──────────────────────────────────────────
 
         composable<SplashRoute> {
             SplashScreen(
                 onNavigateToLogin = {
-                    navController.navigate(LoginRoute) { popUpTo(SplashRoute) { inclusive = true } }
+                    navController.navigate(GlobalWebPublicRoute) { popUpTo(SplashRoute) { inclusive = true } }
                 },
                 onNavigateToDashboard = { role ->
                     navController.navigate(getStartDestinationForRole(role)) {
@@ -259,6 +292,25 @@ private fun AppNavHost(navController: NavHostController) {
             DashboardScreen(
                 onNavigateToLogin = {
                     navController.navigate(LoginRoute) { popUpTo(DashboardRoute) { inclusive = true } }
+                }
+            )
+        }
+
+        composable<GlobalWebCmsRoute> {
+            GlobalWebCmsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<GlobalWebPublicRoute> {
+            GlobalWebPublicScreen(
+                onNavigateToBookingDetail = { id -> navController.navigate(BookingDetailRoute(id)) },
+                onNavigateToLogin = { navController.navigate(LoginRoute) },
+                onNavigateBack = { 
+                    val popped = navController.popBackStack()
+                    if (!popped) {
+                        navController.navigate(DashboardRoute)
+                    }
                 }
             )
         }
@@ -691,13 +743,6 @@ private fun AppNavHost(navController: NavHostController) {
         composable<AgencyProductPublishingRoute> {
             com.mgacreative.touros.ui.screens.AgencyProductPublishingScreen(
                 onNavigateToSearchWizard = { navController.navigate(B2BTourSearchDashboardRoute) }
-            )
-        }
-
-        composable<AgencyStorefrontRoute> {
-            com.mgacreative.touros.ui.screens.AgencyStorefrontScreen(
-                onNavigateToTourDetail = { tourId -> navController.navigate(B2CTourDetailCheckoutRoute(tourId = tourId)) },
-                onNavigateToHotelDetail = { hotelId -> navController.navigate(B2CHotelDetailCheckoutRoute(hotelId = hotelId)) }
             )
         }
 

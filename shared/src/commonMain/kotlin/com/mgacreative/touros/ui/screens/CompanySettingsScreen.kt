@@ -195,6 +195,10 @@ fun CompanySettingsScreen(
                     var paypalEmail by remember(settings.id) { mutableStateOf(settings.paypalEmail ?: "") }
                     var paypalMeUrl by remember(settings.id) { mutableStateOf(settings.paypalMeUrl ?: "") }
 
+                    // Dış Müşteri Varsayılan Acente Yönlendirmesi
+                    var defaultMasterAgencyId by remember(settings.id) { mutableStateOf(settings.defaultMasterAgencyId ?: "00000000-0000-0000-0000-000000000001") }
+                    var defaultMasterAgencyCode by remember(settings.id) { mutableStateOf(settings.defaultMasterAgencyCode ?: "AGN-MASTER") }
+
                     var isFormInitialized by remember(settings.id) { mutableStateOf(false) }
 
                     LaunchedEffect(settings.id) {
@@ -227,6 +231,8 @@ fun CompanySettingsScreen(
                             accountHolder = settings.accountHolder ?: ""
                             paypalEmail = settings.paypalEmail ?: ""
                             paypalMeUrl = settings.paypalMeUrl ?: ""
+                            defaultMasterAgencyId = settings.defaultMasterAgencyId ?: "00000000-0000-0000-0000-000000000001"
+                            defaultMasterAgencyCode = settings.defaultMasterAgencyCode ?: "AGN-MASTER"
                             isFormInitialized = true
                         }
                     }
@@ -778,6 +784,39 @@ fun CompanySettingsScreen(
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
+                                        Text(
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("5. Dış Müşteri Rezervasyon Yönlendirme (Master Agency)"),
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary)
+                                        )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                                        Text(
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente kodu olmadan dışarıdan doğrudan web sitenizden yapılan rezervasyonların düşeceği Varsayılan Ana Acente bilgileri."),
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                        ) {
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                TourOSTextField(
+                                                    value = defaultMasterAgencyCode,
+                                                    onValueChange = { defaultMasterAgencyCode = it },
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Varsayılan Acente Kodu (Örn: AGN-MASTER)")
+                                                )
+                                            }
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                TourOSTextField(
+                                                    value = defaultMasterAgencyId,
+                                                    onValueChange = { defaultMasterAgencyId = it },
+                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Varsayılan Acente UUID / Firma ID")
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
                                         // Entegrasyon Bilgi Kartı
                                         Box(
                                             modifier = Modifier
@@ -1173,6 +1212,8 @@ fun CompanySettingsScreen(
                                                 accountHolder = accountHolder.ifBlank { null },
                                                 paypalEmail = paypalEmail.ifBlank { null },
                                                 paypalMeUrl = paypalMeUrl.ifBlank { null },
+                                                defaultMasterAgencyId = defaultMasterAgencyId.ifBlank { "00000000-0000-0000-0000-000000000001" },
+                                                defaultMasterAgencyCode = defaultMasterAgencyCode.ifBlank { "AGN-MASTER" },
                                                 themeColor = themeColor,
                                                 taxRate = taxRateStr.toDoubleOrNull() ?: settings.taxRate,
                                                 supportedCurrencies = selectedCurrencies.toList(),

@@ -27,7 +27,15 @@ import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingUiState
 import com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel
+import com.mgacreative.touros.utils.rememberFilePickerLauncher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.compose.viewmodel.koinViewModel
+
+import com.mgacreative.touros.domain.model.UserRole
+import com.mgacreative.touros.domain.repository.AuthRepository
+import org.koin.compose.koinInject
 
 /**
  * Katalog & Ürün Yayınlama Yönetimi — Operatör Filtresi Destekli Canlı Sorgu Motoru
@@ -40,6 +48,14 @@ fun AgencyProductPublishingScreen(
 ) {
     val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val currentUser by viewModel.currentUserState.collectAsState()
+
+    val isSystemAdmin = currentUser?.role == UserRole.SYSTEM_ADMIN || 
+            currentUser?.email == "mgazat@gmail.com" || 
+            currentUser?.email == "gkhnazat@gmail.com" || 
+            currentUser?.email?.lowercase()?.contains("mgazat") == true || 
+            currentUser?.email?.lowercase()?.contains("gkhn") == true || 
+            currentUser?.email?.lowercase()?.contains("admin") == true
 
     var showImportModal by remember { mutableStateOf(false) }
     var showClearConfirmModal by remember { mutableStateOf(false) }
@@ -92,16 +108,20 @@ fun AgencyProductPublishingScreen(
                         onClick = onNavigateToSearchWizard,
                         variant = TourOSButtonVariant.SECONDARY
                     )
-                    TourOSButton(
-                        text = "🗑️ ${AppLanguageManager.translate("Kataloğu Sıfırla")}",
-                        onClick = { showClearConfirmModal = true },
-                        variant = TourOSButtonVariant.SECONDARY
-                    )
-                    TourOSButton(
-                        text = "📥 ${AppLanguageManager.translate("Toplu Veri Yükle (JSON/TXT Import)")}",
-                        onClick = { showImportModal = true },
-                        variant = TourOSButtonVariant.PRIMARY
-                    )
+
+                    // SADECE SİSTEM YÖNETİCİSİ (gkhnazat@gmail.com) İÇİN GÖRÜNÜR
+                    if (isSystemAdmin) {
+                        TourOSButton(
+                            text = "🗑️ ${AppLanguageManager.translate("Kataloğu Sıfırla")}",
+                            onClick = { showClearConfirmModal = true },
+                            variant = TourOSButtonVariant.SECONDARY
+                        )
+                        TourOSButton(
+                            text = "📥 ${AppLanguageManager.translate("Toplu Veri Yükle (JSON/TXT Import)")}",
+                            onClick = { showImportModal = true },
+                            variant = TourOSButtonVariant.PRIMARY
+                        )
+                    }
                 }
             }
 
@@ -110,12 +130,12 @@ fun AgencyProductPublishingScreen(
             val allImportedProducts = successState?.importedProducts ?: emptyList()
 
             val totalCount = allImportedProducts.size
-            val packageTourCount = remember(allImportedProducts) { allImportedProducts.count { it.productType == "PACKAGE_TOUR" } }
-            val hotelCount = remember(allImportedProducts) { allImportedProducts.count { it.productType == "HOTEL" } }
-            val flightCount = remember(allImportedProducts) { allImportedProducts.count { it.productType == "FLIGHT" } }
+            val packageTourCount = remember(allImportedProducts) { allImportedProducts.count { it.safeProductType == "PACKAGE_TOUR" } }
+            val hotelCount = remember(allImportedProducts) { allImportedProducts.count { it.safeProductType == "HOTEL" } }
+            val flightCount = remember(allImportedProducts) { allImportedProducts.count { it.safeProductType == "FLIGHT" } }
 
             val availableOperators = remember(allImportedProducts) {
-                allImportedProducts.map { it.operatorName }.filter { it.isNotBlank() }.distinct()
+                allImportedProducts.map { it.safeOperatorName }.filter { it.isNotBlank() }.distinct()
             }
 
             if (totalCount > 0) {
@@ -227,7 +247,7 @@ fun AgencyProductPublishingScreen(
                                 )
                             }
                             items(availableOperators) { opName ->
-                                val countForOp = allImportedProducts.count { it.operatorName.equals(opName, ignoreCase = true) }
+                                val countForOp = allImportedProducts.count { it.safeOperatorName.equals(opName, ignoreCase = true) }
                                 FilterChip(
                                     selected = selectedOperatorFilter.equals(opName, ignoreCase = true),
                                     onClick = {
@@ -261,19 +281,19 @@ fun AgencyProductPublishingScreen(
                     val filteredProducts = remember(state.importedProducts, searchQuery, selectedCategoryFilter, selectedOperatorFilter) {
                         val q = searchQuery.trim().lowercase()
                         state.importedProducts.filter { item ->
-                            val matchesCategory = selectedCategoryFilter == null || item.productType == selectedCategoryFilter
-                            val matchesOperator = selectedOperatorFilter == null || item.operatorName.equals(selectedOperatorFilter, ignoreCase = true)
+                            val matchesCategory = selectedCategoryFilter == null || item.safeProductType == selectedCategoryFilter
+                            val matchesOperator = selectedOperatorFilter == null || item.safeOperatorName.equals(selectedOperatorFilter, ignoreCase = true)
                             val matchesSearch = q.isBlank() ||
-                                    item.hotelName.lowercase().contains(q) ||
-                                    item.tourName.lowercase().contains(q) ||
-                                    item.operatorName.lowercase().contains(q) ||
-                                    item.region.lowercase().contains(q) ||
-                                    item.country.lowercase().contains(q) ||
-                                    item.departureCity.lowercase().contains(q) ||
-                                    item.roomType.lowercase().contains(q) ||
-                                    item.mealType.lowercase().contains(q) ||
-                                    item.airlineName.lowercase().contains(q) ||
-                                    item.flightNumber.lowercase().contains(q)
+                                    item.safeHotelName.lowercase().contains(q) ||
+                                    item.safeTourName.lowercase().contains(q) ||
+                                    item.safeOperatorName.lowercase().contains(q) ||
+                                    item.safeRegion.lowercase().contains(q) ||
+                                    item.safeCountry.lowercase().contains(q) ||
+                                    item.safeDepartureCity.lowercase().contains(q) ||
+                                    item.safeRoomType.lowercase().contains(q) ||
+                                    item.safeMealType.lowercase().contains(q) ||
+                                    item.safeAirlineName.lowercase().contains(q) ||
+                                    item.safeFlightNumber.lowercase().contains(q)
 
                             matchesCategory && matchesOperator && matchesSearch
                         }
@@ -309,12 +329,15 @@ fun AgencyProductPublishingScreen(
                             }
                         }
                     } else {
+                        val displayProducts = remember(filteredProducts) { filteredProducts.take(150) }
+                        val displayTours = remember(filteredTours) { filteredTours.take(150) }
+
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
                             modifier = Modifier.fillMaxSize()
                         ) {
                             // YÜKLENEN GERÇEK VERİLER (UNIFIED PRODUCTS)
-                            items(filteredProducts, key = { "prod-${it.id}" }) { product ->
+                            items(displayProducts, key = { "prod-${it.id}" }) { product ->
                                 UnifiedProductCardItem(
                                     product = product,
                                     onTogglePublish = { isPub ->
@@ -325,13 +348,29 @@ fun AgencyProductPublishingScreen(
 
                             // YAYIN KARTLARI (FALLBACK TOURS)
                             if (filteredProducts.isEmpty()) {
-                                items(filteredTours, key = { "tour-${it.id}" }) { tourItem ->
+                                items(displayTours, key = { "tour-${it.id}" }) { tourItem ->
                                     PublishingTourCard(
                                         item = tourItem,
                                         onTogglePublish = { isPublished ->
                                             viewModel.togglePublishStatus(tourItem.tourId, isPublished)
                                         }
                                     )
+                                }
+                            }
+
+                            if (filteredProducts.size > 150) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = TourOSSpacing.small),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "ℹ️ ${AppLanguageManager.translate("Toplam")} ${filteredProducts.size} ${AppLanguageManager.translate("üründen ilk 150 tanesi gösteriliyor. Özel ürün için yukarıdaki canlı aramayı kullanın.")}",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -345,10 +384,9 @@ fun AgencyProductPublishingScreen(
     if (showImportModal) {
         ImportPayloadModal(
             onDismiss = { showImportModal = false },
-            onImport = { content, replaceExisting, onSuccess, onError ->
+            onImport = { content, onSuccess, onError ->
                 viewModel.importRawJsonPayload(
                     rawContent = content,
-                    replaceExisting = replaceExisting,
                     onSuccess = { count ->
                         onSuccess(count)
                         showImportModal = false
@@ -404,7 +442,7 @@ private fun UnifiedProductCardItem(
     onTogglePublish: (Boolean) -> Unit
 ) {
     var isPublished by remember(product) { mutableStateOf(true) }
-    val marginCalculatedPrice = remember(product.price) { product.price * 1.125 } // %12.5 Acente Kar Marjı
+    val marginCalculatedPrice = remember(product.safePrice) { product.safePrice * 1.125 } // %12.5 Acente Kar Marjı
 
     TourOSCard(
         modifier = Modifier.fillMaxWidth(),
@@ -456,10 +494,10 @@ private fun UnifiedProductCardItem(
                                 style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                                 fontWeight = FontWeight.Bold
                             )
-                            if (product.hotelCategory > 0) {
+                            if (product.safeHotelCategory > 0) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "⭐".repeat(product.hotelCategory.coerceAtMost(5)),
+                                    text = "⭐".repeat(product.safeHotelCategory.coerceAtMost(5)),
                                     style = TourOSTypography.Caption
                                 )
                             }
@@ -507,7 +545,7 @@ private fun UnifiedProductCardItem(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     if (product.departureCity.isNotBlank() || !product.departureDate.isNullOrBlank()) {
                         Text(
-                            text = "✈️ ${AppLanguageManager.translate("Kalkış")}: ${product.departureCity.ifBlank { "İstanbul/Moskova" }}  ·  📅 ${product.departureDate ?: ""}  ·  🌙 ${product.nights} ${AppLanguageManager.translate("Gece")}",
+                            text = "✈️ ${AppLanguageManager.translate("Kalkış")}: ${product.departureCity.ifBlank { "İstanbul/Moskova" }}  ·  📅 ${product.departureDate ?: ""}  ·  🌙 ${product.safeNights} ${AppLanguageManager.translate("Gece")}",
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -515,14 +553,14 @@ private fun UnifiedProductCardItem(
 
                     if (product.roomType.isNotBlank() || product.mealType.isNotBlank()) {
                         Text(
-                            text = "🍽️ ${product.mealType.ifBlank { "Standart" }}  ·  🛏️ ${product.roomType.ifBlank { "Standart Oda" }}  ·  👥 ${product.adults} ${AppLanguageManager.translate("Yetişkin")}",
+                            text = "🍽️ ${product.mealType.ifBlank { "Standart" }}  ·  🛏️ ${product.roomType.ifBlank { "Standart Oda" }}  ·  👥 ${product.safeAdults} ${AppLanguageManager.translate("Yetişkin")}",
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                     }
 
                     if (product.airlineName.isNotBlank()) {
                         Text(
-                            text = "🛫 ${product.airlineName} (${product.flightNumber})  ·  🧳 ${product.baggageKg} kg",
+                            text = "🛫 ${product.airlineName} (${product.flightNumber})  ·  🧳 ${product.safeBaggageKg} kg",
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                     }
@@ -531,7 +569,7 @@ private fun UnifiedProductCardItem(
                 // FİYATLANDIRMA DİNAMİĞİ (OPERATÖR FİYATI VS ACENTE SATIŞ FİYATI)
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "${AppLanguageManager.translate("Operatör Net")}: ${product.price.toInt()} ${product.currency}",
+                        text = "${AppLanguageManager.translate("Operatör Net")}: ${product.safePrice.toInt()} ${product.currency}",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                     Text(
@@ -623,12 +661,62 @@ private fun PublishingTourCard(
 @Composable
 private fun ImportPayloadModal(
     onDismiss: () -> Unit,
-    onImport: (content: String, replaceExisting: Boolean, onSuccess: (count: Int) -> Unit, onError: (String) -> Unit) -> Unit
+    onImport: (content: String, onSuccess: (count: Int) -> Unit, onError: (String) -> Unit) -> Unit
 ) {
     var rawText by remember { mutableStateOf("") }
-    var replaceExisting by remember { mutableStateOf(false) } // Varsayılan: Mevcut Kataloğa Ekle & Birleştir (Eski Silinmez!)
+    var loadedFileContent by remember { mutableStateOf<String?>(null) }
+    var selectedFileLabel by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val filePickerLauncher = rememberFilePickerLauncher(mimeType = "*/*") { fileName, bytes ->
+        scope.launch {
+            try {
+                isLoading = true
+                errorMessage = null
+                successMessage = null
+
+                if (bytes.isEmpty()) {
+                    throw IllegalArgumentException("Seçilen dosya boş (0 bytes).")
+                }
+
+                val decoded = withContext(Dispatchers.Default) {
+                    bytes.decodeToString()
+                        .replace("\uFEFF", "")
+                        .replace("\u200B", "")
+                        .trim()
+                }
+
+                selectedFileLabel = "📁 $fileName (${bytes.size / 1024} KB)"
+                loadedFileContent = decoded
+                // TextField'a devasa 10MB metin yükleyip Compose UI layout motorunu kilitletmeyi engelle:
+                if (decoded.length < 5000) {
+                    rawText = decoded
+                } else {
+                    rawText = "" // Büyüklük 5KB üzerindeyse TextField'ı boş tut, arkada loadedFileContent'i işle
+                }
+
+                onImport(
+                    decoded,
+                    { count ->
+                        isLoading = false
+                        successMessage = "$count ${AppLanguageManager.translate("adet güncel ürün başarıyla yüklendi!")}"
+                    },
+                    { err ->
+                        isLoading = false
+                        errorMessage = err
+                    }
+                )
+            } catch (e: Throwable) {
+                isLoading = false
+                errorMessage = "Dosya işlenirken hata oluştu: ${e.message ?: "Geçersiz dosya biçimi"}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -643,34 +731,60 @@ private fun ImportPayloadModal(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 500.dp)
+                    .heightIn(max = 520.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
                 Text(
-                    text = AppLanguageManager.translate("Operatörden alınan JSON veya TXT formatındaki ham veriyi buraya yapıştırın. Çoklu dosya yüklediğinizde veriler üst üste birleştirilir."),
+                    text = AppLanguageManager.translate("Operatörden alınan JSON veya TXT dosyasını doğrudan seçebilir ya da ham metni aşağıya yapıştırabilirsiniz."),
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                 )
 
-                // YÜKLEME MODU SEÇENEĞİ (SİL VS BİRLEŞTİR)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Checkbox(
-                        checked = replaceExisting,
-                        onCheckedChange = { replaceExisting = it }
-                    )
-                    Column {
+                    Box(modifier = Modifier.weight(1f)) {
+                        TourOSButton(
+                            text = "📁 ${AppLanguageManager.translate("Bilgisayardan Dosya Seç (.txt / .json)")}",
+                            onClick = { filePickerLauncher() },
+                            enabled = !isLoading,
+                            isLoading = isLoading,
+                            variant = TourOSButtonVariant.PRIMARY,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                selectedFileLabel?.let { label ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(TourOSColors.SuccessContainer.copy(alpha = 0.5f))
+                            .padding(TourOSSpacing.small)
+                    ) {
                         Text(
-                            text = AppLanguageManager.translate("Eski Kataloğu Sıfırla & Sadece Bu Dosyayı Yükle"),
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                            text = label,
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.Success),
                             fontWeight = FontWeight.Bold
                         )
+                    }
+                }
+
+                if (isLoading) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(color = TourOSColors.Primary, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(TourOSSpacing.small))
                         Text(
-                            text = AppLanguageManager.translate("İşaretlenmezse yüklenen tüm dosyalar birbirinin üstüne eklenerek birleştirilir."),
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                            text = AppLanguageManager.translate("Yüksek hacimli veri ayrıştırılıyor ve veritabanına işleniyor..."),
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -679,13 +793,15 @@ private fun ImportPayloadModal(
                     value = rawText,
                     onValueChange = {
                         rawText = it
+                        loadedFileContent = null
                         errorMessage = null
                     },
                     label = { Text(AppLanguageManager.translate("Ham JSON / TXT Verisi")) },
                     placeholder = { Text("{\n   \"id\": \"13237740228098\",\n   \"name\": \"Moscow Antalya PROMO\",\n   ...\n}") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(240.dp),
+                        .height(180.dp),
+                    enabled = !isLoading,
                     textStyle = TourOSTypography.Caption
                 )
 
@@ -700,29 +816,36 @@ private fun ImportPayloadModal(
         },
         confirmButton = {
             TourOSButton(
-                text = "⚡ ${AppLanguageManager.translate("Veriyi İçeri Aktar & İşle")}",
+                text = "⚡ ${AppLanguageManager.translate("Metni İçeri Aktar & İşle")}",
                 onClick = {
-                    if (rawText.isBlank()) {
-                        errorMessage = AppLanguageManager.translate("Lütfen geçerli bir JSON/TXT metni yapıştırın.")
+                    val targetPayload = loadedFileContent ?: rawText
+                    if (targetPayload.isBlank()) {
+                        errorMessage = AppLanguageManager.translate("Lütfen bir dosya seçin ya da geçerli metin yapıştırın.")
                         return@TourOSButton
                     }
+                    isLoading = true
+                    errorMessage = null
+                    successMessage = null
                     onImport(
-                        rawText,
-                        replaceExisting,
+                        targetPayload,
                         { count ->
+                            isLoading = false
                             successMessage = "$count ${AppLanguageManager.translate("adet güncel ürün başarıyla yüklendi!")}"
                         },
                         { err ->
+                            isLoading = false
                             errorMessage = err
                         }
                     )
                 },
+                enabled = !isLoading,
+                isLoading = isLoading,
                 variant = TourOSButtonVariant.PRIMARY
             )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(AppLanguageManager.translate("İptal"))
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text(AppLanguageManager.translate("İptal / Kapat"))
             }
         }
     )
