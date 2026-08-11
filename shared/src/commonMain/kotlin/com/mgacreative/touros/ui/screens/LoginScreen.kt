@@ -59,6 +59,8 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var agencyCode by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableStateOf("ACENTE") } // "ACENTE" or "ADMIN"
+    var localValidationError by remember { mutableStateOf<String?>(null) }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -120,22 +122,64 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
 
                     Text(
-                        text = "Hesabınıza giriş yapın",
+                        text = "Giriş Türünü Seçin",
                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                     )
+
+                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                    // ── GİRİŞ TÜRÜ SEKMELERİ (ACENTE VS ADMİN) ──────────────────────────
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(TourOSColors.Surface)
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        listOf(
+                            "ACENTE" to "Acente Girişi",
+                            "ADMIN" to "Admin / Sistem Girişi"
+                        ).forEach { (tabKey, tabTitle) ->
+                            val isSel = (selectedTab == tabKey)
+                            Surface(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable { 
+                                        selectedTab = tabKey 
+                                        localValidationError = null
+                                    },
+                                color = if (isSel) TourOSColors.Primary else Color.Transparent
+                            ) {
+                                Text(
+                                    text = tabTitle,
+                                    modifier = Modifier.padding(vertical = 10.dp),
+                                    style = TourOSTypography.Caption.copy(
+                                        color = if (isSel) Color.White else TourOSColors.TextSecondary,
+                                        fontWeight = if (isSel) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal,
+                                        fontSize = 11.sp
+                                    ),
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                )
+                            }
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
+                Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                 // Error Banner (Anlaşılır & Şık Uyarı Kutusu)
-                if (uiState is AuthUiState.Error) {
-                    val rawMsg = (uiState as AuthUiState.Error).message
-                    val displayMsg = if (rawMsg.contains("invalid_credentials") || rawMsg.contains("grant_type") || rawMsg.contains("Headers:")) {
+                val activeErrorMsg = localValidationError ?: (uiState as? AuthUiState.Error)?.let {
+                    val rawMsg = it.message
+                    if (rawMsg.contains("invalid_credentials") || rawMsg.contains("grant_type") || rawMsg.contains("Headers:")) {
                         "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
                     } else {
                         rawMsg
                     }
+                }
 
+                if (activeErrorMsg != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -147,9 +191,8 @@ fun LoginScreen(
                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("⚠️", style = TourOSTypography.TitleMedium)
                             Text(
-                                text = displayMsg,
+                                text = activeErrorMsg,
                                 style = TourOSTypography.Label.copy(color = TourOSColors.Secondary),
                                 modifier = Modifier.weight(1f)
                             )
@@ -162,7 +205,10 @@ fun LoginScreen(
                 // Form Fields
                 TourOSTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = { 
+                        email = it
+                        localValidationError = null 
+                    },
                     label = "E-posta Adresi",
                     placeholder = "ornek@touros.com",
                     modifier = Modifier.fillMaxWidth()
@@ -172,22 +218,30 @@ fun LoginScreen(
 
                 TourOSTextField(
                     value = password,
-                    onValueChange = { password = it },
+                    onValueChange = { 
+                        password = it
+                        localValidationError = null
+                    },
                     label = "Şifre",
                     placeholder = "••••••••",
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                if (selectedTab == "ACENTE") {
+                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                TourOSTextField(
-                    value = agencyCode,
-                    onValueChange = { agencyCode = it },
-                    label = "Acente Kodu (B2B SaaS)",
-                    placeholder = "Örn: AGN-ANEX / ACT-001",
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    TourOSTextField(
+                        value = agencyCode,
+                        onValueChange = { 
+                            agencyCode = it
+                            localValidationError = null
+                        },
+                        label = "Acente Kodu (B2B SaaS)",
+                        placeholder = "Örn: AGN-8492 / ACT-001 (gkhnazat@gmail.com hariç zorunludur)",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
@@ -207,8 +261,19 @@ fun LoginScreen(
 
                 // Primary Submit Button
                 TourOSButton(
-                    text = "Giriş Yap",
-                    onClick = { viewModel.login(email, password) },
+                    text = if (selectedTab == "ACENTE") "Acente Girişi Yap" else "Sistem Admin Girişi Yap",
+                    onClick = {
+                        localValidationError = null
+                        val trimmedEmail = email.trim().lowercase()
+                        val isSystemAdminEmail = (trimmedEmail == "gkhnazat@gmail.com" || trimmedEmail == "mgazat@gmail.com")
+
+                        if (selectedTab == "ACENTE" && !isSystemAdminEmail && agencyCode.isBlank()) {
+                            localValidationError = "Acente girişi için Acente Kodu girmek zorunludur! (gkhnazat@gmail.com hariç tüm acenteler kod girmelidir)"
+                            return@TourOSButton
+                        }
+
+                        viewModel.login(email, password)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     variant = TourOSButtonVariant.PRIMARY,
                     enabled = email.isNotBlank() && password.isNotBlank(),

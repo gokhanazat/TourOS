@@ -34,6 +34,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun B2BTourSearchDashboardScreen(
     viewModel: B2BTourSearchViewModel = koinViewModel(),
+    isEmbedded: Boolean = false,
     onNavigateBack: () -> Unit = {},
     onSelectTourForBooking: (productId: String) -> Unit = {},
     onNavigateToBookings: () -> Unit = {}
@@ -63,26 +64,14 @@ fun B2BTourSearchDashboardScreen(
     var activeStep by remember { mutableStateOf(1) }
     var showSuccessModal by remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = TourOSColors.Surface,
-        topBar = {
-            TourOSTopBar(
-                title = AppLanguageManager.translate("Gelişmiş Tur & Otel Arama ve Rezervasyon Paneli"),
-                subtitle = AppLanguageManager.translate("Sletat / Coral B2B Standartlarında Canlı Arama, Uçuş, Ekstra Hizmetler ve Yolcu Kaydı"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
-            )
+    val content: @Composable (PaddingValues) -> Unit = { padding ->
+        val columnModifier = if (isEmbedded) {
+            Modifier.fillMaxWidth().padding(TourOSSpacing.large)
+        } else {
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(TourOSSpacing.large)
         }
-    ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(TourOSSpacing.large),
+            modifier = columnModifier,
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
         ) {
             // ── ADIM YÖNLENDİRME ÇUBUĞU (STEPPER NAVIGATION BAR) ─────────────────
@@ -652,6 +641,27 @@ fun B2BTourSearchDashboardScreen(
                     }
                 }
             }
+        }
+    }
+
+    if (isEmbedded) {
+        content(PaddingValues(0.dp))
+    } else {
+        Scaffold(
+            containerColor = TourOSColors.Surface,
+            topBar = {
+                TourOSTopBar(
+                    title = AppLanguageManager.translate("Gelişmiş Tur & Otel Arama ve Rezervasyon Paneli"),
+                    subtitle = AppLanguageManager.translate("Sletat / Coral B2B Standartlarında Canlı Arama, Uçuş, Ekstra Hizmetler ve Yolcu Kaydı"),
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            content(padding)
         }
     }
 

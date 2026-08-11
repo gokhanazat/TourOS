@@ -123,6 +123,32 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
 
+                // Agency Referral Code Information Box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.3f))
+                        .padding(TourOSSpacing.medium)
+                ) {
+                    Column {
+                        Text(
+                            text = "Acente Kayıt Sistem Referans Kodu:",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        )
+                        Text(
+                            text = "AGN-8492",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
+                        )
+                        Text(
+                            text = "Kayıt sonrası Acente Girişi yaparken bu kodu kullanmanız gerekmektedir.",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 10.sp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
                 // Error Banner
                 val errorMessage = localError ?: (uiState as? AuthUiState.Error)?.message
                 if (errorMessage != null) {

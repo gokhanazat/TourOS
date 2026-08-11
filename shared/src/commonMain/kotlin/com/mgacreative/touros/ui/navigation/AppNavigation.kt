@@ -327,14 +327,14 @@ fun AppNavigation() {
 
 @Composable
 private fun AppNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = GlobalWebPublicRoute) {
+    NavHost(navController = navController, startDestination = LoginRoute) {
 
         // ─── Auth & Public Landing ──────────────────────────────────────────
 
         composable<SplashRoute> {
             SplashScreen(
                 onNavigateToLogin = {
-                    navController.navigate(GlobalWebPublicRoute) { popUpTo(SplashRoute) { inclusive = true } }
+                    navController.navigate(LoginRoute) { popUpTo(SplashRoute) { inclusive = true } }
                 },
                 onNavigateToDashboard = { role ->
                     navController.navigate(getStartDestinationForRole(role)) {

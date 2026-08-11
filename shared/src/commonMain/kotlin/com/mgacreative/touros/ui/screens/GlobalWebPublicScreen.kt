@@ -805,6 +805,7 @@ fun GlobalWebPublicScreen(
             } else if (userMode == "Acente" && (agencyActiveTab == "CREATE_BOOKING" || agencyActiveTab == "CATALOG")) {
                 item {
                     B2BTourSearchDashboardScreen(
+                        isEmbedded = true,
                         onNavigateBack = { agencyActiveTab = "BOOKINGS" },
                         onNavigateToBookings = {
                             agencyActiveTab = "BOOKINGS"
