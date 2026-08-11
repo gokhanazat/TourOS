@@ -191,20 +191,18 @@ fun LoginScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (selectedTab == "ACENTE") {
-                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                    TourOSTextField(
-                        value = agencyCode,
-                        onValueChange = { 
-                            agencyCode = it
-                            localValidationError = null
-                        },
-                        label = "Acente Kodu (B2B SaaS)",
-                        placeholder = "Örn: AGN-8492 / ACT-001 (gkhnazat@gmail.com hariç zorunludur)",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                TourOSTextField(
+                    value = agencyCode,
+                    onValueChange = { 
+                        agencyCode = it
+                        localValidationError = null
+                    },
+                    label = "Acente Kodu (B2B SaaS)",
+                    placeholder = "Örn: AGN-8492 / ACT-001",
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
@@ -224,7 +222,7 @@ fun LoginScreen(
 
                 // Primary Submit Button
                 TourOSButton(
-                    text = "Admin Girişi Yap",
+                    text = "Giriş Yap",
                     onClick = {
                         localValidationError = null
                         viewModel.login(email, password)
