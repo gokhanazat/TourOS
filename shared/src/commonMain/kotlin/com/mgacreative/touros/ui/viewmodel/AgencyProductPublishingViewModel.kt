@@ -292,7 +292,7 @@ class AgencyProductPublishingViewModel(
                 onSuccess(parsedEntities.size)
 
                 // 3. Supabase DB Upsert İşlemini ARKA PLANDA (Asenkron) Çalıştır
-                viewModelScope.launch(Dispatchers.IO) {
+                viewModelScope.launch(Dispatchers.Default) {
                     val chunks = parsedEntities.chunked(250)
                     var savedDbCount = 0
                     for (chunk in chunks) {
