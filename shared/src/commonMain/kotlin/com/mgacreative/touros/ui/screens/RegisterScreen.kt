@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.UserRole
 import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
