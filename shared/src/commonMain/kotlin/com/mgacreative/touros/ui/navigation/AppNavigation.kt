@@ -95,6 +95,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     title = AppLanguageManager.translate("Rezervasyonlar"),
                     route = BookingsRoute,
                     isSelected = currentRoute?.contains("BookingsRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Yeni Rezervasyon"),
+                    route = B2BTourSearchDashboardRoute,
+                    isSelected = currentRoute?.contains("B2BTourSearchDashboardRoute") == true
                 )
             )
         )
