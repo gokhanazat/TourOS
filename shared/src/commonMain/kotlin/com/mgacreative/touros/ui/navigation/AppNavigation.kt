@@ -42,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.collectAsState
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 
+import com.mgacreative.touros.ui.components.TourOSNavGroup
+
 // ─── Auth-only route'ları (shell gizlenir) ────────────────────────────────────
 private val authRoutePatterns = listOf(
     "SplashRoute", "LoginRoute", "RegisterRoute",
@@ -51,35 +53,142 @@ private val authRoutePatterns = listOf(
 private fun NavDestination?.isAuthRoute(): Boolean =
     authRoutePatterns.any { this?.route?.contains(it) == true }
 
-// ─── Menü Öğeleri ─────────────────────────────────────────────────────────────
-private fun buildNavItems(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavItem> {
-    val items = mutableListOf<TourOSNavItem>()
-    items.add(TourOSNavItem(AppLanguageManager.translate("Dashboard"), DashboardRoute, isSelected = currentRoute?.contains("DashboardRoute") == true))
+// ─── Menü Grupları ─────────────────────────────────────────────────────────────
+private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavGroup> {
+    val groups = mutableListOf<TourOSNavGroup>()
 
     if (isSystemAdmin) {
-        items.add(TourOSNavItem(AppLanguageManager.translate("Ana Web Yönetimi (CMS)"), GlobalWebCmsRoute, isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true))
-        items.add(TourOSNavItem(AppLanguageManager.translate("Canlı Web Platformu"), GlobalWebPublicRoute, isSelected = currentRoute?.contains("GlobalWebPublicRoute") == true))
+        groups.add(
+            TourOSNavGroup(
+                categoryTitle = AppLanguageManager.translate("WEB YÖNETİMİ"),
+                items = listOf(
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
+                        route = GlobalWebCmsRoute,
+                        isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Canlı Web"),
+                        route = GlobalWebPublicRoute,
+                        isSelected = currentRoute?.contains("GlobalWebPublicRoute") == true
+                    )
+                )
+            )
+        )
     }
 
-    items.addAll(listOf(
-        TourOSNavItem(AppLanguageManager.translate("Turlar"),           ToursRoute,                   isSelected = currentRoute?.contains("ToursRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Rezervasyon"),      BookingsRoute,                isSelected = currentRoute?.contains("BookingsRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Oteller"),          HotelListRoute,               isSelected = currentRoute?.contains("HotelListRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Tur Operatörleri"), AgencyOperatorConnectionsRoute, isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Ürünler"),           AgencyProductPublishingRoute, isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Fiyat & Kampanya"), DynamicPricingRuleEngineRoute, isSelected = currentRoute?.contains("DynamicPricingRuleEngineRoute") == true || currentRoute?.contains("CampaignCouponRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Finans"),           FinancialReportsRoute,        isSelected = currentRoute?.contains("FinancialReportsRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Fatura Yönetimi"),  InvoiceManagementRoute,       isSelected = currentRoute?.contains("InvoiceManagementRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Cari Hesaplar"),    CurrentAccountRoute,          isSelected = currentRoute?.contains("CurrentAccountRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Gider Girişi"),     SupplierExpenseRoute,         isSelected = currentRoute?.contains("SupplierExpenseRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Müşteriler & CRM"),  CustomerSegmentationRoute,    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Analitik & Trend"), AnalyticsChartsRoute,       isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Raporlar"),         ReportsRoute,                 isSelected = currentRoute?.contains("ReportsRoute") == true),
-        TourOSNavItem(AppLanguageManager.translate("Ayarlar & Dil"),    SettingsRoute,                isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true)
-    ))
-    return items
-}
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("TUR OPERATÖRLERİ"),
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Tur Operatörleri"),
+                    route = AgencyOperatorConnectionsRoute,
+                    isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Ürünler"),
+                    route = AgencyProductPublishingRoute,
+                    isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Rezervasyonlar"),
+                    route = BookingsRoute,
+                    isSelected = currentRoute?.contains("BookingsRoute") == true
+                )
+            )
+        )
+    )
 
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("MUHASEBE"),
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Finans"),
+                    route = FinancialReportsRoute,
+                    isSelected = currentRoute?.contains("FinancialReportsRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Fatura"),
+                    route = InvoiceManagementRoute,
+                    isSelected = currentRoute?.contains("InvoiceManagementRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Cari Hesap"),
+                    route = CurrentAccountRoute,
+                    isSelected = currentRoute?.contains("CurrentAccountRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Giderler"),
+                    route = SupplierExpenseRoute,
+                    isSelected = currentRoute?.contains("SupplierExpenseRoute") == true
+                )
+            )
+        )
+    )
+
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("ANALİTİK"),
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Dashboard"),
+                    route = DashboardRoute,
+                    isSelected = currentRoute?.contains("DashboardRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Analitik & Trend"),
+                    route = AnalyticsChartsRoute,
+                    isSelected = currentRoute?.contains("AnalyticsChartsRoute") == true || currentRoute?.contains("ComplaintTrendRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Raporlar"),
+                    route = ReportsRoute,
+                    isSelected = currentRoute?.contains("ReportsRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Müşteri & CRM"),
+                    route = CustomerSegmentationRoute,
+                    isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true
+                )
+            )
+        )
+    )
+
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("YEREL"),
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Yerel Tur"),
+                    route = ToursRoute,
+                    isSelected = currentRoute?.contains("ToursRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Yerel Otel"),
+                    route = HotelListRoute,
+                    isSelected = currentRoute?.contains("HotelListRoute") == true
+                )
+            )
+        )
+    )
+
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("AYARLAR"),
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Ayarlar & Dil"),
+                    route = SettingsRoute,
+                    isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true
+                )
+            )
+        )
+    )
+
+    return groups
+}
 
 /**
  * Ana uygulama navigasyon grafiği — tüm 76 ekran bağlı.
@@ -115,7 +224,8 @@ fun AppNavigation() {
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isExpanded = maxWidth >= 768.dp
-        val navItems = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavItems(currentRoute, isSystemAdmin) }
+        val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavGroups(currentRoute, isSystemAdmin) }
+        val navItems = remember(navGroups) { navGroups.flatMap { it.items } }
 
         // Mobil Bottom Bar için "☰ Menü" Butonlu Liste
         val menuDummyRoute = "HamburgerMenuOpen"
@@ -149,6 +259,7 @@ fun AppNavigation() {
                 if (showShell) {
                     TourOSSidebar(
                         items = navItems,
+                        groups = navGroups,
                         onItemSelect = { navigate(it.route) },
                         userName = displayName,
                         userRole = displayRole,
