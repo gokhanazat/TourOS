@@ -1315,6 +1315,7 @@ fun B2BTourSearchDashboardScreen(
                                     TourResultMatrixCard(
                                         product = item,
                                         isSelected = isSelected,
+                                        isFlightTab = (activeSearchTab == "FLIGHTS"),
                                         onSelectForBooking = {
                                             viewModel.selectProductForBooking(item)
                                             // Tur seçildiğinde anında Adım 2'ye (Uçuş & Ekstra Hizmetler) geçiş yap:
@@ -1666,6 +1667,7 @@ fun B2BTourSearchDashboardScreen(
 private fun TourResultMatrixCard(
     product: UnifiedProductEntity,
     isSelected: Boolean,
+    isFlightTab: Boolean = false,
     onSelectForBooking: () -> Unit
 ) {
     val marginCalculatedPrice = remember(product.price) { product.price * 1.125 }
@@ -1796,8 +1798,14 @@ private fun TourResultMatrixCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                val buttonText = when {
+                    isSelected -> AppLanguageManager.translate("Seçildi")
+                    isFlightTab -> AppLanguageManager.translate("Uçuş Seç")
+                    else -> AppLanguageManager.translate("Turu Seç & Detaylandır")
+                }
+
                 TourOSButton(
-                    text = if (isSelected) AppLanguageManager.translate("Seçildi") else AppLanguageManager.translate("Turu Seç & Detaylandır"),
+                    text = buttonText,
                     onClick = onSelectForBooking,
                     variant = if (isSelected) TourOSButtonVariant.SECONDARY else TourOSButtonVariant.PRIMARY
                 )

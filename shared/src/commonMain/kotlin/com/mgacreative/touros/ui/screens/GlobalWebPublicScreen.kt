@@ -1918,7 +1918,7 @@ fun HorizontalHotelCard(
                         color = Color(0xFF1E4D58) // Teal Dark Button
                     ) {
                         Text(
-                            text = if (isFlightCard) "⚡ Uçuşu Seç ➔" else "⚡ Turu Seç & Detaylandır ➔",
+                            text = if (isFlightCard) "⚡ Uçuş Seç ➔" else "⚡ Turu Seç & Detaylandır ➔",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
                             style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                         )
