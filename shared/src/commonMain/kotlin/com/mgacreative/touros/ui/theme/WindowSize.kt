@@ -3,6 +3,8 @@ package com.mgacreative.touros.ui.theme
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.WindowAdaptiveInfo
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
 
 /**
@@ -17,6 +19,23 @@ import androidx.window.core.layout.WindowSizeClass
 /** Ortak breakpoint değerleri */
 private const val MEDIUM_WIDTH_BREAKPOINT = 600
 private const val EXPANDED_WIDTH_BREAKPOINT = 840
+
+/**
+ * Ekran genişlik sınıfı (maxWidth Dp cinsinden).
+ */
+enum class WindowWidthClass {
+    COMPACT,
+    MEDIUM,
+    EXPANDED
+}
+
+fun getWindowWidthClass(width: Dp): WindowWidthClass {
+    return when {
+        width >= EXPANDED_WIDTH_BREAKPOINT.dp -> WindowWidthClass.EXPANDED
+        width >= MEDIUM_WIDTH_BREAKPOINT.dp -> WindowWidthClass.MEDIUM
+        else -> WindowWidthClass.COMPACT
+    }
+}
 
 /**
  * Navigasyon tipini belirler.

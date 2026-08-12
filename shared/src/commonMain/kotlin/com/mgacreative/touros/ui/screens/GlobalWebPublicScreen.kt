@@ -756,20 +756,18 @@ fun GlobalWebPublicScreen(
                                     .padding(2.dp),
                                 horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                listOf("🧳 Turist", "🏢 Acente Girişi").forEach { modeLabel ->
-                                    val isSel = (modeLabel.contains("Turist") && userMode == "Turist") || (modeLabel.contains("Acente") && userMode == "Acente")
+                                val agencyButtonText = if (currentUser != null) "🏢 Acente Paneli ➔" else "🏢 Acente Girişi"
+                                listOf("🧳 Turist Görünümü", agencyButtonText).forEach { modeLabel ->
+                                    val isSel = modeLabel.contains("Turist")
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(16.dp))
-                                            .background(if (isSel) Color(0xFF10B981) else Color.Transparent)
+                                            .background(if (isSel) Color(0xFF10B981) else Color(0xFF1E293B))
                                             .clickable {
                                                 if (modeLabel.contains("Turist")) {
                                                     userMode = "Turist"
                                                 } else {
-                                                    userMode = "Acente"
-                                                    if (currentUser == null) {
-                                                        showAgencyLoginModal = true
-                                                    }
+                                                    onNavigateToLogin()
                                                 }
                                             }
                                             .padding(horizontal = 10.dp, vertical = 5.dp),
@@ -777,7 +775,7 @@ fun GlobalWebPublicScreen(
                                     ) {
                                         Text(
                                             text = modeLabel,
-                                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal, fontSize = 11.sp)
+                                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                         )
                                     }
                                 }

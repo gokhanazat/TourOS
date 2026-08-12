@@ -49,11 +49,17 @@ fun B2BTourSearchDashboardScreen(
     val createdPnrCode by viewModel.createdPnrCode.collectAsState()
 
     var activeSearchTab by remember { mutableStateOf("TOURS") } // "TOURS", "HOTELS", "FLIGHTS", "LOCAL_TOURS", "LOCAL_HOTELS"
-    var departureCity by remember { mutableStateOf("Moskova") }
-    var selectedRegion by remember { mutableStateOf("Antalya") }
+    var departureCity by remember { mutableStateOf("") }
+    var selectedRegion by remember { mutableStateOf("") }
     var nights by remember { mutableStateOf(7) }
     var adults by remember { mutableStateOf(2) }
     var childs by remember { mutableStateOf(0) }
+
+    // Ayrıştırılmış ve Pop-up Açılır Takvim Destekli Tarih State'leri
+    var startDateText by remember { mutableStateOf("18.08.2026") }
+    var endDateText by remember { mutableStateOf("25.08.2026") }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     var selectedMealTypes by remember { mutableStateOf(setOf("UAI", "AI", "FB", "HB", "BB")) }
     var selectedOperators by remember { mutableStateOf(setOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Fun & Sun", "MGA Creative")) }
@@ -62,8 +68,37 @@ fun B2BTourSearchDashboardScreen(
     var isInstantOnly by remember { mutableStateOf(false) }
     var isPromoOnly by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var selectedHotels by remember { mutableStateOf(emptySet<String>()) }
+    var isRoundTrip by remember { mutableStateOf(true) }
     var activeStep by remember { mutableStateOf(1) }
     var showSuccessModal by remember { mutableStateOf(false) }
+
+    // Veritabanından gelen benzersiz Kalkış Şehirleri ve Destinasyonlar
+    val allDbProducts = (uiState as? B2BTourSearchUiState.Success)?.allProducts ?: emptyList()
+    val dbDepartureCities = remember(allDbProducts) {
+        allDbProducts.map { it.departureCity }.filter { it.isNotBlank() && it != "Yerel Otel" }.distinct().sorted().ifEmpty { listOf("Moskova", "Saint Petersburg", "Kazan", "Yekaterinburg", "İstanbul").sorted() }
+    }
+    val dbDestinations = remember(allDbProducts) {
+        allDbProducts.map { "${it.country} - ${it.region}" }.filter { it.isNotBlank() && !it.startsWith(" -") }.distinct().sorted().ifEmpty { listOf("Türkiye - Antalya", "Mısır - Sharm El Sheikh", "BAE - Dubai", "Rusya - Soçi").sorted() }
+    }
+
+    // Pop-Up Takvim Modalları
+    if (showStartDatePicker) {
+        SimpleDatePickerDialog(
+            title = "Gidiş Tarihi (Başlangıç) Seçin",
+            initialDateText = startDateText,
+            onDateSelected = { startDateText = it },
+            onDismissRequest = { showStartDatePicker = false }
+        )
+    }
+    if (showEndDatePicker) {
+        SimpleDatePickerDialog(
+            title = "Gidiş Tarihi (Bitiş) Seçin",
+            initialDateText = endDateText,
+            onDateSelected = { endDateText = it },
+            onDismissRequest = { showEndDatePicker = false }
+        )
+    }
 
     val content: @Composable (PaddingValues) -> Unit = { padding ->
         val columnModifier = if (isEmbedded) {
@@ -87,23 +122,23 @@ fun B2BTourSearchDashboardScreen(
 
             when (activeStep) {
                 1 -> {
-                    // ── 5 SEKMELİ B2B ARAMA PANERİ ───────────────────────────────────────────
+                    // ── TOUROS 0.3 DİLİNE UYGUN AKILLI B2B ARAMA PANERİ ───────────────────────────
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(14.dp))
-                            .background(Color.White)
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
+                            .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadius))
+                            .background(TourOSColors.Surface)
                     ) {
-                        // 1. ÜST SEKMELER (Turlar | Oteller | Uçuşlar | Yerel Turlar | Yerel Oteller)
+                        // 1. ÜST SEKMELER (TourOS Kurumsal Teması)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(Color(0xFF0F172A)),
+                                .background(TourOSColors.Primary),
                             horizontalArrangement = Arrangement.Start
                         ) {
                             listOf(
-                                "Turlar" to "TOURS",
+                                "Paket Turlar" to "TOURS",
                                 "Oteller" to "HOTELS",
                                 "Uçuşlar" to "FLIGHTS",
                                 "Yerel Turlar" to "LOCAL_TOURS",
@@ -112,15 +147,21 @@ fun B2BTourSearchDashboardScreen(
                                 val isSelected = (activeSearchTab == key)
                                 Surface(
                                     modifier = Modifier
-                                        .clickable { activeSearchTab = key },
-                                    color = if (isSelected) Color(0xFF0284C7) else Color.Transparent
+                                        .clickable { 
+                                            activeSearchTab = key 
+                                            if (key == "FLIGHTS") {
+                                                departureCity = ""
+                                                selectedRegion = ""
+                                            }
+                                        },
+                                    color = if (isSelected) TourOSColors.PrimaryContainer else Color.Transparent
                                 ) {
                                     Text(
                                         text = label,
-                                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 14.dp),
+                                        modifier = Modifier.padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
                                         style = TourOSTypography.TitleMedium.copy(
-                                            color = Color.White,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) TourOSColors.Primary else Color.White,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                             fontSize = 13.sp
                                         )
                                     )
@@ -128,330 +169,739 @@ fun B2BTourSearchDashboardScreen(
                             }
                         }
 
-                        // 2. MAVİ ARAMA BARI (Nereden | Nereye | Tarih Aralığı | Gece | Turist)
+                        // 2. AKILLI ARAMA BARI (Nereden | Nereye | Başlangıç Tarihi | Bitiş Tarihi | Gece | Turist)
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFF0284C7)
+                            color = TourOSColors.Background
                         ) {
                             Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                modifier = Modifier.padding(TourOSSpacing.large),
+                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    OutlinedTextField(
-                                        value = departureCity,
-                                        onValueChange = { departureCity = it },
-                                        label = { Text("Nerede (Kalkış Şehri)", color = Color.White, fontSize = 11.sp) },
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color.White,
-                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        modifier = Modifier.weight(1f),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
+                                var showDepartureDropdown by remember { mutableStateOf(false) }
+                                var showRegionDropdown by remember { mutableStateOf(false) }
+                                var showNightsDropdown by remember { mutableStateOf(false) }
+                                var showTouristsDropdown by remember { mutableStateOf(false) }
 
-                                    OutlinedTextField(
-                                        value = selectedRegion,
-                                        onValueChange = { selectedRegion = it },
-                                        label = { Text("Nereye (Destinasyon / Ülke)", color = Color.White, fontSize = 11.sp) },
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color.White,
-                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        modifier = Modifier.weight(1.2f),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
+                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
+                                    val isCompact = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.COMPACT
 
-                                    OutlinedTextField(
-                                        value = "18 Ağustos – 19 Ağustos",
-                                        onValueChange = { },
-                                        readOnly = true,
-                                        label = { Text("Kalkış Tarihi Aralığı", color = Color.White, fontSize = 11.sp) },
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color.White,
-                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        modifier = Modifier.width(170.dp),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
+                                    if (activeSearchTab == "FLIGHTS") {
+                                        // ── UÇUŞLAR SEKME ÖZEL ARAMA BARI (BİREBİR GÖRSELE UYGUN) ───────────
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // 1. NEREDEN DROPDOWN
+                                            Box(modifier = Modifier.weight(1.2f)) {
+                                                TourOSTextField(
+                                                    value = departureCity.ifBlank { "Tüm Kalkış Şehirleri" },
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Nereden (Kalkış Şehri)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .clickable { showDepartureDropdown = !showDepartureDropdown }
+                                                )
+                                                DropdownMenu(
+                                                    expanded = showDepartureDropdown && dbDepartureCities.isNotEmpty(),
+                                                    onDismissRequest = { showDepartureDropdown = false },
+                                                    modifier = Modifier.width(260.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                                                        DropdownMenuItem(
+                                                            text = { Text("✓ Tüm Kalkış Şehirleri (Tümü)", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary, fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                departureCity = ""
+                                                                showDepartureDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                            modifier = Modifier.height(28.dp)
+                                                        )
+                                                        HorizontalDivider(color = TourOSColors.Border)
+                                                        dbDepartureCities.forEach { city ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("✈️ $city", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    departureCity = city
+                                                                    showDepartureDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                                modifier = Modifier.height(28.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
 
-                                    OutlinedTextField(
-                                        value = "$nights Gece",
-                                        onValueChange = { },
-                                        readOnly = true,
-                                        label = { Text("Gece Sayısı", color = Color.White, fontSize = 11.sp) },
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color.White,
-                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        modifier = Modifier.width(110.dp),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
+                                            // 2. NEREYE DROPDOWN
+                                            Box(modifier = Modifier.weight(1.4f)) {
+                                                TourOSTextField(
+                                                    value = selectedRegion.ifBlank { "Tüm Destinasyonlar" },
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Nereye (Destinasyon / Ülke)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .clickable { showRegionDropdown = !showRegionDropdown }
+                                                )
+                                                DropdownMenu(
+                                                    expanded = showRegionDropdown && dbDestinations.isNotEmpty(),
+                                                    onDismissRequest = { showRegionDropdown = false },
+                                                    modifier = Modifier.width(300.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
+                                                        DropdownMenuItem(
+                                                            text = { Text("✓ Tüm Destinasyonlar / Ülkeler (Tümü)", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary, fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                selectedRegion = ""
+                                                                showRegionDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                            modifier = Modifier.height(28.dp)
+                                                        )
+                                                        HorizontalDivider(color = TourOSColors.Border)
+                                                        dbDestinations.forEach { dest ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("📍 $dest", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    selectedRegion = dest.substringAfter("- ").ifBlank { dest }
+                                                                    showRegionDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                                modifier = Modifier.height(28.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
 
-                                    OutlinedTextField(
-                                        value = "$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else ""),
-                                        onValueChange = { },
-                                        readOnly = true,
-                                        label = { Text("Turist Sayısı", color = Color.White, fontSize = 11.sp) },
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = Color.White,
-                                            unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
-                                            focusedTextColor = Color.White,
-                                            unfocusedTextColor = Color.White
-                                        ),
-                                        modifier = Modifier.width(130.dp),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
+                                            // 3. GİDİŞ TARİHİ
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = "$startDateText 📅",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Gidiş",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showStartDatePicker = true })
+                                            }
+
+                                            // 4. DÖNÜŞ TARİHİ (TEK YÖN İSE KİLİTLİ)
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = if (isRoundTrip) "$endDateText 📅" else "Tek Yön (Yok)",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    enabled = isRoundTrip,
+                                                    label = "Dönüş",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                if (isRoundTrip) {
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showEndDatePicker = true })
+                                                }
+                                            }
+
+                                            // 5. TEK YÖN / GİDİŞ-DÖNÜŞ SEÇİM KUTUCUKLARI
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                                                modifier = Modifier.padding(horizontal = 2.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.clickable { isRoundTrip = false }
+                                                ) {
+                                                    RadioButton(
+                                                        selected = !isRoundTrip,
+                                                        onClick = { isRoundTrip = false },
+                                                        colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary),
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text("Tek Yön", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                }
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.clickable { isRoundTrip = true }
+                                                ) {
+                                                    RadioButton(
+                                                        selected = isRoundTrip,
+                                                        onClick = { isRoundTrip = true },
+                                                        colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary),
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text("Gidiş-Dönüş", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                }
+                                            }
+
+                                            // 6. YOLCU SAYISI DROPDOWN
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Yolcu Sayısı",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
+                                                DropdownMenu(
+                                                    expanded = showTouristsDropdown,
+                                                    onDismissRequest = { showTouristsDropdown = false },
+                                                    modifier = Modifier.width(220.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    listOf(
+                                                        "1 Yetişkin" to (1 to 0),
+                                                        "2 Yetişkin" to (2 to 0),
+                                                        "2 Yetişkin + 1 Çocuk" to (2 to 1),
+                                                        "2 Yetişkin + 2 Çocuk" to (2 to 2),
+                                                        "3 Yetişkin" to (3 to 0),
+                                                        "4 Yetişkin" to (4 to 0)
+                                                    ).forEach { (label, counts) ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                adults = counts.first
+                                                                childs = counts.second
+                                                                showTouristsDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // 7. UÇUŞ ARA BUTONU
+                                            TourOSButton(
+                                                text = "UÇUŞ ARA",
+                                                onClick = { viewModel.performSearch() }
+                                            )
+                                        }
+                                    } else if (isCompact) {
+                                        // ── Mobil Dikey Düzen ────────────────────────────────
+                                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                            // 1. NEREDEN DROPDOWN
+                                            Box(modifier = Modifier.fillMaxWidth()) {
+                                                TourOSTextField(
+                                                    value = departureCity,
+                                                    onValueChange = {
+                                                        departureCity = it
+                                                        showDepartureDropdown = true
+                                                    },
+                                                    label = "Nereden (Kalkış Şehri)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                val matchingCities = dbDepartureCities.filter { isFuzzyMatch(departureCity, it) }
+                                                DropdownMenu(
+                                                    expanded = showDepartureDropdown && matchingCities.isNotEmpty(),
+                                                    onDismissRequest = { showDepartureDropdown = false },
+                                                    modifier = Modifier.fillMaxWidth(0.9f).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                                                        matchingCities.forEach { city ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("✈️ $city", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    departureCity = city
+                                                                    showDepartureDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. NEREYE DROPDOWN
+                                            Box(modifier = Modifier.fillMaxWidth()) {
+                                                TourOSTextField(
+                                                    value = selectedRegion,
+                                                    onValueChange = {
+                                                        selectedRegion = it
+                                                        showRegionDropdown = true
+                                                    },
+                                                    label = "Nereye (Destinasyon / Ülke)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                val matchingDest = dbDestinations.filter { isFuzzyMatch(selectedRegion, it) }
+                                                DropdownMenu(
+                                                    expanded = showRegionDropdown && matchingDest.isNotEmpty(),
+                                                    onDismissRequest = { showRegionDropdown = false },
+                                                    modifier = Modifier.fillMaxWidth(0.9f).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                                                        matchingDest.forEach { dest ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("📍 $dest", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    selectedRegion = dest.substringAfter("- ").ifBlank { dest }
+                                                                    showRegionDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 3 & 4. TAKVİM POP-UP SEÇİCİLERİ
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                            ) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TourOSTextField(
+                                                        value = "$startDateText 📅",
+                                                        onValueChange = { },
+                                                        readOnly = true,
+                                                        label = "Gidiş Başlangıç",
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showStartDatePicker = true })
+                                                }
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TourOSTextField(
+                                                        value = "$endDateText 📅",
+                                                        onValueChange = { },
+                                                        readOnly = true,
+                                                        label = "Gidiş Bitiş",
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showEndDatePicker = true })
+                                                }
+                                            }
+
+                                            // 5 & 6. GECE VE TURİST DROPDOWN'LARI
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                            ) {
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TourOSTextField(
+                                                        value = "$nights Gece ▼",
+                                                        onValueChange = { },
+                                                        readOnly = true,
+                                                        label = "Gece Sayısı",
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showNightsDropdown = !showNightsDropdown })
+                                                    DropdownMenu(
+                                                        expanded = showNightsDropdown,
+                                                        onDismissRequest = { showNightsDropdown = false },
+                                                        modifier = Modifier.width(140.dp).background(TourOSColors.Surface)
+                                                    ) {
+                                                        (1..14).forEach { n ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("$n Gece", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    nights = n
+                                                                    showNightsDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                Box(modifier = Modifier.weight(1f)) {
+                                                    TourOSTextField(
+                                                        value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                        onValueChange = { },
+                                                        readOnly = true,
+                                                        label = "Turist Sayısı",
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
+                                                    DropdownMenu(
+                                                        expanded = showTouristsDropdown,
+                                                        onDismissRequest = { showTouristsDropdown = false },
+                                                        modifier = Modifier.width(200.dp).background(TourOSColors.Surface)
+                                                     ) {
+                                                        listOf(
+                                                            "1 Yetişkin" to (1 to 0),
+                                                            "2 Yetişkin" to (2 to 0),
+                                                            "2 Yetişkin + 1 Çocuk" to (2 to 1),
+                                                            "2 Yetişkin + 2 Çocuk" to (2 to 2),
+                                                            "3 Yetişkin" to (3 to 0),
+                                                            "4 Yetişkin" to (4 to 0)
+                                                        ).forEach { (label, counts) ->
+                                                            DropdownMenuItem(
+                                                                text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    adults = counts.first
+                                                                    childs = counts.second
+                                                                    showTouristsDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else if (activeSearchTab == "FLIGHTS") {
+                                        // ── UÇUŞLAR SEKME ÖZEL ARAMA BARI (GÖRSELE UYGUN) ──────────────────────────
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // 1. NEREDEN DROPDOWN
+                                            Box(modifier = Modifier.weight(1.2f)) {
+                                                TourOSTextField(
+                                                    value = departureCity,
+                                                    onValueChange = {
+                                                        departureCity = it
+                                                        showDepartureDropdown = true
+                                                    },
+                                                    label = "Nereden (Kalkış Şehri)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                val matchingCities = dbDepartureCities.filter { isFuzzyMatch(departureCity, it) }
+                                                DropdownMenu(
+                                                    expanded = showDepartureDropdown && matchingCities.isNotEmpty(),
+                                                    onDismissRequest = { showDepartureDropdown = false },
+                                                    modifier = Modifier.width(240.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                                                        matchingCities.forEach { city ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("✈️ $city", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    departureCity = city
+                                                                    showDepartureDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. NEREYE DROPDOWN
+                                            Box(modifier = Modifier.weight(1.4f)) {
+                                                TourOSTextField(
+                                                    value = selectedRegion,
+                                                    onValueChange = {
+                                                        selectedRegion = it
+                                                        showRegionDropdown = true
+                                                    },
+                                                    label = "Nereye (Destinasyon / Ülke)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                val matchingDest = dbDestinations.filter { isFuzzyMatch(selectedRegion, it) }
+                                                DropdownMenu(
+                                                    expanded = showRegionDropdown && matchingDest.isNotEmpty(),
+                                                    onDismissRequest = { showRegionDropdown = false },
+                                                    modifier = Modifier.width(300.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                                                        matchingDest.forEach { dest ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("📍 $dest", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    selectedRegion = dest.substringAfter("- ").ifBlank { dest }
+                                                                    showRegionDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 3. GİDİŞ TARİHİ
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = "$startDateText 📅",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Gidiş",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showStartDatePicker = true })
+                                            }
+
+                                            // 4. DÖNÜŞ TARİHİ (TEK YÖN İSE KİLİTLİ)
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = if (isRoundTrip) "$endDateText 📅" else "Tek Yön (Yok)",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    enabled = isRoundTrip,
+                                                    label = "Dönüş",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                if (isRoundTrip) {
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showEndDatePicker = true })
+                                                }
+                                            }
+
+                                            // 5. TEK YÖN / GİDİŞ-DÖNÜŞ SEÇİM KUTUCUKLARI
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                                                modifier = Modifier.padding(horizontal = 2.dp)
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.clickable { isRoundTrip = false }
+                                                ) {
+                                                    RadioButton(
+                                                        selected = !isRoundTrip,
+                                                        onClick = { isRoundTrip = false },
+                                                        colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary),
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text("Tek Yön", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                }
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.clickable { isRoundTrip = true }
+                                                ) {
+                                                    RadioButton(
+                                                        selected = isRoundTrip,
+                                                        onClick = { isRoundTrip = true },
+                                                        colors = RadioButtonDefaults.colors(selectedColor = TourOSColors.Primary),
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(2.dp))
+                                                    Text("Gidiş-Dönüş", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                }
+                                            }
+
+                                            // 6. YOLCU SAYISI DROPDOWN
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Yolcu Sayısı",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
+                                                DropdownMenu(
+                                                    expanded = showTouristsDropdown,
+                                                    onDismissRequest = { showTouristsDropdown = false },
+                                                    modifier = Modifier.width(220.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    listOf(
+                                                        "1 Yetişkin" to (1 to 0),
+                                                        "2 Yetişkin" to (2 to 0),
+                                                        "2 Yetişkin + 1 Çocuk" to (2 to 1),
+                                                        "2 Yetişkin + 2 Çocuk" to (2 to 2),
+                                                        "3 Yetişkin" to (3 to 0),
+                                                        "4 Yetişkin" to (4 to 0)
+                                                    ).forEach { (label, counts) ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                adults = counts.first
+                                                                childs = counts.second
+                                                                showTouristsDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        // ── Masaüstü & Tablet Yan Yana Esnek Düzen ───────────
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // 1. NEREDEN DROPDOWN
+                                            Box(modifier = Modifier.weight(1.2f)) {
+                                                TourOSTextField(
+                                                    value = departureCity,
+                                                    onValueChange = {
+                                                        departureCity = it
+                                                        showDepartureDropdown = true
+                                                    },
+                                                    label = "Nereden (Kalkış Şehri)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                val matchingCities = dbDepartureCities.filter { isFuzzyMatch(departureCity, it) }
+                                                DropdownMenu(
+                                                    expanded = showDepartureDropdown && matchingCities.isNotEmpty(),
+                                                    onDismissRequest = { showDepartureDropdown = false },
+                                                    modifier = Modifier.width(240.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                                                        matchingCities.forEach { city ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("✈️ $city", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    departureCity = city
+                                                                    showDepartureDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. NEREYE DROPDOWN
+                                            Box(modifier = Modifier.weight(1.5f)) {
+                                                TourOSTextField(
+                                                    value = selectedRegion,
+                                                    onValueChange = {
+                                                        selectedRegion = it
+                                                        showRegionDropdown = true
+                                                    },
+                                                    label = "Nereye (Destinasyon / Ülke)",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                val matchingDest = dbDestinations.filter { isFuzzyMatch(selectedRegion, it) }
+                                                DropdownMenu(
+                                                    expanded = showRegionDropdown && matchingDest.isNotEmpty(),
+                                                    onDismissRequest = { showRegionDropdown = false },
+                                                    modifier = Modifier.width(300.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
+                                                        matchingDest.forEach { dest ->
+                                                            DropdownMenuItem(
+                                                                text = { Text("📍 $dest", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                onClick = {
+                                                                    selectedRegion = dest.substringAfter("- ").ifBlank { dest }
+                                                                    showRegionDropdown = false
+                                                                },
+                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 3. GİDİŞ BAŞLANGIÇ TARİHİ (POP-UP TAKVİMLİ)
+                                            Box(modifier = Modifier.weight(1.2f)) {
+                                                TourOSTextField(
+                                                    value = "$startDateText 📅",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Gidiş Başlangıç",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showStartDatePicker = true })
+                                            }
+
+                                            // 4. GİDİŞ BİTİŞ TARİHİ (POP-UP TAKVİMLİ)
+                                            Box(modifier = Modifier.weight(1.2f)) {
+                                                TourOSTextField(
+                                                    value = "$endDateText 📅",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Gidiş Bitiş",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showEndDatePicker = true })
+                                            }
+
+                                            // 5. GECE SAYISI DROPDOWN
+                                            Box(modifier = Modifier.weight(0.9f)) {
+                                                TourOSTextField(
+                                                    value = "$nights Gece ▼",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Gece Sayısı",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showNightsDropdown = !showNightsDropdown })
+                                                DropdownMenu(
+                                                    expanded = showNightsDropdown,
+                                                    onDismissRequest = { showNightsDropdown = false },
+                                                    modifier = Modifier.width(140.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    (1..14).forEach { n ->
+                                                        DropdownMenuItem(
+                                                            text = { Text("$n Gece", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                nights = n
+                                                                showNightsDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // 6. TURİST SAYISI DROPDOWN
+                                            Box(modifier = Modifier.weight(1.1f)) {
+                                                TourOSTextField(
+                                                    value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Turist Sayısı",
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
+                                                DropdownMenu(
+                                                    expanded = showTouristsDropdown,
+                                                    onDismissRequest = { showTouristsDropdown = false },
+                                                    modifier = Modifier.width(220.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    listOf(
+                                                        "1 Yetişkin" to (1 to 0),
+                                                        "2 Yetişkin" to (2 to 0),
+                                                        "2 Yetişkin + 1 Çocuk" to (2 to 1),
+                                                        "2 Yetişkin + 2 Çocuk" to (2 to 2),
+                                                        "3 Yetişkin" to (3 to 0),
+                                                        "4 Yetişkin" to (4 to 0)
+                                                    ).forEach { (label, counts) ->
+                                                        DropdownMenuItem(
+                                                            text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                adults = counts.first
+                                                                childs = counts.second
+                                                                showTouristsDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
 
+                                // Destinasyon Hızlı Çip Filtreleri (UÇUŞLAR Sekmesinde Gizlendi)
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        listOf("Moskova", "Saint Petersburg").forEach { city ->
-                                            Surface(
-                                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { departureCity = city },
-                                                color = if (departureCity == city) Color.White else Color.White.copy(alpha = 0.2f)
-                                            ) {
-                                                Text(city, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = TourOSTypography.Caption.copy(color = if (departureCity == city) Color(0xFF0284C7) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                                    if (activeSearchTab != "FLIGHTS") {
+                                        Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                            Text("Destinasyonlar:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                            dbDestinations.take(3).forEach { dest ->
+                                                val shortName = dest.substringAfter("- ").ifBlank { dest }
+                                                TourOSStatusBadge(
+                                                    text = shortName,
+                                                    backgroundColor = if (selectedRegion.contains(shortName, ignoreCase = true)) TourOSColors.PrimaryContainer else TourOSColors.Surface,
+                                                    textColor = if (selectedRegion.contains(shortName, ignoreCase = true)) TourOSColors.Primary else TourOSColors.TextSecondary,
+                                                    modifier = Modifier.clickable { selectedRegion = shortName }
+                                                )
                                             }
                                         }
-                                    }
-
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        listOf("Rusya", "Türkiye", "Mısır", "Birleşik Arap Emirlikleri").forEach { cnt ->
-                                            Surface(
-                                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { selectedRegion = cnt },
-                                                color = if (selectedRegion == cnt) Color.White else Color.White.copy(alpha = 0.2f)
-                                            ) {
-                                                Text(cnt, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = TourOSTypography.Caption.copy(color = if (selectedRegion == cnt) Color(0xFF0284C7) else Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold))
-                                            }
-                                        }
-                                    }
-
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        listOf("7", "6-8", "7-10", "7-14").forEach { nOpt ->
-                                            Surface(
-                                                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { nights = nOpt.split("-").first().toIntOrNull() ?: 7 },
-                                                color = Color.White.copy(alpha = 0.25f)
-                                            ) {
-                                                Text(nOpt, modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp), style = TourOSTypography.Caption.copy(color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // 3. 4 KOLONLU PROFESYONEL DETAYLI ARAMA BÖLÜMÜ (Referans Görsel Tasarımı)
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = Color(0xFFF1F5F9),
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                            shape = RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(14.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // KOLON 1: TATİL YERİ (Destinasyon & Tatil Köyleri)
-                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Tatil Yeri", style = TourOSTypography.Caption.copy(color = Color(0xFF1E293B), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        placeholder = { Text("Tesisin adı", fontSize = 11.sp) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = true, onCheckedChange = { })
-                                        Text("Tüm tatil köyleri", style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
-                                    }
-
-                                    Text("Popüler tatil yerleri", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold))
-
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        listOf("Alanya", "Antalya", "Belek", "İzmir", "Kemer", "Marmaris").forEach { reg ->
-                                            val isChecked = selectedRegion.contains(reg, ignoreCase = true)
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth().clickable { selectedRegion = reg },
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Checkbox(checked = isChecked, onCheckedChange = { selectedRegion = reg })
-                                                Text(reg, style = TourOSTypography.Caption.copy(fontSize = 11.sp, color = if (isChecked) Color(0xFF0284C7) else Color(0xFF334155)))
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // KOLON 2: OTEL KATEGORİSİ, BESLENME TİPİ VE FİYAT ARALIĞI (Kırmızı X İle İşaretlenenler Çıkarıldı)
-                                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Otel Kategorisi", style = TourOSTypography.Caption.copy(color = Color(0xFF1E293B), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        listOf(5, 4, 3).forEach { star ->
-                                            val isSel = selectedStars.contains(star)
-                                            FilterChip(
-                                                selected = isSel,
-                                                onClick = { selectedStars = if (isSel) selectedStars - star else selectedStars + star },
-                                                label = { Text("$star★", fontSize = 10.sp) }
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                    Text("Beslenme Tipi", style = TourOSTypography.Caption.copy(color = Color(0xFF1E293B), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                        listOf("BB", "HB", "FB", "AI", "UAI").forEach { mType ->
-                                            val isSel = selectedMealTypes.contains(mType)
-                                            FilterChip(
-                                                selected = isSel,
-                                                onClick = { selectedMealTypes = if (isSel) selectedMealTypes - mType else selectedMealTypes + mType },
-                                                label = { Text(mType, fontSize = 9.sp) }
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                    Text("Fiyat Aralığı", style = TourOSTypography.Caption.copy(color = Color(0xFF1E293B), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        OutlinedTextField(
-                                            value = "0",
-                                            onValueChange = { },
-                                            placeholder = { Text("itibaren", fontSize = 10.sp) },
-                                            modifier = Modifier.width(65.dp),
-                                            shape = RoundedCornerShape(4.dp)
-                                        )
-                                        Text("-", fontSize = 12.sp)
-                                        OutlinedTextField(
-                                            value = "5000",
-                                            onValueChange = { },
-                                            placeholder = { Text("ile", fontSize = 10.sp) },
-                                            modifier = Modifier.width(65.dp),
-                                            shape = RoundedCornerShape(4.dp)
-                                        )
-                                        Text("EUR", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold))
-                                    }
-                                }
-
-                                // KOLON 3: OTELLER (PARAMETRELER VE CANLI ARAMA)
-                                Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Oteller: Parametreler ve Arama", style = TourOSTypography.Caption.copy(color = Color(0xFF1E293B), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { searchQuery = it },
-                                        placeholder = { Text("Otel adı ile ara...", fontSize = 11.sp) },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = true, onCheckedChange = { })
-                                        Text("Tüm oteller", style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
-                                    }
-
-                                    // Canlı Veritabanı Otel Listesi
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth().height(140.dp),
-                                        color = Color.White,
-                                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(6.dp).verticalScroll(rememberScrollState()),
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            listOf(
-                                                "Grand Resort Yerel Otel & Spa" to "5★ (9.0)",
-                                                "Akra Hotel Antalya" to "5★ (9.2)",
-                                                "Rixos Premium Belek" to "5★ (9.5)",
-                                                "Titanic Mardan Palace" to "5★ (9.1)",
-                                                "10 Karaköy İstanbul" to "5★ (9.0)"
-                                            ).forEach { (hName, rating) ->
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth().clickable { searchQuery = hName },
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        Checkbox(checked = searchQuery.contains(hName), onCheckedChange = { searchQuery = hName })
-                                                        Text(hName, style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = Color(0xFF334155)))
-                                                    }
-                                                    Text(rating, style = TourOSTypography.Caption.copy(fontSize = 9.sp, color = Color(0xFF0284C7), fontWeight = FontWeight.Bold))
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // KOLON 4: TUR OPERATÖRÜ & BUTON
-                                Column(modifier = Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Tur Operatörü", style = TourOSTypography.Caption.copy(color = Color(0xFF1E293B), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = selectedOperators.isEmpty(), onCheckedChange = { selectedOperators = emptySet() })
-                                        Text("Tüm tur operatörleri", style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
-                                    }
-
-                                    // Canlı Operatör Seçim Listesi
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth().height(100.dp),
-                                        color = Color.White,
-                                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(4.dp).verticalScroll(rememberScrollState()),
-                                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                                        ) {
-                                            listOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Fun & Sun", "MGA Creative", "Yerel Turlar", "Yerel Oteller").forEach { op ->
-                                                val isChecked = selectedOperators.contains(op) || selectedOperators.isEmpty()
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth().clickable {
-                                                        selectedOperators = if (selectedOperators.contains(op)) selectedOperators - op else selectedOperators + op
-                                                    },
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Checkbox(checked = isChecked, onCheckedChange = {
-                                                        selectedOperators = if (isChecked) selectedOperators - op else selectedOperators + op
-                                                    })
-                                                    Text(op, style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = Color(0xFF334155)))
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    val isInstantConf by viewModel.isInstantConfirmationOnly.collectAsState()
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = isInstantConf, onCheckedChange = { viewModel.isInstantConfirmationOnly.value = it })
-                                        Text("Anında onay", style = TourOSTypography.Caption.copy(fontSize = 10.sp))
+                                    } else {
+                                        Spacer(modifier = Modifier.width(1.dp))
                                     }
 
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         TextButton(onClick = {
@@ -459,17 +909,336 @@ fun B2BTourSearchDashboardScreen(
                                             selectedMealTypes = emptySet()
                                             selectedOperators = emptySet()
                                             searchQuery = ""
+                                            selectedHotels = emptySet()
                                         }) {
-                                            Text("↺ Filtreleri sıfırla", style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = Color(0xFF64748B)))
+                                            Text("↺ Sıfırla", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
                                         }
 
-                                        Button(
-                                            onClick = { viewModel.performSearch() },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEAB308)),
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.height(42.dp)
+                                        if (activeSearchTab != "FLIGHTS") {
+                                            TourOSButton(
+                                                text = "TURLARI BUL",
+                                                onClick = { viewModel.performSearch() }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. TOUROS 0.3 TASARIM DİLİNE UYGUN AÇILIR-KAPANIR DETAYLI FİLTRE PANERİ
+                        var isDetailFilterExpanded by remember { mutableStateOf(true) }
+
+                        // Dış Paket Tur Operatörleri (Yerel Turlar ve Yerel Oteller Filtrelendi)
+                        val dbOperators = remember(allDbProducts) {
+                            allDbProducts.map { it.safeOperatorName }
+                                .filter { it.isNotBlank() && !it.contains("YEREL", ignoreCase = true) && !it.contains("ACENTE", ignoreCase = true) }
+                                .distinct()
+                                .ifEmpty { listOf("Coral Travel", "Pegas Touristik", "Anex Tour", "FUN&SUN (TUI)", "Biblio-Globus", "Turkish Airlines") }
+                        }
+                        // Sadece Ürünlerdeki (Paket Turlardaki) Oteller (Uçuş kayıtları filtrelendi)
+                        val dbProductHotels = remember(allDbProducts) {
+                            allDbProducts.filter { !it.id.startsWith("local-hotel-") && !it.id.startsWith("local-tour-") && it.safeProductType != "LOCAL_HOTEL" && it.safeProductType != "LOCAL_TOUR" }
+                                .map { it.safeHotelName }
+                                .filter { h -> 
+                                    h.isNotBlank() && 
+                                    !h.startsWith("Uçuş:", ignoreCase = true) && 
+                                    !h.startsWith("Fly:", ignoreCase = true) && 
+                                    !h.contains("➔")
+                                }
+                                .distinct()
+                                .ifEmpty { listOf("Grand Resort Hotel & Spa", "Akra Hotel Antalya", "Rixos Premium Belek", "Titanic Mardan Palace", "Nirvana Cosmopolitan") }
+                        }
+                        val dbMealTypes = remember(allDbProducts) {
+                            listOf("UAI", "AI", "FB", "HB", "BB")
+                        }
+
+                        var showOperatorDropdown by remember { mutableStateOf(false) }
+                        var operatorSearchText by remember { mutableStateOf("") }
+                        var showHotelDropdown by remember { mutableStateOf(false) }
+
+                        if (activeSearchTab != "FLIGHTS") {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = TourOSColors.Surface,
+                                border = BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+                                shape = RoundedCornerShape(bottomStart = TourOSSpacing.cornerRadius, bottomEnd = TourOSSpacing.cornerRadius)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(TourOSSpacing.large),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                ) {
+                                    // FİLTRE BAŞLIK VE AÇILIR/KAPANIR TETİKLEYİCİ
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                            modifier = Modifier.clickable { isDetailFilterExpanded = !isDetailFilterExpanded }
                                         ) {
-                                            Text("TURLARI BULUN", style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp))
+                                            Text(
+                                                text = "🔍 Detaylı Filtreler (Operatör, Beslenme, Otel & Yıldız)",
+                                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                            )
+                                            Text(
+                                                text = if (isDetailFilterExpanded) "▲ (Gizle)" else "▼ (Göster)",
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(onClick = {
+                                                selectedStars = setOf(3, 4, 5)
+                                                selectedMealTypes = emptySet()
+                                                selectedOperators = emptySet()
+                                                searchQuery = ""
+                                                operatorSearchText = ""
+                                            }) {
+                                                Text("↺ Filtreleri Sıfırla", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                            }
+
+                                            TourOSButton(
+                                                text = "TURLARI BUL",
+                                                onClick = { viewModel.performSearch() }
+                                            )
+                                        }
+                                    }
+
+                                    // İÇERİK (GENİŞLETİLDİĞİNDE GÖRÜNÜR)
+                                    if (isDetailFilterExpanded) {
+                                        HorizontalDivider(color = TourOSColors.Border)
+
+                                        // SATIR 1: TUR OPERATÖRLERİ AÇILIR ARAMA KUTUSU & BESLENME & YILDIZ
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            // 1. TUR OPERATÖRÜ AÇILIR KUTUSU (SEARCHABLE DROPDOWN - DAR SATIRLI)
+                                            Box(modifier = Modifier.weight(1.2f)) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    TourOSTextField(
+                                                        value = if (selectedOperators.isEmpty()) "Tüm Tur Operatörleri (${dbOperators.size})" else selectedOperators.joinToString(", "),
+                                                        onValueChange = { },
+                                                        readOnly = true,
+                                                        label = "🏢 Tur Operatörü Seçin",
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                }
+
+                                                // Tıklama yakalayıcı katman
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .clickable { showOperatorDropdown = !showOperatorDropdown }
+                                                )
+
+                                                DropdownMenu(
+                                                    expanded = showOperatorDropdown,
+                                                    onDismissRequest = { showOperatorDropdown = false },
+                                                    modifier = Modifier.width(360.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        OutlinedTextField(
+                                                            value = operatorSearchText,
+                                                            onValueChange = { operatorSearchText = it },
+                                                            placeholder = { Text("Operatör adı ara...", fontSize = 12.sp) },
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            shape = RoundedCornerShape(6.dp),
+                                                            singleLine = true
+                                                        )
+
+                                                        DropdownMenuItem(
+                                                            text = { Text("✓ Tüm Tur Operatörleri", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary, fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                selectedOperators = emptySet()
+                                                                showOperatorDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                        )
+                                                        HorizontalDivider(color = TourOSColors.Border)
+
+                                                        val filteredOps = dbOperators.filter { it.contains(operatorSearchText, ignoreCase = true) }
+                                                        Column(
+                                                            modifier = Modifier.heightIn(max = 260.dp).verticalScroll(rememberScrollState()),
+                                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                                        ) {
+                                                            filteredOps.forEach { op ->
+                                                                val isChecked = selectedOperators.contains(op)
+                                                                Row(
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth()
+                                                                        .clip(RoundedCornerShape(4.dp))
+                                                                        .clickable {
+                                                                            selectedOperators = if (isChecked) selectedOperators - op else selectedOperators + op
+                                                                        }
+                                                                        .padding(vertical = 3.dp, horizontal = 6.dp),
+                                                                    verticalAlignment = Alignment.CenterVertically
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .size(18.dp)
+                                                                            .clip(RoundedCornerShape(4.dp))
+                                                                            .background(if (isChecked) TourOSColors.Primary else Color.Transparent)
+                                                                            .border(1.dp, if (isChecked) TourOSColors.Primary else TourOSColors.Border, RoundedCornerShape(4.dp)),
+                                                                        contentAlignment = Alignment.Center
+                                                                    ) {
+                                                                        if (isChecked) {
+                                                                            Text("✓", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                                                        }
+                                                                    }
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    Text(op, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp))
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. BESLENME / KONSEPT (ÇOKLU SEÇİM)
+                                            Column(modifier = Modifier.weight(1.5f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text("🍴 Beslenme / Konsept:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                                    dbMealTypes.forEach { meal ->
+                                                        val isSelected = selectedMealTypes.contains(meal)
+                                                        FilterChip(
+                                                            selected = isSelected,
+                                                            onClick = {
+                                                                selectedMealTypes = if (isSelected) selectedMealTypes - meal else selectedMealTypes + meal
+                                                            },
+                                                            label = { Text(meal, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                            colors = FilterChipDefaults.filterChipColors(
+                                                                selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                selectedLabelColor = TourOSColors.Primary
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // 3. OTEL KATEGORİSİ (YILDIZ)
+                                            Column(modifier = Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text("⭐ Otel Kategorisi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                                                    listOf(5, 4, 3).forEach { star ->
+                                                        val isSelected = selectedStars.contains(star)
+                                                        FilterChip(
+                                                            selected = isSelected,
+                                                            onClick = {
+                                                                selectedStars = if (isSelected) selectedStars - star else selectedStars + star
+                                                            },
+                                                            label = { Text("$star★", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                            colors = FilterChipDefaults.filterChipColors(
+                                                                selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                selectedLabelColor = TourOSColors.Primary
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        HorizontalDivider(color = TourOSColors.Border)
+
+                                        // SATIR 2: PAKET TUR OTELLERİ (ÇOKLU SEÇİLEBİLİR AÇILIR KUTU - SADECE PAKET TUR OTELLERİ)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(modifier = Modifier.weight(2f)) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    TourOSTextField(
+                                                        value = if (selectedHotels.isEmpty()) "Tüm Paket Tur Otelleri (${dbProductHotels.size})" else selectedHotels.joinToString(", "),
+                                                        onValueChange = { },
+                                                        readOnly = true,
+                                                        label = "🏨 Paket Tur Otelleri Seçin (Tümü)",
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    )
+                                                }
+
+                                                // Tıklama yakalayıcı katman
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .clickable { showHotelDropdown = !showHotelDropdown }
+                                                )
+
+                                                DropdownMenu(
+                                                    expanded = showHotelDropdown,
+                                                    onDismissRequest = { showHotelDropdown = false },
+                                                    modifier = Modifier.width(420.dp).background(TourOSColors.Surface)
+                                                ) {
+                                                    Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        DropdownMenuItem(
+                                                            text = { Text("✓ Tüm Paket Tur Otelleri", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary, fontSize = 12.sp)) },
+                                                            onClick = {
+                                                                selectedHotels = emptySet()
+                                                                showHotelDropdown = false
+                                                            },
+                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                        )
+                                                        HorizontalDivider(color = TourOSColors.Border)
+
+                                                        Column(
+                                                            modifier = Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
+                                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                                        ) {
+                                                            dbProductHotels.forEach { hotelName ->
+                                                                val isChecked = selectedHotels.contains(hotelName)
+                                                                Row(
+                                                                    modifier = Modifier
+                                                                        .fillMaxWidth()
+                                                                        .clip(RoundedCornerShape(4.dp))
+                                                                        .clickable {
+                                                                            selectedHotels = if (isChecked) selectedHotels - hotelName else selectedHotels + hotelName
+                                                                        }
+                                                                        .padding(vertical = 3.dp, horizontal = 6.dp),
+                                                                    verticalAlignment = Alignment.CenterVertically
+                                                                ) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .size(18.dp)
+                                                                            .clip(RoundedCornerShape(4.dp))
+                                                                            .background(if (isChecked) TourOSColors.Primary else Color.Transparent)
+                                                                            .border(1.dp, if (isChecked) TourOSColors.Primary else TourOSColors.Border, RoundedCornerShape(4.dp)),
+                                                                        contentAlignment = Alignment.Center
+                                                                    ) {
+                                                                        if (isChecked) {
+                                                                            Text("✓", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                                                        }
+                                                                    }
+                                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                                    Text(hotelName, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp))
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            Row(
+                                                modifier = Modifier.weight(1f),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                            ) {
+                                                var isInstantConf by remember { mutableStateOf(false) }
+                                                Checkbox(
+                                                    checked = isInstantConf,
+                                                    onCheckedChange = { viewModel.isInstantConfirmationOnly.value = it },
+                                                    colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                                                )
+                                                Text(
+                                                    text = "⚡ Anında Onaylı Turlar",
+                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -496,14 +1265,29 @@ fun B2BTourSearchDashboardScreen(
                             val products = rawProducts.filter { item ->
                                 val pType = item.safeProductType.uppercase()
                                 val opName = item.safeOperatorName.uppercase()
-                                when (activeSearchTab) {
-                                    "TOURS" -> pType.contains("TOUR") || pType.contains("PACKAGE") || (pType.isBlank() && !pType.contains("FLIGHT"))
-                                    "HOTELS" -> pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank())
-                                    "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank()
-                                    "LOCAL_TOURS" -> opName.contains("YEREL") || opName.contains("MGA") || pType.contains("LOCAL_TOUR")
-                                    "LOCAL_HOTELS" -> opName.contains("YEREL") || opName.contains("ACENTE") || pType.contains("LOCAL_HOTEL")
+                                val isLocalHotel = item.id.startsWith("local-hotel-") || pType == "LOCAL_HOTEL" || opName == "YEREL OTELLER"
+                                val isLocalTour = item.id.startsWith("local-tour-") || pType == "LOCAL_TOUR" || opName == "YEREL TURLAR"
+
+                                val tabMatch = when (activeSearchTab) {
+                                    "TOURS" -> !isLocalHotel && !isLocalTour && (pType.contains("TOUR") || pType.contains("PACKAGE") || (pType.isBlank() && !pType.contains("FLIGHT")))
+                                    "HOTELS" -> !isLocalHotel && !isLocalTour && (pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank()))
+                                    "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank() || item.tourName.contains("Uçuş", ignoreCase = true)
+                                    "LOCAL_TOURS" -> isLocalTour
+                                    "LOCAL_HOTELS" -> isLocalHotel
                                     else -> true
                                 }
+
+                                val isFlightTab = (activeSearchTab == "FLIGHTS")
+                                val operatorMatch = isFlightTab || selectedOperators.isEmpty() || selectedOperators.any { op -> item.safeOperatorName.contains(op, ignoreCase = true) }
+                                val mealMatch = isFlightTab || selectedMealTypes.isEmpty() || selectedMealTypes.any { m -> item.safeMealType.contains(m, ignoreCase = true) }
+                                val starMatch = isFlightTab || selectedStars.isEmpty() || selectedStars.contains(item.hotelCategory)
+                                val hotelMatch = isFlightTab || selectedHotels.isEmpty() || selectedHotels.any { hName -> item.safeHotelName.contains(hName, ignoreCase = true) }
+                                val queryMatch = searchQuery.isBlank() || item.safeHotelName.contains(searchQuery, ignoreCase = true) || item.tourName.contains(searchQuery, ignoreCase = true) || item.region.contains(searchQuery, ignoreCase = true)
+
+                                val flightDepMatch = !isFlightTab || departureCity.isBlank() || item.departureCity.contains(departureCity, ignoreCase = true)
+                                val flightDestMatch = !isFlightTab || selectedRegion.isBlank() || item.region.contains(selectedRegion, ignoreCase = true) || item.country.contains(selectedRegion, ignoreCase = true)
+
+                                tabMatch && operatorMatch && mealMatch && starMatch && hotelMatch && queryMatch && flightDepMatch && flightDestMatch
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
@@ -512,8 +1296,10 @@ fun B2BTourSearchDashboardScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    val foundTitle = if (activeSearchTab == "FLIGHTS") "Bulunan Uçuş Seferleri" else "Bulunan Tur Seçenekleri"
+                                    val foundCountLabel = if (activeSearchTab == "FLIGHTS") "Uçuş Seferi Bulundu" else "Tur Bulundu"
                                     Text(
-                                        text = "2. ${AppLanguageManager.translate("Bulunan Tur Seçenekleri")} (${products.size} ${AppLanguageManager.translate("Tur Bulundu")})",
+                                        text = "2. ${AppLanguageManager.translate(foundTitle)} (${products.size} ${AppLanguageManager.translate(foundCountLabel)})",
                                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                                         fontWeight = FontWeight.Bold
                                     )
@@ -1417,4 +2203,109 @@ private fun PassengerFormCardItem(
             }
         }
     }
+}
+
+@Composable
+private fun SimpleDatePickerDialog(
+    title: String,
+    initialDateText: String,
+    onDateSelected: (String) -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    var selectedDay by remember { mutableStateOf(initialDateText.take(2).toIntOrNull() ?: 18) }
+    var selectedMonth by remember { mutableStateOf("Ağustos") }
+    var selectedYear by remember { mutableStateOf("2026") }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TourOSButton(
+                text = "Tarihi Seç",
+                onClick = {
+                    val formatted = "${selectedDay.toString().padStart(2, '0')}.08.2026"
+                    onDateSelected(formatted)
+                    onDismissRequest()
+                }
+            )
+        },
+        dismissButton = {
+            TourOSButton(
+                text = "İptal",
+                variant = TourOSButtonVariant.TERTIARY,
+                onClick = onDismissRequest
+            )
+        },
+        title = {
+            Text(
+                text = title,
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                Text(
+                    text = "📅 $selectedMonth $selectedYear",
+                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz").forEach { dayName ->
+                        Text(
+                            text = dayName,
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary),
+                            modifier = Modifier.width(32.dp)
+                        )
+                    }
+                }
+                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(7),
+                    modifier = Modifier.fillMaxWidth().height(180.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(31) { index ->
+                        val day = index + 1
+                        val isSelected = (day == selectedDay)
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSelected) TourOSColors.Primary else TourOSColors.Background)
+                                .border(1.dp, if (isSelected) TourOSColors.Primary else TourOSColors.Border, RoundedCornerShape(6.dp))
+                                .clickable { selectedDay = day },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$day",
+                                style = TourOSTypography.Caption.copy(
+                                    color = if (isSelected) Color.White else TourOSColors.TextPrimary,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        containerColor = TourOSColors.Surface
+    )
+}
+
+private fun isFuzzyMatch(query: String, target: String): Boolean {
+    if (query.isBlank()) return true
+    val q = query.trim().lowercase()
+    val t = target.lowercase()
+    if (t.contains(q)) return true
+
+    var matchCount = 0
+    var qIdx = 0
+    for (i in 0 until t.length) {
+        if (qIdx < q.length && t[i] == q[qIdx]) {
+            matchCount++
+            qIdx++
+        }
+    }
+    return matchCount >= (q.length - 1) && q.length >= 3
 }

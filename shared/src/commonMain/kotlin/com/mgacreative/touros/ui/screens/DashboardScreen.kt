@@ -120,8 +120,13 @@ fun DashboardScreen(
                     }
                     is DashboardUiState.Success -> {
                         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                            val isExpanded = maxWidth >= 960.dp
-                            val kpiColumns = if (isExpanded) 5 else 2
+                            val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
+                            val kpiColumns = when (windowWidthClass) {
+                                com.mgacreative.touros.ui.theme.WindowWidthClass.COMPACT -> 2
+                                com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM -> 3
+                                com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED -> 5
+                            }
+                            val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
 
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
@@ -132,7 +137,7 @@ fun DashboardScreen(
                                     KpiGridSection(summary = state.summary, columnsCount = kpiColumns)
                                 }
 
-                                // 2. İki Sütunlu Bölüm (Expanded: Yan Yana, Compact: Alt Alta)
+                                // 2. İki Sütunlu Bölüm (Expanded: Yan Yana, Compact/Medium: Esnek Alt Alta/Grids)
                                 item {
                                     if (isExpanded) {
                                         Row(
@@ -155,7 +160,7 @@ fun DashboardScreen(
                                             }
                                         }
                                     } else {
-                                        // Compact Alt Alta
+                                        // Compact & Medium Alt Alta
                                         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)) {
                                             UpcomingToursWidget(tours = state.upcomingTours)
                                             VehicleOccupancyWidget(vehicles = state.vehicleOccupancies)
@@ -174,6 +179,10 @@ fun DashboardScreen(
 
 @Composable
 private fun KpiGridSection(summary: DashboardSummary, columnsCount: Int) {
+    val totalItems = 5
+    val rowsCount = (totalItems + columnsCount - 1) / columnsCount
+    val gridHeight = (125 * rowsCount).dp
+
     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
         Text(
             text = "📊 Key Performance Indicators (KPI)",
@@ -186,7 +195,7 @@ private fun KpiGridSection(summary: DashboardSummary, columnsCount: Int) {
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(130.dp)
+                .height(gridHeight)
         ) {
             item {
                 KpiStatCard(

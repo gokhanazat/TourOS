@@ -184,9 +184,72 @@ class B2BTourSearchViewModel(
                 }
             }
 
-            // Hem Supabase'den gelenleri, Yerel Otelleri, Yerel Turları hem de hafızadaki ürünleri birleştir
+            val sampleFlightProducts = listOf(
+                UnifiedProductEntity(
+                    id = "flight-sample-1",
+                    productType = "FLIGHT",
+                    tourName = "Moskova (SVO) - Antalya (AYT) Uçuş Seferi",
+                    operatorName = "Turkish Airlines (THY)",
+                    departureCity = "Moskova",
+                    country = "Türkiye",
+                    region = "Antalya",
+                    flightNumber = "TK-3701",
+                    airlineName = "Turkish Airlines",
+                    isCharter = false,
+                    price = 240.0,
+                    currency = "EUR",
+                    pictureUrl = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800"
+                ),
+                UnifiedProductEntity(
+                    id = "flight-sample-2",
+                    productType = "FLIGHT",
+                    tourName = "Moskova (DME) - Antalya (AYT) Direk Charter Uçuş",
+                    operatorName = "Pegas Touristik (Nordwind)",
+                    departureCity = "Moskova",
+                    country = "Türkiye",
+                    region = "Antalya",
+                    flightNumber = "N4-5821",
+                    airlineName = "Nordwind Airlines",
+                    isCharter = true,
+                    price = 185.0,
+                    currency = "EUR",
+                    pictureUrl = "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800"
+                ),
+                UnifiedProductEntity(
+                    id = "flight-sample-3",
+                    productType = "FLIGHT",
+                    tourName = "Moskova (VKO) - İstanbul (IST) Tarifeli Uçuş",
+                    operatorName = "Aeroflot",
+                    departureCity = "Moskova",
+                    country = "Türkiye",
+                    region = "İstanbul",
+                    flightNumber = "SU-2134",
+                    airlineName = "Aeroflot",
+                    isCharter = false,
+                    price = 210.0,
+                    currency = "EUR",
+                    pictureUrl = "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=800"
+                ),
+                UnifiedProductEntity(
+                    id = "flight-sample-4",
+                    productType = "FLIGHT",
+                    tourName = "İstanbul (SAW) - Antalya (AYT) Direkt Uçuş",
+                    operatorName = "Pegasus Airlines",
+                    departureCity = "İstanbul",
+                    country = "Türkiye",
+                    region = "Antalya",
+                    flightNumber = "PC-2014",
+                    airlineName = "Pegasus Airlines",
+                    isCharter = false,
+                    price = 85.0,
+                    currency = "EUR",
+                    pictureUrl = "https://images.unsplash.com/photo-1519074069444-1ba4eff56b61?w=800"
+                )
+            )
+
+            // Hem Supabase'den gelenleri, Yerel Otelleri, Uçuşları hem de hafızadaki ürünleri birleştir
             val memoryItems = AgencyProductPublishingViewModel.getPersistentProducts()
-            val combined = (items + localHotelProducts + localTourProducts + memoryItems).distinctBy { it.id }
+            val combined = (items + localHotelProducts + localTourProducts + sampleFlightProducts + memoryItems).distinctBy { it.id }
             val filtered = filterProducts(combined)
 
             _uiState.value = B2BTourSearchUiState.Success(

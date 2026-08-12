@@ -208,7 +208,7 @@ fun AppNavigation() {
     val currentRoute = backStackEntry?.destination?.route
     val authRepository: AuthRepository = org.koin.compose.koinInject()
     val currentUser by authRepository.observeAuthState().collectAsState()
-    val isSystemAdmin = currentUser?.role == com.mgacreative.touros.domain.model.UserRole.SYSTEM_ADMIN || currentUser?.email == "mgazat@gmail.com" || currentUser?.email == "gkhnazat@gmail.com"
+    val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com"
 
     val isUserLoggedIn = currentUser != null
     val isAuthRoute = backStackEntry?.destination.isAuthRoute()
@@ -228,7 +228,9 @@ fun AppNavigation() {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val isExpanded = maxWidth >= 768.dp
+        val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
+        val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
+        val isMedium = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM
         val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavGroups(currentRoute, isSystemAdmin) }
         val navItems = remember(navGroups) { navGroups.flatMap { it.items } }
 
@@ -252,14 +254,14 @@ fun AppNavigation() {
             coroutineScope.launch {
                 authRepository.signOut()
                 if (drawerState.isOpen) drawerState.close()
-                navController.navigate(LoginRoute) {
+                navController.navigate(GlobalWebPublicRoute) {
                     popUpTo(0) { inclusive = true }
                 }
             }
         }
 
         if (isExpanded) {
-            // ── Expanded: Sidebar sol, içerik sağda ──────────────────────────
+            // ── Expanded (≥840dp Masaüstü & Yatay Tablet): Kalıcı Sol Sidebar + Sağ İçerik ──
             Row(modifier = Modifier.fillMaxSize()) {
                 if (showShell) {
                     TourOSSidebar(
@@ -272,11 +274,11 @@ fun AppNavigation() {
                     )
                 }
                 Box(modifier = Modifier.weight(1f).fillMaxSize()) {
-                    AppNavHost(navController)   // ← TEK NavHost
+                    AppNavHost(navController)
                 }
             }
-        } else {
-            // ── Compact: Mobil Hamburger Drawer + Bottom Bar + İçerik ─────────
+        } else if (isMedium) {
+            // ── Medium (600dp-839dp Tablet Dikey & Katlanabilir): Çekmece + Esnek İçerik ──
             androidx.compose.material3.ModalNavigationDrawer(
                 drawerState = drawerState,
                 gesturesEnabled = showShell,
@@ -286,10 +288,9 @@ fun AppNavigation() {
                     ) {
                         TourOSSidebar(
                             items = navItems,
+                            groups = navGroups,
                             onItemSelect = { item ->
-                                coroutineScope.launch {
-                                    drawerState.close()
-                                }
+                                coroutineScope.launch { drawerState.close() }
                                 navigate(item.route)
                             },
                             userName = displayName,
@@ -318,10 +319,55 @@ fun AppNavigation() {
                         }
                     }
                 ) { padding ->
-
-
                     Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                        AppNavHost(navController)   // ← TEK NavHost
+                        AppNavHost(navController)
+                    }
+                }
+            }
+        } else {
+            // ── Compact (<600dp Telefon Dikey): Alt Menü Çubuğu (BottomBar) + Drawer ──
+            androidx.compose.material3.ModalNavigationDrawer(
+                drawerState = drawerState,
+                gesturesEnabled = showShell,
+                drawerContent = {
+                    androidx.compose.material3.ModalDrawerSheet(
+                        drawerContainerColor = TourOSColors.Surface
+                    ) {
+                        TourOSSidebar(
+                            items = navItems,
+                            groups = navGroups,
+                            onItemSelect = { item ->
+                                coroutineScope.launch { drawerState.close() }
+                                navigate(item.route)
+                            },
+                            userName = displayName,
+                            userRole = displayRole,
+                            onLogoutClick = handleLogout
+                        )
+                    }
+                }
+            ) {
+                Scaffold(
+                    containerColor = TourOSColors.Surface,
+                    bottomBar = {
+                        if (showShell) {
+                            TourOSBottomBar(
+                                items = bottomNavItems,
+                                onItemSelect = { item ->
+                                    if (item.route == menuDummyRoute) {
+                                        coroutineScope.launch {
+                                            if (drawerState.isOpen) drawerState.close() else drawerState.open()
+                                        }
+                                    } else {
+                                        navigate(item.route)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                ) { padding ->
+                    Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                        AppNavHost(navController)
                     }
                 }
             }
@@ -332,17 +378,20 @@ fun AppNavigation() {
 
 @Composable
 private fun AppNavHost(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = SplashRoute) {
+    val authRepository: AuthRepository = org.koin.compose.koinInject()
+    val currentUser by authRepository.observeAuthState().collectAsState()
+
+    NavHost(navController = navController, startDestination = GlobalWebPublicRoute) {
 
         // ─── Auth & Public Landing ──────────────────────────────────────────
 
         composable<SplashRoute> {
             SplashScreen(
                 onNavigateToLogin = {
-                    navController.navigate(LoginRoute) { popUpTo(SplashRoute) { inclusive = true } }
+                    navController.navigate(GlobalWebPublicRoute) { popUpTo(SplashRoute) { inclusive = true } }
                 },
                 onNavigateToDashboard = { role ->
-                    navController.navigate(getStartDestinationForRole(role)) {
+                    navController.navigate(GlobalWebPublicRoute) {
                         popUpTo(SplashRoute) { inclusive = true }
                     }
                 }
@@ -407,7 +456,7 @@ private fun AppNavHost(navController: NavHostController) {
         composable<DashboardRoute> {
             DashboardScreen(
                 onNavigateToLogin = {
-                    navController.navigate(LoginRoute) { popUpTo(DashboardRoute) { inclusive = true } }
+                    navController.navigate(GlobalWebPublicRoute) { popUpTo(DashboardRoute) { inclusive = true } }
                 }
             )
         }
@@ -421,7 +470,13 @@ private fun AppNavHost(navController: NavHostController) {
         composable<GlobalWebPublicRoute> {
             GlobalWebPublicScreen(
                 onNavigateToBookingDetail = { id -> navController.navigate(BookingDetailRoute(id)) },
-                onNavigateToLogin = { navController.navigate(LoginRoute) },
+                onNavigateToLogin = {
+                    if (currentUser != null) {
+                        navController.navigate(DashboardRoute)
+                    } else {
+                        navController.navigate(LoginRoute)
+                    }
+                },
                 onNavigateBack = { 
                     val popped = navController.popBackStack()
                     if (!popped) {
