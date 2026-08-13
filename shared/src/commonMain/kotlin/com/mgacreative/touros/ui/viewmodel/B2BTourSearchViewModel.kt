@@ -281,6 +281,72 @@ class B2BTourSearchViewModel(
         }
     }
 
+    fun selectProductById(productId: String) {
+        if (productId.isBlank()) return
+        if (selectedProduct.value?.id == productId) return
+
+        viewModelScope.launch {
+            var matched: UnifiedProductEntity? = null
+            runCatching {
+                supabaseClient.postgrest["marketplace_products"]
+                    .select { filter { eq("id", productId) } }
+                    .decodeSingleOrNull<UnifiedProductEntity>()
+            }.onSuccess {
+                matched = it
+            }
+
+            if (matched == null) {
+                val defaultOffer = com.mgacreative.touros.ui.screens.getInitialDefaultOffers().find { 
+                    it.id == productId || it.id.equals(productId, ignoreCase = true) || productId.contains(it.id, ignoreCase = true)
+                }
+                if (defaultOffer != null) {
+                    matched = UnifiedProductEntity(
+                        id = defaultOffer.id,
+                        hotelName = defaultOffer.hotelName,
+                        region = defaultOffer.location,
+                        price = defaultOffer.minPrice,
+                        currency = defaultOffer.currency,
+                        nights = defaultOffer.nights,
+                        mealType = defaultOffer.mealType,
+                        roomType = defaultOffer.roomType,
+                        flightNumber = defaultOffer.flightCode,
+                        hotelCategory = defaultOffer.stars,
+                        operatorName = defaultOffer.operatorName,
+                        pictureUrl = defaultOffer.imageUrl,
+                        productType = defaultOffer.category
+                    )
+                }
+            }
+
+            if (matched == null && _uiState.value is B2BTourSearchUiState.Success) {
+                matched = (_uiState.value as B2BTourSearchUiState.Success).allProducts.find { it.id == productId }
+            }
+
+            if (matched == null) {
+                val firstDefault = com.mgacreative.touros.ui.screens.getInitialDefaultOffers().firstOrNull()
+                if (firstDefault != null) {
+                    matched = UnifiedProductEntity(
+                        id = firstDefault.id,
+                        hotelName = firstDefault.hotelName,
+                        region = firstDefault.location,
+                        price = firstDefault.minPrice,
+                        currency = firstDefault.currency,
+                        nights = firstDefault.nights,
+                        mealType = firstDefault.mealType,
+                        roomType = firstDefault.roomType,
+                        flightNumber = firstDefault.flightCode,
+                        hotelCategory = firstDefault.stars,
+                        operatorName = firstDefault.operatorName,
+                        pictureUrl = firstDefault.imageUrl,
+                        productType = firstDefault.category
+                    )
+                }
+            }
+
+            matched?.let { selectProductForBooking(it) }
+        }
+    }
+
     fun selectProductForBooking(product: UnifiedProductEntity) {
         selectedProduct.value = product
         

@@ -79,23 +79,26 @@ fun TourOSSidebar(
                 .padding(horizontal = TourOSSpacing.large),
             contentAlignment = Alignment.CenterStart
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(TourOSColors.Secondary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "T",
-                        style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnSecondary)
-                    )
-                }
-                Spacer(modifier = Modifier.width(TourOSSpacing.small))
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.Start
+            ) {
                 Text(
-                    text = "TourOS",
-                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary)
+                    text = "a",
+                    style = TourOSTypography.DisplaySmall.copy(
+                        color = Color.White,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Black,
+                        fontSize = 34.sp
+                    )
+                )
+                Text(
+                    text = "xileto",
+                    style = TourOSTypography.TitleLarge.copy(
+                        color = Color.White,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    modifier = Modifier.padding(bottom = 3.dp)
                 )
             }
         }

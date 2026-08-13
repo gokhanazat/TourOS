@@ -87,6 +87,23 @@ data class PublicHotelOffer(
     val agencyPrices: List<AgencyPriceOption> = emptyList()
 )
 
+fun PublicHotelOffer.toUnifiedProductEntity(): com.mgacreative.touros.data.database.entity.UnifiedProductEntity {
+    return com.mgacreative.touros.data.database.entity.UnifiedProductEntity(
+        id = this.id,
+        hotelName = this.hotelName,
+        region = this.location.removeSuffix(", Türkiye").removeSuffix(", Turkey").trim(),
+        price = this.minPrice,
+        currency = this.currency,
+        nights = this.nights,
+        mealType = this.mealType,
+        roomType = this.roomType,
+        flightNumber = this.flightCode,
+        hotelCategory = this.stars,
+        operatorName = this.operatorName,
+        pictureUrl = this.imageUrl
+    )
+}
+
 fun getEffectiveImageUrl(hotel: PublicHotelOffer): String {
     val isFlight = hotel.category == "FLIGHT" || 
                    hotel.hotelName.contains("✈️") || 
@@ -276,7 +293,7 @@ fun GlobalWebPublicScreen(
     onNavigateToBookingDetail: (String) -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToAdminCms: () -> Unit = {},
-    onNavigateToNewBooking: () -> Unit = {},
+    onNavigateToNewBooking: (PublicHotelOffer) -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -284,6 +301,7 @@ fun GlobalWebPublicScreen(
     val authRepository: AuthRepository = koinInject()
     val bookingRepository: BookingRepository = koinInject()
     val companySettingsRepository: CompanySettingsRepository = koinInject()
+    val b2bTourSearchViewModel: com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel = koinInject()
 
     val currentUser by authRepository.observeAuthState().collectAsState()
     var companySettings by remember { mutableStateOf<CompanySettings?>(null) }
@@ -629,13 +647,16 @@ fun GlobalWebPublicScreen(
                     ) {
                         // Sol Taraf: Marka Logosu & Başlık
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            val logoUrl = companySettings?.logoUrl
-                            if (!logoUrl.isNullOrBlank()) {
+                            val logoUrl = companySettings?.logoUrl?.trim()
+                            val isValidLogo = !logoUrl.isNullOrBlank() && 
+                                    !logoUrl.contains("default", ignoreCase = true) && 
+                                    !logoUrl.contains("placeholder", ignoreCase = true)
+
+                            if (isValidLogo) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.White)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        .padding(horizontal = 4.dp, vertical = 2.dp)
                                 ) {
                                     AsyncImage(
                                         model = logoUrl,
@@ -644,39 +665,13 @@ fun GlobalWebPublicScreen(
                                         contentScale = ContentScale.Fit
                                     )
                                 }
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.White),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text("🌴", fontSize = 20.sp)
-                                }
+                                Spacer(modifier = Modifier.width(10.dp))
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
                                 text = companySettings?.name?.ifBlank { "TourOS Travels" } ?: "TourOS Travels",
                                 style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold)
                             )
                         }
-
-                        // Orta Taraf: Ana Sayfa Linki
-                        Text(
-                            text = "Ana Sayfa",
-                            style = TourOSTypography.BodyMedium.copy(
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp
-                            ),
-                            modifier = Modifier.clickable {
-                                selectedSearchCategoryTab = "ALL"
-                                searchQuery = ""
-                                selectedOperatorFilter = "Tüm Operatörler"
-                                selectedDestinationFilter = "Tüm Destinasyonlar"
-                            }
-                        )
 
                         // Sağ Taraf: Kurumsal İletişim Numaraları (Telefon & WhatsApp)
                         Row(
@@ -1665,13 +1660,17 @@ fun GlobalWebPublicScreen(
 
                             HorizontalDivider(color = Color(0xFFE2E8F0))
 
-                            // Bulunan Arama Fırsatları Dikey Kart Izgarası (Vertical Grid)
+                            // ── Bulunan Arama Fırsatları Dikey Kart Izgarası (Vertical Grid)
                             VerticalSearchResultsGridSection(
                                 titleIcon = "✨",
                                 title = "Bulunan Arama Fırsatları",
                                 subtitle = "Kriterlerinize uyan en uygun fiyatlı canlı tur ve otel teklifleri",
                                 hotels = searchResultsList.ifEmpty { filteredHotels },
-                                onHotelClick = { selectedHotelForDetail = it }
+                                onHotelClick = { selectedHotelForDetail = it },
+                                onSelectAndBook = { hotel ->
+                                    b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
+                                    onNavigateToNewBooking(hotel)
+                                }
                             )
                         }
                     }
@@ -1731,7 +1730,10 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                     hotels = tourPackagesOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = onNavigateToNewBooking
+                                    onSelectAndBook = { hotel ->
+                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
+                                        onNavigateToNewBooking(hotel)
+                                    }
                                 )
                             }
 
@@ -1746,7 +1748,10 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
                                     hotels = hotelsOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = onNavigateToNewBooking
+                                    onSelectAndBook = { hotel ->
+                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
+                                        onNavigateToNewBooking(hotel)
+                                    }
                                 )
                             }
 
@@ -1761,7 +1766,10 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Acele edin ve %70'e varan muhteşem indirimlerden yararlanın!",
                                     hotels = lastMinuteOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = onNavigateToNewBooking
+                                    onSelectAndBook = { hotel ->
+                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
+                                        onNavigateToNewBooking(hotel)
+                                    }
                                 )
                             }
 
@@ -1776,7 +1784,10 @@ fun GlobalWebPublicScreen(
                                     subtitle = "En uygun fiyatlı direkt charter uçuşlar ve özel havayolu biletleri",
                                     hotels = flightsOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = onNavigateToNewBooking
+                                    onSelectAndBook = { hotel ->
+                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
+                                        onNavigateToNewBooking(hotel)
+                                    }
                                 )
                             }
                         }
@@ -2201,7 +2212,8 @@ fun VerticalSearchResultsGridSection(
     title: String = "Bulunan Arama Fırsatları",
     subtitle: String = "Kriterlerinize uyan en uygun fiyatlı canlı tur ve otel teklifleri",
     hotels: List<PublicHotelOffer>,
-    onHotelClick: (PublicHotelOffer) -> Unit
+    onHotelClick: (PublicHotelOffer) -> Unit,
+    onSelectAndBook: (PublicHotelOffer) -> Unit = {}
 ) {
     Surface(
         modifier = Modifier
@@ -2266,7 +2278,8 @@ fun VerticalSearchResultsGridSection(
                                     HorizontalHotelCard(
                                         hotel = hotel,
                                         modifier = Modifier.fillMaxWidth(),
-                                        onClick = { onHotelClick(hotel) }
+                                        onClick = { onHotelClick(hotel) },
+                                        onSelectAndBook = onSelectAndBook
                                     )
                                 }
                             }
@@ -2289,7 +2302,7 @@ fun HorizontalProductSection(
     subtitle: String,
     hotels: List<PublicHotelOffer>,
     onHotelClick: (PublicHotelOffer) -> Unit,
-    onSelectAndBook: () -> Unit = {}
+    onSelectAndBook: (PublicHotelOffer) -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -2380,7 +2393,8 @@ fun HorizontalProductSection(
                 items(hotels) { hotel ->
                     HorizontalHotelCard(
                         hotel = hotel,
-                        onClick = { onHotelClick(hotel) }
+                        onClick = { onHotelClick(hotel) },
+                        onSelectAndBook = onSelectAndBook
                     )
                 }
             }
@@ -2392,7 +2406,8 @@ fun HorizontalProductSection(
 fun HorizontalHotelCard(
     hotel: PublicHotelOffer,
     modifier: Modifier = Modifier.width(350.dp),
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onSelectAndBook: ((PublicHotelOffer) -> Unit)? = null
 ) {
     Surface(
         modifier = modifier
@@ -2558,7 +2573,13 @@ fun HorizontalHotelCard(
                     Surface(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .clickable { onClick() },
+                            .clickable {
+                                if (onSelectAndBook != null) {
+                                    onSelectAndBook(hotel)
+                                } else {
+                                    onClick()
+                                }
+                            },
                         color = Color(0xFF1E4D58) // Teal Dark Button
                     ) {
                         Text(

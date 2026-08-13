@@ -31,10 +31,17 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun B2BTourFlightServiceSelectionScreen(
+    productId: String = "",
     viewModel: B2BTourSearchViewModel = koinViewModel(),
     onNavigateBack: () -> Unit = {},
     onProceedToPassengerCheckout: () -> Unit = {}
 ) {
+    LaunchedEffect(productId) {
+        if (productId.isNotBlank()) {
+            viewModel.selectProductById(productId)
+        }
+    }
+
     val selectedProduct by viewModel.selectedProduct.collectAsState()
     val availableFlightOptions by viewModel.availableFlightOptions.collectAsState()
     val selectedFlightOption by viewModel.selectedFlightOption.collectAsState()

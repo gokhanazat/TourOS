@@ -488,8 +488,8 @@ private fun AppNavHost(navController: NavHostController) {
                 onNavigateToAdminCms = {
                     navController.navigate(GlobalWebCmsRoute)
                 },
-                onNavigateToNewBooking = {
-                    navController.navigate(B2BTourSearchDashboardRoute)
+                onNavigateToNewBooking = { selectedOffer ->
+                    navController.navigate(B2BTourFlightServiceSelectionRoute(productId = selectedOffer.id))
                 },
                 onNavigateBack = { 
                     val popped = navController.popBackStack()
@@ -997,6 +997,7 @@ private fun AppNavHost(navController: NavHostController) {
         composable<B2BTourFlightServiceSelectionRoute> { back ->
             val route: B2BTourFlightServiceSelectionRoute = back.toRoute()
             com.mgacreative.touros.ui.screens.B2BTourFlightServiceSelectionScreen(
+                productId = route.productId,
                 viewModel = koinViewModel(),
                 onNavigateBack = { navController.popBackStack() },
                 onProceedToPassengerCheckout = {
