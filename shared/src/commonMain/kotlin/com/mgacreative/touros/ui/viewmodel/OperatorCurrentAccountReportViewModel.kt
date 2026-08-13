@@ -112,7 +112,7 @@ class OperatorCurrentAccountReportViewModel(
 
     fun exportToCsv(): String {
         val currentState = _uiState.value as? OperatorCurrentAccountUiState.Success ?: return ""
-        val sb = java.lang.StringBuilder()
+        val sb = StringBuilder()
         sb.append("TO PNR,Musteri Adi,Paket Tur Kodu,Tur Operatoru,Tur Satisi (TRY),TO Odeme (TRY),Bakiye (TRY),Tarih\n")
         currentState.filteredItems.forEach { item ->
             sb.append("\"${item.operatorPnrCode}\",\"${item.customerName}\",\"${item.bookingCode}\",\"${item.operatorName}\",${item.totalSales},${item.totalPaid},${item.balance},\"${item.createdAt}\"\n")
