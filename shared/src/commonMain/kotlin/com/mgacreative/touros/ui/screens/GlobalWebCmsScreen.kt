@@ -43,7 +43,7 @@ fun GlobalWebCmsScreen(
     // Form State'leri
     var siteTitle by remember { mutableStateOf("TourOS Business - Lüks Seyahat & Otel Platformu") }
     var heroSlogan by remember { mutableStateOf("Dünyanın En Seçkin 5 Yıldızlı Otelleri ve Özel Tur Paketleri") }
-    var headerImageUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200") }
+    var headerImageUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80") }
     var whatsappNumber by remember { mutableStateOf("+90 532 100 2030") }
     var supportEmail by remember { mutableStateOf("destek@touros.com") }
     var defaultCommissionMargin by remember { mutableStateOf("% 12.5 (B2B Standart Marj)") }
@@ -94,11 +94,22 @@ fun GlobalWebCmsScreen(
                 companySettingsRepository.uploadHeaderBanner(tid, bytes, fileName.ifBlank { "header.png" })
                     .onSuccess { url ->
                         headerImageUrl = url
-                        saveNotification = "✅ Header görseli Supabase bulut deposuna yüklendi!"
+                        if (promoBannersList.isNotEmpty()) {
+                            val list = promoBannersList.toMutableList()
+                            list[0] = list[0].copy(imageUrl = url)
+                            promoBannersList = list
+                        }
+                        saveNotification = "✅ Manşet & Hero Slider görseli Supabase bulut deposuna yüklendi!"
                     }
             }
         } else if (!fileName.isNullOrBlank()) {
-            headerImageUrl = formatFilePickerPath(fileName)
+            val formatted = formatFilePickerPath(fileName)
+            headerImageUrl = formatted
+            if (promoBannersList.isNotEmpty()) {
+                val list = promoBannersList.toMutableList()
+                list[0] = list[0].copy(imageUrl = formatted)
+                promoBannersList = list
+            }
         }
     }
 
@@ -118,6 +129,7 @@ fun GlobalWebCmsScreen(
                     if (idx in list.indices) {
                         list[idx] = list[idx].copy(imageUrl = publicUrl)
                         promoBannersList = list
+                        if (idx == 0) headerImageUrl = publicUrl
                         saveNotification = "✅ Promosyon görseli Supabase bulut deposuna yüklendi!"
                     }
                 }
@@ -231,8 +243,15 @@ fun GlobalWebCmsScreen(
                                     ) {
                                         OutlinedTextField(
                                             value = headerImageUrl,
-                                            onValueChange = { headerImageUrl = it },
-                                            label = { Text("Header Banner Görsel URL / Dosya Yolu") },
+                                            onValueChange = { newUrl ->
+                                                headerImageUrl = newUrl
+                                                if (promoBannersList.isNotEmpty()) {
+                                                    val list = promoBannersList.toMutableList()
+                                                    list[0] = list[0].copy(imageUrl = newUrl)
+                                                    promoBannersList = list
+                                                }
+                                            },
+                                            label = { Text("Manşet & Hero Slider Görsel URL / Dosya Yolu") },
                                             placeholder = { Text("https://... veya C:/Gorseller/banner.jpg") },
                                             modifier = Modifier.weight(1f)
                                         )

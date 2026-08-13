@@ -831,8 +831,16 @@ fun GlobalWebPublicScreen(
                             .background(Color(0xFF0F172A)),
                         contentAlignment = Alignment.BottomStart
                     ) {
-                        val headerImg = companySettings?.headerImageUrl?.ifBlank { "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200" }
-                            ?: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200"
+                        val rawHeader = companySettings?.headerImageUrl?.trim()
+                        val defaultHeader = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
+                        val headerImg = when {
+                            rawHeader.isNullOrBlank() -> defaultHeader
+                            rawHeader.contains("unsplash.com") && !rawHeader.contains("auto=format") -> {
+                                if (rawHeader.contains("?")) "$rawHeader&auto=format&fit=crop&q=80"
+                                else "$rawHeader?auto=format&fit=crop&w=1200&q=80"
+                            }
+                            else -> rawHeader
+                        }
                         
                         AsyncImage(
                             model = headerImg,
