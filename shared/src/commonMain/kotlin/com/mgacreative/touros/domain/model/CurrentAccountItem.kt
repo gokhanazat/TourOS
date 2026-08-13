@@ -30,5 +30,6 @@ data class AccountTransactionDetail(
     @SerialName("debit") val debit: Double = 0.0,
     @SerialName("credit") val credit: Double = 0.0,
     @SerialName("balance") val balance: Double = 0.0,
-    @SerialName("reference_no") val referenceNo: String? = null
+    @SerialName("reference_no") val referenceNo: String? = null,
+    @SerialName("operator_pnr_code") val operatorPnrCode: String? = null
 )

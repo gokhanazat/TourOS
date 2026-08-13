@@ -298,9 +298,10 @@ fun ReportsScreen(
                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                         ) {
                             Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kod"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tür / Operatör"), modifier = Modifier.weight(1.5f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri"), modifier = Modifier.weight(1.5f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih / Gece"), modifier = Modifier.weight(1.2f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TO PNR"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tür / Operatör"), modifier = Modifier.weight(1.4f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri"), modifier = Modifier.weight(1.4f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih / Gece"), modifier = Modifier.weight(1.1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
                             Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tutar"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
                             Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Durum"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
                         }
@@ -376,20 +377,32 @@ private fun ReportDataRowItem(booking: Booking) {
             color = TourOSColors.Primary
         )
 
+        // TO PNR Kodu
+        Box(modifier = Modifier.weight(1f)) {
+            val pnrText = booking.operatorPnrCode?.takeIf { it.isNotBlank() } ?: "-"
+            Text(
+                text = pnrText,
+                style = TourOSTypography.Label.copy(
+                    color = if (pnrText != "-") TourOSColors.Success else TourOSColors.TextSecondary,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        }
+
         // Tür / Operatör
-        Column(modifier = Modifier.weight(1.5f)) {
+        Column(modifier = Modifier.weight(1.4f)) {
             Text("$icon $typeName", style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
             Text("💼 $operatorStr", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
         }
 
         // Müşteri
-        Column(modifier = Modifier.weight(1.5f)) {
+        Column(modifier = Modifier.weight(1.4f)) {
             Text(booking.customerName.takeIf { it.isNotBlank() } ?: com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri"), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
             Text(booking.customerPhone?.takeIf { it.isNotBlank() } ?: "-", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
         }
 
         // Tarih / Gece
-        Column(modifier = Modifier.weight(1.2f)) {
+        Column(modifier = Modifier.weight(1.1f)) {
             Text(booking.checkInDate ?: booking.departureDate ?: "-", style = TourOSTypography.Label)
             Text(if (isHotel) "${booking.nights} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gece")}" else "${booking.paxCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kişi")}", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
         }

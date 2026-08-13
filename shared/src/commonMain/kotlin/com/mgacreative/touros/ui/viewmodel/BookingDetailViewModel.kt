@@ -7,6 +7,7 @@ import com.mgacreative.touros.domain.model.BookingStatus
 import com.mgacreative.touros.domain.model.BookingStatusLog
 import com.mgacreative.touros.domain.usecase.GetBookingDetailUseCase
 import com.mgacreative.touros.domain.usecase.UpdateBookingStatusUseCase
+import com.mgacreative.touros.domain.repository.BookingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,7 +26,8 @@ sealed interface BookingDetailUiState {
 
 class BookingDetailViewModel(
     private val getBookingDetailUseCase: GetBookingDetailUseCase,
-    private val updateBookingStatusUseCase: UpdateBookingStatusUseCase
+    private val updateBookingStatusUseCase: UpdateBookingStatusUseCase,
+    private val bookingRepository: BookingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BookingDetailUiState>(BookingDetailUiState.Loading)
@@ -72,6 +74,16 @@ class BookingDetailViewModel(
                         }
                     }
             }
+        }
+    }
+
+    fun updateOperatorPnr(pnrCode: String) {
+        if (pnrCode.isBlank()) return
+        viewModelScope.launch {
+            bookingRepository.updateOperatorPnr(currentBookingId, pnrCode.trim().uppercase(), "ONAYLANDI")
+                .onSuccess {
+                    loadBooking(currentBookingId)
+                }
         }
     }
 }

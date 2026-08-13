@@ -39,6 +39,8 @@ data class BookingEntity(
     @SerialName("profit_margin") val profitMargin: Double = 0.0,
     @SerialName("commission_rate") val commissionRate: Double = 0.0,
     @SerialName("incoming_voucher_code") val incomingVoucherCode: String? = null,
+    @SerialName("operator_pnr_code") val operatorPnrCode: String? = null,
+    @SerialName("operator_status") val operatorStatus: String? = "BEKLİYOR",
     @SerialName("is_bsp") val isBsp: Boolean = false,
     @SerialName("tenant_id") val tenantId: String = "",
     @SerialName("created_at") val createdAt: String = "",

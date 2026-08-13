@@ -66,11 +66,6 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                         title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
                         route = GlobalWebCmsRoute,
                         isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
-                    ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Canlı Web"),
-                        route = GlobalWebPublicRoute,
-                        isSelected = currentRoute?.contains("GlobalWebPublicRoute") == true
                     )
                 )
             )
@@ -156,6 +151,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     title = AppLanguageManager.translate("Müşteri & CRM"),
                     route = CustomerSegmentationRoute,
                     isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("TO Cari Hesap"),
+                    route = OperatorCurrentAccountReportRoute,
+                    isSelected = currentRoute?.contains("OperatorCurrentAccountReportRoute") == true
                 )
             )
         )
@@ -208,13 +208,12 @@ fun AppNavigation() {
     val currentRoute = backStackEntry?.destination?.route
     val authRepository: AuthRepository = org.koin.compose.koinInject()
     val currentUser by authRepository.observeAuthState().collectAsState()
-    val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com"
+    val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
 
     val isUserLoggedIn = currentUser != null
     val isAuthRoute = backStackEntry?.destination.isAuthRoute()
-    val isPublicWebRoute = currentRoute?.contains("GlobalWebPublicRoute") == true
-    // Yan sol menü dış ziyaretçide PASİF, sadece E-Posta + Şifre + Acente Kodu ile giren oturumlu acentelerde AKTİF
-    val showShell = isUserLoggedIn && !isAuthRoute && !isPublicWebRoute
+    // Yan sol gezinti menüsü oturumlu acentelerde ve adminlerde AKTİF
+    val showShell = isUserLoggedIn && !isAuthRoute
 
     fun navigate(route: Any) {
         navController.navigate(route) {
@@ -462,9 +461,18 @@ private fun AppNavHost(navController: NavHostController) {
         }
 
         composable<GlobalWebCmsRoute> {
-            GlobalWebCmsScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
+            val isAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
+            if (!isAdmin) {
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    navController.navigate(LoginRoute) {
+                        popUpTo(GlobalWebCmsRoute) { inclusive = true }
+                    }
+                }
+            } else {
+                GlobalWebCmsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
         }
 
         composable<GlobalWebPublicRoute> {
@@ -476,6 +484,9 @@ private fun AppNavHost(navController: NavHostController) {
                     } else {
                         navController.navigate(LoginRoute)
                     }
+                },
+                onNavigateToAdminCms = {
+                    navController.navigate(GlobalWebCmsRoute)
                 },
                 onNavigateBack = { 
                     val popped = navController.popBackStack()
@@ -837,6 +848,9 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<ReportsRoute> {
             ReportsScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
+        }
+        composable<OperatorCurrentAccountReportRoute> {
+            com.mgacreative.touros.ui.screens.OperatorCurrentAccountReportScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
         composable<CustomersRoute> { /* Placeholder */ }
 

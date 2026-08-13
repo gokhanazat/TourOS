@@ -33,6 +33,8 @@ data class Booking(
     val nights: Int = 1,
     val bookingType: String = "TOUR",
     val paymentMethod: String? = null,
+    val operatorPnrCode: String? = null,
+    val operatorStatus: String? = "BEKLİYOR",
     val tenantId: String = "",
     val items: List<BookingItem> = emptyList(),
     val passengers: List<Passenger> = emptyList(),

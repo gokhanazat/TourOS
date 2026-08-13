@@ -285,10 +285,60 @@ class BookingRepositoryImpl(
             roomTypeName = entity.roomTypeName,
             nights = entity.nights,
             bookingType = entity.bookingType ?: (if (isHotel) "HOTEL" else "TOUR"),
+            operatorPnrCode = entity.operatorPnrCode,
+            operatorStatus = entity.operatorStatus,
             paymentMethod = entity.paymentMethod,
             tenantId = entity.tenantId,
             createdAt = entity.createdAt,
             updatedAt = entity.updatedAt
         )
+    }
+
+    override suspend fun updateOperatorPnr(bookingId: String, pnrCode: String, operatorStatus: String): Result<Unit> {
+        return runCatching {
+            val targetId = bookingId
+            val idx = localCache.indexOfFirst { it.id == targetId || it.bookingCode == targetId }
+            if (idx != -1) {
+                val old = localCache[idx]
+                localCache[idx] = old.copy(
+                    operatorPnrCode = pnrCode,
+                    operatorStatus = operatorStatus,
+                    status = "ONAYLANDI"
+                )
+            }
+
+            runCatching {
+                val currentBooking = supabaseClient.postgrest.from("bookings")
+                    .select { filter { eq("id", targetId) } }
+                    .decodeSingleOrNull<BookingEntity>()
+
+                supabaseClient.postgrest.from("bookings")
+                    .update(mapOf(
+                        "operator_pnr_code" to pnrCode,
+                        "operator_status" to operatorStatus,
+                        "status" to "ONAYLANDI"
+                    )) {
+                        filter { eq("id", targetId) }
+                    }
+
+                val netCost = currentBooking?.netCost ?: 0.0
+                val operatorName = currentBooking?.operatorName ?: "Tur Operatörü"
+                val currency = currentBooking?.currency ?: "TRY"
+                val tenantId = currentBooking?.tenantId?.ifBlank { "00000000-0000-0000-0000-000000000001" } ?: "00000000-0000-0000-0000-000000000001"
+
+                val transactionEntity = mapOf(
+                    "booking_id" to targetId,
+                    "operator_pnr_code" to pnrCode,
+                    "transaction_type" to "CREDIT",
+                    "amount" to netCost,
+                    "currency" to currency,
+                    "description" to "TO PNR: $pnrCode - $operatorName Onaylı Tur Maliyeti",
+                    "tenant_id" to tenantId
+                )
+                runCatching {
+                    supabaseClient.postgrest.from("current_account_transactions").insert(transactionEntity)
+                }
+            }
+        }
     }
 }

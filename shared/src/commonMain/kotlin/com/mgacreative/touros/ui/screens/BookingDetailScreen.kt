@@ -83,7 +83,8 @@ fun BookingDetailScreen(
                         BookingDetailContent(
                             state = state,
                             onTabSelected = { viewModel.selectTab(it) },
-                            onStatusChange = { viewModel.updateStatus(it) }
+                            onStatusChange = { viewModel.updateStatus(it) },
+                            onSaveOperatorPnr = { viewModel.updateOperatorPnr(it) }
                         )
                     }
                 }
@@ -96,9 +97,11 @@ fun BookingDetailScreen(
 private fun BookingDetailContent(
     state: BookingDetailUiState.Success,
     onTabSelected: (Int) -> Unit,
-    onStatusChange: (BookingStatus) -> Unit
+    onStatusChange: (BookingStatus) -> Unit,
+    onSaveOperatorPnr: (String) -> Unit
 ) {
     val booking = state.booking
+    var pnrInputText by remember(booking.operatorPnrCode) { mutableStateOf(booking.operatorPnrCode ?: "") }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         // Summary Header Card
@@ -126,6 +129,61 @@ private fun BookingDetailContent(
                 Text("Müşteri: ${booking.customerName}", fontWeight = FontWeight.Bold)
                 if (!booking.customerPhone.isNullOrBlank()) Text("Telefon: ${booking.customerPhone}")
                 if (!booking.customerEmail.isNullOrBlank()) Text("E-posta: ${booking.customerEmail}")
+                Text("Tur Operatörü: ${booking.operatorName}", fontWeight = FontWeight.SemiBold)
+
+                Spacer(modifier = Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ✈️ Tur Operatörü Onay Bilgileri (TO PNR) Kartı
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "✈️ Tur Operatörü PNR (TO PNR):",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (!booking.operatorPnrCode.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFECFDF5)
+                        ) {
+                            Text(
+                                text = "✓ PNR Onaylı (${booking.operatorPnrCode})",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color(0xFF059669),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = pnrInputText,
+                        onValueChange = { pnrInputText = it },
+                        placeholder = { Text("Örn: PEGAS-1029 / CP-98765", fontSize = 12.sp) },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    Button(
+                        onClick = { onSaveOperatorPnr(pnrInputText) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56), contentColor = Color.White)
+                    ) {
+                        Text("PNR Kaydet & Onayla", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 

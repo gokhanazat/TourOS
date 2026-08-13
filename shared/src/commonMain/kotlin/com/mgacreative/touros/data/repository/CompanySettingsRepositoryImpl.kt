@@ -51,6 +51,12 @@ class CompanySettingsRepositoryImpl(
                     json.decodeFromString<List<CompanySeason>>(entity.seasons)
                 }.getOrDefault(emptyList())
 
+                val promoBanners = runCatching {
+                    branding?.promoBanners?.takeIf { it.isNotBlank() }?.let {
+                        json.decodeFromString<List<com.mgacreative.touros.domain.model.PromoBannerItem>>(it)
+                    }
+                }.getOrNull() ?: cachedSettings?.promoBanners ?: emptyList()
+
                 val loaded = CompanySettings(
                     id = entity.id,
                     name = entity.name.ifBlank { cachedSettings?.name ?: "" },
@@ -77,6 +83,10 @@ class CompanySettingsRepositoryImpl(
                     webPhone = branding?.contactPhone ?: cachedSettings?.webPhone ?: "",
                     webWhatsapp = branding?.whatsappNumber ?: cachedSettings?.webWhatsapp ?: "",
                     webAddress = branding?.contactAddress ?: cachedSettings?.webAddress ?: "",
+                    promoBannerTitle = cachedSettings?.promoBannerTitle,
+                    promoBannerImageUrl = cachedSettings?.promoBannerImageUrl,
+                    promoBannerTargetUrl = cachedSettings?.promoBannerTargetUrl,
+                    promoBanners = promoBanners,
                     bankName = entity.bankName ?: cachedSettings?.bankName,
                     iban = entity.iban ?: cachedSettings?.iban,
                     accountHolder = entity.accountHolder ?: cachedSettings?.accountHolder,
@@ -105,6 +115,7 @@ class CompanySettingsRepositoryImpl(
         return runCatching {
             cachedSettings = settings
             val seasonsJson = json.encodeToString(settings.seasons)
+            val promoBannersJson = json.encodeToString(settings.promoBanners)
             val targetId = if (settings.id.isValidUuid()) settings.id else "00000000-0000-0000-0000-000000000001"
 
             val slugValue = settings.name.lowercase()
@@ -172,6 +183,7 @@ class CompanySettingsRepositoryImpl(
                 put("contact_email", settings.webEmail)
                 put("whatsapp_number", settings.webWhatsapp)
                 put("contact_address", settings.webAddress)
+                put("promo_banners", promoBannersJson)
                 if (!settings.logoUrl.isNullOrBlank()) put("custom_logo_url", settings.logoUrl)
                 if (!settings.headerImageUrl.isNullOrBlank()) put("header_image_url", settings.headerImageUrl)
             }
@@ -313,6 +325,37 @@ class CompanySettingsRepositoryImpl(
 
             cachedSettings = cachedSettings?.copy(headerImageUrl = publicUrl)
             publicUrl
+        }
+    }
+
+    override suspend fun uploadPromoBannerImage(
+        companyId: String,
+        fileBytes: ByteArray,
+        fileName: String
+    ): Result<String> {
+        return runCatching {
+            val targetId = if (companyId.isValidUuid()) companyId else "00000000-0000-0000-0000-000000000001"
+            val cleanFileName = fileName
+                .substringAfterLast("/")
+                .substringAfterLast("\\")
+                .lowercase()
+                .replace(" ", "_")
+                .replace("ğ", "g")
+                .replace("ü", "u")
+                .replace("ş", "s")
+                .replace("ı", "i")
+                .replace("ö", "o")
+                .replace("ç", "c")
+                .replace("i̇", "i")
+                .filter { it.isLetterOrDigit() || it == '.' || it == '_' || it == '-' }
+
+            val randomId = (100000..999999).random()
+            val sanitizedPath = "promo_${targetId}_${randomId}_${cleanFileName.ifBlank { "promo.png" }}"
+            val bucket = supabaseClient.storage.from("company-logos")
+            bucket.upload(sanitizedPath, fileBytes) {
+                upsert = true
+            }
+            bucket.publicUrl(sanitizedPath)
         }
     }
 }

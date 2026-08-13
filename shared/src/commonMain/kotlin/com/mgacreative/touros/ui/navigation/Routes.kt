@@ -93,6 +93,7 @@ import kotlinx.serialization.Serializable
 @Serializable object CustomersRoute
 @Serializable object AnalyticsChartsRoute
 @Serializable object PerformanceReportsRoute
+@Serializable object OperatorCurrentAccountReportRoute
 @Serializable object ReportFilterExportRoute
 
 // ─── B2B ──────────────────────────────────────────────────────────────────────

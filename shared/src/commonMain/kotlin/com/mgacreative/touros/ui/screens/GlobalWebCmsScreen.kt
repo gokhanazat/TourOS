@@ -16,20 +16,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.repository.AuthRepository
+import com.mgacreative.touros.domain.repository.CompanySettingsRepository
+import com.mgacreative.touros.domain.model.CompanySettings
+import com.mgacreative.touros.domain.model.PromoBannerItem
 import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
 import com.mgacreative.touros.ui.components.TourOSTopBar
 import com.mgacreative.touros.ui.theme.TourOSColors
-import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
+import com.mgacreative.touros.utils.rememberFilePickerLauncher
 import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
 
 @Composable
 fun GlobalWebCmsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val authRepository: AuthRepository = koinInject()
+    val companySettingsRepository: CompanySettingsRepository = koinInject()
     val currentUser by authRepository.observeAuthState().collectAsState()
+    val coroutineScope = rememberCoroutineScope()
 
     var selectedTab by remember { mutableStateOf(0) }
     var saveNotification by remember { mutableStateOf<String?>(null) }
@@ -43,6 +49,81 @@ fun GlobalWebCmsScreen(
     var defaultCommissionMargin by remember { mutableStateOf("% 12.5 (B2B Standart Marj)") }
     var agencyReferralCode by remember { mutableStateOf("AGN-MASTER-8492") }
     var metaDescription by remember { mutableStateOf("TourOS B2B ve B2C seyahat platformu üzerinden tur operatörleri ve acentelerin en uygun otel ve uçak tekliflerini karşılaştırın.") }
+    var promoBannersList by remember {
+        mutableStateOf(
+            listOf(
+                PromoBannerItem("1", "Голубой тур", "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=1200", null),
+                PromoBannerItem("2", "Bodrum Lüks Yat Turu", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200", "https://touros.com")
+            )
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+        val settings = companySettingsRepository.getCompanySettings(tid).getOrNull()
+        if (settings != null) {
+            val effBanners = settings.getEffectivePromoBanners()
+            if (effBanners.isNotEmpty()) {
+                promoBannersList = effBanners
+            }
+            if (settings.heroSubtitle.isNotBlank()) heroSlogan = settings.heroSubtitle
+            if (!settings.headerImageUrl.isNullOrBlank()) headerImageUrl = settings.headerImageUrl
+            if (settings.webWhatsapp.isNotBlank()) whatsappNumber = settings.webWhatsapp
+            if (settings.webEmail.isNotBlank()) supportEmail = settings.webEmail
+            if (!settings.defaultMasterAgencyCode.isNullOrBlank()) agencyReferralCode = settings.defaultMasterAgencyCode
+        }
+    }
+
+    var activePickingSlideIndex by remember { mutableStateOf<Int?>(null) }
+
+    fun formatFilePickerPath(path: String?): String {
+        if (path.isNullOrBlank()) return ""
+        val trimmed = path.trim()
+        return when {
+            trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("file://") -> trimmed
+            trimmed.length >= 2 && trimmed[1] == ':' -> "file:///" + trimmed.replace("\\", "/")
+            trimmed.startsWith("/") -> "file://" + trimmed
+            else -> trimmed
+        }
+    }
+
+    val headerPickerLauncher = rememberFilePickerLauncher(mimeType = "image/*") { fileName, bytes ->
+        if (bytes != null && bytes.isNotEmpty()) {
+            coroutineScope.launch {
+                val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+                companySettingsRepository.uploadHeaderBanner(tid, bytes, fileName.ifBlank { "header.png" })
+                    .onSuccess { url ->
+                        headerImageUrl = url
+                        saveNotification = "✅ Header görseli Supabase bulut deposuna yüklendi!"
+                    }
+            }
+        } else if (!fileName.isNullOrBlank()) {
+            headerImageUrl = formatFilePickerPath(fileName)
+        }
+    }
+
+    val slidePickerLauncher = rememberFilePickerLauncher(mimeType = "image/*") { fileName, bytes ->
+        val idx = activePickingSlideIndex
+        if (idx != null) {
+            coroutineScope.launch {
+                val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+                val uploadedUrlResult = if (bytes != null && bytes.isNotEmpty()) {
+                    companySettingsRepository.uploadPromoBannerImage(tid, bytes, fileName.ifBlank { "promo.png" })
+                } else {
+                    Result.success(formatFilePickerPath(fileName))
+                }
+                val publicUrl = uploadedUrlResult.getOrNull()
+                if (!publicUrl.isNullOrBlank()) {
+                    val list = promoBannersList.toMutableList()
+                    if (idx in list.indices) {
+                        list[idx] = list[idx].copy(imageUrl = publicUrl)
+                        promoBannersList = list
+                        saveNotification = "✅ Promosyon görseli Supabase bulut deposuna yüklendi!"
+                    }
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -143,13 +224,131 @@ fun GlobalWebCmsScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     )
 
-                                    OutlinedTextField(
-                                        value = headerImageUrl,
-                                        onValueChange = { headerImageUrl = it },
-                                        label = { Text("Header Banner Görsel URL / Dosya Yolu") },
-                                        placeholder = { Text("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200") },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedTextField(
+                                            value = headerImageUrl,
+                                            onValueChange = { headerImageUrl = it },
+                                            label = { Text("Header Banner Görsel URL / Dosya Yolu") },
+                                            placeholder = { Text("https://... veya C:/Gorseller/banner.jpg") },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Button(
+                                            onClick = { headerPickerLauncher() },
+                                            colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary, contentColor = Color.White)
+                                        ) {
+                                            Text("📁 Dosya Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("🛥️ Sol Promosyon Kartı Slider Listesi (Birden Fazla Banner)", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
+                                        Button(
+                                            onClick = {
+                                                val newSlide = PromoBannerItem(
+                                                    id = (promoBannersList.size + 1).toString(),
+                                                    title = "Yeni Promosyon Turu #${promoBannersList.size + 1}",
+                                                    imageUrl = "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=1200",
+                                                    targetUrl = null
+                                                )
+                                                promoBannersList = promoBannersList + newSlide
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Success, contentColor = Color.White)
+                                        ) {
+                                            Text("➕ Yeni Slayt Ekle", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                        }
+                                    }
+
+                                    promoBannersList.forEachIndexed { index, slide ->
+                                        Card(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 6.dp),
+                                            colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
+                                            elevation = CardDefaults.cardElevation(2.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(16.dp),
+                                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("📌 Slayt #${index + 1}", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
+                                                    if (promoBannersList.size > 1) {
+                                                        IconButton(
+                                                            onClick = {
+                                                                val list = promoBannersList.toMutableList()
+                                                                list.removeAt(index)
+                                                                promoBannersList = list
+                                                            }
+                                                        ) {
+                                                            Text("🗑️ Sil", color = TourOSColors.Error, style = TourOSTypography.Caption)
+                                                        }
+                                                    }
+                                                }
+
+                                                OutlinedTextField(
+                                                    value = slide.title,
+                                                    onValueChange = { newTitle ->
+                                                        val list = promoBannersList.toMutableList()
+                                                        list[index] = list[index].copy(title = newTitle)
+                                                        promoBannersList = list
+                                                    },
+                                                    label = { Text("Promosyon Başlığı (Örn: Mavi Yolculuk / Голубой тур)") },
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    OutlinedTextField(
+                                                        value = slide.imageUrl,
+                                                        onValueChange = { newUrl ->
+                                                            val list = promoBannersList.toMutableList()
+                                                            list[index] = list[index].copy(imageUrl = newUrl)
+                                                            promoBannersList = list
+                                                        },
+                                                        label = { Text("Promosyon Görsel URL / Dosya Yolu") },
+                                                        placeholder = { Text("https://... veya C:/Gorseller/tekne.jpg") },
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Button(
+                                                        onClick = {
+                                                            activePickingSlideIndex = index
+                                                            slidePickerLauncher()
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary, contentColor = Color.White)
+                                                    ) {
+                                                        Text("📁 Dosya Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                                    }
+                                                }
+
+                                                OutlinedTextField(
+                                                    value = slide.targetUrl ?: "",
+                                                    onValueChange = { newLink ->
+                                                        val list = promoBannersList.toMutableList()
+                                                        list[index] = list[index].copy(targetUrl = newLink.ifBlank { null })
+                                                        promoBannersList = list
+                                                    },
+                                                    label = { Text("Tıklanınca Açılacak Hedef Link URL (Örn: https://...)") },
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                                 2 -> { // Logo & Açık Tema
                                     Text("🎨 Logo, Banner & Açık Tema Ayarları", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold))
@@ -227,7 +426,22 @@ fun GlobalWebCmsScreen(
                             TourOSButton(
                                 text = "Değişiklikleri Canlı Web Sitesine Kaydet 💾",
                                 onClick = {
-                                    saveNotification = "✅ Ayarlar başarıyla kaydedildi! Canlı web sitesi güncellendi."
+                                    coroutineScope.launch {
+                                        val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+                                        val currentSettings = companySettingsRepository.getCompanySettings(tid).getOrNull()
+                                            ?: CompanySettings(id = tid, name = "TourOS Travels")
+                                        
+                                        val updatedSettings = currentSettings.copy(
+                                            heroSubtitle = heroSlogan,
+                                            headerImageUrl = headerImageUrl,
+                                            webWhatsapp = whatsappNumber,
+                                            webEmail = supportEmail,
+                                            defaultMasterAgencyCode = agencyReferralCode,
+                                            promoBanners = promoBannersList
+                                        )
+                                        companySettingsRepository.updateCompanySettings(updatedSettings)
+                                        saveNotification = "✅ Slaytlar ve tüm ayarlar başarıyla kaydedildi! Canlı web sitesinde anında güncellendi."
+                                    }
                                 },
                                 variant = TourOSButtonVariant.PRIMARY
                             )

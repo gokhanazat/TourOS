@@ -187,13 +187,14 @@ class ReportsViewModel(
     fun exportToCsv(): String {
         val state = _uiState.value
         val sb = StringBuilder()
-        sb.append("Rezervasyon Kodu,Kullanıcı / Müşteri,Telefon,Tür,Ürün / Operatör,Tarih,Gece / Pax,Tutar (TRY),Ödeme Yöntemi,Durum\n")
+        sb.append("Rezervasyon Kodu,TO PNR,Kullanıcı / Müşteri,Telefon,Tür,Ürün / Operatör,Tarih,Gece / Pax,Tutar (TRY),Ödeme Yöntemi,Durum\n")
         state.filteredBookings.forEach { b ->
             val typeStr = if (b.bookingType == "HOTEL") "Otel" else "Tur"
             val prodStr = b.productName ?: b.operatorName ?: "-"
             val dateStr = b.checkInDate ?: b.departureDate ?: "-"
             val qty = if (b.nights > 0) "${b.nights} Gece" else "${b.paxCount} Kisi"
-            sb.append("\"${b.bookingCode}\",\"${b.customerName}\",\"${b.customerPhone}\",\"$typeStr\",\"$prodStr\",\"$dateStr\",\"$qty\",${b.totalPrice},\"${b.paymentMethod ?: "-"}\",\"${b.status.displayName}\"\n")
+            val toPnr = b.operatorPnrCode ?: "-"
+            sb.append("\"${b.bookingCode}\",\"$toPnr\",\"${b.customerName}\",\"${b.customerPhone}\",\"$typeStr\",\"$prodStr\",\"$dateStr\",\"$qty\",${b.totalPrice},\"${b.paymentMethod ?: "-"}\",\"${b.status.displayName}\"\n")
         }
         _uiState.value = state.copy(notificationMessage = "📄 ${state.filteredBookings.size} adet kayıt CSV olarak hazırlandı ve indiriliyor.")
         return sb.toString()

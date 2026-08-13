@@ -37,10 +37,6 @@ val navigationGroups = listOf(
             NavigationItem(
                 title = "Web Yönetimi (CMS)",
                 route = GlobalWebCmsRoute
-            ),
-            NavigationItem(
-                title = "Canlı Web",
-                route = GlobalWebPublicRoute
             )
         )
     ),
@@ -100,6 +96,10 @@ val navigationGroups = listOf(
             NavigationItem(
                 title = "Müşteri & CRM",
                 route = CustomersRoute
+            ),
+            NavigationItem(
+                title = "TO Cari Hesap",
+                route = OperatorCurrentAccountReportRoute
             )
         )
     ),

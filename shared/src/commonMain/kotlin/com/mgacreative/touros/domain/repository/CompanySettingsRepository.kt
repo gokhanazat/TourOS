@@ -10,4 +10,5 @@ interface CompanySettingsRepository {
     suspend fun updateCompanySettings(settings: CompanySettings): Result<CompanySettings>
     suspend fun uploadLogo(companyId: String, fileBytes: ByteArray, fileName: String): Result<String>
     suspend fun uploadHeaderBanner(companyId: String, fileBytes: ByteArray, fileName: String): Result<String>
+    suspend fun uploadPromoBannerImage(companyId: String, fileBytes: ByteArray, fileName: String): Result<String>
 }

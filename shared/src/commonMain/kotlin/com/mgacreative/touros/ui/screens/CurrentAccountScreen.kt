@@ -222,7 +222,7 @@ private fun SearchAndFilterBar(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Arama"),
-            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...) veya Vergi/TC No ile ara..."),
+            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...), TO PNR (PEGAS-...) veya Vergi/TC No ile ara..."),
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -448,7 +448,12 @@ private fun AccountStatementModal(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(item.date, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.weight(0.9f))
-                                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.description), style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.5f))
+                                        Column(modifier = Modifier.weight(1.5f)) {
+                                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.description), style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
+                                            if (!item.operatorPnrCode.isNullOrBlank()) {
+                                                Text("✈️ TO PNR: ${item.operatorPnrCode}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold))
+                                            }
+                                        }
                                         Text(formatMoney(item.debit), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), modifier = Modifier.weight(1.0f))
                                         Text(formatMoney(item.credit), style = TourOSTypography.Caption.copy(color = TourOSColors.Success), modifier = Modifier.weight(1.0f))
                                         Text(formatMoney(item.balance), style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold, modifier = Modifier.weight(1.0f))
