@@ -49,14 +49,7 @@ fun GlobalWebCmsScreen(
     var defaultCommissionMargin by remember { mutableStateOf("% 12.5 (B2B Standart Marj)") }
     var agencyReferralCode by remember { mutableStateOf("AGN-MASTER-8492") }
     var metaDescription by remember { mutableStateOf("TourOS B2B ve B2C seyahat platformu üzerinden tur operatörleri ve acentelerin en uygun otel ve uçak tekliflerini karşılaştırın.") }
-    var promoBannersList by remember {
-        mutableStateOf(
-            listOf(
-                PromoBannerItem("1", "Голубой тур", "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=1200", null),
-                PromoBannerItem("2", "Bodrum Lüks Yat Turu", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200", "https://touros.com")
-            )
-        )
-    }
+    var promoBannersList by remember { mutableStateOf<List<PromoBannerItem>>(emptyList()) }
 
     LaunchedEffect(Unit) {
         val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"

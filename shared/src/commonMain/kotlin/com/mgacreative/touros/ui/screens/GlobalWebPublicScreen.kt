@@ -341,9 +341,7 @@ fun GlobalWebPublicScreen(
     // Promosyon Kartı Slider Otomatik Geçiş State'i
     var currentPromoSlideIndex by remember { mutableStateOf(0) }
     val promoBannersList = remember(companySettings) {
-        companySettings?.getEffectivePromoBanners() ?: listOf(
-            PromoBannerItem("1", "Голубой тур", "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=1200", null)
-        )
+        companySettings?.getEffectivePromoBanners() ?: emptyList()
     }
 
     LaunchedEffect(promoBannersList) {

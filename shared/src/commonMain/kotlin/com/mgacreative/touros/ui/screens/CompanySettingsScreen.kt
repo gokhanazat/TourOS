@@ -180,8 +180,8 @@ fun CompanySettingsScreen(
                     var webHeroTitle by remember(settings.id) { mutableStateOf(settings.name) }
                     var webHeroSubtitle by remember(settings.id) { mutableStateOf(settings.heroSubtitle) }
                     var webFooterText by remember(settings.id) { mutableStateOf(settings.footerText) }
-                    var webPromoTitle by remember(settings.id) { mutableStateOf(settings.promoBannerTitle ?: "Голубой тур") }
-                    var webPromoImageUrl by remember(settings.id) { mutableStateOf(settings.promoBannerImageUrl ?: "https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?w=1200") }
+                    var webPromoTitle by remember(settings.id) { mutableStateOf(settings.promoBannerTitle ?: "") }
+                    var webPromoImageUrl by remember(settings.id) { mutableStateOf(settings.promoBannerImageUrl ?: "") }
                     var webPromoTargetUrl by remember(settings.id) { mutableStateOf(settings.promoBannerTargetUrl ?: "") }
 
                     // Acente Web Sayfasına Özel İletişim Bilgileri (Resmi Fatura Bilgilerinden Bağımsız)
