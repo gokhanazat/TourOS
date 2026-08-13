@@ -976,7 +976,8 @@ fun GlobalWebPublicScreen(
                                             .clip(CircleShape)
                                             .background(Color.Black.copy(alpha = 0.5f))
                                             .clickable {
-                                                currentPromoSlideIndex = (currentPromoSlideIndex - 1 + promoBannersList.size) % promoBannersList.size
+                                                val safeSize = promoBannersList.size.coerceAtLeast(1)
+                                                currentPromoSlideIndex = (currentPromoSlideIndex - 1 + safeSize) % safeSize
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -989,7 +990,8 @@ fun GlobalWebPublicScreen(
                                             .clip(CircleShape)
                                             .background(Color.Black.copy(alpha = 0.5f))
                                             .clickable {
-                                                currentPromoSlideIndex = (currentPromoSlideIndex + 1) % promoBannersList.size
+                                                val safeSize = promoBannersList.size.coerceAtLeast(1)
+                                                currentPromoSlideIndex = (currentPromoSlideIndex + 1) % safeSize
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -1005,7 +1007,8 @@ fun GlobalWebPublicScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     promoBannersList.indices.forEach { idx ->
-                                        val isSel = (idx == (currentPromoSlideIndex % promoBannersList.size))
+                                        val safeSize = promoBannersList.size.coerceAtLeast(1)
+                                        val isSel = (idx == (currentPromoSlideIndex % safeSize))
                                         Box(
                                             modifier = Modifier
                                                 .height(8.dp)
