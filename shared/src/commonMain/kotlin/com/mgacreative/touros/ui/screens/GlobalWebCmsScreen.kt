@@ -41,9 +41,11 @@ fun GlobalWebCmsScreen(
     var saveNotification by remember { mutableStateOf<String?>(null) }
 
     // Form State'leri
-    var siteTitle by remember { mutableStateOf("TourOS Business - Lüks Seyahat & Otel Platformu") }
+    var siteTitle by remember { mutableStateOf("MGA Creative") }
+    var customLogoUrl by remember { mutableStateOf("") }
     var heroSlogan by remember { mutableStateOf("Dünyanın En Seçkin 5 Yıldızlı Otelleri ve Özel Tur Paketleri") }
     var headerImageUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80") }
+    var callCenterPhone by remember { mutableStateOf("+90 (242) 555 0199") }
     var whatsappNumber by remember { mutableStateOf("+90 532 100 2030") }
     var supportEmail by remember { mutableStateOf("destek@touros.com") }
     var defaultCommissionMargin by remember { mutableStateOf("% 12.5 (B2B Standart Marj)") }
@@ -59,8 +61,11 @@ fun GlobalWebCmsScreen(
             if (effBanners.isNotEmpty()) {
                 promoBannersList = effBanners
             }
+            if (settings.name.isNotBlank()) siteTitle = settings.name
+            if (!settings.logoUrl.isNullOrBlank()) customLogoUrl = settings.logoUrl
             if (settings.heroSubtitle.isNotBlank()) heroSlogan = settings.heroSubtitle
             if (!settings.headerImageUrl.isNullOrBlank()) headerImageUrl = settings.headerImageUrl
+            if (settings.webPhone.isNotBlank()) callCenterPhone = settings.webPhone
             if (settings.webWhatsapp.isNotBlank()) whatsappNumber = settings.webWhatsapp
             if (settings.webEmail.isNotBlank()) supportEmail = settings.webEmail
             if (!settings.defaultMasterAgencyCode.isNullOrBlank()) agencyReferralCode = settings.defaultMasterAgencyCode
@@ -77,6 +82,26 @@ fun GlobalWebCmsScreen(
             trimmed.length >= 2 && trimmed[1] == ':' -> "file:///" + trimmed.replace("\\", "/")
             trimmed.startsWith("/") -> "file://" + trimmed
             else -> trimmed
+        }
+    }
+
+    val logoPickerLauncher = rememberFilePickerLauncher(mimeType = "image/*") { fileName, bytes ->
+        if (bytes != null && bytes.isNotEmpty()) {
+            coroutineScope.launch {
+                val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+                companySettingsRepository.uploadLogo(tid, bytes, fileName.ifBlank { "logo.png" })
+                    .onSuccess { url ->
+                        customLogoUrl = url
+                        saveNotification = "✅ Kurumsal Logo görseli Supabase depolamasına yüklendi!"
+                    }
+                    .onFailure {
+                        val formatted = formatFilePickerPath(fileName)
+                        customLogoUrl = formatted
+                    }
+            }
+        } else if (!fileName.isNullOrBlank()) {
+            val formatted = formatFilePickerPath(fileName)
+            customLogoUrl = formatted
         }
     }
 
@@ -347,15 +372,38 @@ fun GlobalWebCmsScreen(
                                     }
                                 }
                                 2 -> { // Logo & Açık Tema
-                                    Text("🎨 Logo, Banner & Açık Tema Ayarları", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold))
-                                    Text("Kurumsal açık temanın (Light Theme) renklerini, logo bağlantılarını ve banner resmi ayarlarını değiştirin.", style = TourOSTypography.BodyMedium)
+                                    Text("🎨 Logo, Marka & Banner Ayarları", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold))
+                                    Text("Web sitesinin en üst bandındaki marka logosunu, marka ismini ve banner görsellerini düzenleyin.", style = TourOSTypography.BodyMedium)
 
                                     OutlinedTextField(
                                         value = siteTitle,
                                         onValueChange = { siteTitle = it },
-                                        label = { Text("Web Sitesi Başlığı") },
+                                        label = { Text("Web Sitesi Marka Başlığı / İsmi (Header Üst Bant)") },
+                                        placeholder = { Text("Örn: MGA Creative / TourOS Travels") },
                                         modifier = Modifier.fillMaxWidth()
                                     )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        OutlinedTextField(
+                                            value = customLogoUrl,
+                                            onValueChange = { customLogoUrl = it },
+                                            label = { Text("Kurumsal Logo Görsel URL / Dosya Yolu") },
+                                            placeholder = { Text("https://... veya C:/Gorseller/logo.png") },
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Button(
+                                            onClick = {
+                                                logoPickerLauncher()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary, contentColor = Color.White)
+                                        ) {
+                                            Text("📁 Logo Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                        }
+                                    }
 
                                     OutlinedTextField(
                                         value = headerImageUrl,
@@ -378,6 +426,14 @@ fun GlobalWebCmsScreen(
                                 4 -> { // İletişim & WhatsApp
                                     Text("📞 İletişim & WhatsApp Canlı Destek", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold))
                                     Text("Web sitesindeki hızlı destek hatları ve iletişim bilgileri.", style = TourOSTypography.BodyMedium)
+
+                                    OutlinedTextField(
+                                        value = callCenterPhone,
+                                        onValueChange = { callCenterPhone = it },
+                                        label = { Text("Web Çağrı Merkezi / Sabit Telefon Numarası") },
+                                        placeholder = { Text("Örn: +90 (242) 555 0199") },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
 
                                     OutlinedTextField(
                                         value = whatsappNumber,
@@ -428,8 +484,11 @@ fun GlobalWebCmsScreen(
                                             ?: CompanySettings(id = tid, name = "TourOS Travels")
                                         
                                         val updatedSettings = currentSettings.copy(
+                                            name = siteTitle,
+                                            logoUrl = customLogoUrl,
                                             heroSubtitle = heroSlogan,
                                             headerImageUrl = headerImageUrl,
+                                            webPhone = callCenterPhone,
                                             webWhatsapp = whatsappNumber,
                                             webEmail = supportEmail,
                                             defaultMasterAgencyCode = agencyReferralCode,
