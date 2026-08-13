@@ -488,6 +488,9 @@ private fun AppNavHost(navController: NavHostController) {
                 onNavigateToAdminCms = {
                     navController.navigate(GlobalWebCmsRoute)
                 },
+                onNavigateToNewBooking = {
+                    navController.navigate(B2BTourSearchDashboardRoute)
+                },
                 onNavigateBack = { 
                     val popped = navController.popBackStack()
                     if (!popped) {

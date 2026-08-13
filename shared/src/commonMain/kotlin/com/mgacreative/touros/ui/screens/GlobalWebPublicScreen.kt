@@ -276,6 +276,7 @@ fun GlobalWebPublicScreen(
     onNavigateToBookingDetail: (String) -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToAdminCms: () -> Unit = {},
+    onNavigateToNewBooking: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -1729,7 +1730,8 @@ fun GlobalWebPublicScreen(
                                     title = "Paket Turlar",
                                     subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                     hotels = tourPackagesOnly,
-                                    onHotelClick = { selectedHotelForDetail = it }
+                                    onHotelClick = { selectedHotelForDetail = it },
+                                    onSelectAndBook = onNavigateToNewBooking
                                 )
                             }
 
@@ -1743,7 +1745,8 @@ fun GlobalWebPublicScreen(
                                     title = "Oteller",
                                     subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
                                     hotels = hotelsOnly,
-                                    onHotelClick = { selectedHotelForDetail = it }
+                                    onHotelClick = { selectedHotelForDetail = it },
+                                    onSelectAndBook = onNavigateToNewBooking
                                 )
                             }
 
@@ -1757,7 +1760,8 @@ fun GlobalWebPublicScreen(
                                     title = "Son Dakika",
                                     subtitle = "Acele edin ve %70'e varan muhteşem indirimlerden yararlanın!",
                                     hotels = lastMinuteOnly,
-                                    onHotelClick = { selectedHotelForDetail = it }
+                                    onHotelClick = { selectedHotelForDetail = it },
+                                    onSelectAndBook = onNavigateToNewBooking
                                 )
                             }
 
@@ -1771,7 +1775,8 @@ fun GlobalWebPublicScreen(
                                     title = "Charter & Tarifeli Uçuşlar",
                                     subtitle = "En uygun fiyatlı direkt charter uçuşlar ve özel havayolu biletleri",
                                     hotels = flightsOnly,
-                                    onHotelClick = { selectedHotelForDetail = it }
+                                    onHotelClick = { selectedHotelForDetail = it },
+                                    onSelectAndBook = onNavigateToNewBooking
                                 )
                             }
                         }
@@ -2283,7 +2288,8 @@ fun HorizontalProductSection(
     title: String,
     subtitle: String,
     hotels: List<PublicHotelOffer>,
-    onHotelClick: (PublicHotelOffer) -> Unit
+    onHotelClick: (PublicHotelOffer) -> Unit,
+    onSelectAndBook: () -> Unit = {}
 ) {
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
