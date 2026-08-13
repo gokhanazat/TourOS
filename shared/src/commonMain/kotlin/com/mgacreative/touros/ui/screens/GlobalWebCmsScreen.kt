@@ -87,22 +87,12 @@ fun GlobalWebCmsScreen(
                 companySettingsRepository.uploadHeaderBanner(tid, bytes, fileName.ifBlank { "header.png" })
                     .onSuccess { url ->
                         headerImageUrl = url
-                        if (promoBannersList.isNotEmpty()) {
-                            val list = promoBannersList.toMutableList()
-                            list[0] = list[0].copy(imageUrl = url)
-                            promoBannersList = list
-                        }
                         saveNotification = "✅ Manşet & Hero Slider görseli Supabase bulut deposuna yüklendi!"
                     }
             }
         } else if (!fileName.isNullOrBlank()) {
             val formatted = formatFilePickerPath(fileName)
             headerImageUrl = formatted
-            if (promoBannersList.isNotEmpty()) {
-                val list = promoBannersList.toMutableList()
-                list[0] = list[0].copy(imageUrl = formatted)
-                promoBannersList = list
-            }
         }
     }
 
@@ -122,7 +112,6 @@ fun GlobalWebCmsScreen(
                     if (idx in list.indices) {
                         list[idx] = list[idx].copy(imageUrl = publicUrl)
                         promoBannersList = list
-                        if (idx == 0) headerImageUrl = publicUrl
                         saveNotification = "✅ Promosyon görseli Supabase bulut deposuna yüklendi!"
                     }
                 }
@@ -238,11 +227,6 @@ fun GlobalWebCmsScreen(
                                             value = headerImageUrl,
                                             onValueChange = { newUrl ->
                                                 headerImageUrl = newUrl
-                                                if (promoBannersList.isNotEmpty()) {
-                                                    val list = promoBannersList.toMutableList()
-                                                    list[0] = list[0].copy(imageUrl = newUrl)
-                                                    promoBannersList = list
-                                                }
                                             },
                                             label = { Text("Manşet & Hero Slider Görsel URL / Dosya Yolu") },
                                             placeholder = { Text("https://... veya C:/Gorseller/banner.jpg") },
