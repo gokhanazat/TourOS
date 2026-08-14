@@ -41,7 +41,10 @@ fun TourOSTopBar(
                 }
             },
             navigationIcon = { navigationIcon?.invoke() },
-            actions = actions,
+            actions = {
+                actions()
+                LanguageSelector()
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = TourOSColors.Background,
                 titleContentColor = TourOSColors.TextPrimary,
@@ -51,3 +54,4 @@ fun TourOSTopBar(
         HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
     }
 }
+

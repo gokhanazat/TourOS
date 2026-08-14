@@ -74,9 +74,13 @@ import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
 import com.mgacreative.touros.ui.components.TourOSCard
 import com.mgacreative.touros.ui.components.TourOSStatusBadge
+import com.mgacreative.touros.ui.components.LanguageSelector
+import com.mgacreative.touros.ui.components.AppLanguage
 import com.mgacreative.touros.ui.theme.TourOSColors
+
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -341,6 +345,8 @@ fun GlobalWebPublicScreen(
     val b2bTourSearchViewModel: com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel = koinInject()
 
     val currentUser by authRepository.observeAuthState().collectAsState()
+    val currentLang by AppLanguageManager.currentLanguage.collectAsState()
+    var showLanguageDropdown by remember { mutableStateOf(false) }
     var companySettings by remember { mutableStateOf<CompanySettings?>(null) }
 
     // Filtreleme State'leri
@@ -753,7 +759,22 @@ fun GlobalWebPublicScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.width(10.dp))
+                             Spacer(modifier = Modifier.width(6.dp))
+
+                             // 🌐 3 Dilli Bayraklı Dil Seçici (TR 🇹🇷, EN 🇬🇧, RU 🇷🇺)
+                             LanguageSelector(
+                                 selectedLanguage = when (currentLang.code) {
+                                     "ru" -> AppLanguage.RU
+                                     "en" -> AppLanguage.EN
+                                     else -> AppLanguage.TR
+                                 },
+                                 onLanguageSelected = { lang ->
+                                     AppLanguageManager.setLanguage(lang.code)
+                                 }
+                             )
+
+                             Spacer(modifier = Modifier.width(6.dp))
+
 
                             // Yalnızca Sistem Yöneticisi (gkhnazat@gmail.com veya SYSTEM_ADMIN) İçin Admin Paneli Butonu
                             val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
@@ -1097,10 +1118,11 @@ fun GlobalWebPublicScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     listOf(
-                                        "PACKAGE_TOUR" to "Tur Paketi",
-                                        "HOTEL" to "Oteller",
-                                        "FLIGHT" to "Uçuşlar"
+                                        "PACKAGE_TOUR" to AppLanguageManager.translate("Tur Paketi"),
+                                        "HOTEL" to AppLanguageManager.translate("Oteller"),
+                                        "FLIGHT" to AppLanguageManager.translate("Uçuşlar")
                                     ).forEach { (tabKey, tabTitle) ->
+
                                         val isSelected = selectedSearchCategoryTab == tabKey || (tabKey == "PACKAGE_TOUR" && selectedSearchCategoryTab == "ALL")
                                         Box(
                                             modifier = Modifier
@@ -1287,7 +1309,7 @@ fun GlobalWebPublicScreen(
                                             ) {
                                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                                     Text(
-                                                        text = if (flightTripType == "ROUND_TRIP") endDateText else "Dönüş Ekleyin",
+                                                        text = if (flightTripType == "ROUND_TRIP") endDateText else AppLanguageManager.translate("Dönüş Ekleyin"),
                                                         style = TourOSTypography.Caption.copy(
                                                             color = if (flightTripType == "ROUND_TRIP") Color(0xFF0F172A) else Color(0xFF64748B),
                                                             fontWeight = FontWeight.Bold,
@@ -1303,7 +1325,7 @@ fun GlobalWebPublicScreen(
                                     // ── TÜM DİĞER SEKMELER (Tur Paketi & Oteller) FİLTRELERİ ──
                                     // 1. DESTİNASYON
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text("Destinasyon", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                        Text(AppLanguageManager.translate("Destinasyon"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -1321,7 +1343,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Nereden (Kalkış Şehri)", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Nereden (Kalkış Şehri)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
@@ -1352,7 +1374,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Nereye (Destinasyon / Ülke)", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Nereye (Destinasyon / Ülke)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
@@ -1378,7 +1400,7 @@ fun GlobalWebPublicScreen(
 
                                     // 2. TARİH (MODERN MATERIAL DATE PICKER)
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text("Tarih", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                        Text(AppLanguageManager.translate("Tarih"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -1396,7 +1418,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Gidiş Başlangıç", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Gidiş Başlangıç"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(startDateText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("📅", fontSize = 10.sp)
@@ -1413,7 +1435,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Gidiş Bitiş", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Gidiş Bitiş"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(endDateText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("📅", fontSize = 10.sp)
@@ -1425,7 +1447,7 @@ fun GlobalWebPublicScreen(
 
                                     // 3. OPSİYON
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text("Opsiyon", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                        Text(AppLanguageManager.translate("Opsiyon"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -1443,7 +1465,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Gece Sayısı", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Gece Sayısı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(selectedNightsText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
@@ -1474,7 +1496,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Turist Sayısı", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Turist Sayısı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(selectedTouristsText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
@@ -1505,7 +1527,7 @@ fun GlobalWebPublicScreen(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
                                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text("Tur Operatörü", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                            Text(AppLanguageManager.translate("Tur Operatörü"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -1536,7 +1558,7 @@ fun GlobalWebPublicScreen(
                                         }
 
                                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text("Ülke", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                            Text(AppLanguageManager.translate("Ülke"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -1625,7 +1647,7 @@ fun GlobalWebPublicScreen(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "ARAMA BAŞLAT",
+                                        text = AppLanguageManager.translate("ARAMA BAŞLAT"),
                                         style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                                     )
                                 }
