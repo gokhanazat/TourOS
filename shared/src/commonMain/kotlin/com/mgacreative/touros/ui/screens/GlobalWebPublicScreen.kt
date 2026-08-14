@@ -54,6 +54,13 @@ import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Whatshot
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -707,7 +714,12 @@ fun GlobalWebPublicScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("📞", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                Icon(
+                                    imageVector = Icons.Default.Phone,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(13.dp)
+                                )
                                 Text(
                                     text = phoneNo,
                                     style = TourOSTypography.Caption.copy(
@@ -725,7 +737,12 @@ fun GlobalWebPublicScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text("💬", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                Icon(
+                                    imageVector = Icons.Default.Chat,
+                                    contentDescription = null,
+                                    tint = Color(0xFF6EE7B7),
+                                    modifier = Modifier.size(13.dp)
+                                )
                                 Text(
                                     text = whatsappNo,
                                     style = TourOSTypography.Caption.copy(
@@ -738,7 +755,7 @@ fun GlobalWebPublicScreen(
 
                             Spacer(modifier = Modifier.width(10.dp))
 
-                            // Yalnızca Sistem Yöneticisi (gkhnazat@gmail.com veya SYSTEM_ADMIN) İçin ⚙️ Admin Paneli Butonu
+                            // Yalnızca Sistem Yöneticisi (gkhnazat@gmail.com veya SYSTEM_ADMIN) İçin Admin Paneli Butonu
                             val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
 
                             if (isSystemAdmin) {
@@ -750,10 +767,27 @@ fun GlobalWebPublicScreen(
                                         .padding(horizontal = 12.dp, vertical = 6.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "⚙️ Admin Paneli ➔",
-                                        style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Settings,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Text(
+                                            text = "Admin Paneli",
+                                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        )
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(11.dp)
+                                        )
+                                    }
                                 }
                             }
 
@@ -2715,11 +2749,22 @@ fun BusinessFooterSection(
                             shape = RoundedCornerShape(20.dp),
                             color = Color(0xFF1E293B)
                         ) {
-                            Text(
-                                text = "🔒 Lisanslı & Onaylı B2B Platformu",
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "Lisanslı & Onaylı B2B Platformu",
+                                    style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                                )
+                            }
                         }
                     }
 
@@ -2734,10 +2779,26 @@ fun BusinessFooterSection(
                             text = "Hızlı Erişim",
                             style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         )
-                        Text("🏖️ Paket Turlar", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        Text("🏨 Lüks Oteller", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        Text("🔥 Son Dakika Fırsatları", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        Text("🔐 Acente B2B Girişi", modifier = Modifier.clickable { onNavigateToLogin() }, style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.BeachAccess, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
+                            Text("Paket Turlar", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Hotel, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
+                            Text("Lüks Oteller", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Whatshot, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(14.dp))
+                            Text("Son Dakika Fırsatları", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.clickable { onNavigateToLogin() }
+                        ) {
+                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(14.dp))
+                            Text("Acente B2B Girişi", style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 12.sp))
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(24.dp))
@@ -2757,10 +2818,22 @@ fun BusinessFooterSection(
                         val whatsappVal = companySettings?.webWhatsapp?.ifBlank { "+90 530 000 0000" } ?: "+90 530 000 0000"
                         val addressVal = companySettings?.webAddress?.ifBlank { companySettings.address }?.ifBlank { "Lara Cad. No:142, Muratpaşa / Antalya" } ?: "Lara Cad. No:142, Muratpaşa / Antalya"
 
-                        Text("📞 Tel: $phoneVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        Text("💬 WhatsApp: $whatsappVal", style = TourOSTypography.Caption.copy(color = Color(0xFF10B981), fontWeight = FontWeight.SemiBold, fontSize = 12.sp))
-                        Text("✉️ E-Posta: $emailVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        Text("📍 Adres: $addressVal", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp), maxLines = 2)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
+                            Text("Tel: $phoneVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(14.dp))
+                            Text("WhatsApp: $whatsappVal", style = TourOSTypography.Caption.copy(color = Color(0xFF10B981), fontWeight = FontWeight.SemiBold, fontSize = 12.sp))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
+                            Text("E-Posta: $emailVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        }
+                        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp).padding(top = 2.dp))
+                            Text("Adres: $addressVal", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp), maxLines = 2)
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(24.dp))
