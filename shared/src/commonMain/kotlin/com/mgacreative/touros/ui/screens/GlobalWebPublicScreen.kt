@@ -48,6 +48,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import io.github.jan.supabase.postgrest.postgrest
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.BeachAccess
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.mgacreative.touros.domain.model.Booking
 import com.mgacreative.touros.domain.model.BookingStatus
 import com.mgacreative.touros.domain.model.CompanySettings
@@ -1737,7 +1746,7 @@ fun GlobalWebPublicScreen(
                             }.take(20)
                             if (tourPackagesOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "🏖️",
+                                    titleVectorIcon = Icons.Default.BeachAccess,
                                     title = "Paket Turlar",
                                     subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                     hotels = tourPackagesOnly,
@@ -1755,7 +1764,7 @@ fun GlobalWebPublicScreen(
                             }.ifEmpty { tourPackagesOnly }.take(20)
                             if (hotelsOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "🏨",
+                                    titleVectorIcon = Icons.Default.Hotel,
                                     title = "Oteller",
                                     subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
                                     hotels = hotelsOnly,
@@ -1773,7 +1782,7 @@ fun GlobalWebPublicScreen(
                             }.ifEmpty { tourPackagesOnly }.take(20)
                             if (lastMinuteOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "⚡",
+                                    titleVectorIcon = Icons.Default.ElectricBolt,
                                     title = "Son Dakika",
                                     subtitle = "Acele edin ve %70'e varan muhteşem indirimlerden yararlanın!",
                                     hotels = lastMinuteOnly,
@@ -1791,7 +1800,7 @@ fun GlobalWebPublicScreen(
                             }.take(20)
                             if (flightsOnly.isNotEmpty()) {
                                 HorizontalProductSection(
-                                    titleIcon = "✈️",
+                                    titleVectorIcon = Icons.Default.Flight,
                                     title = "Charter & Tarifeli Uçuşlar",
                                     subtitle = "En uygun fiyatlı direkt charter uçuşlar ve özel havayolu biletleri",
                                     hotels = flightsOnly,
@@ -2309,7 +2318,7 @@ fun VerticalSearchResultsGridSection(
 // ── 🌟 YATAY KAYDIRILABİLİR TEMATİK ÜRÜN SEKSİYONU (SCREENSHOT BİREBİR) ────────
 @Composable
 fun HorizontalProductSection(
-    titleIcon: String,
+    titleVectorIcon: ImageVector? = null,
     title: String,
     subtitle: String,
     hotels: List<PublicHotelOffer>,
@@ -2333,7 +2342,7 @@ fun HorizontalProductSection(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header Row (Emoji + Başlık + Alt Başlık + Oklar)
+            // Header Row (Vektör İkon + Başlık + Alt Başlık + Vektör Oklar)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -2343,8 +2352,21 @@ fun HorizontalProductSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    if (titleIcon.isNotBlank()) {
-                        Text(titleIcon, fontSize = 28.sp)
+                    if (titleVectorIcon != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(Color(0xFFEFF6FF)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = titleVectorIcon,
+                                contentDescription = null,
+                                tint = Color(0xFF0284C7),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                     Column {
                         Text(
@@ -2362,7 +2384,7 @@ fun HorizontalProductSection(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Sol Ok (←)
+                    // Sol Vektör Ok (←)
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -2375,10 +2397,15 @@ fun HorizontalProductSection(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("←", style = TourOSTypography.BodyMedium.copy(color = Color(0xFF334155), fontWeight = FontWeight.Bold))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Önceki",
+                            tint = Color(0xFF334155),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
 
-                    // Sağ Ok (→)
+                    // Sağ Vektör Ok (→)
                     Box(
                         modifier = Modifier
                             .size(36.dp)
@@ -2391,7 +2418,12 @@ fun HorizontalProductSection(
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("→", style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Sonraki",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
@@ -2444,7 +2476,7 @@ fun HorizontalHotelCard(
                     contentScale = ContentScale.Crop
                 )
 
-                // Sol Üst Gerçek İndirim Rozeti (% İndirim - Sadece İndirim Var İse Gösterilir)
+                // Sol Üst Gerçek İndirim Rozeti (% İndirim)
                 if (hotel.discountPercent != null && hotel.discountPercent > 0) {
                     Box(
                         modifier = Modifier
@@ -2461,18 +2493,26 @@ fun HorizontalHotelCard(
                     }
                 }
 
-                // Sağ Üst Mavi Yıldız Rozeti (Görsel 1 ile Birebir ⭐⭐⭐)
+                // Sağ Üst Mavi Yıldız Rozeti (Vektör Yıldızlar ⭐)
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(10.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color(0xFF1E3A8A).copy(alpha = 0.9f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         repeat(hotel.stars.coerceIn(1, 5)) {
-                            Text("⭐", fontSize = 10.sp)
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Star",
+                                tint = Color(0xFFFFB800),
+                                modifier = Modifier.size(11.dp)
+                            )
                         }
                     }
                 }
@@ -2494,7 +2534,7 @@ fun HorizontalHotelCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isFlightCard) "✈️ ${hotel.flightCode}" else hotel.hotelName,
+                        text = if (isFlightCard) hotel.flightCode.ifBlank { "Charter Uçuş Seferi" } else hotel.hotelName,
                         style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -2506,7 +2546,7 @@ fun HorizontalHotelCard(
                         color = if (isFlightCard) Color(0xFFEFF6FF) else Color(0xFFFEF3C7)
                     ) {
                         Text(
-                            text = if (isFlightCard) "Direkt Uçuş ✈️" else "Starway Award",
+                            text = if (isFlightCard) "Direkt Uçuş" else "Starway Award",
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = TourOSTypography.Caption.copy(color = if (isFlightCard) Color(0xFF1D4ED8) else Color(0xFFD97706), fontWeight = FontWeight.Bold, fontSize = 9.sp),
                             maxLines = 1,
@@ -2521,9 +2561,9 @@ fun HorizontalHotelCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val operatorChipText = if (hotel.agencyPrices.size > 1) {
-                        "🏢 ${hotel.agencyPrices.size} Operatör Teklifi"
+                        "${hotel.agencyPrices.size} Operatör Teklifi"
                     } else {
-                        "🏢 ${hotel.operatorName}"
+                        hotel.operatorName
                     }
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -2546,7 +2586,7 @@ fun HorizontalHotelCard(
                         color = Color(0xFFEFF6FF)
                     ) {
                         Text(
-                            text = if (isFlightCard) "🧳 20 kg Bagaj" else "✈️ ${hotel.flightCode}",
+                            text = if (isFlightCard) "20 kg Bagaj" else hotel.flightCode,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
                             maxLines = 1,
@@ -2557,7 +2597,7 @@ fun HorizontalHotelCard(
 
                 // Lokasyon & Tur / Uçuş Bilgisi
                 Text(
-                    text = if (isFlightCard) "📍 Moskova Kalkışlı · 🪑 Ekonomi Sınıfı · 🏷️ Gidiş-Dönüş" else "📍 Moskova'dan ${hotel.location} · 🌙 ${hotel.nights} Gece · 🍽️ ${hotel.mealType}",
+                    text = if (isFlightCard) "Moskova Kalkışlı · Ekonomi Sınıfı · Gidiş-Dönüş" else "Moskova'dan ${hotel.location} · ${hotel.nights} Gece · ${hotel.mealType}",
                     style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2595,11 +2635,22 @@ fun HorizontalHotelCard(
                             },
                         color = Color(0xFF1E4D58) // Teal Dark Button
                     ) {
-                        Text(
-                            text = if (isFlightCard) "⚡ Uçuş Seç ➔" else "⚡ Turu Seç & Detaylandır ➔",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 7.dp),
-                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
+                        ) {
+                            Text(
+                                text = if (isFlightCard) "Uçuş Seç" else "Turu Seç & Detaylandır",
+                                style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            )
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
                     }
                 }
             }
