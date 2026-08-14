@@ -104,30 +104,51 @@ fun PublicHotelOffer.toUnifiedProductEntity(): com.mgacreative.touros.data.datab
     )
 }
 
+fun getOptimizedImageUrl(rawUrl: String, width: Int = 600, quality: Int = 80): String {
+    val trimmed = rawUrl.trim()
+    if (trimmed.isBlank()) return "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=$width&q=$quality"
+    
+    return when {
+        trimmed.contains("unsplash.com") -> {
+            val baseUrl = trimmed.substringBefore("?")
+            "$baseUrl?auto=format&fit=crop&w=$width&q=$quality"
+        }
+        trimmed.contains("supabase.co/storage") -> {
+            if (trimmed.contains("?")) "$trimmed&width=$width&quality=$quality"
+            else "$trimmed?width=$width&quality=$quality"
+        }
+        else -> trimmed
+    }
+}
+
 fun getEffectiveImageUrl(hotel: PublicHotelOffer): String {
     val isFlight = hotel.category == "FLIGHT" || 
                    hotel.hotelName.contains("✈️") || 
                    hotel.hotelName.contains("Uçuş") || 
                    hotel.hotelName.contains("Charter")
 
-    if (isFlight) {
-        if (hotel.imageUrl.isNotBlank() && 
-            !hotel.imageUrl.contains("photo-15") && 
-            !hotel.imageUrl.contains("photo-16")) {
-            return hotel.imageUrl
+    val rawUrl = when {
+        isFlight -> {
+            if (hotel.imageUrl.isNotBlank() && 
+                !hotel.imageUrl.contains("photo-15") && 
+                !hotel.imageUrl.contains("photo-16")) {
+                hotel.imageUrl
+            } else {
+                "https://images.unsplash.com/photo-1436491865332-7a61a109cc05"
+            }
         }
-        return "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800"
+        hotel.imageUrl.isNotBlank() && !hotel.imageUrl.contains("photo-1566073771259-6a8506099945") -> {
+            hotel.imageUrl
+        }
+        else -> when (hotel.category) {
+            "HOTEL" -> "https://images.unsplash.com/photo-1566073771259-6a8506099945"
+            "FLIGHT" -> "https://images.unsplash.com/photo-1436491865332-7a61a109cc05"
+            "LAST_MINUTE" -> "https://images.unsplash.com/photo-1540555700478-4be289fbecef"
+            else -> "https://images.unsplash.com/photo-1507525428034-b723cf961d3e" // PACKAGE_TOUR
+        }
     }
 
-    if (hotel.imageUrl.isNotBlank() && !hotel.imageUrl.contains("photo-1566073771259-6a8506099945")) {
-        return hotel.imageUrl
-    }
-    return when (hotel.category) {
-        "HOTEL" -> "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800"
-        "FLIGHT" -> "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800"
-        "LAST_MINUTE" -> "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800"
-        else -> "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800" // PACKAGE_TOUR
-    }
+    return getOptimizedImageUrl(rawUrl, width = 600)
 }
 
 data class AgencyPriceOption(
@@ -357,19 +378,10 @@ fun GlobalWebPublicScreen(
         )
     }
 
-    // Promosyon Kartı Slider Otomatik Geçiş State'i
+    // Promosyon Kartı Slider State'i (Otomatik değişim kaldırıldı, sadece oklar/noktalar ile manuel geçiş)
     var currentPromoSlideIndex by remember { mutableStateOf(0) }
     val promoBannersList = remember(companySettings) {
         companySettings?.getEffectivePromoBanners() ?: emptyList()
-    }
-
-    LaunchedEffect(promoBannersList) {
-        if (promoBannersList.size > 1) {
-            while (true) {
-                delay(4000)
-                currentPromoSlideIndex = (currentPromoSlideIndex + 1) % promoBannersList.size
-            }
-        }
     }
 
     // Turist / Acente Modu & Login Modalı State'leri
@@ -410,7 +422,7 @@ fun GlobalWebPublicScreen(
         runCatching {
             supabaseClient.postgrest["marketplace_products"]
                 .select {
-                    range(0, 20000)
+                    range(0, 200)
                 }
                 .decodeList<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>()
         }.onSuccess { list ->
@@ -1720,9 +1732,9 @@ fun GlobalWebPublicScreen(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             // ── BLOK 1: 🏖️ PAKET TURLAR (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ─────
-                            val tourPackagesOnly = dbProducts.filter { 
+                            val tourPackagesOnly = dbProducts.shuffled().filter { 
                                 it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
-                            }
+                            }.take(20)
                             if (tourPackagesOnly.isNotEmpty()) {
                                 HorizontalProductSection(
                                     titleIcon = "🏖️",
@@ -1738,9 +1750,9 @@ fun GlobalWebPublicScreen(
                             }
 
                             // ── BLOK 2: OTELLER (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ──────────
-                            val hotelsOnly = dbProducts.filter { 
+                            val hotelsOnly = dbProducts.shuffled().filter { 
                                 it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true) && (it.category == "HOTEL" || it.stars >= 4)
-                            }.ifEmpty { tourPackagesOnly }
+                            }.ifEmpty { tourPackagesOnly }.take(20)
                             if (hotelsOnly.isNotEmpty()) {
                                 HorizontalProductSection(
                                     titleIcon = "🏨",
@@ -1758,7 +1770,7 @@ fun GlobalWebPublicScreen(
                             // ── BLOK 3: SON DAKİKA (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ───────
                             val lastMinuteOnly = dbProducts.filter { 
                                 it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true) && (it.isLastMinute || (it.discountPercent ?: 0) > 0)
-                            }.ifEmpty { tourPackagesOnly }
+                            }.ifEmpty { tourPackagesOnly }.take(20)
                             if (lastMinuteOnly.isNotEmpty()) {
                                 HorizontalProductSection(
                                     titleIcon = "⚡",
@@ -1774,9 +1786,9 @@ fun GlobalWebPublicScreen(
                             }
 
                             // ── BLOK 4: ✈️ CHARTER & TARİFELİ UÇUŞLAR (ANA SAYFA SABİT BLOK) ─────
-                            val flightsOnly = dbProducts.filter { 
-                                it.category == "FLIGHT" || it.flightCode.isNotBlank() || it.hotelName.startsWith("Uçuş:", ignoreCase = true) || it.hotelName.startsWith("✈️", ignoreCase = true)
-                            }
+                            val flightsOnly = dbProducts.shuffled().filter { 
+                                it.category == "FLIGHT" || it.hotelName.startsWith("Uçuş:", ignoreCase = true) || it.hotelName.startsWith("✈️", ignoreCase = true)
+                            }.take(20)
                             if (flightsOnly.isNotEmpty()) {
                                 HorizontalProductSection(
                                     titleIcon = "✈️",
@@ -2423,6 +2435,7 @@ fun HorizontalHotelCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(170.dp)
+                    .background(Color(0xFFF1F5F9))
             ) {
                 AsyncImage(
                     model = getEffectiveImageUrl(hotel),
