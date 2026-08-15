@@ -329,6 +329,40 @@ fun getInitialDefaultOffers(): List<PublicHotelOffer> {
 }
 
 @Composable
+fun AxiletoLogoText(
+    modifier: Modifier = Modifier,
+    aFontSize: androidx.compose.ui.unit.TextUnit = 30.sp,
+    xiletoFontSize: androidx.compose.ui.unit.TextUnit = 20.sp,
+    color: Color = Color.White
+) {
+    Row(
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.Start,
+        modifier = modifier
+    ) {
+        Text(
+            text = "a",
+            style = androidx.compose.ui.text.TextStyle(
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Default,
+                fontWeight = FontWeight.Black,
+                fontSize = aFontSize,
+                color = color
+            )
+        )
+        Text(
+            text = "xileto",
+            style = androidx.compose.ui.text.TextStyle(
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Default,
+                fontWeight = FontWeight.Bold,
+                fontSize = xiletoFontSize,
+                color = color
+            ),
+            modifier = Modifier.padding(bottom = 2.dp)
+        )
+    }
+}
+
+@Composable
 fun GlobalWebPublicScreen(
     referralCode: String? = null,
     onNavigateToBookingDetail: (String) -> Unit = {},
@@ -672,182 +706,251 @@ fun GlobalWebPublicScreen(
                     color = Color(0xFF0D5653), // Screenshot ile birebir Koyu Yeşil/Teal Tema
                     shadowElevation = 4.dp
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Sol Taraf: Marka Logosu & Başlık
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val logoUrl = companySettings?.logoUrl?.trim()
-                            val isValidLogo = !logoUrl.isNullOrBlank() && 
-                                    !logoUrl.contains("default", ignoreCase = true) && 
-                                    !logoUrl.contains("placeholder", ignoreCase = true)
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val isMobile = maxWidth < 768.dp
+                        val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
 
-                            if (isValidLogo) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    AsyncImage(
-                                        model = logoUrl,
-                                        contentDescription = "Marka Logosu",
-                                        modifier = Modifier.height(32.dp),
-                                        contentScale = ContentScale.Fit
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                            }
-                            Text(
-                                text = companySettings?.name?.ifBlank { "TourOS Travels" } ?: "TourOS Travels",
-                                style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold)
-                            )
-                        }
-
-                        // Sağ Taraf: Kurumsal İletişim Numaraları (Telefon & WhatsApp)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            val phoneNo = companySettings?.webPhone?.ifBlank { companySettings?.phone }?.ifBlank { "+90 (242) 555 0199" } ?: "+90 (242) 555 0199"
-                            val whatsappNo = companySettings?.webWhatsapp?.ifBlank { companySettings?.phone }?.ifBlank { "+90 530 000 0000" } ?: "+90 530 000 0000"
-
-                            // 📞 Telefon Yazısı
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        if (isMobile) {
+                            // 📱 MOBİL DİKEY EKRAN DÜZENİ (Telefonlarda Acente / Müşteri Giriş Butonları En Üstte Net Görünür)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Phone,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Text(
-                                    text = phoneNo,
-                                    style = TourOSTypography.Caption.copy(
-                                        color = Color.White,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 12.sp
-                                    )
-                                )
-                            }
-
-                            Text("|", style = TourOSTypography.Caption.copy(color = Color.White.copy(alpha = 0.3f), fontSize = 12.sp))
-
-                            // 💬 WhatsApp Yazısı
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Chat,
-                                    contentDescription = null,
-                                    tint = Color(0xFF6EE7B7),
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Text(
-                                    text = whatsappNo,
-                                    style = TourOSTypography.Caption.copy(
-                                        color = Color(0xFF6EE7B7),
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 12.sp
-                                    )
-                                )
-                            }
-
-                             Spacer(modifier = Modifier.width(6.dp))
-
-                             // 🌐 3 Dilli Bayraklı Dil Seçici (TR 🇹🇷, EN 🇬🇧, RU 🇷🇺)
-                             LanguageSelector(
-                                 selectedLanguage = when (currentLang.code) {
-                                     "ru" -> AppLanguage.RU
-                                     "en" -> AppLanguage.EN
-                                     else -> AppLanguage.TR
-                                 },
-                                 onLanguageSelected = { lang ->
-                                     AppLanguageManager.setLanguage(lang.code)
-                                 }
-                             )
-
-                             Spacer(modifier = Modifier.width(6.dp))
-
-
-                            // Yalnızca Sistem Yöneticisi (gkhnazat@gmail.com veya SYSTEM_ADMIN) İçin Admin Paneli Butonu
-                            val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
-
-                            if (isSystemAdmin) {
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(Color(0xFFE11D48)) // Kırmızı / Rose Vurgulu Admin Butonu
-                                        .clickable { onNavigateToAdminCms() }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    contentAlignment = Alignment.Center
+                                // 1. Satır: Logolar & Müşteri / Acente Giriş Butonları (Her Zaman Görünür)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val logoUrl = companySettings?.logoUrl?.trim()
+                                        val isValidLogo = !logoUrl.isNullOrBlank() && 
+                                                !logoUrl.contains("default", ignoreCase = true) && 
+                                                !logoUrl.contains("placeholder", ignoreCase = true)
+
+                                        if (isValidLogo) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 2.dp, vertical = 2.dp)
+                                            ) {
+                                                AsyncImage(
+                                                    model = logoUrl,
+                                                    contentDescription = "Marka Logosu",
+                                                    modifier = Modifier.height(26.dp),
+                                                    contentScale = ContentScale.Fit
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                        }
+                                        val currentName = companySettings?.name?.ifBlank { "axileto" } ?: "axileto"
+                                        if (!isValidLogo && (currentName.equals("axileto", ignoreCase = true) || currentName.equals("TourOS", ignoreCase = true) || currentName.equals("TourOS Travels", ignoreCase = true))) {
+                                            AxiletoLogoText(aFontSize = 26.sp, xiletoFontSize = 18.sp, color = Color.White)
+                                        } else {
+                                            Text(
+                                                text = currentName,
+                                                style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+                                    }
+
+                                    // 🧳 Misafir / 🏢 Acenta Giriş Butonları
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(Color.Black.copy(alpha = 0.4f))
+                                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                                            .padding(2.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Settings,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Text(
-                                            text = "Admin Paneli",
-                                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                        )
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(11.dp)
-                                        )
+                                        val guestLabel = "🧳 Misafir"
+                                        val agencyLabel = if (currentUser != null) "🏢 Acenta ➔" else "🏢 Acenta"
+
+                                        listOf(guestLabel, agencyLabel).forEach { modeLabel ->
+                                            val isGuest = modeLabel.contains("Misafir")
+                                            val isSelectedMode = (isGuest && userMode == "Turist") || (!isGuest && userMode == "Acente")
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .background(if (isSelectedMode) Color(0xFF10B981) else Color(0xFF1E293B))
+                                                    .clickable {
+                                                        if (isGuest) {
+                                                            userMode = "Turist"
+                                                        } else {
+                                                            userMode = "Acente"
+                                                            if (currentUser == null) {
+                                                                onNavigateToLogin()
+                                                            }
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = modeLabel,
+                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 2. Satır: Düz Beyaz Font Dil Seçici & Admin Paneli
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    LanguageSelector(
+                                        selectedLanguage = when (currentLang.code) {
+                                            "ru" -> AppLanguage.RU
+                                            "en" -> AppLanguage.EN
+                                            else -> AppLanguage.TR
+                                        },
+                                        onLanguageSelected = { lang ->
+                                            AppLanguageManager.setLanguage(lang.code)
+                                        }
+                                    )
+
+                                    if (isSystemAdmin) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color(0xFFE11D48))
+                                                .clickable { onNavigateToAdminCms() }
+                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                            ) {
+                                                Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp))
+                                                Text("Admin", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                            }
+                                        }
                                     }
                                 }
                             }
-
-                            // 🧳 Misafir / 🏢 Acenta Seçici Segment Butonları
+                        } else {
+                            // 💻 MASAÜSTÜ GENİŞ EKRAN DÜZENİ
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .background(Color.Black.copy(alpha = 0.4f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                                    .padding(2.dp),
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val guestLabel = "🧳 Misafir"
-                                val agencyLabel = if (currentUser != null) "🏢 Acenta Paneli ➔" else "🏢 Acenta"
+                                // Sol Taraf: Marka Logosu & Başlık
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val logoUrl = companySettings?.logoUrl?.trim()
+                                    val isValidLogo = !logoUrl.isNullOrBlank() && 
+                                            !logoUrl.contains("default", ignoreCase = true) && 
+                                            !logoUrl.contains("placeholder", ignoreCase = true)
 
-                                listOf(guestLabel, agencyLabel).forEach { modeLabel ->
-                                    val isGuest = modeLabel.contains("Misafir")
-                                    val isSelectedMode = (isGuest && userMode == "Turist") || (!isGuest && userMode == "Acente")
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(if (isSelectedMode) Color(0xFF10B981) else Color(0xFF1E293B))
-                                            .clickable {
-                                                if (isGuest) {
-                                                    userMode = "Turist"
-                                                } else {
-                                                    userMode = "Acente"
-                                                    if (currentUser == null) {
-                                                        onNavigateToLogin()
-                                                    }
-                                                }
-                                            }
-                                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
+                                    if (isValidLogo) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        ) {
+                                            AsyncImage(
+                                                model = logoUrl,
+                                                contentDescription = "Marka Logosu",
+                                                modifier = Modifier.height(32.dp),
+                                                contentScale = ContentScale.Fit
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                    }
+                                    val currentName = companySettings?.name?.ifBlank { "axileto" } ?: "axileto"
+                                    if (!isValidLogo && (currentName.equals("axileto", ignoreCase = true) || currentName.equals("TourOS", ignoreCase = true) || currentName.equals("TourOS Travels", ignoreCase = true))) {
+                                        AxiletoLogoText(aFontSize = 32.sp, xiletoFontSize = 22.sp, color = Color.White)
+                                    } else {
                                         Text(
-                                            text = modeLabel,
-                                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                            text = currentName,
+                                            style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold)
                                         )
+                                    }
+                                }
+
+                                // Sağ Taraf: Düz Beyaz Font Dil Seçici + Admin + Acente/Misafir
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    // 🌐 Düz Beyaz Font Dil Seçici (TR | EN | RU)
+                                    LanguageSelector(
+                                        selectedLanguage = when (currentLang.code) {
+                                            "ru" -> AppLanguage.RU
+                                            "en" -> AppLanguage.EN
+                                            else -> AppLanguage.TR
+                                        },
+                                        onLanguageSelected = { lang ->
+                                            AppLanguageManager.setLanguage(lang.code)
+                                        }
+                                    )
+
+                                    if (isSystemAdmin) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color(0xFFE11D48))
+                                                .clickable { onNavigateToAdminCms() }
+                                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                                Text(text = "Admin Paneli", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
+                                            }
+                                        }
+                                    }
+
+                                    // 🧳 Misafir / 🏢 Acenta Seçici Segment Butonları
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(20.dp))
+                                            .background(Color.Black.copy(alpha = 0.4f))
+                                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                                            .padding(2.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
+                                        val guestLabel = "🧳 Misafir"
+                                        val agencyLabel = if (currentUser != null) "🏢 Acenta Paneli ➔" else "🏢 Acenta"
+
+                                        listOf(guestLabel, agencyLabel).forEach { modeLabel ->
+                                            val isGuest = modeLabel.contains("Misafir")
+                                            val isSelectedMode = (isGuest && userMode == "Turist") || (!isGuest && userMode == "Acente")
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(16.dp))
+                                                    .background(if (isSelectedMode) Color(0xFF10B981) else Color(0xFF1E293B))
+                                                    .clickable {
+                                                        if (isGuest) {
+                                                            userMode = "Turist"
+                                                        } else {
+                                                            userMode = "Acente"
+                                                            if (currentUser == null) {
+                                                                onNavigateToLogin()
+                                                            }
+                                                        }
+                                                    }
+                                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = modeLabel,
+                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -902,9 +1005,8 @@ fun GlobalWebPublicScreen(
                         contentAlignment = Alignment.BottomStart
                     ) {
                         val rawHeader = companySettings?.headerImageUrl?.trim()
-                        val defaultHeader = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
                         val headerImg = when {
-                            rawHeader.isNullOrBlank() -> defaultHeader
+                            rawHeader.isNullOrBlank() -> null
                             rawHeader.contains("unsplash.com") && !rawHeader.contains("auto=format") -> {
                                 if (rawHeader.contains("?")) "$rawHeader&auto=format&fit=crop&q=80"
                                 else "$rawHeader?auto=format&fit=crop&w=1200&q=80"
@@ -912,12 +1014,14 @@ fun GlobalWebPublicScreen(
                             else -> rawHeader
                         }
                         
-                        AsyncImage(
-                            model = headerImg,
-                            contentDescription = "Header Hero Banner",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                        if (!headerImg.isNullOrBlank()) {
+                            AsyncImage(
+                                model = headerImg,
+                                contentDescription = "Header Hero Banner",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
                         // Overlay Karartma Gradient
                         Box(
@@ -1151,7 +1255,7 @@ fun GlobalWebPublicScreen(
 
                                     // 1. Destinasyon (Nereden / Nereye)
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                        Text("Destinasyon", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                        Text(AppLanguageManager.translate("Destinasyon"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -1169,7 +1273,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Nereden (Kalkış Şehri)", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Nereden (Kalkış Şehri)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
@@ -1200,7 +1304,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text("Nereye (Destinasyon / Ülke)", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Nereye (Destinasyon / Ülke)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
@@ -1248,7 +1352,7 @@ fun GlobalWebPublicScreen(
                                                     Text("✓", color = Color(0xFF0F5A56), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                                                 }
                                             }
-                                            Text("Tek Yön", style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
+                                            Text(AppLanguageManager.translate("Tek Yön"), style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
                                         }
 
                                         Row(
@@ -1267,7 +1371,7 @@ fun GlobalWebPublicScreen(
                                                     Text("✓", color = Color(0xFF0F5A56), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                                                 }
                                             }
-                                            Text("Gidiş & Dönüş", style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
+                                            Text(AppLanguageManager.translate("Gidiş & Dönüş"), style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
                                         }
                                     }
 
@@ -1277,7 +1381,7 @@ fun GlobalWebPublicScreen(
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text("Gidiş Tarihi", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                            Text(AppLanguageManager.translate("Gidiş Tarihi"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -1296,7 +1400,7 @@ fun GlobalWebPublicScreen(
                                         }
 
                                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                            Text("Dönüş Tarihi", style = TourOSTypography.Caption.copy(color = Color.White.copy(alpha = if (flightTripType == "ROUND_TRIP") 1f else 0.6f), fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                            Text(AppLanguageManager.translate("Dönüş Tarihi"), style = TourOSTypography.Caption.copy(color = Color.White.copy(alpha = if (flightTripType == "ROUND_TRIP") 1f else 0.6f), fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
@@ -1467,7 +1571,7 @@ fun GlobalWebPublicScreen(
                                                 Column {
                                                     Text(AppLanguageManager.translate("Gece Sayısı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(selectedNightsText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
+                                                        Text(AppLanguageManager.translate(selectedNightsText), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
                                                     }
                                                 }
@@ -1478,7 +1582,7 @@ fun GlobalWebPublicScreen(
                                                 ) {
                                                     listOf("3 Gece", "5 Gece", "7 Gece", "10 Gece", "14 Gece").forEach { nightOpt ->
                                                         DropdownMenuItem(
-                                                            text = { Text(nightOpt, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
+                                                            text = { Text(AppLanguageManager.translate(nightOpt), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
                                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                                             modifier = Modifier.height(34.dp),
                                                             onClick = { selectedNightsText = nightOpt; showNightsDropdown = false }
@@ -1498,7 +1602,7 @@ fun GlobalWebPublicScreen(
                                                 Column {
                                                     Text(AppLanguageManager.translate("Turist Sayısı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(selectedTouristsText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
+                                                        Text(AppLanguageManager.translate(selectedTouristsText), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
                                                     }
                                                 }
@@ -1509,7 +1613,7 @@ fun GlobalWebPublicScreen(
                                                 ) {
                                                     listOf("1 Yetişkin", "2 Yetişkin", "3 Yetişkin", "2 Yetişkin + 1 Çocuk", "2 Yetişkin + 2 Çocuk").forEach { countText ->
                                                         DropdownMenuItem(
-                                                            text = { Text(countText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
+                                                            text = { Text(AppLanguageManager.translate(countText), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
                                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                                             modifier = Modifier.height(34.dp),
                                                             onClick = { selectedTouristsText = countText; showTouristsDropdown = false }
@@ -1537,7 +1641,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 6.dp)
                                             ) {
                                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                    Text(selectedOperatorFilter, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text(AppLanguageManager.translate(selectedOperatorFilter), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                     Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
                                                 }
                                                 DropdownMenu(
@@ -1547,7 +1651,7 @@ fun GlobalWebPublicScreen(
                                                 ) {
                                                     listOf("Tüm Operatörler", "Coral Travel", "Anex Tour", "Pegas Touristik", "Fun & Sun").forEach { opName ->
                                                         DropdownMenuItem(
-                                                            text = { Text(opName, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
+                                                            text = { Text(AppLanguageManager.translate(opName), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
                                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                                             modifier = Modifier.height(34.dp),
                                                             onClick = { selectedOperatorFilter = opName; showOperatorDropdown = false }
@@ -1568,7 +1672,7 @@ fun GlobalWebPublicScreen(
                                                     .padding(horizontal = 8.dp, vertical = 6.dp)
                                             ) {
                                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                    Text(selectedCountryFilter, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                    Text(AppLanguageManager.translate(selectedCountryFilter), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 10.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                     Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
                                                 }
                                                 DropdownMenu(
@@ -1578,7 +1682,7 @@ fun GlobalWebPublicScreen(
                                                 ) {
                                                     listOf("Türkiye", "Mısır", "Dubai (BAE)", "Yunanistan", "İspanya", "İtalya", "Tayland", "Tüm Ülkeler").forEach { country ->
                                                         DropdownMenuItem(
-                                                            text = { Text(country, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
+                                                            text = { Text(AppLanguageManager.translate(country), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
                                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                                             modifier = Modifier.height(34.dp),
                                                             onClick = { selectedCountryFilter = country; showCountryDropdown = false }
@@ -1876,6 +1980,7 @@ fun GlobalWebPublicScreen(
             // ── 🌟 HİZMETLERİMİZ (OUR SERVICES - FOOTER ÜSTÜ 6'LI KURUMSAL SEKSİYON) ──
             item {
                 OurServicesSection(
+                    companySettings = companySettings,
                     onSelectService = { serviceId ->
                         when (serviceId) {
                             "PACKAGE_TOUR" -> { selectedSearchCategoryTab = "PACKAGE_TOUR"; searchQuery = "" }
@@ -2321,11 +2426,11 @@ fun VerticalSearchResultsGridSection(
                     }
                     Column {
                         Text(
-                            text = title,
+                            text = AppLanguageManager.translate(title),
                             style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                         )
                         Text(
-                            text = subtitle,
+                            text = AppLanguageManager.translate(subtitle),
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 12.sp)
                         )
                     }
@@ -2426,11 +2531,11 @@ fun HorizontalProductSection(
                     }
                     Column {
                         Text(
-                            text = title,
+                            text = AppLanguageManager.translate(title),
                             style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                         )
                         Text(
-                            text = subtitle,
+                            text = AppLanguageManager.translate(subtitle),
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 12.sp)
                         )
                     }
@@ -2543,7 +2648,7 @@ fun HorizontalHotelCard(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "%${hotel.discountPercent} İNDİRİM",
+                            text = "%${hotel.discountPercent} ${AppLanguageManager.translate("İNDİRİM")}",
                             style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 10.sp)
                         )
                     }
@@ -2590,7 +2695,7 @@ fun HorizontalHotelCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (isFlightCard) hotel.flightCode.ifBlank { "Charter Uçuş Seferi" } else hotel.hotelName,
+                        text = if (isFlightCard) hotel.flightCode.ifBlank { AppLanguageManager.translate("Charter Uçuş Seferi") } else hotel.hotelName,
                         style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -2602,7 +2707,7 @@ fun HorizontalHotelCard(
                         color = if (isFlightCard) Color(0xFFEFF6FF) else Color(0xFFFEF3C7)
                     ) {
                         Text(
-                            text = if (isFlightCard) "Direkt Uçuş" else "Starway Award",
+                            text = if (isFlightCard) AppLanguageManager.translate("Direkt Uçuş") else "Starway Award",
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = TourOSTypography.Caption.copy(color = if (isFlightCard) Color(0xFF1D4ED8) else Color(0xFFD97706), fontWeight = FontWeight.Bold, fontSize = 9.sp),
                             maxLines = 1,
@@ -2617,7 +2722,7 @@ fun HorizontalHotelCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val operatorChipText = if (hotel.agencyPrices.size > 1) {
-                        "${hotel.agencyPrices.size} Operatör Teklifi"
+                        "${hotel.agencyPrices.size} ${AppLanguageManager.translate("Operatör Teklifi")}"
                     } else {
                         hotel.operatorName
                     }
@@ -2653,7 +2758,7 @@ fun HorizontalHotelCard(
 
                 // Lokasyon & Tur / Uçuş Bilgisi
                 Text(
-                    text = if (isFlightCard) "Moskova Kalkışlı · Ekonomi Sınıfı · Gidiş-Dönüş" else "Moskova'dan ${hotel.location} · ${hotel.nights} Gece · ${hotel.mealType}",
+                    text = if (isFlightCard) AppLanguageManager.translate("Moskova Kalkışlı · Ekonomi Sınıfı · Gidiş-Dönüş") else "Moskova'dan ${hotel.location} · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${hotel.mealType}",
                     style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -2669,11 +2774,11 @@ fun HorizontalHotelCard(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("En Düşük Fiyat :", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                            Text("${AppLanguageManager.translate("En Düşük Fiyat")} :", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold, fontSize = 10.sp))
                             Text("${hotel.minPrice.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("En yüksek Fiyat:", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                            Text("${AppLanguageManager.translate("En Yüksek Fiyat")}:", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 10.sp))
                             Text("${hotel.maxPrice.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
                         }
                     }
@@ -2697,7 +2802,7 @@ fun HorizontalHotelCard(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp)
                         ) {
                             Text(
-                                text = if (isFlightCard) "Uçuş Seç" else "Turu Seç & Detaylandır",
+                                text = if (isFlightCard) AppLanguageManager.translate("Uçuş Seç") else AppLanguageManager.translate("Turu Seç & Detaylandır"),
                                 style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                             )
                             Icon(
@@ -2734,100 +2839,14 @@ fun BusinessFooterSection(
                     .padding(horizontal = 24.dp, vertical = 40.dp),
                 verticalArrangement = Arrangement.spacedBy(32.dp)
             ) {
-                // ── ÜST 4 KOLON LİSTESİ ──
+                // ── ÜST KOLON LİSTESİ (Sadece Kurumsal İletişim ve Yasal & Lisans) ──
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Kolon 1: Şirket & Marka
+                    // Kolon 1: İletişim Bilgileri (Web Panel Yönetiminden Canlı)
                     Column(
-                        modifier = Modifier.weight(1.3f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF0D5653)
-                            ) {
-                                Text(
-                                    text = companySettings?.name?.ifBlank { "TourOS" } ?: "TourOS",
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                    style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                )
-                            }
-                            Text(
-                                text = "B2B Market",
-                                style = TourOSTypography.TitleMedium.copy(color = Color(0xFF94A3B8), fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            )
-                        }
-
-                        Text(
-                            text = companySettings?.legalTitle?.ifBlank { "MGA Creative B2B Tur Operatörü ve Acente Dijital Pazaryeri Platformu." }
-                                ?: "MGA Creative B2B Tur Operatörü ve Acente Dijital Pazaryeri Platformu.",
-                            style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 12.sp, lineHeight = 18.sp)
-                        )
-
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = Color(0xFF1E293B)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = null,
-                                    tint = Color(0xFF38BDF8),
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Text(
-                                    text = "Lisanslı & Onaylı B2B Platformu",
-                                    style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(24.dp))
-
-                    // Kolon 2: Hızlı Bağlantılar
-                    Column(
-                        modifier = Modifier.weight(0.9f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(
-                            text = "Hızlı Erişim",
-                            style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.BeachAccess, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
-                            Text("Paket Turlar", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.Hotel, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
-                            Text("Lüks Oteller", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.Whatshot, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(14.dp))
-                            Text("Son Dakika Fırsatları", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
-                        }
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.clickable { onNavigateToLogin() }
-                        ) {
-                            Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(14.dp))
-                            Text("Acente B2B Girişi", style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 12.sp))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(24.dp))
-
-                    // Kolon 3: İletişim Bilgileri (Web Panel Yönetiminden Canlı)
-                    Column(
-                        modifier = Modifier.weight(1.3f),
+                        modifier = Modifier.weight(1.2f),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
@@ -2835,47 +2854,55 @@ fun BusinessFooterSection(
                             style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         )
 
-                        val phoneVal = companySettings?.webPhone?.ifBlank { companySettings.phone }?.ifBlank { "+90 (242) 555 0199" } ?: "+90 (242) 555 0199"
-                        val emailVal = companySettings?.webEmail?.ifBlank { companySettings.email }?.ifBlank { "info@touros.com.tr" } ?: "info@touros.com.tr"
-                        val whatsappVal = companySettings?.webWhatsapp?.ifBlank { "+90 530 000 0000" } ?: "+90 530 000 0000"
-                        val addressVal = companySettings?.webAddress?.ifBlank { companySettings.address }?.ifBlank { "Lara Cad. No:142, Muratpaşa / Antalya" } ?: "Lara Cad. No:142, Muratpaşa / Antalya"
+                        val phoneVal = companySettings?.webPhone.orEmpty()
+                        val emailVal = companySettings?.webEmail.orEmpty()
+                        val whatsappVal = companySettings?.webWhatsapp.orEmpty()
+                        val addressVal = companySettings?.webAddress.orEmpty()
 
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
-                            Text("Tel: $phoneVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        if (phoneVal.isNotBlank()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
+                                Text("Tel: $phoneVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                            }
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(14.dp))
-                            Text("WhatsApp: $whatsappVal", style = TourOSTypography.Caption.copy(color = Color(0xFF10B981), fontWeight = FontWeight.SemiBold, fontSize = 12.sp))
+                        if (whatsappVal.isNotBlank()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = Color(0xFF10B981), modifier = Modifier.size(14.dp))
+                                Text("WhatsApp: $whatsappVal", style = TourOSTypography.Caption.copy(color = Color(0xFF10B981), fontWeight = FontWeight.SemiBold, fontSize = 12.sp))
+                            }
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
-                            Text("E-Posta: $emailVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                        if (emailVal.isNotBlank()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = Color(0xFFCBD5E1), modifier = Modifier.size(14.dp))
+                                Text("E-Posta: $emailVal", style = TourOSTypography.Caption.copy(color = Color(0xFFCBD5E1), fontSize = 12.sp))
+                            }
                         }
-                        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp).padding(top = 2.dp))
-                            Text("Adres: $addressVal", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp), maxLines = 2)
+                        if (addressVal.isNotBlank()) {
+                            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(14.dp).padding(top = 2.dp))
+                                Text("Adres: $addressVal", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp), maxLines = 2)
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(24.dp))
+                    Spacer(modifier = Modifier.width(32.dp))
 
-                    // Kolon 4: Yasal Bilgiler & Güvenlik
+                    // Kolon 2: Yasal Bilgiler & Güvenlik
                     Column(
-                        modifier = Modifier.weight(1.1f),
+                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
                             text = "Yasal & Lisans",
                             style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         )
-                        val mersis = companySettings?.mersisNo?.ifBlank { "0859012345600001" } ?: "0859012345600001"
-                        val taxNo = companySettings?.taxNumber?.ifBlank { "8590123456" } ?: "8590123456"
-                        val taxOffice = companySettings?.taxOffice?.ifBlank { "Antalya Kurumlar V.D." } ?: "Antalya Kurumlar V.D."
+                        val mersis = companySettings?.webMersisNo.orEmpty()
+                        val taxNo = companySettings?.webTaxNumber.orEmpty()
+                        val taxOffice = companySettings?.webTaxOffice.orEmpty()
 
-                        Text("MERSİS No: $mersis", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp))
-                        Text("Vergi D.: $taxOffice", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp))
-                        Text("Vergi No: $taxNo", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp))
+                        if (mersis.isNotBlank()) Text("MERSİS No: $mersis", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp))
+                        if (taxOffice.isNotBlank()) Text("Vergi D.: $taxOffice", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp))
+                        if (taxNo.isNotBlank()) Text("Vergi No: $taxNo", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 11.sp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
@@ -2897,8 +2924,9 @@ fun BusinessFooterSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     val compName = companySettings?.name?.ifBlank { "TourOS B2B Travel Market" } ?: "TourOS B2B Travel Market"
+                    val footerCopyright = companySettings?.footerText?.ifBlank { "© 2026 $compName. Tüm hakları saklıdır." } ?: "© 2026 $compName. Tüm hakları saklıdır."
                     Text(
-                        text = "© 2026 $compName. Tüm hakları saklıdır.",
+                        text = footerCopyright,
                         style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
                     )
                     Text(
@@ -2914,6 +2942,7 @@ fun BusinessFooterSection(
 // ── 🌟 HİZMETLERİMİZ (OUR SERVICES - SCREENSHOT BİREBİR KART GRID SEKSİYONU) ────────
 @Composable
 fun OurServicesSection(
+    companySettings: CompanySettings? = null,
     onSelectService: (String) -> Unit
 ) {
     Surface(
@@ -2957,43 +2986,13 @@ fun OurServicesSection(
                 }
 
                 // 6'lı Kart Grid Düzeni (3 Kolon x 2 Satır)
-                val services = listOf(
-                    ServiceCardData(
-                        id = "PACKAGE_TOUR",
-                        icon = "🏖️",
-                        title = "Paket Turlar / Tour Packages",
-                        description = "Gezginler için özel seçilmiş her şey dahil paket tur seçenekleri ve rehberli geziler."
-                    ),
-                    ServiceCardData(
-                        id = "HOTEL",
-                        icon = "🏨",
-                        title = "Otel Rezervasyonları / Hotel Reservations",
-                        description = "En uygun fiyat garantili seçkin 5 yıldızlı oteller, tatil köyleri ve ayrıcalıklı konaklama."
-                    ),
-                    ServiceCardData(
-                        id = "ADVENTURE",
-                        icon = "🏔️",
-                        title = "Macera Turları / Adventure Tours",
-                        description = "Safari, trekking, kültür turları ve heyecan dolu özel tatil rotaları."
-                    ),
-                    ServiceCardData(
-                        id = "ASSISTANCE",
-                        icon = "🎧",
-                        title = "Seyahat Desteği / Travel Assistance",
-                        description = "Sorunsuz bir seyahat deneyimi için 7/24 canlı müşteri desteği ve acente danışmanlığı."
-                    ),
-                    ServiceCardData(
-                        id = "FLIGHT",
-                        icon = "✈️",
-                        title = "Uçuş Rezervasyonu / Flight Booking",
-                        description = "Hızlı, uygun fiyatlı yurt içi ve yurt dışı charter ve tarifeli uçuş biletleri."
-                    ),
-                    ServiceCardData(
-                        id = "CRUISE",
-                        icon = "🚢",
-                        title = "Mavi Yolculuk & Cruise / Cruise Trips",
-                        description = "Lüks cruise gemileri ve büyüleyici koyları keşfedeceğiniz mavi yolculuk paketleri."
-                    )
+                val services = companySettings?.getEffectiveServiceCards() ?: listOf(
+                    com.mgacreative.touros.domain.model.ServiceCardItem("1", "Paket Turlar / Tour Packages", "Gezginler için özel seçilmiş her şey dahil paket tur seçenekleri ve rehberli geziler.", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800", "PACKAGE_TOUR"),
+                    com.mgacreative.touros.domain.model.ServiceCardItem("2", "Otel Rezervasyonları / Hotel Reservations", "En uygun fiyat garantili seçkin 5 yıldızlı oteller, tatil köyleri ve ayrıcalıklı konaklama.", "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800", "HOTEL"),
+                    com.mgacreative.touros.domain.model.ServiceCardItem("3", "Macera Turları / Adventure Tours", "Safari, trekking, kültür turları ve heyecan dolu özel tatil rotaları.", "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800", "ADVENTURE"),
+                    com.mgacreative.touros.domain.model.ServiceCardItem("4", "Seyahat Desteği / Travel Assistance", "Sorunsuz bir seyahat deneyimi için 7/24 canlı müşteri desteği ve acente danışmanlığı.", "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800", "ASSISTANCE"),
+                    com.mgacreative.touros.domain.model.ServiceCardItem("5", "Uçuş Rezervasyonu / Flight Booking", "Hızlı, uygun fiyatlı yurt içi ve yurt dışı charter ve tarifeli uçuş biletleri.", "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800", "FLIGHT"),
+                    com.mgacreative.touros.domain.model.ServiceCardItem("6", "Mavi Yolculuk & Cruise / Cruise Trips", "Lüks cruise gemileri ve büyüleyici koyları keşfedeceğiniz mavi yolculuk paketleri.", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800", "CRUISE")
                 )
 
                 // 2 Satırlı Grid (Her Satırda 3 Kart)
@@ -3004,52 +3003,70 @@ fun OurServicesSection(
                             horizontalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             rowItems.forEach { service ->
+                                val targetUrl = service.targetUrl.ifBlank { service.id }
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(165.dp)
+                                        .height(175.dp)
                                         .clip(RoundedCornerShape(16.dp))
-                                        .clickable { onSelectService(service.id) },
+                                        .clickable { onSelectService(targetUrl) },
                                     color = Color(0xFF0D5653), // Screenshot ile Birebir Koyu Teal
                                     shadowElevation = 6.dp
                                 ) {
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(20.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Text(
-                                                text = service.title,
-                                                style = TourOSTypography.TitleMedium.copy(
-                                                    color = Color.White,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 14.sp
-                                                ),
-                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        val imgUrl = service.imageUrl.trim()
+                                        if (imgUrl.isNotBlank()) {
+                                            AsyncImage(
+                                                model = imgUrl,
+                                                contentDescription = service.title,
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
                                             )
-                                            Text(
-                                                text = service.description,
-                                                style = TourOSTypography.Caption.copy(
-                                                    color = Color(0xFFD1FAE5),
-                                                    fontSize = 11.sp,
-                                                    lineHeight = 15.sp
-                                                ),
-                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                maxLines = 3,
-                                                overflow = TextOverflow.Ellipsis
+                                            // Dark Overlay Gradient
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                            colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.85f))
+                                                        )
+                                                    )
                                             )
                                         }
 
-                                        Text(
-                                            text = service.icon,
-                                            fontSize = 24.sp
-                                        )
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .padding(20.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = service.title,
+                                                    style = TourOSTypography.TitleMedium.copy(
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 14.sp
+                                                    ),
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                                )
+                                                Text(
+                                                    text = service.subtitle,
+                                                    style = TourOSTypography.Caption.copy(
+                                                        color = Color(0xFFE2E8F0),
+                                                        fontSize = 11.sp,
+                                                        lineHeight = 15.sp
+                                                    ),
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                    maxLines = 3,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }

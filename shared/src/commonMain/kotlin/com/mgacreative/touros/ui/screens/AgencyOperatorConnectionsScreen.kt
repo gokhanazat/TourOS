@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,7 +22,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.data.database.entity.AgencyOperatorConnectionEntity
+import com.mgacreative.touros.data.database.entity.OperatorSeasonRate
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -435,6 +438,7 @@ private fun SinglePageOperatorFormView(
     var contactPhone by remember(initialOperator) { mutableStateOf(initialOperator?.contactPhone ?: "") }
     var contactEmail by remember(initialOperator) { mutableStateOf(initialOperator?.contactEmail ?: "") }
     var status by remember(initialOperator) { mutableStateOf(initialOperator?.status ?: "ACTIVE") }
+    var operatorSeasons by remember(initialOperator) { mutableStateOf<List<OperatorSeasonRate>>(initialOperator?.seasons ?: emptyList()) }
 
     Column(
         modifier = Modifier
@@ -495,7 +499,8 @@ private fun SinglePageOperatorFormView(
                             contactName = contactName,
                             contactPhone = contactPhone,
                             contactEmail = contactEmail,
-                            status = status
+                            status = status,
+                            seasons = operatorSeasons
                         )
                         onSave(finalEntity)
                     },
@@ -604,47 +609,141 @@ private fun SinglePageOperatorFormView(
                         )
                     }
                 }
-            }
-        }
 
-        // ── BLOK 3: API ENTEGRASYONU ────────────────────────────────────────
-        FormSectionCard(
-            title = AppLanguageManager.translate("B2B & API Entegrasyon Ayarları"),
-            icon = Icons.Default.ElectricBolt
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(AppLanguageManager.translate("Entegrasyon Protokolü:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), modifier = Modifier.padding(end = 8.dp))
-                    listOf("API" to "REST API", "SOAP" to "SOAP Web Service", "MANUAL" to "Manuel Paket").forEach { (code, label) ->
-                        FilterChip(
-                            selected = integrationType == code,
-                            onClick = { integrationType = code },
-                            label = { Text(label, style = TourOSTypography.Caption) },
-                            modifier = Modifier.padding(end = 4.dp)
-                        )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = TourOSColors.Divider)
+
+                Text(
+                    text = AppLanguageManager.translate("📅 Operatör Sezon Periyotları & Özel Komisyon / Pax Oranları"),
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                )
+
+                if (operatorSeasons.isEmpty()) {
+                    Text(
+                        text = AppLanguageManager.translate("Henüz tanımlı özel sezon periyodu yok. Varsayılan genel komisyon oranı geçerlidir."),
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
+                }
+
+                operatorSeasons.forEachIndexed { sIdx, seasonItem ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(TourOSColors.SurfaceVariant)
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Periyot ${sIdx + 1}: ${seasonItem.name.ifBlank { "Sezon" }}",
+                                style = TourOSTypography.TitleSmall.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                            )
+                            IconButton(
+                                onClick = {
+                                    val mutable = operatorSeasons.toMutableList()
+                                    mutable.removeAt(sIdx)
+                                    operatorSeasons = mutable
+                                }
+                            ) {
+                                Text("🗑️", fontSize = 14.sp)
+                            }
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.weight(1.2f)) {
+                                TourOSTextField(
+                                    value = seasonItem.name,
+                                    onValueChange = { newName ->
+                                        val mutable = operatorSeasons.toMutableList()
+                                        mutable[sIdx] = mutable[sIdx].copy(name = newName)
+                                        operatorSeasons = mutable
+                                    },
+                                    label = AppLanguageManager.translate("Sezon Adı (örn: Yüksek Sezon)")
+                                )
+                            }
+                            Box(modifier = Modifier.weight(0.9f)) {
+                                TourOSTextField(
+                                    value = if (seasonItem.commissionRate > 0) seasonItem.commissionRate.toString() else "",
+                                    onValueChange = { newCommStr ->
+                                        val mutable = operatorSeasons.toMutableList()
+                                        val valComm = newCommStr.toDoubleOrNull() ?: 0.0
+                                        mutable[sIdx] = mutable[sIdx].copy(commissionRate = valComm)
+                                        operatorSeasons = mutable
+                                    },
+                                    label = AppLanguageManager.translate("Komisyon Oranı (%)"),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                )
+                            }
+                            Box(modifier = Modifier.weight(0.9f)) {
+                                TourOSTextField(
+                                    value = if (seasonItem.paxFee > 0) seasonItem.paxFee.toString() else "",
+                                    onValueChange = { newPaxStr ->
+                                        val mutable = operatorSeasons.toMutableList()
+                                        val valPax = newPaxStr.toDoubleOrNull() ?: 0.0
+                                        mutable[sIdx] = mutable[sIdx].copy(paxFee = valPax)
+                                        operatorSeasons = mutable
+                                    },
+                                    label = AppLanguageManager.translate("Pax Başı Tutar"),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                )
+                            }
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                TourOSTextField(
+                                    value = seasonItem.startDate,
+                                    onValueChange = { newStart ->
+                                        val mutable = operatorSeasons.toMutableList()
+                                        mutable[sIdx] = mutable[sIdx].copy(startDate = newStart)
+                                        operatorSeasons = mutable
+                                    },
+                                    label = AppLanguageManager.translate("Başlangıç Tarihi (YYYY-MM-DD)"),
+                                    placeholder = "2026-06-01"
+                                )
+                            }
+                            Box(modifier = Modifier.weight(1f)) {
+                                TourOSTextField(
+                                    value = seasonItem.endDate,
+                                    onValueChange = { newEnd ->
+                                        val mutable = operatorSeasons.toMutableList()
+                                        mutable[sIdx] = mutable[sIdx].copy(endDate = newEnd)
+                                        operatorSeasons = mutable
+                                    },
+                                    label = AppLanguageManager.translate("Bitiş Tarihi (YYYY-MM-DD)"),
+                                    placeholder = "2026-09-30"
+                                )
+                            }
+                        }
                     }
                 }
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Box(modifier = Modifier.weight(1.2f)) {
-                        TourOSTextField(
-                            value = apiEndpoint,
-                            onValueChange = { apiEndpoint = it },
-                            label = AppLanguageManager.translate("Operatör API Service URL"),
-                            placeholder = "https://api.operatorder.com/v2/b2b"
+                TourOSButton(
+                    text = "➕ Yeni Sezon / Periyot Ekle",
+                    onClick = {
+                        val mutable = operatorSeasons.toMutableList()
+                        mutable.add(
+                            OperatorSeasonRate(
+                                id = "s_${(1000..9999).random()}",
+                                name = "Yeni Sezon",
+                                startDate = "2026-06-01",
+                                endDate = "2026-09-30",
+                                commissionRate = 12.0,
+                                paxFee = 0.0
+                            )
                         )
-                    }
-                    Box(modifier = Modifier.weight(0.8f)) {
-                        TourOSTextField(
-                            value = apiKey,
-                            onValueChange = { apiKey = it },
-                            label = AppLanguageManager.translate("Acente API Key / Kodu"),
-                            placeholder = "crl_live_99812a"
-                        )
-                    }
-                }
+                        operatorSeasons = mutable
+                    },
+                    variant = TourOSButtonVariant.SECONDARY
+                )
             }
         }
+
+
 
         // ── BLOK 4: MUHASEBE & BANKA ────────────────────────────────────────
         FormSectionCard(

@@ -3,6 +3,16 @@ package com.mgacreative.touros.data.database.entity
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Serializable
+data class OperatorSeasonRate(
+    val id: String = "",
+    val name: String = "",
+    @SerialName("start_date") val startDate: String = "",
+    @SerialName("end_date") val endDate: String = "",
+    @SerialName("commission_rate") val commissionRate: Double = 0.0,
+    @SerialName("pax_fee") val paxFee: Double = 0.0
+)
+
 /**
  * agency_operator_connections tablosu – Acente ile Tur Operatörü arasındaki Pazaryeri Bağlantısı Entity.
  */
@@ -29,6 +39,25 @@ data class AgencyOperatorConnectionEntity(
     @SerialName("contact_phone") val contactPhone: String = "",
     @SerialName("contact_email") val contactEmail: String = "",
     val status: String = "ACTIVE", // 'PENDING', 'ACTIVE', 'PAUSED', 'TERMINATED'
+    val seasons: List<OperatorSeasonRate> = emptyList(),
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("updated_at") val updatedAt: String = ""
-)
+) {
+    fun getMatchingSeason(dateStr: String): OperatorSeasonRate? {
+        if (dateStr.isBlank()) return null
+        return seasons.firstOrNull { season ->
+            season.startDate.isNotBlank() && season.endDate.isNotBlank() &&
+            dateStr >= season.startDate && dateStr <= season.endDate
+        }
+    }
+
+    fun calculateEarnings(totalAmount: Double, paxCount: Int, dateStr: String): Double {
+        val matched = getMatchingSeason(dateStr)
+        val effectiveCommissionRate = matched?.commissionRate ?: commissionRate
+        val effectivePaxFee = matched?.paxFee ?: 0.0
+
+        val commissionEarnings = totalAmount * (effectiveCommissionRate / 100.0)
+        val paxEarnings = if (effectivePaxFee > 0.0) paxCount * effectivePaxFee else 0.0
+        return commissionEarnings + paxEarnings
+    }
+}

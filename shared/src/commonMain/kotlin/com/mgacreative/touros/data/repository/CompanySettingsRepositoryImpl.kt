@@ -57,6 +57,12 @@ class CompanySettingsRepositoryImpl(
                     }
                 }.getOrNull() ?: cachedSettings?.promoBanners ?: emptyList()
 
+                val serviceCards = runCatching {
+                    branding?.serviceCards?.takeIf { it.isNotBlank() }?.let {
+                        json.decodeFromString<List<com.mgacreative.touros.domain.model.ServiceCardItem>>(it)
+                    }
+                }.getOrNull() ?: cachedSettings?.serviceCards ?: emptyList()
+
                 val loaded = CompanySettings(
                     id = entity.id,
                     name = entity.name.ifBlank { cachedSettings?.name ?: "" },
@@ -83,10 +89,14 @@ class CompanySettingsRepositoryImpl(
                     webPhone = branding?.contactPhone ?: cachedSettings?.webPhone ?: "",
                     webWhatsapp = branding?.whatsappNumber ?: cachedSettings?.webWhatsapp ?: "",
                     webAddress = branding?.contactAddress ?: cachedSettings?.webAddress ?: "",
+                    webMersisNo = cachedSettings?.webMersisNo ?: "",
+                    webTaxOffice = cachedSettings?.webTaxOffice ?: "",
+                    webTaxNumber = cachedSettings?.webTaxNumber ?: "",
                     promoBannerTitle = cachedSettings?.promoBannerTitle,
                     promoBannerImageUrl = cachedSettings?.promoBannerImageUrl,
                     promoBannerTargetUrl = cachedSettings?.promoBannerTargetUrl,
                     promoBanners = promoBanners,
+                    serviceCards = serviceCards,
                     bankName = entity.bankName ?: cachedSettings?.bankName,
                     iban = entity.iban ?: cachedSettings?.iban,
                     accountHolder = entity.accountHolder ?: cachedSettings?.accountHolder,
@@ -116,6 +126,7 @@ class CompanySettingsRepositoryImpl(
             cachedSettings = settings
             val seasonsJson = json.encodeToString(settings.seasons)
             val promoBannersJson = json.encodeToString(settings.promoBanners)
+            val serviceCardsJson = json.encodeToString(settings.serviceCards)
             val targetId = if (settings.id.isValidUuid()) settings.id else "00000000-0000-0000-0000-000000000001"
 
             val slugValue = settings.name.lowercase()
@@ -184,6 +195,7 @@ class CompanySettingsRepositoryImpl(
                 put("whatsapp_number", settings.webWhatsapp)
                 put("contact_address", settings.webAddress)
                 put("promo_banners", promoBannersJson)
+                put("service_cards", serviceCardsJson)
                 if (!settings.logoUrl.isNullOrBlank()) put("custom_logo_url", settings.logoUrl)
                 if (!settings.headerImageUrl.isNullOrBlank()) put("header_image_url", settings.headerImageUrl)
             }

@@ -41,63 +41,34 @@ enum class AppLanguage(val code: String, val flag: String, val label: String) {
 fun LanguageSelector(
     selectedLanguage: AppLanguage = AppLanguage.TR,
     onLanguageSelected: (AppLanguage) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    textColor: Color = Color.White
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Box(modifier = modifier) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(TourOSColors.PrimaryContainer)
-                .clickable { expanded = true }
-                .padding(horizontal = 10.dp, vertical = 6.dp)
-        ) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        AppLanguage.values().forEachIndexed { index, language ->
+            val isSelected = language == selectedLanguage
             Text(
-                text = selectedLanguage.flag,
-                fontSize = 16.sp
-            )
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = selectedLanguage.code.uppercase(),
+                text = language.code.uppercase(),
                 style = TourOSTypography.Caption.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = TourOSColors.TextPrimary
-                )
+                    fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                    color = if (isSelected) textColor else textColor.copy(alpha = 0.5f),
+                    fontSize = 12.sp
+                ),
+                modifier = Modifier
+                    .clickable { onLanguageSelected(language) }
+                    .padding(horizontal = 4.dp, vertical = 2.dp)
             )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "▾",
-                fontSize = 12.sp,
-                color = TourOSColors.TextSecondary
-            )
-        }
-
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.background(TourOSColors.Surface)
-        ) {
-            AppLanguage.values().forEach { language ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(text = language.flag, fontSize = 18.sp)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "${language.label} (${language.code.uppercase()})",
-                                style = TourOSTypography.BodyMedium.copy(
-                                    fontWeight = if (language == selectedLanguage) FontWeight.Bold else FontWeight.Normal,
-                                    color = if (language == selectedLanguage) TourOSColors.Primary else TourOSColors.TextPrimary
-                                )
-                            )
-                        }
-                    },
-                    onClick = {
-                        expanded = false
-                        onLanguageSelected(language)
-                    }
+            if (index < AppLanguage.values().size - 1) {
+                Text(
+                    text = "|",
+                    style = TourOSTypography.Caption.copy(
+                        color = textColor.copy(alpha = 0.3f),
+                        fontSize = 11.sp
+                    ),
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
             }
         }

@@ -25,6 +25,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -72,7 +73,7 @@ enum class SettingsCategory(val title: String, val icon: ImageVector) {
     GENEL("Genel", Icons.Default.Business),
     MARKA("Marka", Icons.Default.Palette),
     ODEME_SISTEMLERI("Banka & PayPal", Icons.Default.CreditCard),
-    VERGI_SEZON("Vergi / Sezon", Icons.Default.ReceiptLong),
+    VERGI_SEZON("Sezon %", Icons.Default.ReceiptLong),
     DIL_PARA_BIRIMI("Dil / Para Birimi", Icons.Default.Language)
 }
 
@@ -108,8 +109,8 @@ fun CompanySettingsScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Şirket & Web Sayfası Ayarları"),
-                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente web sitesi logo, header banner, başlık, slogan ve kurumsal tercihleri yönetin")
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Şirket Ayarları"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kurumsal firma bilgileri, marka, ödeme sistemleri ve finansal ayarları yönetin")
             )
         },
         snackbarHost = { TourOSSnackbarHost(hostState = snackbarHostState) },
@@ -173,6 +174,7 @@ fun CompanySettingsScreen(
                     var newSeasonName by remember { mutableStateOf("") }
                     var newSeasonStart by remember { mutableStateOf("2026-06-01") }
                     var newSeasonEnd by remember { mutableStateOf("2026-09-30") }
+                    var newSeasonCommission by remember { mutableStateOf("12.5") }
 
                     // Eksiksiz Tüm Web & Görsel Dinamik Değişiklik State'leri
                     var webCustomLogo by remember(settings.id) { mutableStateOf(settings.logoUrl ?: "") }
@@ -448,6 +450,15 @@ fun CompanySettingsScreen(
                                             label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Firma Merkez Adresi"),
                                             modifier = Modifier.fillMaxWidth()
                                         )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        TourOSTextField(
+                                            value = defaultMasterAgencyCode,
+                                            onValueChange = { defaultMasterAgencyCode = it },
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Kodu (B2B SaaS / Master Referans Kodu)"),
+                                            placeholder = "Örn: ACT-001 / AGN-MASTER-8492",
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
                                     }
 
                                     SettingsCategory.MARKA -> {
@@ -560,7 +571,6 @@ fun CompanySettingsScreen(
                                                 val hex = themeColor.removePrefix("#")
                                                 Color(hex.toLong(16) or 0xFF000000)
                                             }.getOrDefault(TourOSColors.Primary)
-
                                             Box(
                                                 modifier = Modifier
                                                     .size(48.dp)
@@ -571,11 +581,30 @@ fun CompanySettingsScreen(
                                         }
                                     }
 
-
-
                                     SettingsCategory.VERGI_SEZON -> {
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi Oranları ve Operasyonel Sezonlar"), style = TourOSTypography.TitleLarge)
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otomatik fiyatlama, KDV hesaplama ve sezonsal çalışma kuralları."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sezonlar / Komisyon Oranları"), style = TourOSTypography.TitleLarge)
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Komisyon oranları sezonlara göre değişkenlik gösterir."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                                        // Kilit Uyarısı
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = TourOSColors.Primary.copy(alpha = 0.08f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(14.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("🔒", style = TourOSTypography.TitleMedium)
+                                                Text(
+                                                    text = "Bu sezonlar ve sezonsal komisyon oranları Sistem Yöneticisi (Admin) tarafından yönetilmektedir. Acenteler bu oranları manuel değiştiremez.",
+                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.SemiBold)
+                                                )
+                                            }
+                                        }
+
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                                         TourOSTextField(
@@ -587,7 +616,7 @@ fun CompanySettingsScreen(
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tanımlı Operasyonel Sezonlar"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sistemde Aktif Sezonlar & Komisyon Oranları"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
                                         if (seasons.isEmpty()) {
@@ -609,66 +638,22 @@ fun CompanySettingsScreen(
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
                                                         Column {
-                                                            Text(text = season.name, style = TourOSTypography.TitleMedium)
+                                                            Text(text = season.name, style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
                                                             Text(text = "${season.startDate} - ${season.endDate}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
                                                         }
-                                                        TourOSButton(
-                                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sil"),
-                                                            onClick = { seasons = seasons.filter { it.id != season.id } },
-                                                            variant = TourOSButtonVariant.SECONDARY
-                                                        )
+                                                        Surface(
+                                                            shape = RoundedCornerShape(8.dp),
+                                                            color = TourOSColors.Primary.copy(alpha = 0.12f)
+                                                        ) {
+                                                            Text(
+                                                                text = "% ${season.commissionRate} Komisyon",
+                                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
-
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeni Sezon Ekle"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
-
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Box(modifier = Modifier.weight(1f)) {
-                                                TourOSTextField(
-                                                    value = newSeasonName,
-                                                    onValueChange = { newSeasonName = it },
-                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sezon Adı (örn. Yaz 2026)")
-                                                )
-                                            }
-                                            Box(modifier = Modifier.weight(1f)) {
-                                                TourOSTextField(
-                                                    value = newSeasonStart,
-                                                    onValueChange = { newSeasonStart = it },
-                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Başlangıç Tarihi")
-                                                )
-                                            }
-                                            Box(modifier = Modifier.weight(1f)) {
-                                                TourOSTextField(
-                                                    value = newSeasonEnd,
-                                                    onValueChange = { newSeasonEnd = it },
-                                                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bitiş Tarihi")
-                                                )
-                                            }
-                                            TourOSButton(
-                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("➕ Ekle"),
-                                                onClick = {
-                                                    if (newSeasonName.isNotBlank()) {
-                                                        val newSeason = com.mgacreative.touros.domain.model.CompanySeason(
-                                                            id = "season_${seasons.size + 1}",
-                                                            name = newSeasonName,
-                                                            startDate = newSeasonStart,
-                                                            endDate = newSeasonEnd
-                                                        )
-                                                        seasons = seasons + newSeason
-                                                        newSeasonName = ""
-                                                    }
-                                                },
-                                                variant = TourOSButtonVariant.PRIMARY
-                                            )
                                         }
                                     }
 

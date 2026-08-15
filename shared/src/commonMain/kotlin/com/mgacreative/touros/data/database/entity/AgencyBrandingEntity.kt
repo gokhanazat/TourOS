@@ -21,6 +21,7 @@ data class AgencyBrandingEntity(
     @SerialName("whatsapp_number") val whatsappNumber: String? = null,
     @SerialName("contact_address") val contactAddress: String? = null,
     @SerialName("promo_banners") val promoBanners: String? = null,
+    @SerialName("service_cards") val serviceCards: String? = null,
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("updated_at") val updatedAt: String = ""
 )

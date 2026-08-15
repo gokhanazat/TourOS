@@ -57,6 +57,25 @@ private fun NavDestination?.isAuthRoute(): Boolean =
 private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavGroup> {
     val groups = mutableListOf<TourOSNavGroup>()
 
+    // EN ÜST MENÜ GRUBU: ACENTE YÖNETİMİ
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("ACENTE YÖNETİMİ"),
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Onay Bekleyen Acenteler"),
+                    route = AgencyApprovalRoute,
+                    isSelected = currentRoute?.contains("AgencyApprovalRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Acente Sorgulama & Rehber"),
+                    route = AgencySearchRoute,
+                    isSelected = currentRoute?.contains("AgencySearchRoute") == true
+                )
+            )
+        )
+    )
+
     if (isSystemAdmin) {
         groups.add(
             TourOSNavGroup(
@@ -460,6 +479,14 @@ private fun AppNavHost(navController: NavHostController) {
             )
         }
 
+        composable<AgencyApprovalRoute> {
+            AgencyApprovalScreen()
+        }
+
+        composable<AgencySearchRoute> {
+            AgencySearchScreen()
+        }
+
         composable<GlobalWebCmsRoute> {
             val isAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
             if (!isAdmin) {
@@ -473,6 +500,12 @@ private fun AppNavHost(navController: NavHostController) {
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+        }
+
+        composable<GlobalSeasonManagementRoute> {
+            com.mgacreative.touros.ui.screens.GlobalSeasonManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<GlobalWebPublicRoute> {

@@ -40,6 +40,15 @@ object TourOSTypography {
         color = TourOSColors.TextPrimary
     )
 
+    val TitleSmall = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.1.sp,
+        color = TourOSColors.TextPrimary
+    )
+
     val BodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,

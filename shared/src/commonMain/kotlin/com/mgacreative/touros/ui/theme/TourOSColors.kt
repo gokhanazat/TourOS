@@ -24,6 +24,7 @@ object TourOSColors {
     // Surface & Background
     val Background = Color(0xFFFFFFFF)
     val Surface = Color(0xFFF7F8F9)
+    val SurfaceVariant = Color(0xFFEFF1F3)
     val Border = Color(0xFFE4E7EB)
     val Divider = Color(0xFFE4E7EB)
 

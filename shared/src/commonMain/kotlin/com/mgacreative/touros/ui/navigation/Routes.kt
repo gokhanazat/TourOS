@@ -17,6 +17,9 @@ import kotlinx.serialization.Serializable
 
 // ─── Core / Yönetim ──────────────────────────────────────────────────────────
 @Serializable object DashboardRoute
+@Serializable object AgencyApprovalRoute
+@Serializable object AgencySearchRoute
+@Serializable object GlobalSeasonManagementRoute
 @Serializable object GlobalWebCmsRoute
 @Serializable object GlobalWebPublicRoute
 @Serializable object SettingsRoute
