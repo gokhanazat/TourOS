@@ -1982,13 +1982,64 @@ fun GlobalWebPublicScreen(
                 OurServicesSection(
                     companySettings = companySettings,
                     onSelectService = { serviceId ->
-                        when (serviceId) {
-                            "PACKAGE_TOUR" -> { selectedSearchCategoryTab = "PACKAGE_TOUR"; searchQuery = "" }
-                            "HOTEL" -> { selectedSearchCategoryTab = "HOTEL"; searchQuery = "" }
-                            "FLIGHT" -> { selectedSearchCategoryTab = "FLIGHT"; searchQuery = "" }
-                            "ADVENTURE" -> { searchQuery = "Macera"; selectedOperatorFilter = "Tüm Operatörler" }
-                            "CRUISE" -> { searchQuery = "Gemi"; selectedOperatorFilter = "Tüm Operatörler" }
-                            "ASSISTANCE" -> { showAgencyLoginModal = true }
+                        when {
+                            serviceId.startsWith("HOTEL_TOURS:") -> {
+                                val hParam = serviceId.substringAfter("HOTEL_TOURS:").trim()
+                                val matchedOffer = dbProducts.firstOrNull { 
+                                    it.id == hParam || 
+                                    it.hotelName.equals(hParam, ignoreCase = true) ||
+                                    it.hotelName.contains(hParam, ignoreCase = true) ||
+                                    it.location.contains(hParam, ignoreCase = true)
+                                }
+                                val queryText = matchedOffer?.hotelName ?: hParam
+                                selectedSearchCategoryTab = "ALL"
+                                selectedOperatorFilter = "Tüm Operatörler"
+                                selectedDestinationFilter = "Tüm Destinasyonlar"
+                                searchQuery = queryText
+                                isInlineSearchActive = true
+                                coroutineScope.launch {
+                                    mainLazyListState.animateScrollToItem(1)
+                                }
+                            }
+                            serviceId == "PACKAGE_TOUR" -> { 
+                                selectedSearchCategoryTab = "PACKAGE_TOUR"
+                                searchQuery = ""
+                                isInlineSearchActive = false
+                                coroutineScope.launch { mainLazyListState.animateScrollToItem(0) }
+                            }
+                            serviceId == "HOTEL" -> { 
+                                selectedSearchCategoryTab = "HOTEL"
+                                searchQuery = ""
+                                isInlineSearchActive = false
+                                coroutineScope.launch { mainLazyListState.animateScrollToItem(0) }
+                            }
+                            serviceId == "FLIGHT" -> { 
+                                selectedSearchCategoryTab = "FLIGHT"
+                                searchQuery = ""
+                                isInlineSearchActive = false
+                                coroutineScope.launch { mainLazyListState.animateScrollToItem(0) }
+                            }
+                            serviceId == "ADVENTURE" -> { 
+                                searchQuery = "Macera"
+                                selectedOperatorFilter = "Tüm Operatörler"
+                                isInlineSearchActive = true
+                                coroutineScope.launch { mainLazyListState.animateScrollToItem(1) }
+                            }
+                            serviceId == "CRUISE" -> { 
+                                searchQuery = "Gemi"
+                                selectedOperatorFilter = "Tüm Operatörler"
+                                isInlineSearchActive = true
+                                coroutineScope.launch { mainLazyListState.animateScrollToItem(1) }
+                            }
+                            serviceId == "ASSISTANCE" -> { showAgencyLoginModal = true }
+                            else -> {
+                                selectedSearchCategoryTab = "ALL"
+                                searchQuery = serviceId
+                                isInlineSearchActive = true
+                                coroutineScope.launch {
+                                    mainLazyListState.animateScrollToItem(1)
+                                }
+                            }
                         }
                     }
                 )
@@ -3003,7 +3054,11 @@ fun OurServicesSection(
                             horizontalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
                             rowItems.forEach { service ->
-                                val targetUrl = service.targetUrl.ifBlank { service.id }
+                                val targetUrl = if (!service.hotelName.isNullOrBlank()) {
+                                    "HOTEL_TOURS:${service.hotelName}"
+                                } else {
+                                    service.targetUrl.ifBlank { service.hotelId?.let { "HOTEL_TOURS:$it" } ?: service.id }
+                                }
                                 Surface(
                                     modifier = Modifier
                                         .weight(1f)

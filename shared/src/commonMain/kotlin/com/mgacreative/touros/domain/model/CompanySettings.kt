@@ -28,7 +28,9 @@ data class ServiceCardItem(
     val title: String = "",
     val subtitle: String = "",
     val imageUrl: String = "",
-    val targetUrl: String = ""
+    val targetUrl: String = "",
+    val hotelId: String? = null,
+    val hotelName: String? = null
 )
 
 /**
@@ -92,9 +94,10 @@ data class CompanySettings(
 
         val result = validList.toMutableList()
         for (i in result.size until 6) {
-            result.add(defaults[i])
+            val item = defaults.getOrNull(i) ?: ServiceCardItem("${i + 1}", "Hizmet Kartı ${i + 1}", "", "", "PACKAGE_TOUR")
+            result.add(item)
         }
-        return result
+        return result.take(6)
     }
     fun getEffectivePromoBanners(): List<PromoBannerItem> {
         val validList = promoBanners.filter { it.imageUrl.isNotBlank() || it.title.isNotBlank() }

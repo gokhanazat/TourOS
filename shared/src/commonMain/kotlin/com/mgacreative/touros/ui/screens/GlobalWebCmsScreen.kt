@@ -40,12 +40,16 @@ fun GlobalWebCmsScreen(
 ) {
     val authRepository: AuthRepository = koinInject()
     val companySettingsRepository: CompanySettingsRepository = koinInject()
+    val hotelRepository: com.mgacreative.touros.domain.repository.HotelRepository = koinInject()
     val currentUser by authRepository.observeAuthState().collectAsState()
     val coroutineScope = rememberCoroutineScope()
 
     var selectedTab by remember { mutableStateOf(0) }
     var saveNotification by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+
+    // Otel Listesi State'i (Promosyonlu Otel Bağlama)
+    var availableHotelsList by remember { mutableStateOf<List<com.mgacreative.touros.domain.model.Hotel>>(emptyList()) }
 
     // Form State'leri (Web'e Özel Yönetim - Tamamen Dinamik, Hardcoded İçerik Yok)
     var siteTitle by remember { mutableStateOf("") }
@@ -69,6 +73,17 @@ fun GlobalWebCmsScreen(
     LaunchedEffect(Unit) {
         val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
         val settings = companySettingsRepository.getCompanySettings(tid).getOrNull()
+        val hotelsRes = hotelRepository.getHotels(tid).getOrDefault(emptyList())
+        val defaultHotels = listOf(
+            com.mgacreative.touros.domain.model.Hotel(id = "MOD-CORAL-101", name = "Nirvana Cosmopolitan Hotel", city = "Lara, Antalya", coverImageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800"),
+            com.mgacreative.touros.domain.model.Hotel(id = "MOD-ANEX-102", name = "Rixos Premium Belek", city = "Belek, Antalya", coverImageUrl = "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800"),
+            com.mgacreative.touros.domain.model.Hotel(id = "MOD-PEGAS-103", name = "Titanic Mardan Palace", city = "Kundu, Antalya", coverImageUrl = "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800"),
+            com.mgacreative.touros.domain.model.Hotel(id = "MOD-FUNSUN-104", name = "Lujo Hotel Bodrum", city = "Bodrum, Muğla", coverImageUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800"),
+            com.mgacreative.touros.domain.model.Hotel(id = "MOD-CORAL-105", name = "Maxx Royal Kemer Resort", city = "Kemer, Antalya", coverImageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800"),
+            com.mgacreative.touros.domain.model.Hotel(id = "MOD-ANEX-106", name = "Regnum Carya Golf & Spa Resort", city = "Belek, Antalya", coverImageUrl = "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800")
+        )
+        availableHotelsList = (hotelsRes + defaultHotels).distinctBy { it.id }
+
         if (settings != null) {
             val effBanners = settings.getEffectivePromoBanners()
             if (effBanners.isNotEmpty()) {
@@ -92,6 +107,8 @@ fun GlobalWebCmsScreen(
     }
 
     var activePickingSlideIndex by remember { mutableStateOf<Int?>(null) }
+    var selectedHotelSlotIndex by remember { mutableStateOf<Int?>(null) }
+    var hotelSearchQuery by remember { mutableStateOf("") }
 
     fun formatFilePickerPath(path: String?): String {
         if (path.isNullOrBlank()) return ""
@@ -644,7 +661,7 @@ fun GlobalWebCmsScreen(
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
                                     Text("🎴 7. Hizmet Kartları Yönetimi (6 Adet Görsel Banner Kartı)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
-                                    Text("Web ana sayfasında gösterilecek 6 adet dinamik hizmet banner kartı. Her kart için görsel URL, başlık, açıklama ve hedef link belirleyebilirsiniz.", style = TourOSTypography.BodyMedium)
+                                    Text("Web ana sayfasında gösterilecek 6 adet dinamik hizmet banner kartı. Otel seçebilir veya özel hizmet başlığı/linki belirleyebilirsiniz.", style = TourOSTypography.BodyMedium)
 
                                     val currentCards: List<ServiceCardItem> = if (serviceCardsList.size >= 6) serviceCardsList.take(6) else {
                                         val defaults = listOf(
@@ -657,13 +674,15 @@ fun GlobalWebCmsScreen(
                                         )
                                         val mutable = serviceCardsList.toMutableList()
                                         for (i in mutable.size until 6) {
-                                            mutable.add(defaults[i])
+                                            val item = defaults.getOrNull(i) ?: ServiceCardItem("${i + 1}", "Hizmet Kartı ${i + 1}", "", "", "PACKAGE_TOUR")
+                                            mutable.add(item)
                                         }
-                                        mutable
+                                        mutable.take(6)
                                     }
 
                                     for (cardIdx in currentCards.indices) {
                                         val cardItem = currentCards[cardIdx]
+
                                         Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
@@ -672,10 +691,30 @@ fun GlobalWebCmsScreen(
                                                 .padding(12.dp),
                                             verticalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text(
-                                                text = "Kart ${cardIdx + 1}: ${cardItem.title.ifBlank { "Hizmet Kartı" }}",
-                                                style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
-                                            )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "Slot ${cardIdx + 1}: ${cardItem.title.ifBlank { "Hizmet / Promosyon Kartı" }}",
+                                                    style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                                                )
+
+                                                // 🏨 Otel Seçici Buton (Arama Modalı Açan Buton)
+                                                Button(
+                                                    onClick = {
+                                                        selectedHotelSlotIndex = cardIdx
+                                                        hotelSearchQuery = ""
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D5653), contentColor = Color.White)
+                                                ) {
+                                                    Text(
+                                                        text = if (!cardItem.hotelName.isNullOrBlank()) "🏨 Seçili: ${cardItem.hotelName}" else "🏨 Sponsorlu Otel Seç 🔍",
+                                                        style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                                                    )
+                                                }
+                                            }
 
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -699,8 +738,8 @@ fun GlobalWebCmsScreen(
                                                         newList[cardIdx] = newList[cardIdx].copy(targetUrl = newTarget)
                                                         serviceCardsList = newList
                                                     },
-                                                    label = { Text("Tıklama Linki / Kategori") },
-                                                    placeholder = { Text("Örn: PACKAGE_TOUR veya https://...") },
+                                                    label = { Text("Tıklama Linki / Target Parameter (Otomatik)") },
+                                                    placeholder = { Text("Örn: HOTEL_TOURS:MOD-CORAL-101") },
                                                     modifier = Modifier.weight(1f)
                                                 )
                                             }
@@ -746,6 +785,159 @@ fun GlobalWebCmsScreen(
                         // 🖥️ CANLI WEB ÖNİZLEME (LIVE PREVIEW)
                         Box(modifier = Modifier.fillMaxSize()) {
                             GlobalWebPublicScreen(referralCode = agencyReferralCode)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 🏨 SPONSORLU OTEL SEÇİM MODALI (Dialog)
+    if (selectedHotelSlotIndex != null) {
+        val slotIdx = selectedHotelSlotIndex!!
+        val currentCards: List<ServiceCardItem> = if (serviceCardsList.size >= 6) serviceCardsList.take(6) else {
+            val defaults = listOf(
+                ServiceCardItem("1", "Paket Turlar / Tour Packages", "Gezginler için özel seçilmiş her şey dahil paket tur seçenekleri.", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800", "PACKAGE_TOUR"),
+                ServiceCardItem("2", "Otel Rezervasyonları / Hotel Reservations", "En uygun fiyat garantili seçkin 5 yıldızlı oteller ve tatil köyleri.", "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800", "HOTEL"),
+                ServiceCardItem("3", "Macera Turları / Adventure Tours", "Safari, trekking, kültür turları ve heyecan dolu özel tatil rotaları.", "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800", "ADVENTURE"),
+                ServiceCardItem("4", "Seyahat Desteği / Travel Assistance", "Sorunsuz bir seyahat deneyimi için 7/24 canlı müşteri desteği.", "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800", "ASSISTANCE"),
+                ServiceCardItem("5", "Uçuş Rezervasyonu / Flight Booking", "Hızlı, uygun fiyatlı yurt içi ve yurt dışı charter ve tarifeli uçuşlar.", "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800", "FLIGHT"),
+                ServiceCardItem("6", "Mavi Yolculuk & Cruise / Cruise Trips", "Lüks cruise gemileri ve büyüleyici koyları keşfedeceğiniz mavi yolculuk.", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800", "CRUISE")
+            )
+            val mutable = serviceCardsList.toMutableList()
+            for (i in mutable.size until 6) {
+                val item = defaults.getOrNull(i) ?: ServiceCardItem("${i + 1}", "Hizmet Kartı ${i + 1}", "", "", "PACKAGE_TOUR")
+                mutable.add(item)
+            }
+            mutable.take(6)
+        }
+
+        val filteredHotels = availableHotelsList.filter { h ->
+            hotelSearchQuery.isBlank() ||
+            h.name.contains(hotelSearchQuery, ignoreCase = true) ||
+            (h.city?.contains(hotelSearchQuery, ignoreCase = true) == true)
+        }
+
+        androidx.compose.ui.window.Dialog(onDismissRequest = { selectedHotelSlotIndex = null }) {
+            Surface(
+                modifier = Modifier
+                    .width(540.dp)
+                    .heightIn(max = 620.dp)
+                    .clip(RoundedCornerShape(20.dp)),
+                color = Color.White,
+                shadowElevation = 16.dp
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "🏨 Slot ${slotIdx + 1} İçin Sponsorlu Otel Seçin",
+                            style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                        )
+                        TextButton(onClick = { selectedHotelSlotIndex = null }) {
+                            Text("✕ Kapat", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary))
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = hotelSearchQuery,
+                        onValueChange = { hotelSearchQuery = it },
+                        label = { Text("Otel Adı veya Şehir Ara...") },
+                        placeholder = { Text("Örn: Rixos, Nirvana, Titanic, Bodrum...") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Button(
+                        onClick = {
+                            val newList = currentCards.toMutableList()
+                            newList[slotIdx] = newList[slotIdx].copy(
+                                hotelId = null,
+                                hotelName = null,
+                                targetUrl = "PACKAGE_TOUR"
+                            )
+                            serviceCardsList = newList
+                            selectedHotelSlotIndex = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2), contentColor = Color(0xFFDC2626)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("❌ Otel Seçimini Kaldır (Genel Hizmet Kartı Yap)", fontWeight = FontWeight.Bold)
+                    }
+
+                    HorizontalDivider(color = TourOSColors.Border)
+
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        filteredHotels.forEach { hotel ->
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val newList = currentCards.toMutableList()
+                                            newList[slotIdx] = newList[slotIdx].copy(
+                                                hotelId = hotel.id,
+                                                hotelName = hotel.name,
+                                                targetUrl = "HOTEL_TOURS:${hotel.name}",
+                                                title = hotel.name,
+                                                subtitle = "${hotel.name} özel konaklama ve paket tur fırsatları.",
+                                                imageUrl = hotel.coverImageUrl?.ifBlank { newList[slotIdx].imageUrl } ?: newList[slotIdx].imageUrl
+                                            )
+                                            serviceCardsList = newList
+                                            selectedHotelSlotIndex = null
+                                        },
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                    elevation = CardDefaults.cardElevation(1.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        val img = hotel.coverImageUrl.orEmpty().trim()
+                                        if (img.isNotBlank()) {
+                                            coil3.compose.AsyncImage(
+                                                model = img,
+                                                contentDescription = hotel.name,
+                                                modifier = Modifier.size(54.dp).clip(RoundedCornerShape(8.dp)),
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                            )
+                                        }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(hotel.name, style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary))
+                                            Text(hotel.city ?: "Türkiye", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        }
+                                        Button(
+                                            onClick = {
+                                                val newList = currentCards.toMutableList()
+                                                newList[slotIdx] = newList[slotIdx].copy(
+                                                    hotelId = hotel.id,
+                                                    hotelName = hotel.name,
+                                                    targetUrl = "HOTEL_TOURS:${hotel.name}",
+                                                    title = hotel.name,
+                                                    subtitle = "${hotel.name} özel konaklama ve paket tur fırsatları.",
+                                                    imageUrl = hotel.coverImageUrl?.ifBlank { newList[slotIdx].imageUrl } ?: newList[slotIdx].imageUrl
+                                                )
+                                                serviceCardsList = newList
+                                                selectedHotelSlotIndex = null
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D5653), contentColor = Color.White)
+                                        ) {
+                                            Text("Seç ➔", color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
