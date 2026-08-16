@@ -158,7 +158,6 @@ val useCaseModule = module {
     factory { com.mgacreative.touros.domain.usecase.GetGuideAssignedToursUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.TogglePassengerCheckInUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.SubmitGuideReviewUseCase(get()) }
-    single { com.mgacreative.touros.domain.engine.AutoRevenueEngine(get()) }
     single { com.mgacreative.touros.domain.engine.AutoSupplierExpenseEngine(get(), get()) }
     single { com.mgacreative.touros.domain.engine.InvoicePdfExportEngine(get()) }
     single { com.mgacreative.touros.domain.engine.CommissionCalculationEngine() }
@@ -203,34 +202,17 @@ val useCaseModule = module {
     factory { com.mgacreative.touros.domain.usecase.GetB2BAgencyCommissionsUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetB2BAgencyVouchersUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetB2BAgencyPrivateReportsUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.SearchB2CToursUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetB2CTourDetailUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.ProcessB2CCheckoutUseCase(get(), getOrNull(), getOrNull()) }
     factory { com.mgacreative.touros.domain.usecase.GenerateQRTicketUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ScanValidateQRTicketUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetB2CCustomerVouchersUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.ToggleB2CFavoriteTourUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.ObserveB2CLiveLocationUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetB2CPushNotificationsUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.SubmitB2CTourReviewUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetB2CReleaseConfigUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ApplyCampaignCouponUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetDynamicPricingRulesUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.EvaluateDynamicPricingUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.SaveDynamicPricingRuleUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.CentralPricingEngineUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetSupportedLanguagesUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetAppTranslationsUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ConvertCurrencyUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetSharedMapPointsUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetGuidePerformanceReportUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.ProcessAutoRevenueUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ProcessSupplierExpenseUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetCurrentAccountsUseCase(get(), get()) }
     factory { com.mgacreative.touros.domain.usecase.CreateInvoiceUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.ExportInvoicePdfUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.GetCommissionRulesUseCase(get()) }
-    factory { com.mgacreative.touros.domain.usecase.SaveCommissionRuleUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.CreateBookingUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.GetBookingsUseCase(get()) }
     factory { com.mgacreative.touros.domain.usecase.UpdateBookingStatusUseCase(get()) }
@@ -263,8 +245,6 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.HotelFormViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.RoomTypeManagementViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.HotelContractViewModel(get(), get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.SeasonPricingMatrixViewModel(get(), get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.StopSaleReleaseViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.VehicleManagementViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.TransferAssignmentViewModel(get(), get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.DriverPickupListViewModel(get(), get(), get()) }
@@ -274,11 +254,9 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.GuideMobileViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.GuideRatingViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.GuidePerformanceReportViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.AutoRevenueEngineViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.SupplierExpenseViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CurrentAccountViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.InvoiceManagementViewModel(get(), get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.CommissionRulesViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.PaymentGatewayViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.BookingPaymentViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.PaymentLinkViewModel(get(), get()) }
@@ -297,25 +275,14 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.B2BAgencyCommissionsViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.B2BAgencyVouchersViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.B2BAgencyPrivateReportsViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CTourSearchViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CTourDetailCheckoutViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.QRTicketViewModel(get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CVoucherFavoritesViewModel(get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CLiveLocationViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CNotificationsReviewViewModel(get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CReleaseDesignViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CampaignCouponViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.DynamicPricingRuleEngineViewModel(get(), get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.DynamicPricingRuleFormViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.CentralPricingHubViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.MultiLanguageViewModel(get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CurrencyConverterViewModel(get(), get()) }
-    factory { com.mgacreative.touros.ui.viewmodel.SharedMapViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.PersonalizedRecommendationsViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.FaqSupportChatViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AgencyOperatorConnectionsViewModel(get()) }
     single { com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel(get(), getOrNull()) }
-    factory { com.mgacreative.touros.ui.viewmodel.B2CHotelDetailCheckoutViewModel(get(), get(), get(), get()) }
     single { com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel(get(), get(), getOrNull(), getOrNull()) }
 }
 

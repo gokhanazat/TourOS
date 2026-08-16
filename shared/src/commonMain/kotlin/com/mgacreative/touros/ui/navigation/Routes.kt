@@ -19,7 +19,6 @@ import kotlinx.serialization.Serializable
 @Serializable object DashboardRoute
 @Serializable object AgencyApprovalRoute
 @Serializable object AgencySearchRoute
-@Serializable object GlobalSeasonManagementRoute
 @Serializable object GlobalWebCmsRoute
 @Serializable object GlobalWebPublicRoute
 @Serializable object SettingsRoute
@@ -33,7 +32,6 @@ import kotlinx.serialization.Serializable
 @Serializable object NotificationHubRoute
 @Serializable object DocumentManagementRoute
 @Serializable object FaqSupportChatRoute
-@Serializable object SharedMapRoute
 
 // ─── Tur Yönetimi ─────────────────────────────────────────────────────────────
 @Serializable object ToursRoute
@@ -56,7 +54,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class HotelFormRoute(val hotelId: String? = null)
 @Serializable data class HotelContractRoute(val hotelId: String = "00000000-0000-0000-0000-000000000001", val hotelName: String = "Otel")
 @Serializable data class RoomTypeRoute(val hotelId: String = "00000000-0000-0000-0000-000000000001", val hotelName: String = "Otel")
-@Serializable data class B2CHotelDetailCheckoutRoute(val hotelId: String)
 
 
 // ─── Operasyon ────────────────────────────────────────────────────────────────
@@ -70,20 +67,11 @@ import kotlinx.serialization.Serializable
 @Serializable object TransferAssignmentRoute
 @Serializable object DriverPickupListRoute
 
-// ─── Fiyatlandırma ────────────────────────────────────────────────────────────
-@Serializable object SeasonPricingMatrixRoute
-@Serializable object DynamicPricingRuleEngineRoute
-@Serializable object DynamicPricingRuleFormRoute
-@Serializable object StopSaleReleaseRoute
-@Serializable object CentralPricingHubRoute
-@Serializable object AutoRevenueEngineRoute
-
 // ─── Finans ───────────────────────────────────────────────────────────────────
 @Serializable object FinancialReportsRoute
 @Serializable object InvoiceManagementRoute
 @Serializable object CurrentAccountRoute
 @Serializable object SupplierExpenseRoute
-@Serializable object CommissionRulesRoute
 @Serializable object CurrencyConverterRoute
 @Serializable object ExchangeRatesRoute
 @Serializable object PaymentGatewayRoute
@@ -105,14 +93,6 @@ import kotlinx.serialization.Serializable
 @Serializable object B2BAgencyCommissionsRoute
 @Serializable object B2BAgencyPrivateReportsRoute
 @Serializable object B2BAgencyVouchersRoute
-
-// ─── B2C ──────────────────────────────────────────────────────────────────────
-@Serializable object B2CTourSearchRoute
-@Serializable data class B2CTourDetailCheckoutRoute(val tourId: String = "")
-@Serializable object B2CLiveLocationRoute
-@Serializable object B2CNotificationsReviewRoute
-@Serializable object B2CReleaseDesignRoute
-@Serializable object B2CVoucherFavoritesRoute
 
 // ─── OTA / Gelişmiş ───────────────────────────────────────────────────────────
 @Serializable object OTADashboardRoute

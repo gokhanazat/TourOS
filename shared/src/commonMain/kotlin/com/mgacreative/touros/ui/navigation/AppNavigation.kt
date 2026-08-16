@@ -502,12 +502,6 @@ private fun AppNavHost(navController: NavHostController) {
             }
         }
 
-        composable<GlobalSeasonManagementRoute> {
-            com.mgacreative.touros.ui.screens.GlobalSeasonManagementScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
         composable<GlobalWebPublicRoute> {
             GlobalWebPublicScreen(
                 onNavigateToBookingDetail = { id -> navController.navigate(BookingDetailRoute(id)) },
@@ -592,13 +586,6 @@ private fun AppNavHost(navController: NavHostController) {
             FaqSupportChatScreen(
                 viewModel = koinViewModel(),
                 onBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<SharedMapRoute> {
-            SharedMapScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -802,32 +789,6 @@ private fun AppNavHost(navController: NavHostController) {
             }
         }
 
-        // ─── Fiyatlandırma ────────────────────────────────────────────────────
-
-        composable<SeasonPricingMatrixRoute> {
-            SeasonPricingMatrixScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<DynamicPricingRuleEngineRoute> {
-            DynamicPricingRuleEngineScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<DynamicPricingRuleFormRoute> {
-            DynamicPricingRuleFormScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<StopSaleReleaseRoute> {
-            StopSaleReleaseScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<CentralPricingHubRoute> {
-            CentralPricingHubScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<AutoRevenueEngineRoute> {
-            AutoRevenueEngineScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
         // ─── Finans ───────────────────────────────────────────────────────────
 
         composable<FinancialReportsRoute> {
@@ -850,10 +811,6 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<SupplierExpenseRoute> {
             SupplierExpenseScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<CommissionRulesRoute> {
-            CommissionRulesScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
 
         composable<CurrencyConverterRoute> {
@@ -924,37 +881,6 @@ private fun AppNavHost(navController: NavHostController) {
             B2BAgencyVouchersScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
 
-        // ─── B2C ──────────────────────────────────────────────────────────────
-
-        composable<B2CTourSearchRoute> {
-            B2CTourSearchScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2CTourDetailCheckoutRoute> { backStackEntry ->
-            val route = backStackEntry.toRoute<B2CTourDetailCheckoutRoute>()
-            B2CTourDetailCheckoutScreen(
-                viewModel = koinViewModel(),
-                tourId = route.tourId,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<B2CLiveLocationRoute> {
-            B2CLiveLocationScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2CNotificationsReviewRoute> {
-            B2CNotificationsReviewScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2CReleaseDesignRoute> {
-            B2CReleaseDesignScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2CVoucherFavoritesRoute> {
-            B2CVoucherFavoritesScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
         // ─── OTA / Gelişmiş ───────────────────────────────────────────────────
 
         composable<AgencyOperatorConnectionsRoute> {
@@ -964,15 +890,6 @@ private fun AppNavHost(navController: NavHostController) {
         composable<AgencyProductPublishingRoute> {
             com.mgacreative.touros.ui.screens.AgencyProductPublishingScreen(
                 onNavigateToSearchWizard = { navController.navigate(B2BTourSearchDashboardRoute) }
-            )
-        }
-
-        composable<B2CHotelDetailCheckoutRoute> { back ->
-            val route: B2CHotelDetailCheckoutRoute = back.toRoute()
-            com.mgacreative.touros.ui.screens.B2CHotelDetailCheckoutScreen(
-                viewModel = koinViewModel(),
-                hotelId = route.hotelId,
-                onNavigateBack = { navController.popBackStack() }
             )
         }
 
@@ -996,7 +913,7 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<SmartRecommendationsRoute> {
             SmartRecommendationsScreen(
-                onNavigateToTourDetail = { tourId -> navController.navigate(B2CTourDetailCheckoutRoute(tourId = tourId)) },
+                onNavigateToTourDetail = { tourId -> navController.navigate(TourDetailRoute(tourId = tourId)) },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
