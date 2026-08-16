@@ -1,9 +1,9 @@
 package com.mgacreative.touros.domain.engine
 
-import com.mgacreative.touros.domain.model.DocumentItem
+import com.mgacreative.touros.domain.model.GeneratedDocument
 
 /**
- * 3.4.2 Otomatik Voucher ve Paket Tur Hizmet Sözleşmesi PDF Şablon Motoru.
+ * 3.4.1 A4 Formatında Voucher ve Sözleşme HTML/PDF Şablon Motoru.
  */
 class VoucherContractTemplateEngine {
 
@@ -89,10 +89,10 @@ class VoucherContractTemplateEngine {
         """.trimIndent()
     }
 
-    fun generateDummyPdfItem(bookingId: String, docType: String, tenantId: String): DocumentItem {
+    fun generateDummyPdfItem(bookingId: String, docType: String, tenantId: String): GeneratedDocument {
         val title = if (docType == "contract") "Hizmet Sözleşmesi - B-$bookingId" else "Seyahat Voucher - B-$bookingId"
         val path = "$tenantId/$docType/${docType}_$bookingId.pdf"
-        return DocumentItem(
+        return GeneratedDocument(
             id = "doc-pdf-${(10000..99999).random()}",
             documentType = docType,
             title = title,

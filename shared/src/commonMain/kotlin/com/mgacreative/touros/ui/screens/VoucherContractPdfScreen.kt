@@ -125,8 +125,7 @@ fun VoucherContractPdfScreen(
                         )
                     }
 
-                    if (state.generatedDocument != null) {
-                        val doc = state.generatedDocument!!
+                    state.generatedDocument?.let { doc ->
                         Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                             Row(modifier = Modifier.padding(10.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column {

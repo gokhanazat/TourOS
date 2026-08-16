@@ -32,28 +32,45 @@ data class NavigationItem(
  */
 val navigationGroups = listOf(
     NavigationGroup(
-        title = "WEB YÖNETİMİ",
+        title = "👑 SAAS ADMİN PANELİ",
         items = listOf(
             NavigationItem(
+                title = "Onay Bekleyen Acenteler",
+                route = AgencyApprovalRoute,
+                allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
+            ),
+            NavigationItem(
+                title = "Acente Sorgulama & Lisans",
+                route = AgencySearchRoute,
+                allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
+            ),
+            NavigationItem(
+                title = "Acente Kota & Tüketim Raporu",
+                route = AgencyQuotaReportRoute,
+                allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
+            ),
+            NavigationItem(
                 title = "Web Yönetimi (CMS)",
-                route = GlobalWebCmsRoute
+                route = GlobalWebCmsRoute,
+                allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
+            ),
+            NavigationItem(
+                title = "Ürün & Data Yönetimi",
+                route = AdminProductManagementRoute,
+                allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
             )
         )
     ),
     NavigationGroup(
-        title = "TUR OPERATÖRLERİ",
+        title = "B2B SATIŞ & REZERVASYON",
         items = listOf(
-            NavigationItem(
-                title = "Tur Operatörleri",
-                route = AgencyOperatorConnectionsRoute
-            ),
-            NavigationItem(
-                title = "Ürünler",
-                route = AgencyProductPublishingRoute
-            ),
             NavigationItem(
                 title = "Rezervasyonlar",
                 route = BookingsRoute
+            ),
+            NavigationItem(
+                title = "Yeni Rezervasyon & Satış",
+                route = B2BTourSearchDashboardRoute
             )
         )
     ),
@@ -100,6 +117,19 @@ val navigationGroups = listOf(
             NavigationItem(
                 title = "TO Cari Hesap",
                 route = OperatorCurrentAccountReportRoute
+            )
+        )
+    ),
+    NavigationGroup(
+        title = "PREMIUM ✨",
+        items = listOf(
+            NavigationItem(
+                title = "OTA & Kanal Yöneticisi",
+                route = OTADashboardRoute
+            ),
+            NavigationItem(
+                title = "Senkronizasyon Logları",
+                route = SyncLogsRoute(providerIdFilter = "ALL")
             )
         )
     ),
@@ -151,8 +181,8 @@ fun getStartDestinationForRole(role: UserRole): Any {
         UserRole.SYSTEM_ADMIN -> DashboardRoute
         UserRole.TOUR_OPERATOR -> DashboardRoute
         UserRole.SALES -> BookingsRoute
-        UserRole.GUIDE -> AssignedTasksRoute
-        UserRole.DRIVER -> AssignedTasksRoute
+        UserRole.GUIDE -> DashboardRoute
+        UserRole.DRIVER -> DashboardRoute
         UserRole.ACCOUNTING -> ReportsRoute
         UserRole.AGENT -> BookingsRoute
         UserRole.CUSTOMER -> BookingsRoute

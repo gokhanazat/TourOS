@@ -19,19 +19,14 @@ import kotlinx.serialization.Serializable
 @Serializable object DashboardRoute
 @Serializable object AgencyApprovalRoute
 @Serializable object AgencySearchRoute
+@Serializable object AgencyQuotaReportRoute
 @Serializable object GlobalWebCmsRoute
 @Serializable object GlobalWebPublicRoute
 @Serializable object SettingsRoute
 @Serializable object UserListRoute
 @Serializable object InviteUserRoute
 @Serializable object PermissionMatrixRoute
-@Serializable object AssignedTasksRoute
-@Serializable data class TaskDetailRoute(val taskId: String)
-@Serializable object StaffTaskManagementRoute
 @Serializable object MultiLanguageRoute
-@Serializable object NotificationHubRoute
-@Serializable object DocumentManagementRoute
-@Serializable object FaqSupportChatRoute
 
 // ─── Tur Yönetimi ─────────────────────────────────────────────────────────────
 @Serializable object ToursRoute
@@ -46,8 +41,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class BookingDetailRoute(val bookingId: String)
 @Serializable object CreateBookingStep1Route
 @Serializable object CreateBookingStep2Route
-@Serializable object BookingPaymentRoute
-@Serializable object QRTicketRoute
 
 // ─── Otel Yönetimi ────────────────────────────────────────────────────────────
 @Serializable object HotelListRoute
@@ -56,17 +49,6 @@ import kotlinx.serialization.Serializable
 @Serializable data class RoomTypeRoute(val hotelId: String = "00000000-0000-0000-0000-000000000001", val hotelName: String = "Otel")
 
 
-// ─── Operasyon ────────────────────────────────────────────────────────────────
-@Serializable object GuideManagementRoute
-@Serializable object GuideAssignmentRoute
-@Serializable object GuideMobileRoute
-@Serializable object GuideRatingRoute
-@Serializable object GuidePerformanceReportRoute
-@Serializable object VehicleManagementRoute
-@Serializable object VehicleAlertsRoute
-@Serializable object TransferAssignmentRoute
-@Serializable object DriverPickupListRoute
-
 // ─── Finans ───────────────────────────────────────────────────────────────────
 @Serializable object FinancialReportsRoute
 @Serializable object InvoiceManagementRoute
@@ -74,10 +56,6 @@ import kotlinx.serialization.Serializable
 @Serializable object SupplierExpenseRoute
 @Serializable object CurrencyConverterRoute
 @Serializable object ExchangeRatesRoute
-@Serializable object PaymentGatewayRoute
-@Serializable object PaymentLinkRoute
-@Serializable object PaymentWebhookRoute
-@Serializable object CampaignCouponRoute
 
 // ─── Raporlar ─────────────────────────────────────────────────────────────────
 @Serializable object ReportsRoute
@@ -86,13 +64,6 @@ import kotlinx.serialization.Serializable
 @Serializable object PerformanceReportsRoute
 @Serializable object OperatorCurrentAccountReportRoute
 @Serializable object ReportFilterExportRoute
-
-// ─── B2B ──────────────────────────────────────────────────────────────────────
-@Serializable object B2BAgencyAuthRoute
-@Serializable object B2BAgencyBookingRoute
-@Serializable object B2BAgencyCommissionsRoute
-@Serializable object B2BAgencyPrivateReportsRoute
-@Serializable object B2BAgencyVouchersRoute
 
 // ─── OTA / Gelişmiş ───────────────────────────────────────────────────────────
 @Serializable object OTADashboardRoute
@@ -104,6 +75,7 @@ import kotlinx.serialization.Serializable
 @Serializable object VoucherContractPdfRoute
 @Serializable object AgencyOperatorConnectionsRoute
 @Serializable object AgencyProductPublishingRoute
+@Serializable object AdminProductManagementRoute
 
 // ─── B2B/B2C Tour Search & Booking Wizard ─────────────────────────────────────
 @Serializable object B2BTourSearchDashboardRoute

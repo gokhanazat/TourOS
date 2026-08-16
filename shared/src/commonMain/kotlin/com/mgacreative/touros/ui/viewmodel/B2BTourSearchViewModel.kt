@@ -112,12 +112,30 @@ class B2BTourSearchViewModel(
     val isSavingBooking = MutableStateFlow(false)
     val createdPnrCode = MutableStateFlow("")
 
+    // ─── Acente Sorgu Kotası State (Quota Guard) ─────────────────────────────
+    val monthlyQuota = MutableStateFlow(5000)
+    val currentQueries = MutableStateFlow(1420)
+    val isQuotaExceeded = MutableStateFlow(false)
+    val quotaErrorMessage = MutableStateFlow<String?>(null)
+
     init {
         performSearch()
     }
 
     fun performSearch() {
         viewModelScope.launch {
+            // 1. KOTA AŞIM KONTROLÜ (Güvenlik Kalkanı)
+            if (monthlyQuota.value > 0 && currentQueries.value >= monthlyQuota.value) {
+                isQuotaExceeded.value = true
+                quotaErrorMessage.value = "⛔ Aylık arama ve sorgu kotanız dolmuştur (${currentQueries.value} / ${monthlyQuota.value})."
+                _uiState.value = B2BTourSearchUiState.Error("Aylık sorgu kotanız dolmuştur. Lütfen yöneticiniz ile iletişime geçiniz.")
+                return@launch
+            }
+
+            // Kota aşılmamışsa aramayı say ve devam et
+            currentQueries.value += 1
+            isQuotaExceeded.value = false
+            quotaErrorMessage.value = null
             _uiState.value = B2BTourSearchUiState.Loading
 
             var items = emptyList<UnifiedProductEntity>()

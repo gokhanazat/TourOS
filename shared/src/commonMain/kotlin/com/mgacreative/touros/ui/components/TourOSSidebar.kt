@@ -35,7 +35,9 @@ import com.mgacreative.touros.ui.theme.TourOSTypography
 
 data class TourOSNavGroup(
     val categoryTitle: String,
-    val items: List<TourOSNavItem>
+    val items: List<TourOSNavItem>,
+    val isCollapsible: Boolean = false,
+    val isInitiallyExpanded: Boolean = true
 )
 
 data class TourOSNavItem(
@@ -60,6 +62,8 @@ fun TourOSSidebar(
     userRole: String = "",
     onLogoutClick: (() -> Unit)? = null
 ) {
+    val expandedGroups = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
+
     Column(
         modifier = modifier
             .width(260.dp)
@@ -115,20 +119,56 @@ fun TourOSSidebar(
         ) {
             if (groups != null && groups.isNotEmpty()) {
                 groups.forEach { group ->
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = group.categoryTitle.uppercase(),
-                        style = TourOSTypography.TitleMedium.copy(
-                            color = TourOSColors.Primary,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
-                            fontSize = 14.sp,
-                            letterSpacing = 0.5.sp
-                        ),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+                    val isExpanded = expandedGroups[group.categoryTitle] ?: (group.isInitiallyExpanded || group.items.any { it.isSelected })
 
-                    group.items.forEach { item ->
-                        RenderSidebarItem(item = item, onItemSelect = onItemSelect)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (group.isCollapsible) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    expandedGroups[group.categoryTitle] = !isExpanded
+                                }
+                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = group.categoryTitle.uppercase(),
+                                style = TourOSTypography.TitleMedium.copy(
+                                    color = TourOSColors.Primary,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                    fontSize = 13.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            )
+                            Text(
+                                text = if (isExpanded) "▾" else "▸",
+                                style = TourOSTypography.TitleMedium.copy(
+                                    color = TourOSColors.Primary,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = group.categoryTitle.uppercase(),
+                            style = TourOSTypography.TitleMedium.copy(
+                                color = TourOSColors.Primary,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
+                                fontSize = 13.sp,
+                                letterSpacing = 0.5.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+
+                    if (!group.isCollapsible || isExpanded) {
+                        group.items.forEach { item ->
+                            RenderSidebarItem(item = item, onItemSelect = onItemSelect)
+                        }
                     }
                 }
             } else {

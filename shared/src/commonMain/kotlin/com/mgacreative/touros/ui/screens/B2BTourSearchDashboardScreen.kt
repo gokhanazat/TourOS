@@ -1244,6 +1244,31 @@ fun B2BTourSearchDashboardScreen(
                         }
                     }
 
+                    // KOTA ENGELLEME VE BİLGİLENDİRME UYARISI
+                    val isQuotaExceeded by viewModel.isQuotaExceeded.collectAsState()
+                    val quotaErrorMessage by viewModel.quotaErrorMessage.collectAsState()
+
+                    if (isQuotaExceeded) {
+                        Surface(
+                            shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                            color = TourOSColors.SecondaryContainer,
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, TourOSColors.Secondary),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = TourOSSpacing.medium)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(TourOSSpacing.large),
+                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text("⛔ AYLIK ARAMA & SORGU KOTANIZ DOLMUŞTUR", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold))
+                                Text(
+                                    quotaErrorMessage ?: "Bu ay için acentenize tanımlanan arama kotası limitine ulaşılmıştır. Yeni arama yapabilmek ve rezervasyon oluşturmaya devam edebilmek için lütfen SaaS Sistem Yöneticiniz ile iletişime geçerek ek kota talep ediniz.",
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                )
+                            }
+                        }
+                    }
+
                     // ARAMA SONUÇLARI MATRİSİ
                     when (val state = uiState) {
                         is B2BTourSearchUiState.Loading -> {
@@ -1253,8 +1278,10 @@ fun B2BTourSearchDashboardScreen(
                         }
 
                         is B2BTourSearchUiState.Error -> {
-                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Text(text = state.message, color = TourOSColors.Error, style = TourOSTypography.BodyMedium)
+                            if (!isQuotaExceeded) {
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    Text(text = state.message, color = TourOSColors.Error, style = TourOSTypography.BodyMedium)
+                                }
                             }
                         }
 

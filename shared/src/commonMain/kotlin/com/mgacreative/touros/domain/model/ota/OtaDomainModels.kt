@@ -8,26 +8,54 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class OTAProvider(
-    @SerialName("provider_id") val providerId: String = "p-viator",
+    @SerialName("provider_id") val providerId: String = "viator",
     @SerialName("provider_name") val providerName: String = "Viator / TripAdvisor",
+    @SerialName("logo_icon") val logoIcon: String = "🌐",
     @SerialName("api_endpoint") val apiEndpoint: String = "https://api.viator.com/partner/v1",
     @SerialName("supports_webhooks") val supportsWebhooks: Boolean = true,
     @SerialName("is_active") val isActive: Boolean = true
 )
 
 /**
- * 4.5.1 OTA Hesabı Modeli.
+ * 4.5.1 OTA Hesabı ve API Kimlik Bilgileri Modeli (Dinamik).
  */
 @Serializable
 data class OTAAccount(
-    @SerialName("account_id") val accountId: String = "acc-001",
-    @SerialName("provider_id") val providerId: String = "p-viator",
-    @SerialName("account_name") val accountName: String = "Viator EU Partner Account",
-    @SerialName("api_key") val apiKey: String = "vtr_live_key_9988",
-    @SerialName("api_secret") val apiSecret: String = "vtr_sec_****",
+    @SerialName("account_id") val accountId: String = "viator",
+    @SerialName("provider_id") val providerId: String = "viator",
+    @SerialName("account_name") val accountName: String = "Viator / TripAdvisor",
+    @SerialName("logo_icon") val logoIcon: String = "🌐",
+    @SerialName("supplier_id") val supplierId: String = "",
+    @SerialName("api_key") val apiKey: String = "",
+    @SerialName("api_secret") val apiSecret: String = "",
+    @SerialName("webhook_url") val webhookUrl: String = "",
+    @SerialName("sync_interval_minutes") val syncIntervalMinutes: String = "15",
+    @SerialName("rate_margin_percent") val rateMarginPercent: Double = 0.0,
+    @SerialName("is_connected") val isConnected: Boolean = false,
+    @SerialName("last_synced_at") val lastSyncedAt: String = "Henüz Senkronize Edilmedi",
+    @SerialName("has_error") val hasError: Boolean = false,
+    @SerialName("error_message") val errorMessage: String? = null,
     @SerialName("tenant_id") val tenantId: String = "tenant-001",
-    val status: String = "ACTIVE"
+    @SerialName("status") val status: String = "ACTIVE"
 )
+
+/**
+ * 4.5.1 Kanal - Ürün Eşleme Modeli (Hangi Ürün Nerede Satılacak?).
+ */
+@Serializable
+data class OTAChannelProductMapping(
+    @SerialName("id") val id: String = "",
+    @SerialName("tenant_id") val tenantId: String = "",
+    @SerialName("provider_id") val providerId: String = "viator",
+    @SerialName("product_id") val productId: String = "",
+    @SerialName("product_title") val productTitle: String = "",
+    @SerialName("product_type") val productType: String = "tour", // tour, hotel
+    @SerialName("is_enabled") val isEnabled: Boolean = false,
+    @SerialName("remote_product_id") val remoteProductId: String? = null,
+    @SerialName("price_margin_percent") val priceMarginPercent: Double = 0.0,
+    @SerialName("synced_at") val syncedAt: String = ""
+)
+
 
 /**
  * 4.5.1 OTA Bağlantı Sağlığı Modeli.

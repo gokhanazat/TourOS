@@ -98,8 +98,28 @@ class OTASyncManager(
                 .decodeList<OTASyncLog>()
         }.getOrElse {
             listOf(
-                OTASyncLog("log-01", "acc-001", "INCREMENTAL", 5, "SUCCESS", "2026-08-06T15:20:00Z"),
-                OTASyncLog("log-02", "acc-001", "FULL", 24, "SUCCESS", "2026-08-06T12:00:00Z")
+                OTASyncLog(
+                    logId = "log-01",
+                    accountId = "acc-001",
+                    syncType = "INCREMENTAL",
+                    itemsSynced = 5,
+                    status = "SUCCESS",
+                    lastSyncedAt = "2026-08-06T15:20:00Z",
+                    timestamp = "16.08.2026 15:20:00",
+                    providerName = "Viator",
+                    eventName = "INCREMENTAL_SYNC"
+                ),
+                OTASyncLog(
+                    logId = "log-02",
+                    accountId = "acc-001",
+                    syncType = "FULL",
+                    itemsSynced = 24,
+                    status = "SUCCESS",
+                    lastSyncedAt = "2026-08-06T12:00:00Z",
+                    timestamp = "16.08.2026 12:00:00",
+                    providerName = "GetYourGuide",
+                    eventName = "FULL_SYNC"
+                )
             )
         }
     }

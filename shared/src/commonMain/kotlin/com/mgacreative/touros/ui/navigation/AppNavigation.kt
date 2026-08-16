@@ -57,10 +57,10 @@ private fun NavDestination?.isAuthRoute(): Boolean =
 private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavGroup> {
     val groups = mutableListOf<TourOSNavGroup>()
 
-    // EN ÜST MENÜ GRUBU: ACENTE YÖNETİMİ
+    // 👑 SAAS ADMİN PANELİ (Acente, Web ve Ürün/Data Yönetimi)
     groups.add(
         TourOSNavGroup(
-            categoryTitle = AppLanguageManager.translate("ACENTE YÖNETİMİ"),
+            categoryTitle = AppLanguageManager.translate("👑 SAAS ADMİN PANELİ"),
             items = listOf(
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Onay Bekleyen Acenteler"),
@@ -68,43 +68,34 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     isSelected = currentRoute?.contains("AgencyApprovalRoute") == true
                 ),
                 TourOSNavItem(
-                    title = AppLanguageManager.translate("Acente Sorgulama & Rehber"),
+                    title = AppLanguageManager.translate("Acente Sorgulama & Lisans"),
                     route = AgencySearchRoute,
                     isSelected = currentRoute?.contains("AgencySearchRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Acente Kota & Tüketim Raporu"),
+                    route = AgencyQuotaReportRoute,
+                    isSelected = currentRoute?.contains("AgencyQuotaReportRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
+                    route = GlobalWebCmsRoute,
+                    isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Ürün & Data Yönetimi"),
+                    route = AdminProductManagementRoute,
+                    isSelected = currentRoute?.contains("AdminProductManagementRoute") == true
                 )
             )
         )
     )
 
-    if (isSystemAdmin) {
-        groups.add(
-            TourOSNavGroup(
-                categoryTitle = AppLanguageManager.translate("WEB YÖNETİMİ"),
-                items = listOf(
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
-                        route = GlobalWebCmsRoute,
-                        isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
-                    )
-                )
-            )
-        )
-    }
-
+    // NORMAL KULLANICI / ACENTE MENÜSÜ: B2B SATIŞ & REZERVASYON
     groups.add(
         TourOSNavGroup(
-            categoryTitle = AppLanguageManager.translate("TUR OPERATÖRLERİ"),
+            categoryTitle = AppLanguageManager.translate("B2B SATIŞ & REZERVASYON"),
             items = listOf(
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Tur Operatörleri"),
-                    route = AgencyOperatorConnectionsRoute,
-                    isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Ürünler"),
-                    route = AgencyProductPublishingRoute,
-                    isSelected = currentRoute?.contains("AgencyProductPublishingRoute") == true
-                ),
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Rezervasyonlar"),
                     route = BookingsRoute,
@@ -175,6 +166,27 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     title = AppLanguageManager.translate("TO Cari Hesap"),
                     route = OperatorCurrentAccountReportRoute,
                     isSelected = currentRoute?.contains("OperatorCurrentAccountReportRoute") == true
+                )
+            )
+        )
+    )
+
+    // PREMIUM AÇILIR MENÜ GRUBU (Tüm acenteler için)
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("PREMIUM ✨"),
+            isCollapsible = true,
+            isInitiallyExpanded = false,
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("OTA & Kanal Yöneticisi"),
+                    route = OTADashboardRoute,
+                    isSelected = currentRoute?.contains("OTADashboardRoute") == true || currentRoute?.contains("OTAConnectionDetailRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Senkronizasyon Logları"),
+                    route = SyncLogsRoute(providerIdFilter = "ALL"),
+                    isSelected = currentRoute?.contains("SyncLogsRoute") == true
                 )
             )
         )
@@ -544,19 +556,6 @@ private fun AppNavHost(navController: NavHostController) {
             PermissionMatrixScreen(onNavigateBack = { navController.popBackStack() })
         }
 
-        composable<AssignedTasksRoute> {
-            AssignedTasksScreen(
-                onNavigateToTaskDetail = { id -> navController.navigate(TaskDetailRoute(id)) }
-            )
-        }
-
-        composable<StaffTaskManagementRoute> {
-            StaffTaskManagementScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
         composable<SettingsRoute> {
             CompanySettingsScreen()
         }
@@ -565,27 +564,6 @@ private fun AppNavHost(navController: NavHostController) {
             MultiLanguageScreen(
                 viewModel = koinViewModel(),
                 onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<NotificationHubRoute> {
-            NotificationHubScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<DocumentManagementRoute> {
-            DocumentManagementScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<FaqSupportChatRoute> {
-            FaqSupportChatScreen(
-                viewModel = koinViewModel(),
-                onBack = { navController.popBackStack() }
             )
         }
 
@@ -677,20 +655,6 @@ private fun AppNavHost(navController: NavHostController) {
             )
         }
 
-        composable<BookingPaymentRoute> {
-            BookingPaymentScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
-        composable<QRTicketRoute> {
-            QRTicketScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-
         // ─── Otel Yönetimi ────────────────────────────────────────────────────
 
         composable<HotelListRoute> {
@@ -733,62 +697,6 @@ private fun AppNavHost(navController: NavHostController) {
             )
         }
 
-        // ─── Operasyon (Devre Dışı / URL ile Erişilemez) ────────────────────
-
-        composable<GuideManagementRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<GuideAssignmentRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<GuideMobileRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<GuideRatingRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<GuidePerformanceReportRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<VehicleManagementRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<VehicleAlertsRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<TransferAssignmentRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
-        composable<DriverPickupListRoute> {
-            androidx.compose.runtime.LaunchedEffect(Unit) {
-                navController.navigate(DashboardRoute) { popUpTo(0) }
-            }
-        }
-
         // ─── Finans ───────────────────────────────────────────────────────────
 
         composable<FinancialReportsRoute> {
@@ -821,22 +729,6 @@ private fun AppNavHost(navController: NavHostController) {
             ExchangeRatesScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
 
-        composable<PaymentGatewayRoute> {
-            PaymentGatewayScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<PaymentLinkRoute> {
-            PaymentLinkScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<PaymentWebhookRoute> {
-            PaymentWebhookScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<CampaignCouponRoute> {
-            CampaignCouponScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
         // ─── Raporlar ─────────────────────────────────────────────────────────
 
         composable<ReportsRoute> {
@@ -859,29 +751,14 @@ private fun AppNavHost(navController: NavHostController) {
             ReportFilterExportScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
 
-        // ─── B2B ──────────────────────────────────────────────────────────────
-
-        composable<B2BAgencyAuthRoute> {
-            B2BAgencyAuthScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2BAgencyBookingRoute> {
-            B2BAgencyBookingScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2BAgencyCommissionsRoute> {
-            B2BAgencyCommissionsScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2BAgencyPrivateReportsRoute> {
-            B2BAgencyPrivateReportsScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
-        composable<B2BAgencyVouchersRoute> {
-            B2BAgencyVouchersScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
-        }
-
         // ─── OTA / Gelişmiş ───────────────────────────────────────────────────
+
+        composable<OTADashboardRoute> {
+            com.mgacreative.touros.ui.screens.OTADashboardScreen(
+                viewModel = koinViewModel(),
+                onNavigateToLogs = { providerId -> navController.navigate(SyncLogsRoute(providerIdFilter = providerId)) }
+            )
+        }
 
         composable<AgencyOperatorConnectionsRoute> {
             com.mgacreative.touros.ui.screens.AgencyOperatorConnectionsScreen()
@@ -890,6 +767,16 @@ private fun AppNavHost(navController: NavHostController) {
         composable<AgencyProductPublishingRoute> {
             com.mgacreative.touros.ui.screens.AgencyProductPublishingScreen(
                 onNavigateToSearchWizard = { navController.navigate(B2BTourSearchDashboardRoute) }
+            )
+        }
+
+        composable<AdminProductManagementRoute> {
+            com.mgacreative.touros.ui.screens.AdminProductManagementScreen()
+        }
+
+        composable<AgencyQuotaReportRoute> {
+            com.mgacreative.touros.ui.screens.AgencyQuotaReportScreen(
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

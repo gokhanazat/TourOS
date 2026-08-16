@@ -133,9 +133,21 @@ fun OTAConnectionDetailScreen(
                     isLoading = uiState.isLoading,
                     onConnectClick = {
                         isConnected = true
-                        viewModel.connectChannel(
-                            OTAAccount(accountId = providerId, providerId = providerId, accountName = providerName, apiKey = apiKey),
-                            "tenant-001"
+                        val margin = rateMarginPercent.toDoubleOrNull() ?: 0.0
+                        viewModel.saveAccountConfig(
+                            OTAAccount(
+                                accountId = providerId,
+                                providerId = providerId,
+                                accountName = providerName,
+                                supplierId = supplierId,
+                                apiKey = apiKey,
+                                apiSecret = apiSecret,
+                                webhookUrl = webhookUrl,
+                                rateMarginPercent = margin,
+                                syncIntervalMinutes = syncIntervalMinutes,
+                                isConnected = true,
+                                lastSyncedAt = "Şimdi (Senkronize)"
+                            )
                         )
                     },
                     onDisconnectClick = {

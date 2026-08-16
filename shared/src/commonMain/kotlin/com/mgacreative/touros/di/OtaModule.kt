@@ -12,5 +12,5 @@ val otaModule = module {
     factory { SyncOtaChannelUseCase(get()) }
     factory { GetOtaBookingsUseCase(get()) }
 
-    factory { OTAHubViewModel(get(), get(), get()) }
+    factory { OTAHubViewModel(get(), get(), get(), get()) }
 }

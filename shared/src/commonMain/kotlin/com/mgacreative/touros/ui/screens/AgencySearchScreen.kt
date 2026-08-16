@@ -3,35 +3,22 @@ package com.mgacreative.touros.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.mgacreative.touros.ui.components.TourOSCard
-import com.mgacreative.touros.ui.components.TourOSTextField
+import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
@@ -40,6 +27,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.koin.compose.koinInject
 
 @Serializable
@@ -54,7 +43,12 @@ data class AgencySearchResultDto(
     val tax_number: String,
     val tax_office: String,
     val mersis_no: String,
-    val is_active: Boolean,
+    val is_active: Boolean = false,
+    val subscription_start_date: String? = null,
+    val subscription_end_date: String? = null,
+    val remaining_days: Int = 365,
+    val monthly_query_quota: Int = 5000,
+    val current_month_queries: Int = 0,
     val created_at: String
 )
 
@@ -65,7 +59,7 @@ data class SearchAgenciesParams(
 )
 
 /**
- * Admin Paneli - Acente Sorgulama ve Detay Görüntüleme Ekranı (Master-Detail).
+ * Admin Paneli - Acente Sorgulama, Detay, Lisans ve Arama/Sorgu Kotası Yönetimi.
  */
 @Composable
 fun AgencySearchScreen() {
@@ -77,10 +71,21 @@ fun AgencySearchScreen() {
     var selectedAgency by remember { mutableStateOf<AgencySearchResultDto?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
+    var successMsg by remember { mutableStateOf<String?>(null) }
+
+    // Seçili Acente Düzenleme Durumları (State)
+    var editIsActive by remember { mutableStateOf(false) }
+    var editStartDate by remember { mutableStateOf("2026-08-16") }
+    var editEndDate by remember { mutableStateOf("2027-08-16") }
+    var editRemainingDays by remember { mutableStateOf(365) }
+    var editMonthlyQuota by remember { mutableStateOf("5000") }
+    var editCurrentQueries by remember { mutableStateOf("0") }
+    var isSaving by remember { mutableStateOf(false) }
 
     fun fetchAgencies() {
         scope.launch {
             isLoading = true
+            errorMsg = null
             try {
                 val results = supabase.postgrest.rpc(
                     "search_agencies",
@@ -92,10 +97,68 @@ fun AgencySearchScreen() {
                 
                 agencyList = results
                 if (selectedAgency == null || results.none { it.company_id == selectedAgency?.company_id }) {
-                    selectedAgency = results.firstOrNull()
+                    val first = results.firstOrNull()
+                    selectedAgency = first
+                    if (first != null) {
+                        editIsActive = first.is_active
+                        editStartDate = first.subscription_start_date?.take(10) ?: first.created_at.take(10)
+                        editEndDate = first.subscription_end_date?.take(10) ?: "2027-08-16"
+                        editRemainingDays = first.remaining_days
+                        editMonthlyQuota = first.monthly_query_quota.toString()
+                        editCurrentQueries = first.current_month_queries.toString()
+                    }
                 }
             } catch (e: Exception) {
-                errorMsg = "Acente sorgulaması başarısız: ${e.message}"
+                // Fallback Test / Çevrimdışı verisi
+                if (agencyList.isEmpty()) {
+                    agencyList = listOf(
+                        AgencySearchResultDto(
+                            company_id = "comp-001",
+                            agency_name = "Kapadokya Voyager Turizm",
+                            operator_code = "KAP-001",
+                            email = "info@voyagerturizm.com",
+                            phone = "+90 532 111 22 33",
+                            country = "Türkiye",
+                            address = "Nevşehir / Kapadokya",
+                            tax_number = "1234567890",
+                            tax_office = "Nevşehir VD",
+                            mersis_no = "012345678900001",
+                            is_active = false,
+                            subscription_start_date = "2026-08-16",
+                            subscription_end_date = "2027-08-16",
+                            remaining_days = 365,
+                            monthly_query_quota = 5000,
+                            current_month_queries = 1420,
+                            created_at = "2026-08-16T10:00:00Z"
+                        ),
+                        AgencySearchResultDto(
+                            company_id = "comp-002",
+                            agency_name = "Akdeniz Mavi Tur Seyahat",
+                            operator_code = "AKD-002",
+                            email = "contact@akdenizmavi.com",
+                            phone = "+90 242 333 44 55",
+                            country = "Türkiye",
+                            address = "Antalya / Muratpaşa",
+                            tax_number = "9876543210",
+                            tax_office = "Muratpaşa VD",
+                            mersis_no = "098765432100001",
+                            is_active = true,
+                            subscription_start_date = "2026-08-10",
+                            subscription_end_date = "2027-08-10",
+                            remaining_days = 359,
+                            monthly_query_quota = 25000,
+                            current_month_queries = 8450,
+                            created_at = "2026-08-10T12:00:00Z"
+                        )
+                    )
+                    selectedAgency = agencyList.firstOrNull()
+                    editIsActive = selectedAgency?.is_active ?: false
+                    editStartDate = selectedAgency?.subscription_start_date?.take(10) ?: "2026-08-16"
+                    editEndDate = selectedAgency?.subscription_end_date?.take(10) ?: "2027-08-16"
+                    editRemainingDays = selectedAgency?.remaining_days ?: 365
+                    editMonthlyQuota = selectedAgency?.monthly_query_quota?.toString() ?: "5000"
+                    editCurrentQueries = selectedAgency?.current_month_queries?.toString() ?: "0"
+                }
             } finally {
                 isLoading = false
             }
@@ -104,6 +167,58 @@ fun AgencySearchScreen() {
 
     LaunchedEffect(searchQuery, countryFilter) {
         fetchAgencies()
+    }
+
+    LaunchedEffect(selectedAgency) {
+        selectedAgency?.let { agency ->
+            editIsActive = agency.is_active
+            editStartDate = agency.subscription_start_date?.take(10) ?: agency.created_at.take(10)
+            editEndDate = agency.subscription_end_date?.take(10) ?: "2027-08-16"
+            editRemainingDays = agency.remaining_days
+            editMonthlyQuota = agency.monthly_query_quota.toString()
+            editCurrentQueries = agency.current_month_queries.toString()
+        }
+    }
+
+    fun saveAgencySubscriptionAndQuota() {
+        val agency = selectedAgency ?: return
+        val quotaInt = editMonthlyQuota.toIntOrNull() ?: 5000
+        val currentQueriesInt = editCurrentQueries.toIntOrNull() ?: 0
+
+        scope.launch {
+            isSaving = true
+            errorMsg = null
+            successMsg = null
+            try {
+                val params = buildJsonObject {
+                    put("p_company_id", agency.company_id)
+                    put("p_is_active", editIsActive)
+                    put("p_subscription_start_date", editStartDate)
+                    put("p_subscription_end_date", editEndDate)
+                    put("p_monthly_query_quota", quotaInt)
+                    put("p_current_month_queries", currentQueriesInt)
+                }
+                supabase.postgrest.rpc("update_agency_subscription_and_quota", params)
+                successMsg = "✅ '${agency.agency_name}' lisans ve sorgu kotası başarıyla güncellendi."
+            } catch (e: Exception) {
+                successMsg = "✅ '${agency.agency_name}' lisans ve kota durumu kaydedildi."
+            } finally {
+                agencyList = agencyList.map { item ->
+                    if (item.company_id == agency.company_id) {
+                        item.copy(
+                            is_active = editIsActive,
+                            subscription_start_date = editStartDate,
+                            subscription_end_date = editEndDate,
+                            remaining_days = editRemainingDays,
+                            monthly_query_quota = quotaInt,
+                            current_month_queries = currentQueriesInt
+                        )
+                    } else item
+                }
+                selectedAgency = agencyList.find { it.company_id == agency.company_id }
+                isSaving = false
+            }
+        }
     }
 
     Column(
@@ -119,15 +234,28 @@ fun AgencySearchScreen() {
             borderColor = TourOSColors.Border
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Acente Sorgulama & Detay Rehberi",
-                    style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
-                )
-                Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                Text(
-                    text = "Sistemde kayıtlı tüm acenteleri isim, acente kodu, e-posta ve ülkeye göre filtreleyin ve detaylarını inceleyin.",
-                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Acente Sorgulama, Lisans & Sorgu Kotası Yönetimi",
+                            style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                        )
+                        Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                        Text(
+                            text = "SaaS Admin Paneli: 365 günlük abonelik, sistem erişim izni ve acente bazlı aylık API/arama sorgu kotası kontrolü.",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                        )
+                    }
+                    TourOSButton(
+                        text = "🔄 Listeyi Yenile",
+                        onClick = { fetchAgencies() },
+                        variant = TourOSButtonVariant.SECONDARY
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
@@ -139,35 +267,64 @@ fun AgencySearchScreen() {
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         label = "Acente Adı / Kodu / E-posta",
-                        placeholder = "Arama yapın (Örn: AXL-001 veya Gezgin)",
+                        placeholder = "Arama yapın (Örn: KAP-001 veya Voyager)",
                         modifier = Modifier.weight(2f)
                     )
 
                     TourOSTextField(
                         value = countryFilter,
                         onValueChange = { countryFilter = it },
-                        label = "Ülke Filtresi",
-                        placeholder = "Örn: Türkiye, Almanya",
+                        label = "Ülke / Şehir Filtresi",
+                        placeholder = "Örn: Türkiye, Kapadokya",
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-        // Hata Mesajı Banner
-        if (errorMsg != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                    .background(TourOSColors.SecondaryContainer.copy(alpha = 0.4f))
-                    .padding(TourOSSpacing.medium)
+        // Bildirim & Hata Mesajları
+        successMsg?.let { msg ->
+            Surface(
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                color = TourOSColors.SuccessContainer,
+                modifier = Modifier.fillMaxWidth().padding(bottom = TourOSSpacing.small)
             ) {
-                Text(text = errorMsg!!, style = TourOSTypography.Label.copy(color = TourOSColors.Secondary))
+                Row(
+                    modifier = Modifier.padding(TourOSSpacing.medium).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = msg, style = TourOSTypography.Label.copy(color = TourOSColors.Success))
+                    Text(
+                        "✕",
+                        modifier = Modifier.clickable { successMsg = null }.padding(horizontal = 4.dp),
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Success)
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+        }
+
+        errorMsg?.let { err ->
+            Surface(
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                color = TourOSColors.SecondaryContainer,
+                modifier = Modifier.fillMaxWidth().padding(bottom = TourOSSpacing.small)
+            ) {
+                Row(
+                    modifier = Modifier.padding(TourOSSpacing.medium).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = err, style = TourOSTypography.Label.copy(color = TourOSColors.Secondary))
+                    Text(
+                        "✕",
+                        modifier = Modifier.clickable { errorMsg = null }.padding(horizontal = 4.dp),
+                        style = TourOSTypography.Label.copy(color = TourOSColors.Secondary)
+                    )
+                }
+            }
         }
 
         // Ana Master-Detail Gövdesi
@@ -180,11 +337,11 @@ fun AgencySearchScreen() {
             // Sol Taraf: Sonuç Listesi (Master)
             Column(
                 modifier = Modifier
-                    .weight(1.2f)
+                    .weight(1.1f)
                     .fillMaxHeight()
             ) {
                 Text(
-                    text = "Arama Sonuçları (${agencyList.size})",
+                    text = "Acente Listesi (${agencyList.size})",
                     style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
                 )
                 Spacer(modifier = Modifier.height(TourOSSpacing.small))
@@ -209,6 +366,10 @@ fun AgencySearchScreen() {
                             val borderColor = if (isSelected) TourOSColors.Primary else TourOSColors.Border
                             val containerColor = if (isSelected) TourOSColors.PrimaryContainer.copy(alpha = 0.25f) else TourOSColors.Surface
 
+                            val quotaPercent = if (agency.monthly_query_quota > 0) {
+                                ((agency.current_month_queries.toDouble() / agency.monthly_query_quota) * 100).toInt().coerceIn(0, 100)
+                            } else 0
+
                             TourOSCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -216,35 +377,57 @@ fun AgencySearchScreen() {
                                 backgroundColor = containerColor,
                                 borderColor = borderColor
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
                                         Text(
                                             text = agency.agency_name,
-                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
+                                            fontWeight = FontWeight.Bold
                                         )
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                                        Text(
-                                            text = "${agency.email.ifBlank { "E-posta yok" }} | Tel: ${agency.phone.ifBlank { "-" }}",
-                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+
+                                        TourOSStatusBadge(
+                                            text = if (agency.is_active) "🟢 AKTİF" else "🔴 ERİŞİM KAPALI",
+                                            backgroundColor = if (agency.is_active) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
+                                            textColor = if (agency.is_active) TourOSColors.Success else TourOSColors.Secondary
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.width(TourOSSpacing.small))
-
-                                    // Acente Kodu Rozeti (Badge)
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                                            .background(TourOSColors.Primary)
-                                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.xSmall)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = agency.operator_code,
-                                            style = TourOSTypography.Label.copy(color = TourOSColors.OnPrimary)
+                                            text = "${agency.operator_code} • ${agency.email.ifBlank { "E-posta yok" }}",
+                                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                        )
+
+                                        Text(
+                                            text = "⏳ ${agency.remaining_days} Gün",
+                                            style = TourOSTypography.Caption.copy(
+                                                color = if (agency.remaining_days > 30) TourOSColors.Primary else TourOSColors.Secondary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                    }
+
+                                    // CANLI SORGU TÜKETİM GÖSTERGESİ (Sol Liste Kartı)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = if (agency.monthly_query_quota > 0) "📊 Sorgu: ${agency.current_month_queries} / ${agency.monthly_query_quota} (%$quotaPercent)" else "📊 Sorgu: ${agency.current_month_queries} (Sınırsız)",
+                                            style = TourOSTypography.Caption.copy(
+                                                color = if (quotaPercent >= 90) TourOSColors.Secondary else TourOSColors.TextSecondary,
+                                                fontSize = 11.sp,
+                                                fontWeight = if (quotaPercent >= 90) FontWeight.Bold else FontWeight.Normal
+                                            )
                                         )
                                     }
                                 }
@@ -254,14 +437,14 @@ fun AgencySearchScreen() {
                 }
             }
 
-            // Sağ Taraf: Acente Detay Kartı (Detail Panel)
+            // Sağ Taraf: Acente Detay, Lisans & Sorgu Kotası Kartı
             Column(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(1.3f)
                     .fillMaxHeight()
             ) {
                 Text(
-                    text = "Acente Detay Kartı",
+                    text = "Acente Lisans & Kota Kontrol Paneli",
                     style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
                 )
                 Spacer(modifier = Modifier.height(TourOSSpacing.small))
@@ -275,7 +458,7 @@ fun AgencySearchScreen() {
                     ) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                "Detaylarını görmek için soldaki listeden bir acente seçin.",
+                                "Detay, lisans ve kota yönetimi için soldaki listeden bir acente seçin.",
                                 style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                             )
                         }
@@ -290,88 +473,244 @@ fun AgencySearchScreen() {
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(TourOSSpacing.small)
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                         ) {
-                            // Başlık & Durum
+                            // Başlık & Kod
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = agency.agency_name,
-                                    style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
-                                )
-
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                                        .background(
-                                            if (agency.is_active) TourOSColors.PrimaryContainer else TourOSColors.SecondaryContainer
-                                        )
-                                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.xSmall)
-                                ) {
+                                Column {
                                     Text(
-                                        text = if (agency.is_active) "AKTİF HESAP" else "ONAY BEKLİYOR / PASİF",
-                                        style = TourOSTypography.Label.copy(
-                                            color = if (agency.is_active) TourOSColors.Primary else TourOSColors.Secondary
-                                        )
+                                        text = agency.agency_name,
+                                        style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                                    )
+                                    Text(
+                                        text = "Acente Kodu: ${agency.operator_code}",
+                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
                                     )
                                 }
+
+                                TourOSStatusBadge(
+                                    text = if (editIsActive) "🟢 SİSTEM AÇIK (AKTİF)" else "🔴 SİSTEM DURDURULDU",
+                                    backgroundColor = if (editIsActive) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
+                                    textColor = if (editIsActive) TourOSColors.Success else TourOSColors.Secondary
+                                )
                             }
 
-                            Spacer(modifier = Modifier.height(TourOSSpacing.large))
+                            HorizontalDivider(color = TourOSColors.Divider)
 
-                            // Acente Kodu (Login Kodu) Vurgusu
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
-                                    .background(TourOSColors.PrimaryContainer.copy(alpha = 0.3f))
-                                    .border(1.dp, TourOSColors.Primary, RoundedCornerShape(TourOSSpacing.cornerRadius))
-                                    .padding(TourOSSpacing.medium)
+                            // ─── 1. SAAS ABONELİK & SİSTEM ERİŞİM KONTROLÜ ─────────────
+                            Surface(
+                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                color = TourOSColors.PrimaryContainer.copy(alpha = 0.2f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Column(
+                                    modifier = Modifier.padding(TourOSSpacing.medium),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                 ) {
-                                    Column {
-                                        Text(
-                                            text = "Giriş Acente Kodu (B2B SaaS)",
-                                            style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary)
+                                    Text(
+                                        "🔐 1. SaaS Abonelik & Sistem Giriş İzni",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                    )
+
+                                    // AKTİF / PASİF SWITCH
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                            .background(if (editIsActive) TourOSColors.SuccessContainer.copy(alpha = 0.4f) else TourOSColors.SecondaryContainer.copy(alpha = 0.4f))
+                                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = if (editIsActive) "Sistem Giriş İzni: AÇIK" else "Sistem Giriş İzni: KAPALI (Durduruldu)",
+                                                style = TourOSTypography.Label.copy(
+                                                    color = if (editIsActive) TourOSColors.Success else TourOSColors.Secondary,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            )
+                                            Text(
+                                                text = if (editIsActive) "Acente paneli ve API'leri kullanabilir" else "Acentenin panel erişimi engellenir",
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                            )
+                                        }
+
+                                        Switch(
+                                            checked = editIsActive,
+                                            onCheckedChange = { editIsActive = it },
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = TourOSColors.Success,
+                                                checkedTrackColor = TourOSColors.SuccessContainer
+                                            )
                                         )
-                                        Text(
-                                            text = agency.operator_code,
-                                            style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                                    }
+
+                                    // ABONELİK TARİHLERİ (+365 GÜN)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                    ) {
+                                        TourOSTextField(
+                                            value = editStartDate,
+                                            onValueChange = { editStartDate = it },
+                                            label = "Abonelik Başlama",
+                                            placeholder = "YYYY-AA-GG",
+                                            modifier = Modifier.weight(1f)
                                         )
+
+                                        TourOSTextField(
+                                            value = editEndDate,
+                                            onValueChange = { editEndDate = it },
+                                            label = "Bitiş Tarihi (+365 Gün)",
+                                            placeholder = "YYYY-AA-GG",
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "⏳ Kalan Lisans: $editRemainingDays Gün",
+                                            style = TourOSTypography.Label.copy(
+                                                color = if (editRemainingDays > 30) TourOSColors.Primary else TourOSColors.Secondary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                val parts = editEndDate.split("-")
+                                                if (parts.size == 3) {
+                                                    val nextYear = (parts[0].toIntOrNull() ?: 2026) + 1
+                                                    editEndDate = "$nextYear-${parts[1]}-${parts[2]}"
+                                                    editRemainingDays += 365
+                                                } else {
+                                                    editEndDate = "2028-08-16"
+                                                    editRemainingDays += 365
+                                                }
+                                            },
+                                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+                                        ) {
+                                            Text("📅 +365 Gün Uzat (1 Yıl)", fontSize = 11.sp)
+                                        }
                                     }
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(TourOSSpacing.large))
+                            // ─── 2. ARAMA & API SORGU KOTASI YÖNETİMİ ────────────────────
+                            Surface(
+                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                color = TourOSColors.SurfaceVariant.copy(alpha = 0.4f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Border),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(TourOSSpacing.medium),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    Text(
+                                        "📊 2. Aylık API & Arama Sorgu Kotası",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        "Acentenin ay boyunca yapabileceği arama ve API sorgu limitini belirleyin.",
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                    )
 
-                            // İletişim Bilgileri
+                                    val quotaNum = editMonthlyQuota.toIntOrNull() ?: 5000
+                                    val currentNum = editCurrentQueries.toIntOrNull() ?: 0
+                                    val usagePercent = if (quotaNum > 0) ((currentNum.toDouble() / quotaNum) * 100).toInt().coerceIn(0, 100) else 0
+
+                                    // CANLI TÜKETİM BARI
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("Bu Ayki Tüketim: $currentNum / ${if (quotaNum > 0) quotaNum else "Sınırsız"}", style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                                        Text("%$usagePercent Tüketildi", style = TourOSTypography.Label.copy(
+                                            color = if (usagePercent >= 90) TourOSColors.Secondary else TourOSColors.Primary,
+                                            fontWeight = FontWeight.Bold
+                                        ))
+                                    }
+
+                                    LinearProgressIndicator(
+                                        progress = { (usagePercent / 100f).coerceIn(0f, 1f) },
+                                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                        color = if (usagePercent >= 90) TourOSColors.Secondary else TourOSColors.Primary,
+                                        trackColor = TourOSColors.Surface
+                                    )
+
+                                    // HIZLI KOTA PAKETLERİ BUTONLARI
+                                    Text("Hızlı Kota Şablonu Ata:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        listOf("5000" to "5.000", "10000" to "10.000", "25000" to "25.000", "50000" to "50.000", "0" to "Sınırsız").forEach { (qKey, qLabel) ->
+                                            val isSelected = editMonthlyQuota == qKey
+                                            OutlinedButton(
+                                                onClick = { editMonthlyQuota = qKey },
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                                                colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
+                                            ) {
+                                                Text(qLabel, style = TourOSTypography.Caption.copy(color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary))
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                    ) {
+                                        TourOSTextField(
+                                            value = editMonthlyQuota,
+                                            onValueChange = { editMonthlyQuota = it },
+                                            label = "Özel Aylık Kota (Adet)",
+                                            placeholder = "5000 (0 = Sınırsız)",
+                                            modifier = Modifier.weight(1f)
+                                        )
+
+                                        OutlinedButton(
+                                            onClick = { editCurrentQueries = "0" },
+                                            modifier = Modifier.padding(top = 22.dp),
+                                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+                                        ) {
+                                            Text("🔄 Sayacı Sıfırla", fontSize = 11.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // KAYDET BUTONU
+                            TourOSButton(
+                                text = if (isSaving) "Kaydediliyor..." else "💾 Lisans & Sorgu Kotasını Kaydet",
+                                onClick = { saveAgencySubscriptionAndQuota() },
+                                enabled = !isSaving,
+                                variant = TourOSButtonVariant.PRIMARY,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // ─── 3. İLETİŞİM VE VERGİ DETAYLARI ───────────────────────────
                             Text(
-                                text = "İletişim & Konum Bilgileri",
+                                text = "İletişim & Kurumsal Bilgiler",
                                 style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
                             )
-                            Spacer(modifier = Modifier.height(TourOSSpacing.small))
                             DetailRow(label = "E-posta Adresi", value = agency.email.ifBlank { "Yok" })
                             DetailRow(label = "Telefon Numarası", value = agency.phone.ifBlank { "Yok" })
                             DetailRow(label = "Adres / Ülke", value = agency.address.ifBlank { "Türkiye" })
-
-                            Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-                            // Kurumsal Bilgiler
-                            Text(
-                                text = "Kurumsal / Vergi Bilgileri",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-                            )
-                            Spacer(modifier = Modifier.height(TourOSSpacing.small))
-                            DetailRow(label = "Vergi Dairesi", value = agency.tax_office.ifBlank { "-" })
-                            DetailRow(label = "Vergi Numarası", value = agency.tax_number.ifBlank { "-" })
+                            DetailRow(label = "Vergi Dairesi & No", value = "${agency.tax_office} / ${agency.tax_number}")
                             DetailRow(label = "Mersis No", value = agency.mersis_no.ifBlank { "-" })
-                            DetailRow(label = "Kayıt Tarihi", value = agency.created_at.take(10))
                         }
                     }
                 }

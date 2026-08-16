@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mgacreative.touros.domain.engine.VoucherContractTemplateEngine
 import com.mgacreative.touros.domain.model.Booking
-import com.mgacreative.touros.domain.model.DocumentItem
+import com.mgacreative.touros.domain.model.GeneratedDocument
 import com.mgacreative.touros.domain.usecase.GenerateVoucherOrContractPdfUseCase
 import com.mgacreative.touros.domain.usecase.GetBookingsUseCase
 import com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase
@@ -17,7 +17,7 @@ data class VoucherContractPdfUiState(
     val bookings: List<Booking> = emptyList(),
     val selectedBooking: Booking? = null,
     val previewHtmlContent: String = "",
-    val generatedDocument: DocumentItem? = null,
+    val generatedDocument: GeneratedDocument? = null,
     val isLoading: Boolean = false,
     val notificationMessage: String? = null,
     val errorMessage: String? = null
