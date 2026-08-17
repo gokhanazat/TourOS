@@ -48,17 +48,17 @@ class AuthRepositoryImpl(
     }
 
     private fun mapUserInfoToUser(userInfo: io.github.jan.supabase.auth.user.UserInfo?, fallbackEmail: String = ""): User {
-        val userEmail = (userInfo?.email ?: fallbackEmail).lowercase()
+        val userEmail = (userInfo?.email ?: fallbackEmail).lowercase().trim()
         val rawRole = userInfo?.userMetadata?.get("role")?.toString()?.replace("\"", "")
             ?: userInfo?.appMetadata?.get("role")?.toString()?.replace("\"", "")
 
-        val isAdminUser = userEmail == "mgazat@gmail.com" || userEmail == "gkhnazat@gmail.com" || userEmail.contains("admin") || userEmail.contains("gkhn") || userEmail.contains("mgazat") || rawRole.equals("SUPER_ADMIN", ignoreCase = true) || rawRole.equals("ADMIN", ignoreCase = true) || rawRole.equals("SYSTEM_ADMIN", ignoreCase = true)
+        val isAdminUser = userEmail == "gkhnazat@gmail.com"
 
         val role = when {
             isAdminUser -> UserRole.SYSTEM_ADMIN
             rawRole.equals("AGENT", ignoreCase = true) || rawRole.equals("AGENCY", ignoreCase = true) -> UserRole.AGENT
             rawRole.equals("TOUR_OPERATOR", ignoreCase = true) || rawRole.equals("OPERATOR", ignoreCase = true) -> UserRole.TOUR_OPERATOR
-            else -> UserRole.CUSTOMER
+            else -> UserRole.AGENT
         }
 
         val tenantId = if (isAdminUser) {
@@ -66,13 +66,13 @@ class AuthRepositoryImpl(
         } else {
             userInfo?.userMetadata?.get("tenant_id")?.toString()?.replace("\"", "")
                 ?: userInfo?.appMetadata?.get("tenant_id")?.toString()?.replace("\"", "")
-                ?: "00000000-0000-0000-0000-000000000001"
+                ?: "00000000-0000-0000-0000-000000000002"
         }
 
         return User(
             id = userInfo?.id ?: "",
             email = userInfo?.email ?: fallbackEmail,
-            fullName = userInfo?.userMetadata?.get("full_name")?.toString()?.replace("\"", "") ?: if (isAdminUser) "Sistem Yöneticisi (Super Admin)" else "Kullanıcı",
+            fullName = userInfo?.userMetadata?.get("full_name")?.toString()?.replace("\"", "") ?: if (isAdminUser) "Sistem Yöneticisi (Super Admin)" else "Acente Kullanıcısı",
             role = role,
             tenantId = tenantId.takeIf { it.isNotBlank() && it != "tenant_id" },
             isEmailVerified = userInfo?.emailConfirmedAt != null
