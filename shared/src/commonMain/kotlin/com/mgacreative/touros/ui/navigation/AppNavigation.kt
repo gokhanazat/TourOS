@@ -57,44 +57,46 @@ private fun NavDestination?.isAuthRoute(): Boolean =
 private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavGroup> {
     val groups = mutableListOf<TourOSNavGroup>()
 
-    // 👑 SAAS ADMİN PANELİ (Acente, Web ve Ürün/Data Yönetimi)
-    groups.add(
-        TourOSNavGroup(
-            categoryTitle = AppLanguageManager.translate("👑 SAAS ADMİN PANELİ"),
-            items = listOf(
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Onay Bekleyen Acenteler"),
-                    route = AgencyApprovalRoute,
-                    isSelected = currentRoute?.contains("AgencyApprovalRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Acente Sorgulama & Lisans"),
-                    route = AgencySearchRoute,
-                    isSelected = currentRoute?.contains("AgencySearchRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Acente Kota & Tüketim Raporu"),
-                    route = AgencyQuotaReportRoute,
-                    isSelected = currentRoute?.contains("AgencyQuotaReportRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
-                    route = GlobalWebCmsRoute,
-                    isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Ürün & Data Yönetimi"),
-                    route = AdminProductManagementRoute,
-                    isSelected = currentRoute?.contains("AdminProductManagementRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Önbellek & API Performansı"),
-                    route = SaasCacheManagementRoute,
-                    isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
+    // 👑 SAAS ADMİN PANELİ (Sadece Sistem Yöneticisi görebilir)
+    if (isSystemAdmin) {
+        groups.add(
+            TourOSNavGroup(
+                categoryTitle = AppLanguageManager.translate("👑 SAAS ADMİN PANELİ"),
+                items = listOf(
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Onay Bekleyen Acenteler"),
+                        route = AgencyApprovalRoute,
+                        isSelected = currentRoute?.contains("AgencyApprovalRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Acente Sorgulama & Lisans"),
+                        route = AgencySearchRoute,
+                        isSelected = currentRoute?.contains("AgencySearchRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Acente Kota & Tüketim Raporu"),
+                        route = AgencyQuotaReportRoute,
+                        isSelected = currentRoute?.contains("AgencyQuotaReportRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
+                        route = GlobalWebCmsRoute,
+                        isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Ürün & Data Yönetimi"),
+                        route = AdminProductManagementRoute,
+                        isSelected = currentRoute?.contains("AdminProductManagementRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Önbellek & API Performansı"),
+                        route = SaasCacheManagementRoute,
+                        isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
+                    )
                 )
             )
         )
-    )
+    }
 
     // NORMAL KULLANICI / ACENTE MENÜSÜ: B2B SATIŞ & REZERVASYON
     groups.add(

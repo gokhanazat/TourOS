@@ -706,10 +706,11 @@ fun AgencySearchScreen() {
                                 text = "İletişim & Kurumsal Bilgiler",
                                 style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
                             )
+                            DetailRow(label = "Atanan Acente Kodu", value = agency.operator_code.ifBlank { "Henüz Atanmadı" })
                             DetailRow(label = "E-posta Adresi", value = agency.email.ifBlank { "Yok" })
                             DetailRow(label = "Telefon Numarası", value = agency.phone.ifBlank { "Yok" })
                             DetailRow(label = "Adres / Ülke", value = agency.address.ifBlank { "Türkiye" })
-                            DetailRow(label = "Vergi Dairesi & No", value = "${agency.tax_office} / ${agency.tax_number}")
+                            DetailRow(label = "Vergi Dairesi & No", value = if (agency.tax_office.isNotBlank() || agency.tax_number.isNotBlank()) "${agency.tax_office} / ${agency.tax_number}" else "-")
                             DetailRow(label = "Mersis No", value = agency.mersis_no.ifBlank { "-" })
                         }
                     }
