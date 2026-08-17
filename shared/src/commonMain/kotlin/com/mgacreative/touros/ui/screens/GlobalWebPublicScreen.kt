@@ -1848,10 +1848,7 @@ fun GlobalWebPublicScreen(
                                 subtitle = "Kriterlerinize uyan en uygun fiyatlı canlı tur ve otel teklifleri",
                                 hotels = searchResultsList.ifEmpty { filteredHotels },
                                 onHotelClick = { selectedHotelForDetail = it },
-                                onSelectAndBook = { hotel ->
-                                    b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
-                                    onNavigateToNewBooking(hotel)
-                                }
+                                onSelectAndBook = { selectedHotelForDetail = it }
                             )
                         }
                     }
@@ -1911,10 +1908,7 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                     hotels = tourPackagesOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = { hotel ->
-                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
-                                        onNavigateToNewBooking(hotel)
-                                    }
+                                    onSelectAndBook = { selectedHotelForDetail = it }
                                 )
                             }
 
@@ -1929,10 +1923,7 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
                                     hotels = hotelsOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = { hotel ->
-                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
-                                        onNavigateToNewBooking(hotel)
-                                    }
+                                    onSelectAndBook = { selectedHotelForDetail = it }
                                 )
                             }
 
@@ -1947,10 +1938,7 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Acele edin ve %70'e varan muhteşem indirimlerden yararlanın!",
                                     hotels = lastMinuteOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = { hotel ->
-                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
-                                        onNavigateToNewBooking(hotel)
-                                    }
+                                    onSelectAndBook = { selectedHotelForDetail = it }
                                 )
                             }
 
@@ -1965,10 +1953,7 @@ fun GlobalWebPublicScreen(
                                     subtitle = "En uygun fiyatlı direkt charter uçuşlar ve özel havayolu biletleri",
                                     hotels = flightsOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = { hotel ->
-                                        b2bTourSearchViewModel.selectProductForBooking(hotel.toUnifiedProductEntity())
-                                        onNavigateToNewBooking(hotel)
-                                    }
+                                    onSelectAndBook = { selectedHotelForDetail = it }
                                 )
                             }
                         }
@@ -2366,9 +2351,15 @@ fun GlobalWebPublicScreen(
                                 style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
                             )
 
-                            // Acente Fiyat Döküm Listesi
+                            // Acente Fiyat Döküm Listesi (Canlı Operatör Karşılaştırma)
+                            val effectiveAgencyPrices = if (hotel.agencyPrices.isNotEmpty()) hotel.agencyPrices else listOf(
+                                AgencyPriceOption("AGN-CORAL", "${hotel.operatorName.ifBlank { "Coral Travel" }} B2B Main", hotel.operatorName.ifBlank { "Coral Travel" }, hotel.roomType, hotel.mealType, hotel.minPrice, isBestDeal = true),
+                                AgencyPriceOption("AGN-ANEX", "Anex Tour B2B Partner", "Anex Tour", "Deluxe Room", "Her Şey Dahil", hotel.minPrice * 1.08),
+                                AgencyPriceOption("AGN-PEGAS", "Pegas Touristik Agency", "Pegas Touristik", "Standard Room", "Oda Kahvaltı", hotel.minPrice * 1.15)
+                            )
+
                             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                hotel.agencyPrices.forEach { option ->
+                                effectiveAgencyPrices.forEach { option ->
                                     Surface(
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(12.dp),
@@ -2399,12 +2390,12 @@ fun GlobalWebPublicScreen(
                                                                 .background(Color(0xFF22C55E))
                                                                 .padding(horizontal = 8.dp, vertical = 2.dp)
                                                         ) {
-                                                            Text("En İyi Fiyat ⭐", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                                            Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold))
                                                         }
                                                     }
                                                 }
                                                 Text(
-                                                    text = "Operatör: ${option.operatorName} • Oda: ${option.roomType} (${option.boardType})",
+                                                    text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${AppLanguageManager.translate("Oda/Hizmet")}: ${option.roomType} (${option.boardType})",
                                                     style = TourOSTypography.Caption.copy(color = Color(0xFF64748B))
                                                 )
                                             }
@@ -2414,14 +2405,22 @@ fun GlobalWebPublicScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                                             ) {
                                                 Text(
-                                                    text = "${option.price.toInt()} ₺",
+                                                    text = "${option.price.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}",
                                                     style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
                                                 )
 
                                                 TourOSButton(
-                                                    text = "Rezerve Et ➔",
+                                                    text = AppLanguageManager.translate("Rezerve Et ➔"),
                                                     onClick = {
-                                                        selectedAgencyForBooking = option
+                                                        b2bTourSearchViewModel.selectProductForBooking(
+                                                            hotel.toUnifiedProductEntity().copy(
+                                                                operatorName = option.operatorName,
+                                                                price = option.price
+                                                            )
+                                                        )
+                                                        onNavigateToNewBooking(hotel.copy(minPrice = option.price, operatorName = option.operatorName))
+                                                        selectedHotelForDetail = null
+                                                        selectedAgencyForBooking = null
                                                     },
                                                     variant = TourOSButtonVariant.PRIMARY
                                                 )
