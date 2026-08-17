@@ -2042,18 +2042,14 @@ fun GlobalWebPublicScreen(
 
         // ── 🏢 ACENTE GİRİŞİ MODALI (EMAIL + ŞİFRE + ACENTE KODU) ──────────────────
         if (showAgencyLoginModal) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.65f))
-                    .clickable { showAgencyLoginModal = false },
-                contentAlignment = Alignment.Center
+            Dialog(
+                onDismissRequest = { showAgencyLoginModal = false }
             ) {
                 Surface(
                     modifier = Modifier
-                        .width(460.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .clickable(enabled = false) {},
+                        .widthIn(max = 480.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp)),
                     color = Color.White,
                     shadowElevation = 12.dp
                 ) {
@@ -2179,19 +2175,15 @@ fun GlobalWebPublicScreen(
                 var guestPhone by remember { mutableStateOf("0532 100 2030") }
                 var passportNo by remember { mutableStateOf("TR-8492019") }
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.7f))
-                        .clickable { selectedAgencyForBooking = null },
-                    contentAlignment = Alignment.Center
+                Dialog(
+                    onDismissRequest = { selectedAgencyForBooking = null }
                 ) {
                     Surface(
                         modifier = Modifier
-                            .width(550.dp)
+                            .widthIn(max = 550.dp)
+                            .fillMaxWidth()
                             .wrapContentHeight()
-                            .padding(20.dp)
-                            .clickable(enabled = false) {},
+                            .padding(12.dp),
                         shape = RoundedCornerShape(16.dp),
                         color = Color.White,
                         shadowElevation = 8.dp
@@ -2299,25 +2291,21 @@ fun GlobalWebPublicScreen(
                 }
             } else {
                 // ── DETAY & ACENTE FİYAT KARŞILAŞTIRMA MODALI (Metasearch Engine) ────────────
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable { 
-                            selectedHotelForDetail = null
-                            selectedAgencyForBooking = null
-                        },
-                    contentAlignment = Alignment.Center
+                Dialog(
+                    onDismissRequest = { 
+                        selectedHotelForDetail = null
+                        selectedAgencyForBooking = null
+                    }
                 ) {
                     Surface(
                         modifier = Modifier
-                            .width(720.dp)
-                            .heightIn(max = 650.dp)
-                            .padding(20.dp)
-                            .clickable(enabled = false) {},
-                        shape = RoundedCornerShape(16.dp),
+                            .widthIn(max = 760.dp)
+                            .fillMaxWidth()
+                            .heightIn(max = 680.dp)
+                            .padding(12.dp),
+                        shape = RoundedCornerShape(20.dp),
                         color = Color.White,
-                        shadowElevation = 8.dp
+                        shadowElevation = 12.dp
                     ) {
                         Column(
                             modifier = Modifier
