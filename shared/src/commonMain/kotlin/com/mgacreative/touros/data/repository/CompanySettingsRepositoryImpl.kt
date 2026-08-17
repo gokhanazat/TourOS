@@ -47,21 +47,17 @@ class CompanySettingsRepositoryImpl(
             }.getOrNull()
 
             if (entity != null) {
-                val seasons = runCatching {
-                    json.decodeFromString<List<CompanySeason>>(entity.seasons)
-                }.getOrDefault(emptyList())
+                val seasons = entity.seasons.ifEmpty { cachedSettings?.seasons ?: emptyList() }
 
-                val promoBanners = runCatching {
-                    branding?.promoBanners?.takeIf { it.isNotBlank() }?.let {
-                        json.decodeFromString<List<com.mgacreative.touros.domain.model.PromoBannerItem>>(it)
-                    }
-                }.getOrNull() ?: cachedSettings?.promoBanners ?: emptyList()
+                val promoBanners = (branding?.promoBanners?.takeIf { it.isNotEmpty() }
+                    ?: entity.promoBanners.takeIf { it.isNotEmpty() }
+                    ?: cachedSettings?.promoBanners
+                    ?: emptyList())
 
-                val serviceCards = runCatching {
-                    branding?.serviceCards?.takeIf { it.isNotBlank() }?.let {
-                        json.decodeFromString<List<com.mgacreative.touros.domain.model.ServiceCardItem>>(it)
-                    }
-                }.getOrNull() ?: cachedSettings?.serviceCards ?: emptyList()
+                val serviceCards = (branding?.serviceCards?.takeIf { it.isNotEmpty() }
+                    ?: entity.serviceCards.takeIf { it.isNotEmpty() }
+                    ?: cachedSettings?.serviceCards
+                    ?: emptyList())
 
                 val loaded = CompanySettings(
                     id = entity.id,
@@ -79,19 +75,19 @@ class CompanySettingsRepositoryImpl(
                     logoUrl = entity.logoUrl ?: branding?.customLogoUrl ?: cachedSettings?.logoUrl,
                     themeColor = entity.themeColor.ifBlank { cachedSettings?.themeColor ?: "#1F4E5F" },
                     taxRate = entity.taxRate,
-                    seasons = seasons.ifEmpty { cachedSettings?.seasons ?: emptyList() },
+                    seasons = seasons,
                     supportedCurrencies = entity.supportedCurrencies,
                     supportedLanguages = entity.supportedLanguages,
-                    headerImageUrl = branding?.headerImageUrl ?: cachedSettings?.headerImageUrl,
-                    heroSubtitle = branding?.heroSubtitle ?: cachedSettings?.heroSubtitle ?: "",
-                    footerText = branding?.footerText ?: cachedSettings?.footerText ?: "",
-                    webEmail = branding?.contactEmail ?: cachedSettings?.webEmail ?: "",
-                    webPhone = branding?.contactPhone ?: cachedSettings?.webPhone ?: "",
-                    webWhatsapp = branding?.whatsappNumber ?: cachedSettings?.webWhatsapp ?: "",
-                    webAddress = branding?.contactAddress ?: cachedSettings?.webAddress ?: "",
-                    webMersisNo = cachedSettings?.webMersisNo ?: "",
-                    webTaxOffice = cachedSettings?.webTaxOffice ?: "",
-                    webTaxNumber = cachedSettings?.webTaxNumber ?: "",
+                    headerImageUrl = branding?.headerImageUrl ?: entity.headerImageUrl ?: cachedSettings?.headerImageUrl,
+                    heroSubtitle = branding?.heroSubtitle ?: entity.heroSubtitle ?: cachedSettings?.heroSubtitle ?: "",
+                    footerText = branding?.footerText ?: entity.footerText ?: cachedSettings?.footerText ?: "",
+                    webEmail = branding?.contactEmail ?: entity.webEmail ?: cachedSettings?.webEmail ?: "",
+                    webPhone = branding?.contactPhone ?: entity.webPhone ?: cachedSettings?.webPhone ?: "",
+                    webWhatsapp = branding?.whatsappNumber ?: entity.webWhatsapp ?: cachedSettings?.webWhatsapp ?: "",
+                    webAddress = branding?.contactAddress ?: entity.webAddress ?: cachedSettings?.webAddress ?: "",
+                    webMersisNo = branding?.webMersisNo ?: entity.webMersisNo ?: cachedSettings?.webMersisNo ?: "",
+                    webTaxOffice = branding?.webTaxOffice ?: entity.webTaxOffice ?: cachedSettings?.webTaxOffice ?: "",
+                    webTaxNumber = branding?.webTaxNumber ?: entity.webTaxNumber ?: cachedSettings?.webTaxNumber ?: "",
                     promoBannerTitle = cachedSettings?.promoBannerTitle,
                     promoBannerImageUrl = cachedSettings?.promoBannerImageUrl,
                     promoBannerTargetUrl = cachedSettings?.promoBannerTargetUrl,
@@ -124,9 +120,6 @@ class CompanySettingsRepositoryImpl(
     override suspend fun updateCompanySettings(settings: CompanySettings): Result<CompanySettings> {
         return runCatching {
             cachedSettings = settings
-            val seasonsJson = json.encodeToString(settings.seasons)
-            val promoBannersJson = json.encodeToString(settings.promoBanners)
-            val serviceCardsJson = json.encodeToString(settings.serviceCards)
             val targetId = if (settings.id.isValidUuid()) settings.id else "00000000-0000-0000-0000-000000000001"
 
             val slugValue = settings.name.lowercase()
@@ -154,6 +147,18 @@ class CompanySettingsRepositoryImpl(
                 put("address", settings.address)
                 put("phone", settings.phone)
                 put("email", settings.email)
+                put("header_image_url", settings.headerImageUrl)
+                put("hero_subtitle", settings.heroSubtitle)
+                put("footer_text", settings.footerText)
+                put("web_phone", settings.webPhone)
+                put("web_whatsapp", settings.webWhatsapp)
+                put("web_email", settings.webEmail)
+                put("web_address", settings.webAddress)
+                put("web_mersis_no", settings.webMersisNo)
+                put("web_tax_office", settings.webTaxOffice)
+                put("web_tax_number", settings.webTaxNumber)
+                put("promo_banners", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.PromoBannerItem.serializer()), settings.promoBanners))
+                put("service_cards", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.ServiceCardItem.serializer()), settings.serviceCards))
                 settings.bankName?.let { put("bank_name", it) }
                 settings.iban?.let { put("iban", it) }
                 settings.accountHolder?.let { put("account_holder", it) }
@@ -164,7 +169,7 @@ class CompanySettingsRepositoryImpl(
                 settings.logoUrl?.let { put("logo_url", it) }
                 put("theme_color", settings.themeColor)
                 put("tax_rate", settings.taxRate)
-                put("seasons", seasonsJson)
+                put("seasons", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.CompanySeason.serializer()), settings.seasons))
                 putJsonArray("supported_currencies") {
                     settings.supportedCurrencies.forEach { add(it) }
                 }
@@ -194,9 +199,15 @@ class CompanySettingsRepositoryImpl(
                 put("contact_email", settings.webEmail)
                 put("whatsapp_number", settings.webWhatsapp)
                 put("contact_address", settings.webAddress)
-                put("promo_banners", promoBannersJson)
-                put("service_cards", serviceCardsJson)
-                if (!settings.logoUrl.isNullOrBlank()) put("custom_logo_url", settings.logoUrl)
+                put("web_mersis_no", settings.webMersisNo)
+                put("web_tax_office", settings.webTaxOffice)
+                put("web_tax_number", settings.webTaxNumber)
+                put("promo_banners", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.PromoBannerItem.serializer()), settings.promoBanners))
+                put("service_cards", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.ServiceCardItem.serializer()), settings.serviceCards))
+                if (!settings.logoUrl.isNullOrBlank()) {
+                    put("custom_logo_url", settings.logoUrl)
+                    put("logo_url", settings.logoUrl)
+                }
                 if (!settings.headerImageUrl.isNullOrBlank()) put("header_image_url", settings.headerImageUrl)
             }
 

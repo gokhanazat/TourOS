@@ -72,7 +72,7 @@ fun GlobalWebCmsScreen(
     var promoBannersList by remember { mutableStateOf<List<PromoBannerItem>>(emptyList()) }
     var serviceCardsList by remember { mutableStateOf<List<ServiceCardItem>>(emptyList()) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(currentUser?.tenantId) {
         val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
         val settings = companySettingsRepository.getCompanySettings(tid).getOrNull()
         val hotelsRes = hotelRepository.getHotels(tid).getOrDefault(emptyList())
@@ -91,7 +91,10 @@ fun GlobalWebCmsScreen(
             if (effBanners.isNotEmpty()) {
                 promoBannersList = effBanners
             }
-            serviceCardsList = settings.getEffectiveServiceCards()
+            val effCards = settings.getEffectiveServiceCards()
+            if (effCards.isNotEmpty()) {
+                serviceCardsList = effCards
+            }
             siteTitle = settings.name
             customLogoUrl = settings.logoUrl ?: ""
             heroSlogan = settings.heroSubtitle

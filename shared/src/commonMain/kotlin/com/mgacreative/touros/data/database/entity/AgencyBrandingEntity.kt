@@ -1,5 +1,7 @@
 package com.mgacreative.touros.data.database.entity
 
+import com.mgacreative.touros.domain.model.PromoBannerItem
+import com.mgacreative.touros.domain.model.ServiceCardItem
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -20,8 +22,12 @@ data class AgencyBrandingEntity(
     @SerialName("contact_email") val contactEmail: String? = null,
     @SerialName("whatsapp_number") val whatsappNumber: String? = null,
     @SerialName("contact_address") val contactAddress: String? = null,
-    @SerialName("promo_banners") val promoBanners: String? = null,
-    @SerialName("service_cards") val serviceCards: String? = null,
+    @SerialName("web_mersis_no") val webMersisNo: String? = null,
+    @SerialName("web_tax_office") val webTaxOffice: String? = null,
+    @SerialName("web_tax_number") val webTaxNumber: String? = null,
+    @SerialName("meta_description") val metaDescription: String? = null,
+    @SerialName("promo_banners") val promoBanners: List<PromoBannerItem> = emptyList(),
+    @SerialName("service_cards") val serviceCards: List<ServiceCardItem> = emptyList(),
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("updated_at") val updatedAt: String = ""
 )
