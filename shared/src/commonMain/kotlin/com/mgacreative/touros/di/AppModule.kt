@@ -56,6 +56,7 @@ import org.koin.dsl.module
 
 val networkModule = module {
     single { SupabaseClientProvider.create() }
+    single { com.mgacreative.touros.data.cache.SystemCacheManager(get()) }
 }
 
 val repositoryModule = module {
