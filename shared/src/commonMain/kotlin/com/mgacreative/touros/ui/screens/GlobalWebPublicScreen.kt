@@ -2290,7 +2290,7 @@ fun GlobalWebPublicScreen(
                     }
                 }
             } else {
-                // ── DETAY & ACENTE FİYAT KARŞILAŞTIRMA MODALI (Metasearch Engine) ────────────
+                // ── DETAY & ACENTE FİYAT KARŞILAŞTIRMA MODALI (Metasearch Engine - Kompakt & Kaydırılabilir) ──
                 Dialog(
                     onDismissRequest = { 
                         selectedHotelForDetail = null
@@ -2299,58 +2299,91 @@ fun GlobalWebPublicScreen(
                 ) {
                     Surface(
                         modifier = Modifier
-                            .widthIn(max = 760.dp)
+                            .widthIn(max = 740.dp)
                             .fillMaxWidth()
-                            .heightIn(max = 680.dp)
-                            .padding(12.dp),
-                        shape = RoundedCornerShape(20.dp),
+                            .heightIn(max = 620.dp)
+                            .padding(8.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = Color.White,
                         shadowElevation = 12.dp
                     ) {
                         Column(
                             modifier = Modifier
-                                .padding(24.dp)
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
+                            // ── SABİT ÜST BAŞLIK ──
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(hotel.hotelName, style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold))
-                                    Text("📍 ${hotel.location} • ID: ${hotel.id}", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B)))
+                                    Text(
+                                        text = hotel.hotelName,
+                                        style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                                    )
+                                    Text(
+                                        text = "📍 ${hotel.location} • ID: ${hotel.id}",
+                                        style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
+                                    )
                                 }
-                                Text(
-                                    text = "✖",
-                                    modifier = Modifier.clickable { 
-                                        selectedHotelForDetail = null
-                                        selectedAgencyForBooking = null
-                                    },
-                                    style = TourOSTypography.TitleLarge.copy(color = Color(0xFF94A3B8))
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFF1F5F9))
+                                        .clickable { 
+                                            selectedHotelForDetail = null
+                                            selectedAgencyForBooking = null
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("✕", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                }
                             }
 
                             HorizontalDivider(color = Color(0xFFE2E8F0))
 
-                            Text(
-                                text = "🏬 Hangi Acente / Operatör Kaç Satıyor?",
-                                style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
-                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🏬 " + AppLanguageManager.translate("Hangi Acente / Operatör Kaç Satıyor?"),
+                                    style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                )
+                                Text(
+                                    text = AppLanguageManager.translate("Canlı Fiyat Karşılaştırma"),
+                                    style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                                )
+                            }
 
-                            // Acente Fiyat Döküm Listesi (Canlı Operatör Karşılaştırma)
-                            val effectiveAgencyPrices = if (hotel.agencyPrices.isNotEmpty()) hotel.agencyPrices else listOf(
-                                AgencyPriceOption("AGN-CORAL", "${hotel.operatorName.ifBlank { "Coral Travel" }} B2B Main", hotel.operatorName.ifBlank { "Coral Travel" }, hotel.roomType, hotel.mealType, hotel.minPrice, isBestDeal = true),
-                                AgencyPriceOption("AGN-ANEX", "Anex Tour B2B Partner", "Anex Tour", "Deluxe Room", "Her Şey Dahil", hotel.minPrice * 1.08),
-                                AgencyPriceOption("AGN-PEGAS", "Pegas Touristik Agency", "Pegas Touristik", "Standard Room", "Oda Kahvaltı", hotel.minPrice * 1.15)
-                            )
+                            // ── AŞAĞI KAYDIRILABİLİR İNCE KOMPAKT OPERATÖR LİSTESİ (LAZYCOLUMN) ──
+                            val effectiveAgencyPrices = if (hotel.agencyPrices.isNotEmpty()) {
+                                hotel.agencyPrices
+                            } else {
+                                listOf(
+                                    AgencyPriceOption("AGN-CORAL", "${hotel.operatorName.ifBlank { "Coral Travel" }} B2B Main", hotel.operatorName.ifBlank { "Coral Travel" }, hotel.roomType, hotel.mealType, hotel.minPrice, isBestDeal = true),
+                                    AgencyPriceOption("AGN-ANEX", "Anex Tour B2B Partner", "Anex Tour", "Deluxe Room", "Her Şey Dahil", hotel.minPrice * 1.08),
+                                    AgencyPriceOption("AGN-PEGAS", "Pegas Touristik Agency", "Pegas Touristik", "Standard Room", "Oda Kahvaltı", hotel.minPrice * 1.15),
+                                    AgencyPriceOption("AGN-TRAVELATA", "Travelata B2B Online", "Travelata", "Promo Room", "Bez pitaniya", hotel.minPrice * 1.04),
+                                    AgencyPriceOption("AGN-SUNEX", "SunExpress Charter B2B", "SunExpress", "Standart", "Ekonomi Uçuş", hotel.minPrice * 1.10)
+                                )
+                            }
 
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                effectiveAgencyPrices.forEach { option ->
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f, fill = false),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(effectiveAgencyPrices) { option ->
                                     Surface(
                                         modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = RoundedCornerShape(8.dp),
                                         color = if (option.isBestDeal) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
                                         border = androidx.compose.foundation.BorderStroke(
                                             1.dp,
@@ -2360,58 +2393,73 @@ fun GlobalWebPublicScreen(
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .padding(14.dp),
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                            // Sol Bilgi: Acente/Operatör + Oda Tipi (İnce Satır)
+                                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                     Text(
                                                         text = "🏢 ${option.agencyName}",
-                                                        style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+                                                        style = TourOSTypography.BodyMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                                     )
                                                     if (option.isBestDeal) {
-                                                        Spacer(modifier = Modifier.width(8.dp))
                                                         Box(
                                                             modifier = Modifier
-                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .clip(RoundedCornerShape(4.dp))
                                                                 .background(Color(0xFF22C55E))
-                                                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                                                .padding(horizontal = 6.dp, vertical = 2.dp)
                                                         ) {
-                                                            Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                                            Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp))
                                                         }
                                                     }
                                                 }
                                                 Text(
-                                                    text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${AppLanguageManager.translate("Oda/Hizmet")}: ${option.roomType} (${option.boardType})",
-                                                    style = TourOSTypography.Caption.copy(color = Color(0xFF64748B))
+                                                    text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${option.roomType} (${option.boardType})",
+                                                    style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
 
+                                            // Sağ Taraf: Fiyat + Kompakt Rezerve Et Butonu
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
                                                 Text(
                                                     text = "${option.price.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}",
-                                                    style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.Bold)
+                                                    style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                                 )
 
-                                                TourOSButton(
-                                                    text = AppLanguageManager.translate("Rezerve Et ➔"),
-                                                    onClick = {
-                                                        b2bTourSearchViewModel.selectProductForBooking(
-                                                            hotel.toUnifiedProductEntity().copy(
-                                                                operatorName = option.operatorName,
-                                                                price = option.price
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .clickable {
+                                                            b2bTourSearchViewModel.selectProductForBooking(
+                                                                hotel.toUnifiedProductEntity().copy(
+                                                                    operatorName = option.operatorName,
+                                                                    price = option.price
+                                                                )
                                                             )
+                                                            onNavigateToNewBooking(hotel.copy(minPrice = option.price, operatorName = option.operatorName))
+                                                            selectedHotelForDetail = null
+                                                            selectedAgencyForBooking = null
+                                                        },
+                                                    color = Color(0xFF1E4D58)
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = AppLanguageManager.translate("Rezerve Et ➔"),
+                                                            style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                                         )
-                                                        onNavigateToNewBooking(hotel.copy(minPrice = option.price, operatorName = option.operatorName))
-                                                        selectedHotelForDetail = null
-                                                        selectedAgencyForBooking = null
-                                                    },
-                                                    variant = TourOSButtonVariant.PRIMARY
-                                                )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
