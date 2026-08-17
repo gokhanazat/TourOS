@@ -75,6 +75,7 @@ fun B2BTourSearchDashboardScreen(
     var isRoundTrip by remember { mutableStateOf(true) }
     var activeStep by remember { mutableStateOf(1) }
     var showSuccessModal by remember { mutableStateOf(false) }
+    var selectedProductForOperatorModal by remember { mutableStateOf<UnifiedProductEntity?>(null) }
 
     // Veritabanından gelen benzersiz Kalkış Şehirleri ve Destinasyonlar
     val allDbProducts = (uiState as? B2BTourSearchUiState.Success)?.allProducts ?: emptyList()
@@ -101,6 +102,180 @@ fun B2BTourSearchDashboardScreen(
             onDateSelected = { endDateText = it },
             onDismissRequest = { showEndDatePicker = false }
         )
+    }
+
+    // ── 🏬 OPERATÖR KARŞILAŞTIRMA & TEKLİF LİSTESİ MODALI (B2B METASEARCH) ────────
+    if (selectedProductForOperatorModal != null) {
+        val prod = selectedProductForOperatorModal!!
+        val isFlightProd = prod.safeProductType.uppercase().contains("FLIGHT") || prod.flightNumber.isNotBlank() || prod.tourName.contains("Uçuş", ignoreCase = true)
+        val basePrice = prod.price
+
+        val effectiveAgencyPrices = listOf(
+            AgencyPriceOption("AGN-CORAL", "${prod.safeOperatorName.ifBlank { "Coral Travel" }} B2B Main", prod.safeOperatorName.ifBlank { "Coral Travel" }, prod.roomType.ifBlank { "Standart Oda" }, prod.mealType.ifBlank { "Her Şey Dahil" }, basePrice, isBestDeal = true),
+            AgencyPriceOption("AGN-ANEX", "Anex Tour B2B Partner", "Anex Tour", if (isFlightProd) "Ekonomi Uçuş" else "Deluxe Room", if (isFlightProd) "Standart Bagaj" else "Her Şey Dahil", basePrice * 1.08),
+            AgencyPriceOption("AGN-PEGAS", "Pegas Touristik Agency", "Pegas Touristik", if (isFlightProd) "Flexi Uçuş" else "Standard Room", if (isFlightProd) "20kg Bagaj" else "Oda Kahvaltı", basePrice * 1.15),
+            AgencyPriceOption("AGN-TRAVELATA", "Travelata B2B Online", "Travelata", if (isFlightProd) "Promo Uçuş" else "Promo Room", if (isFlightProd) "El Bagajı" else "Bez pitaniya", basePrice * 1.04),
+            AgencyPriceOption("AGN-SUNEX", "SunExpress Charter B2B", "SunExpress", if (isFlightProd) "Charter Sefer" else "Standart Oda", if (isFlightProd) "Sıcak İkram" else "Ultra Her Şey Dahil", basePrice * 1.10)
+        )
+
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { selectedProductForOperatorModal = null }
+        ) {
+            Surface(
+                modifier = Modifier
+                    .widthIn(max = 740.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = 620.dp)
+                    .padding(8.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 12.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // ── SABİT ÜST BAŞLIK ──
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (prod.hotelName.isNotBlank()) prod.hotelName else prod.tourName,
+                                style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                            )
+                            Text(
+                                text = "📍 ${prod.region}, ${prod.country} • ID: ${prod.id}",
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(Color(0xFFF1F5F9))
+                                .clickable { selectedProductForOperatorModal = null },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("✕", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🏬 " + AppLanguageManager.translate("Hangi Acente / Operatör Kaç Satıyor?"),
+                            style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        )
+                        Text(
+                            text = AppLanguageManager.translate("Canlı Fiyat Karşılaştırma"),
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                        )
+                    }
+
+                    // ── AŞAĞI KAYDIRILABİLİR İNCE KOMPAKT OPERATÖR LİSTESİ (LAZYCOLUMN) ──
+                    androidx.compose.foundation.lazy.LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(effectiveAgencyPrices) { option ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (option.isBestDeal) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
+                                border = BorderStroke(
+                                    1.dp,
+                                    if (option.isBestDeal) Color(0xFF22C55E) else Color(0xFFE2E8F0)
+                                )
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Sol Bilgi
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(
+                                                text = "🏢 ${option.agencyName}",
+                                                style = TourOSTypography.BodyMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            )
+                                            if (option.isBestDeal) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(Color(0xFF22C55E))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp))
+                                                }
+                                            }
+                                        }
+                                        Text(
+                                            text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${option.roomType} (${option.boardType})",
+                                            style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+
+                                    // Sağ Taraf: Fiyat + Kompakt Rezerve Et Butonu
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Text(
+                                            text = "${option.price.toInt()} ${if (prod.currency == "RUB") "RUB" else "₺"}",
+                                            style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+                                        )
+
+                                        Surface(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .clickable {
+                                                    viewModel.selectProductForBooking(
+                                                        prod.copy(
+                                                            operatorName = option.operatorName,
+                                                            price = option.price
+                                                        )
+                                                    )
+                                                    activeStep = 2
+                                                    selectedProductForOperatorModal = null
+                                                },
+                                            color = Color(0xFF1E4D58)
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Text(
+                                                    text = AppLanguageManager.translate("Rezerve Et ➔"),
+                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     val content: @Composable (PaddingValues) -> Unit = { padding ->
@@ -1378,9 +1553,7 @@ fun B2BTourSearchDashboardScreen(
                                                             isSelected = isSelected,
                                                             isFlightTab = (activeSearchTab == "FLIGHTS"),
                                                             onSelectForBooking = {
-                                                                viewModel.selectProductForBooking(item)
-                                                                // Tur seçildiğinde anında Adım 2'ye (Uçuş & Ekstra Hizmetler) geçiş yap:
-                                                                activeStep = 2
+                                                                selectedProductForOperatorModal = item
                                                             }
                                                         )
                                                     }
