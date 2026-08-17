@@ -58,6 +58,11 @@ val navigationGroups = listOf(
                 title = "Ürün & Data Yönetimi",
                 route = AdminProductManagementRoute,
                 allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
+            ),
+            NavigationItem(
+                title = "Önbellek & API Performansı",
+                route = SaasCacheManagementRoute,
+                allowedRoles = setOf(UserRole.SYSTEM_ADMIN)
             )
         )
     ),

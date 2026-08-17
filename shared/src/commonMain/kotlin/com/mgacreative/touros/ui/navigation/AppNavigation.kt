@@ -86,6 +86,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     title = AppLanguageManager.translate("Ürün & Data Yönetimi"),
                     route = AdminProductManagementRoute,
                     isSelected = currentRoute?.contains("AdminProductManagementRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Önbellek & API Performansı"),
+                    route = SaasCacheManagementRoute,
+                    isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
                 )
             )
         )
@@ -772,6 +777,12 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<AdminProductManagementRoute> {
             com.mgacreative.touros.ui.screens.AdminProductManagementScreen()
+        }
+
+        composable<SaasCacheManagementRoute> {
+            com.mgacreative.touros.ui.screens.SaasCacheManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<AgencyQuotaReportRoute> {

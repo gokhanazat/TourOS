@@ -76,6 +76,7 @@ import kotlinx.serialization.Serializable
 @Serializable object AgencyOperatorConnectionsRoute
 @Serializable object AgencyProductPublishingRoute
 @Serializable object AdminProductManagementRoute
+@Serializable object SaasCacheManagementRoute
 
 // ─── B2B/B2C Tour Search & Booking Wizard ─────────────────────────────────────
 @Serializable object B2BTourSearchDashboardRoute
