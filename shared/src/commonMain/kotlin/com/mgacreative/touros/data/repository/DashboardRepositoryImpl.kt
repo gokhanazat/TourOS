@@ -51,6 +51,9 @@ class DashboardRepositoryImpl(
                     pendingPaymentsAmount = rpcResult.pendingPaymentsAmount
                 )
             } else {
+                if (tenantId != "ALL" && !tenantId.isValidUuid()) {
+                    return@runCatching DashboardSummary(0.0, 0.0, 0.0, 0, 0.0)
+                }
                 val bookings = runCatching {
                     supabaseClient.postgrest.from("bookings")
                         .select {

@@ -181,7 +181,7 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
     // PREMIUM AÇILIR MENÜ GRUBU (Tüm acenteler için)
     groups.add(
         TourOSNavGroup(
-            categoryTitle = AppLanguageManager.translate("PREMIUM ✨"),
+            categoryTitle = AppLanguageManager.translate("PREMIUM"),
             isCollapsible = true,
             isInitiallyExpanded = false,
             items = listOf(
@@ -843,6 +843,7 @@ private fun AppNavHost(navController: NavHostController) {
                 onNavigateToBookings = { navController.navigate(BookingsRoute) }
             )
         }
+
 
         composable<B2BTourFlightServiceSelectionRoute> { back ->
             val route: B2BTourFlightServiceSelectionRoute = back.toRoute()

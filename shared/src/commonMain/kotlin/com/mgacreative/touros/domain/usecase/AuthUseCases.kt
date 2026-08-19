@@ -7,11 +7,11 @@ import kotlinx.coroutines.flow.StateFlow
 class LoginUseCase(
     private val authRepository: AuthRepository
 ) {
-    suspend operator fun invoke(email: String, password: String): Result<User> {
+    suspend operator fun invoke(email: String, password: String, agencyCode: String = ""): Result<User> {
         if (email.isBlank() || password.isBlank()) {
             return Result.failure(IllegalArgumentException("E-posta ve şifre boş olamaz"))
         }
-        return authRepository.signInWithEmail(email.trim(), password)
+        return authRepository.signInWithEmail(email.trim(), password, agencyCode.trim())
     }
 }
 

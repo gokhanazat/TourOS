@@ -29,6 +29,22 @@ class AdminDataManagementViewModel(
 
     private val defaultFeedSources = listOf(
         DataFeedSource(
+            id = "feed-tourvisor",
+            sourceName = "TourVisor API (Rusya / RotaRadar)",
+            providerType = "TOURVISOR",
+            logoIcon = "🇷🇺",
+            endpointUrl = "https://api.tourvisor.ru/search/api/v1",
+            apiKey = "",
+            apiSecret = "",
+            agencyCode = "",
+            dataTypes = listOf("TOURS", "HOTELS"),
+            syncInterval = "30_MIN",
+            isLive = false,
+            lastSyncedAt = "Bağlantı Yapılmadı",
+            syncedRecordCount = 0,
+            statusMessage = "API Token girilerek aktif edilebilir"
+        ),
+        DataFeedSource(
             id = "feed-001",
             sourceName = "Paximum / SanTSG Global API",
             providerType = "PAXIMUM",
@@ -145,7 +161,10 @@ class AdminDataManagementViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                supabaseClient.postgrest["data_feed_sources"].upsert(updated)
+                val cleanSource = updated.copy(
+                    createdAt = updated.createdAt?.takeIf { it.isNotBlank() }
+                )
+                supabaseClient.postgrest["data_feed_sources"].upsert(cleanSource)
             } catch (_: Exception) { /* Bellek fallback */ }
 
             _uiState.update { state ->

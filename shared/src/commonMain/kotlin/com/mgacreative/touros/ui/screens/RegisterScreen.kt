@@ -56,13 +56,13 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+    var isRegisteredSuccess by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
-            val user = (uiState as AuthUiState.Success).user
-            onRegisterSuccess(user.role)
+            isRegisteredSuccess = true
             viewModel.resetState()
         }
     }
@@ -89,162 +89,181 @@ fun RegisterScreen(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.xxLarge
             ) {
-                // Header
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                            .background(TourOSColors.Primary),
-                        contentAlignment = Alignment.Center
+                if (isRegisteredSuccess) {
+                    // Kayıt Başarılı - Onay Bekleme Bilgilendirme Ekranı
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
+                                .background(TourOSColors.Primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✓",
+                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
                         Text(
-                            text = "T",
-                            style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.OnPrimary)
+                            text = "Başvurunuz Alındı!",
+                            style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+                        )
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                        Text(
+                            text = "Acente kaydınız başarıyla oluşturuldu ve sistem yöneticisinin onayına iletildi.\n\nYönetici hesabınızı onaylayıp size özel 'Acente Kodu' tanımladıktan sonra sisteme giriş yapabilirsiniz.",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.xxLarge))
+
+                        TourOSButton(
+                            text = "Giriş Ekranına Git",
+                            onClick = onNavigateToLogin,
+                            modifier = Modifier.fillMaxWidth(),
+                            variant = TourOSButtonVariant.PRIMARY
                         )
                     }
+                } else {
+                    // Header
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.Primary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "T",
+                                style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.OnPrimary)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                        Text(
+                            text = "TourOS",
+                            style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                        )
+
+                        Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+
+                        Text(
+                            text = "Yeni acente hesabı oluşturun",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                    // Error Banner
+                    val errorMessage = localError ?: (uiState as? AuthUiState.Error)?.message
+                    if (errorMessage != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                .background(TourOSColors.ErrorContainer)
+                                .padding(TourOSSpacing.medium)
+                        ) {
+                            Text(
+                                text = errorMessage,
+                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+                    }
+
+                    // Input Fields
+                    TourOSTextField(
+                        value = fullName,
+                        onValueChange = { fullName = it },
+                        label = "Ad Soyad / Yetkili Kişi",
+                        placeholder = "Ahmet Yılmaz",
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                    Text(
-                        text = "TourOS",
-                        style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                    TourOSTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = "E-posta Adresi",
+                        placeholder = "ornek@touros.com",
+                        modifier = Modifier.fillMaxWidth()
                     )
 
-                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
+                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                    Text(
-                        text = "Yeni hesap oluşturun",
-                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                    TourOSTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = "Şifre (Min. 6 karakter)",
+                        placeholder = "••••••••",
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
 
-                Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
+                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                // Agency Referral Code Information Box
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.3f))
-                        .padding(TourOSSpacing.medium)
-                ) {
-                    Column {
-                        Text(
-                            text = "Acente Kayıt Sistem Referans Kodu:",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                        )
-                        Text(
-                            text = "AGN-8492",
-                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold)
-                        )
-                        Text(
-                            text = "Kayıt sonrası Acente Girişi yaparken bu kodu kullanmanız gerekmektedir.",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 10.sp)
-                        )
-                    }
-                }
+                    TourOSTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = "Şifre Tekrarı",
+                        placeholder = "••••••••",
+                        visualTransformation = PasswordVisualTransformation(),
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+                    Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
 
-                // Error Banner
-                val errorMessage = localError ?: (uiState as? AuthUiState.Error)?.message
-                if (errorMessage != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                            .background(TourOSColors.ErrorContainer)
-                            .padding(TourOSSpacing.medium)
+                    // Primary Button
+                    TourOSButton(
+                        text = "Acente Başvurusu Yap",
+                        onClick = {
+                            localError = null
+                            if (password != confirmPassword) {
+                                localError = "Şifreler birbiriyle eşleşmiyor"
+                                return@TourOSButton
+                            }
+                            viewModel.register(email, password, fullName)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        variant = TourOSButtonVariant.PRIMARY,
+                        enabled = fullName.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank(),
+                        isLoading = uiState is AuthUiState.Loading
+                    )
+
+                    Spacer(modifier = Modifier.height(TourOSSpacing.large))
+
+                    // Login Link
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = errorMessage,
-                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Error)
+                            text = "Zaten hesabınız var mı? ",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                        )
+                        Text(
+                            text = "Giriş Yap",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary),
+                            modifier = Modifier.clickable { onNavigateToLogin() }
                         )
                     }
-                    Spacer(modifier = Modifier.height(TourOSSpacing.large))
-                }
-
-                // Input Fields
-                TourOSTextField(
-                    value = fullName,
-                    onValueChange = { fullName = it },
-                    label = "Ad Soyad",
-                    placeholder = "Ahmet Yılmaz",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-                TourOSTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = "E-posta Adresi",
-                    placeholder = "ornek@touros.com",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-                TourOSTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = "Şifre (Min. 6 karakter)",
-                    placeholder = "••••••••",
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-                TourOSTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
-                    label = "Şifre Tekrarı",
-                    placeholder = "••••••••",
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(modifier = Modifier.height(TourOSSpacing.xLarge))
-
-                // Primary Button
-                TourOSButton(
-                    text = "Kayıt Ol",
-                    onClick = {
-                        localError = null
-                        if (password != confirmPassword) {
-                            localError = "Şifreler birbiriyle eşleşmiyor"
-                            return@TourOSButton
-                        }
-                        viewModel.register(email, password, fullName)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    variant = TourOSButtonVariant.PRIMARY,
-                    enabled = fullName.isNotBlank() && email.isNotBlank() && password.isNotBlank() && confirmPassword.isNotBlank(),
-                    isLoading = uiState is AuthUiState.Loading
-                )
-
-                Spacer(modifier = Modifier.height(TourOSSpacing.large))
-
-                // Login Link
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Zaten hesabınız var mı? ",
-                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
-                    )
-                    Text(
-                        text = "Giriş Yap",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary),
-                        modifier = Modifier.clickable { onNavigateToLogin() }
-                    )
                 }
             }
         }

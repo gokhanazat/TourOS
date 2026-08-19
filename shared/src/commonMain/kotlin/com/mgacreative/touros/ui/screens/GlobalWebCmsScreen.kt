@@ -65,12 +65,14 @@ fun GlobalWebCmsScreen(
     var webMersisNo by remember { mutableStateOf("") }
     var webTaxOffice by remember { mutableStateOf("") }
     var webTaxNumber by remember { mutableStateOf("") }
-    var defaultCommissionMargin by remember { mutableStateOf("% 12.5") }
     var agencyReferralCode by remember { mutableStateOf("") }
     var metaDescription by remember { mutableStateOf("") }
     var footerText by remember { mutableStateOf("") }
     var promoBannersList by remember { mutableStateOf<List<PromoBannerItem>>(emptyList()) }
     var serviceCardsList by remember { mutableStateOf<List<ServiceCardItem>>(emptyList()) }
+    var desktopAppUrl by remember { mutableStateOf("") }
+    var androidApkUrl by remember { mutableStateOf("") }
+    var isAppDownloadActive by remember { mutableStateOf(true) }
 
     LaunchedEffect(currentUser?.tenantId) {
         val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
@@ -108,6 +110,9 @@ fun GlobalWebCmsScreen(
             webTaxNumber = settings.webTaxNumber
             footerText = settings.footerText
             agencyReferralCode = settings.defaultMasterAgencyCode ?: ""
+            desktopAppUrl = settings.desktopAppUrl ?: ""
+            androidApkUrl = settings.androidApkUrl ?: ""
+            isAppDownloadActive = settings.isAppDownloadActive
         }
     }
 
@@ -147,7 +152,10 @@ fun GlobalWebCmsScreen(
                 footerText = footerText,
                 defaultMasterAgencyCode = agencyReferralCode,
                 promoBanners = promoBannersList,
-                serviceCards = serviceCardsList
+                serviceCards = serviceCardsList,
+                desktopAppUrl = desktopAppUrl.ifBlank { null },
+                androidApkUrl = androidApkUrl.ifBlank { null },
+                isAppDownloadActive = isAppDownloadActive
             )
             companySettingsRepository.updateCompanySettings(updatedSettings)
             isSaving = false
@@ -217,7 +225,7 @@ fun GlobalWebCmsScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = "🌐 Ana Web Yönetimi & Canlı Önizleme (CMS)",
+                title = "Ana Web Yönetimi & Canlı Önizleme (CMS)",
                 subtitle = "Sistem Yöneticisi Paneli • Web Sayfası İçerik, Görsel ve Footbar Yönetimi"
             )
         },
@@ -241,8 +249,8 @@ fun GlobalWebCmsScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     val tabs = listOf(
-                        "⚙️ Web Sayfası Ayarları (Tüm Bloklar)",
-                        "👁️ Canlı Web Önizleme"
+                        "Web Sayfası Ayarları (Tüm Bloklar)",
+                        "Canlı Web Önizleme"
                     )
 
                     tabs.forEachIndexed { index, title ->
@@ -308,7 +316,7 @@ fun GlobalWebCmsScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            "⚙️ Web Sayfası Yönetim Paneli",
+                                            "Web Sayfası Yönetim Paneli",
                                             style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
                                         )
                                         Text(
@@ -318,7 +326,7 @@ fun GlobalWebCmsScreen(
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
                                     TourOSButton(
-                                        text = "Değişiklikleri Kaydet 💾",
+                                        text = "Değişiklikleri Kaydet",
                                         onClick = { saveAllCmsSettings() },
                                         variant = TourOSButtonVariant.PRIMARY,
                                         isLoading = isSaving
@@ -336,7 +344,7 @@ fun GlobalWebCmsScreen(
                                     modifier = Modifier.padding(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    Text("🖼️ 1. Manşet & Hero Slider Yönetimi", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                    Text("1. Manşet & Hero Slider Yönetimi", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
                                     Text("Web sitesinin ana sayfasında ilk girişte görünecek manşet görselini, sloganını ve promosyon slaytlarını ayarlayın.", style = TourOSTypography.BodyMedium)
 
                                     OutlinedTextField(
@@ -362,7 +370,7 @@ fun GlobalWebCmsScreen(
                                             onClick = { headerPickerLauncher() },
                                             colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary, contentColor = Color.White)
                                         ) {
-                                            Text("📁 Dosya Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                            Text("Dosya Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
                                         }
                                     }
 
@@ -373,7 +381,7 @@ fun GlobalWebCmsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("🛥️ Sol Promosyon Kartı Slider Listesi", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
+                                        Text("Sol Promosyon Kartı Slider Listesi", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
                                         Button(
                                             onClick = {
                                                 val newSlide = PromoBannerItem(
@@ -386,7 +394,7 @@ fun GlobalWebCmsScreen(
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Success, contentColor = Color.White)
                                         ) {
-                                            Text("➕ Yeni Slayt Ekle", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                            Text("Yeni Slayt Ekle", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
                                         }
                                     }
 
@@ -400,7 +408,7 @@ fun GlobalWebCmsScreen(
                                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                                     Text("Slayt #${index + 1}: ${slide.title}", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
                                                     TextButton(onClick = { promoBannersList = promoBannersList.filterIndexed { i, _ -> i != index } }) {
-                                                        Text("🗑️ Sil", color = TourOSColors.Error)
+                                                        Text("Sil", color = TourOSColors.Error)
                                                     }
                                                 }
                                                 OutlinedTextField(
@@ -431,7 +439,7 @@ fun GlobalWebCmsScreen(
                                                         },
                                                         colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary, contentColor = Color.White)
                                                     ) {
-                                                        Text("📁 Görsel Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                                        Text("Görsel Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
                                                     }
                                                 }
                                                 OutlinedTextField(
@@ -460,7 +468,7 @@ fun GlobalWebCmsScreen(
                                     modifier = Modifier.padding(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    Text("🎨 2. Logo & Kurumsal Marka Ayarları", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                    Text("2. Logo & Kurumsal Marka Ayarları", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
                                     Text("Web sitesinin en üst bandındaki marka logosunu, marka ismini ve banner görsellerini düzenleyin.", style = TourOSTypography.BodyMedium)
 
                                     OutlinedTextField(
@@ -487,13 +495,13 @@ fun GlobalWebCmsScreen(
                                             onClick = { logoPickerLauncher() },
                                             colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary, contentColor = Color.White)
                                         ) {
-                                            Text("📁 Logo Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
+                                            Text("Logo Seç", color = Color.White, style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold))
                                         }
                                     }
                                 }
                             }
 
-                            // BLOK 3: Fiyatlama & Marj Kuralları
+                            // BLOK 3: Web İletişim & Footbar Adres Bilgileri
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
@@ -503,29 +511,7 @@ fun GlobalWebCmsScreen(
                                     modifier = Modifier.padding(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    Text("🏷️ 3. Fiyatlama & Marj Kuralları", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
-                                    Text("Web sitesinde gösterilecek turların varsayılan acente ve müşteri kâr marjları.", style = TourOSTypography.BodyMedium)
-
-                                    OutlinedTextField(
-                                        value = defaultCommissionMargin,
-                                        onValueChange = { defaultCommissionMargin = it },
-                                        label = { Text("B2B Varsayılan Komisyon Marjı") },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-
-                            // BLOK 4: Web İletişim & Footbar Adres Bilgileri
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
-                                elevation = CardDefaults.cardElevation(2.dp)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                                ) {
-                                    Text("📞 4. Web İletişim & Footbar Adres Bilgileri (Acentadan Bağımsız)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                    Text("3. Web İletişim & Footbar Adres Bilgileri (Acentadan Bağımsız)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
                                     Text("Web sitesi footbarında gösterilecek Kurumsal İletişim ve Adres bilgileri (Acente resmi fatura profilinden bağımsızdır).", style = TourOSTypography.BodyMedium)
 
                                     OutlinedTextField(
@@ -560,7 +546,7 @@ fun GlobalWebCmsScreen(
                                 }
                             }
 
-                            // BLOK 5: SEO Bilgileri
+                            // BLOK 4: SEO Bilgileri
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
@@ -570,7 +556,7 @@ fun GlobalWebCmsScreen(
                                     modifier = Modifier.padding(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    Text("🔍 5. SEO & Google Meta Bilgileri", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                    Text("4. SEO & Google Meta Bilgileri", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
                                     Text("Google arama motoru indekslemesi ve sosyal medya paylaşım kartları.", style = TourOSTypography.BodyMedium)
 
                                     OutlinedTextField(
@@ -583,7 +569,7 @@ fun GlobalWebCmsScreen(
                                 }
                             }
 
-                            // BLOK 6: FOOTBAR YASAL & LİSANS BİLGİLERİ (Yalnızca Admin)
+                            // BLOK 5: FOOTBAR YASAL & LİSANS BİLGİLERİ (Yalnızca Admin)
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
@@ -598,13 +584,13 @@ fun GlobalWebCmsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("🦶 6. Footbar Yasal & Lisans Bilgileri (Acentadan Bağımsız)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                        Text("5. Footbar Yasal & Lisans Bilgileri (Acentadan Bağımsız)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
                                         Surface(
                                             shape = RoundedCornerShape(6.dp),
                                             color = TourOSColors.Secondary.copy(alpha = 0.15f)
                                         ) {
                                             Text(
-                                                "🔒 Yalnızca Admin",
+                                                "Yalnızca Admin",
                                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                                 style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                                             )
@@ -655,7 +641,7 @@ fun GlobalWebCmsScreen(
                                 }
                             }
 
-                            // BLOK 7: HİZMET KARTLARI YÖNETİMİ (6 Adet Görsel Banner Kartı)
+                            // BLOK 6: HİZMET KARTLARI YÖNETİMİ (6 Adet Görsel Banner Kartı)
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
@@ -665,7 +651,7 @@ fun GlobalWebCmsScreen(
                                     modifier = Modifier.padding(20.dp),
                                     verticalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
-                                    Text("🎴 7. Hizmet Kartları Yönetimi (6 Adet Görsel Banner Kartı)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                    Text("6. Hizmet Kartları Yönetimi (6 Adet Görsel Banner Kartı)", style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
                                     Text("Web ana sayfasında gösterilecek 6 adet dinamik hizmet banner kartı. Otel seçebilir veya özel hizmet başlığı/linki belirleyebilirsiniz.", style = TourOSTypography.BodyMedium)
 
                                     val currentCards: List<ServiceCardItem> = if (serviceCardsList.size >= 6) serviceCardsList.take(6) else {
@@ -715,7 +701,7 @@ fun GlobalWebCmsScreen(
                                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D5653), contentColor = Color.White)
                                                 ) {
                                                     Text(
-                                                        text = if (!cardItem.hotelName.isNullOrBlank()) "🏨 Seçili: ${cardItem.hotelName}" else "🏨 Sponsorlu Otel Seç 🔍",
+                                                        text = if (!cardItem.hotelName.isNullOrBlank()) "Seçili: ${cardItem.hotelName}" else "Sponsorlu Otel Seç",
                                                         style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
                                                     )
                                                 }
@@ -776,9 +762,48 @@ fun GlobalWebCmsScreen(
                                 }
                             }
 
+                            // BLOK 6: Uygulama İndirme Bağlantıları (Windows EXE & Android APK)
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
+                                elevation = CardDefaults.cardElevation(2.dp)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                                ) {
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        Text(
+                                            "6. Uygulama İndirme Bağlantıları (Windows Desktop & Android APK)",
+                                            style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                                        )
+                                        Text(
+                                            "Aşağıdaki alanlara link yazıldığında ana sayfada ilgili indirme butonu otomatik görünür. Link girilmez veya silinirse buton siteden otomatik gizlenir.",
+                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                                        )
+                                    }
+
+                                    OutlinedTextField(
+                                        value = desktopAppUrl,
+                                        onValueChange = { desktopAppUrl = it },
+                                        label = { Text("Windows Masaüstü (.exe) İndirme Linki / URL") },
+                                        placeholder = { Text("Örn: https://axileto.com/downloads/TourOS-Setup.exe") },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+
+                                    OutlinedTextField(
+                                        value = androidApkUrl,
+                                        onValueChange = { androidApkUrl = it },
+                                        label = { Text("Android Mobil (.apk) İndirme Linki / URL") },
+                                        placeholder = { Text("Örn: https://axileto.com/downloads/TourOS-Mobile.apk") },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+
                             // Alt Kaydet Butonu
                             TourOSButton(
-                                text = "Değişiklikleri Canlı Web Sitesine Kaydet 💾",
+                                text = "Değişiklikleri Canlı Web Sitesine Kaydet",
                                 onClick = { saveAllCmsSettings() },
                                 variant = TourOSButtonVariant.PRIMARY,
                                 isLoading = isSaving
@@ -842,11 +867,11 @@ fun GlobalWebCmsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            "🏨 Slot ${slotIdx + 1} İçin Sponsorlu Otel Seçin",
+                            "Slot ${slotIdx + 1} İçin Sponsorlu Otel Seçin",
                             style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
                         )
                         TextButton(onClick = { selectedHotelSlotIndex = null }) {
-                            Text("✕ Kapat", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary))
+                            Text("Kapat", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary))
                         }
                     }
 
@@ -872,7 +897,7 @@ fun GlobalWebCmsScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFEE2E2), contentColor = Color(0xFFDC2626)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("❌ Otel Seçimini Kaldır (Genel Hizmet Kartı Yap)", fontWeight = FontWeight.Bold)
+                        Text("Otel Seçimini Kaldır (Genel Hizmet Kartı Yap)", fontWeight = FontWeight.Bold)
                     }
 
                     HorizontalDivider(color = TourOSColors.Border)
@@ -938,7 +963,7 @@ fun GlobalWebCmsScreen(
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D5653), contentColor = Color.White)
                                         ) {
-                                            Text("Seç ➔", color = Color.White, fontWeight = FontWeight.Bold)
+                                            Text("Seç", color = Color.White, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }

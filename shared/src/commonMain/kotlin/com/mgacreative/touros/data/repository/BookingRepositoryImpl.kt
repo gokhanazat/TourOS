@@ -25,32 +25,23 @@ class BookingRepositoryImpl(
 
     override suspend fun getBookings(tenantId: String): Result<List<Booking>> {
         return runCatching {
-            val targetTenant = tenantId.takeIf { it.isValidUuid() } ?: "00000000-0000-0000-0000-000000000001"
+            if (tenantId != "ALL" && !tenantId.isValidUuid()) {
+                return@runCatching emptyList()
+            }
             
-            var remoteEntities = runCatching {
+            val remoteEntities = runCatching {
                 supabaseClient.postgrest.from("bookings")
                     .select {
                         filter {
-                            eq("tenant_id", targetTenant)
+                            if (tenantId.isValidUuid()) {
+                                eq("tenant_id", tenantId)
+                            }
                         }
                     }
                     .decodeList<BookingEntity>()
             }.getOrDefault(emptyList())
 
-            // Eğer tenant_id ile eşleşen kayıt bulunamazsa, veritabanındaki tüm rezervasyonları getir (Fallback)
-            if (remoteEntities.isEmpty()) {
-                remoteEntities = runCatching {
-                    supabaseClient.postgrest.from("bookings")
-                        .select()
-                        .decodeList<BookingEntity>()
-                }.getOrDefault(emptyList())
-            }
-
-            val combined = (localCache + remoteEntities)
-                .filter { !deletedIdsBlacklist.contains(it.id) && !deletedIdsBlacklist.contains(it.bookingCode) }
-                .distinctBy { if (it.id.isNotBlank()) it.id else it.bookingCode }
-
-            combined.map { mapEntityToDomain(it) }
+            remoteEntities.map { mapEntityToDomain(it) }
         }
     }
 

@@ -39,6 +39,12 @@ data class UnifiedProductEntity(
     val picture: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
+    @SerialName("hotel_rating") val hotelRating: Double = 8.0,
+    @SerialName("beach_line") val beachLine: Int = 1,
+    @SerialName("is_instant_confirmation") val isInstantConfirmation: Boolean = true,
+    @SerialName("has_transfer") val hasTransfer: Boolean = true,
+    @SerialName("is_direct_flight") val isDirectFlight: Boolean = true,
+    val amenities: List<String> = emptyList(),
     @SerialName("is_published") val isPublished: Boolean = true,
     @SerialName("custom_price_override") val customPriceOverride: Double? = null,
     @SerialName("created_at") val createdAt: String? = null

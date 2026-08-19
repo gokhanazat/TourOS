@@ -24,12 +24,12 @@ data class SystemCacheConfig(
     val catalog_ttl_hours: Int = 24,
     val auto_flush_on_price_change: Boolean = true,
     val enabled_providers: List<String> = listOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Travelata", "SunExpress", "Paximum", "Amadeus"),
-    val total_requests_served: Long = 14200L,
-    val total_cache_hits: Long = 11928L,
+    val total_requests_served: Long = 0L,
+    val total_cache_hits: Long = 0L,
     val last_flushed_at: String = ""
 ) {
     val hitRatePercent: Int
-        get() = if (total_requests_served > 0) ((total_cache_hits.toDouble() / total_requests_served) * 100).toInt() else 84
+        get() = if (total_requests_served > 0) ((total_cache_hits.toDouble() / total_requests_served) * 100).toInt() else 0
 }
 
 data class CacheItem(

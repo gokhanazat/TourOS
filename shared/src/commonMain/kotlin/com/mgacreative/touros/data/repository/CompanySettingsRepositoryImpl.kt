@@ -93,6 +93,9 @@ class CompanySettingsRepositoryImpl(
                     promoBannerTargetUrl = cachedSettings?.promoBannerTargetUrl,
                     promoBanners = promoBanners,
                     serviceCards = serviceCards,
+                    desktopAppUrl = branding?.desktopAppUrl ?: entity.desktopAppUrl ?: cachedSettings?.desktopAppUrl,
+                    androidApkUrl = branding?.androidApkUrl ?: entity.androidApkUrl ?: cachedSettings?.androidApkUrl,
+                    isAppDownloadActive = branding?.isAppDownloadActive ?: entity.isAppDownloadActive ?: cachedSettings?.isAppDownloadActive ?: true,
                     bankName = entity.bankName ?: cachedSettings?.bankName,
                     iban = entity.iban ?: cachedSettings?.iban,
                     accountHolder = entity.accountHolder ?: cachedSettings?.accountHolder,
@@ -159,6 +162,9 @@ class CompanySettingsRepositoryImpl(
                 put("web_tax_number", settings.webTaxNumber)
                 put("promo_banners", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.PromoBannerItem.serializer()), settings.promoBanners))
                 put("service_cards", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.ServiceCardItem.serializer()), settings.serviceCards))
+                settings.desktopAppUrl?.let { put("desktop_app_url", it) }
+                settings.androidApkUrl?.let { put("android_apk_url", it) }
+                put("is_app_download_active", settings.isAppDownloadActive)
                 settings.bankName?.let { put("bank_name", it) }
                 settings.iban?.let { put("iban", it) }
                 settings.accountHolder?.let { put("account_holder", it) }
@@ -204,6 +210,9 @@ class CompanySettingsRepositoryImpl(
                 put("web_tax_number", settings.webTaxNumber)
                 put("promo_banners", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.PromoBannerItem.serializer()), settings.promoBanners))
                 put("service_cards", json.encodeToJsonElement(kotlinx.serialization.builtins.ListSerializer(com.mgacreative.touros.domain.model.ServiceCardItem.serializer()), settings.serviceCards))
+                settings.desktopAppUrl?.let { put("desktop_app_url", it) }
+                settings.androidApkUrl?.let { put("android_apk_url", it) }
+                put("is_app_download_active", settings.isAppDownloadActive)
                 if (!settings.logoUrl.isNullOrBlank()) {
                     put("custom_logo_url", settings.logoUrl)
                     put("logo_url", settings.logoUrl)

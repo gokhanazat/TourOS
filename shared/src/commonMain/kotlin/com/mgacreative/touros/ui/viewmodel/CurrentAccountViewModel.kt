@@ -40,7 +40,7 @@ class CurrentAccountViewModel(
 
     private fun resolveTenantId(userTenantId: String?): String {
         val tid = userTenantId?.trim()
-        return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else "00000000-0000-0000-0000-000000000001"
+        return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else ""
     }
 
     fun loadData(entityTypeFilter: String? = null, query: String = "") {

@@ -77,7 +77,10 @@ data class CompanySettings(
     val paypalEmail: String? = null,
     val paypalMeUrl: String? = null,
     val defaultMasterAgencyId: String? = "00000000-0000-0000-0000-000000000001",
-    val defaultMasterAgencyCode: String? = "AGN-MASTER"
+    val defaultMasterAgencyCode: String? = "AGN-MASTER",
+    val desktopAppUrl: String? = null,
+    val androidApkUrl: String? = null,
+    val isAppDownloadActive: Boolean = true
 ) {
     fun getEffectiveServiceCards(): List<ServiceCardItem> {
         val validList = serviceCards.filter { it.title.isNotBlank() || it.imageUrl.isNotBlank() }

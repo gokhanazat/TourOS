@@ -22,5 +22,5 @@ data class DataFeedSource(
     @SerialName("last_synced_at") val lastSyncedAt: String = "Henüz Veri Çekilmedi",
     @SerialName("synced_record_count") val syncedRecordCount: Int = 0,
     @SerialName("status_message") val statusMessage: String? = "Yapılandırıldı - Beklemede",
-    @SerialName("created_at") val createdAt: String = ""
+    @SerialName("created_at") val createdAt: String? = null
 )

@@ -68,6 +68,17 @@ data class PassengerInfo(
     var isInfantSeatRequested: Boolean = false
 )
 
+@kotlinx.serialization.Serializable
+data class SearchFilterMetadataDto(
+    val departure_cities: List<String> = emptyList(),
+    val countries: List<String> = emptyList(),
+    val regions: List<String> = emptyList(),
+    val operators: List<String> = emptyList(),
+    val currencies: List<String> = emptyList(),
+    val min_price: Double = 0.0,
+    val max_price: Double = 500000.0
+)
+
 sealed class B2BTourSearchUiState {
     data object Loading : B2BTourSearchUiState()
     data class Success(
@@ -87,6 +98,7 @@ class B2BTourSearchViewModel(
 
     private val _uiState = MutableStateFlow<B2BTourSearchUiState>(B2BTourSearchUiState.Loading)
     val uiState: StateFlow<B2BTourSearchUiState> = _uiState.asStateFlow()
+    val searchFilterMetadata = MutableStateFlow<SearchFilterMetadataDto?>(null)
 
     // Arama Parametreleri State
     var departureCity = MutableStateFlow("Moskova")
@@ -269,6 +281,20 @@ class B2BTourSearchViewModel(
             val memoryItems = AgencyProductPublishingViewModel.getPersistentProducts()
             val combined = (items + localHotelProducts + localTourProducts + sampleFlightProducts + memoryItems).distinctBy { it.id }
             val filtered = filterProducts(combined)
+
+            val dbDepartureCities = combined.map { it.departureCity }.filter { it.isNotBlank() && it != "Yerel Otel" }.distinct().sorted()
+            val dbCountries = combined.map { it.country }.filter { it.isNotBlank() }.distinct().sorted()
+            val dbRegions = combined.map { it.region }.filter { it.isNotBlank() }.distinct().sorted()
+            val dbOperators = combined.map { it.operatorName }.filter { it.isNotBlank() }.distinct().sorted()
+            val dbCurrencies = combined.map { it.currency }.filter { it.isNotBlank() }.distinct().sorted()
+
+            searchFilterMetadata.value = SearchFilterMetadataDto(
+                departure_cities = dbDepartureCities.ifEmpty { listOf("Moskova", "Saint Petersburg", "Kazan", "Yekaterinburg", "İstanbul") },
+                countries = dbCountries.ifEmpty { listOf("Türkiye", "Mısır", "BAE", "Rusya", "Tayland") },
+                regions = dbRegions.ifEmpty { listOf("Alanya", "Antalya", "Belek", "Kemer", "Side", "Marmaris", "Bodrum") },
+                operators = dbOperators.ifEmpty { listOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Biblio Globus", "Fun & Sun", "Tez Tour") },
+                currencies = dbCurrencies.ifEmpty { listOf("RUB", "TRY", "EUR", "USD") }
+            )
 
             _uiState.value = B2BTourSearchUiState.Success(
                 allProducts = combined,

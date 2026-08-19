@@ -126,7 +126,7 @@ val navigationGroups = listOf(
         )
     ),
     NavigationGroup(
-        title = "PREMIUM ✨",
+        title = "PREMIUM",
         items = listOf(
             NavigationItem(
                 title = "OTA & Kanal Yöneticisi",

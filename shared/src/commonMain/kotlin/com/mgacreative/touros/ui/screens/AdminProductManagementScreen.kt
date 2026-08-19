@@ -448,6 +448,7 @@ private fun DataFeedEditModalDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf(
+                        Triple("🇷🇺 TourVisor (Rusya)", "https://api.tourvisor.ru/search/api/v1", "🇷🇺"),
                         Triple("✈️ Paximum / SanTSG", "https://api.paximum.com/v2/service", "✈️"),
                         Triple("🌴 Coral / Odeon", "https://b2bapi.coraltravel.com/api/v1", "🌴"),
                         Triple("🏖️ Pegas Touristik", "https://api.pegast.com/v1/search", "🏖️"),
@@ -460,6 +461,9 @@ private fun DataFeedEditModalDialog(
                                 sourceName = name
                                 endpointUrl = defaultUrl
                                 logoIcon = icon
+                                if (name.contains("TourVisor")) {
+                                    syncInterval = "30_MIN"
+                                }
                             },
                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                             shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)

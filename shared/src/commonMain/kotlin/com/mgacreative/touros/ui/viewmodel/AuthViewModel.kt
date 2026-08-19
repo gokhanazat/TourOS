@@ -31,10 +31,10 @@ class AuthViewModel(
 
     val currentUserState: StateFlow<User?> = getCurrentUserUseCase.observe()
 
-    fun login(email: String, password: String) {
+    fun login(email: String, password: String, agencyCode: String = "") {
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
-            loginUseCase(email, password)
+            loginUseCase(email, password, agencyCode)
                 .onSuccess { user ->
                     _uiState.value = AuthUiState.Success(user)
                 }
@@ -61,27 +61,39 @@ class AuthViewModel(
 
     private fun mapAuthErrorMessage(rawMessage: String?): String {
         if (rawMessage.isNullOrBlank()) {
-            return "Giriş yapılırken beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."
+            return "İşlem sırasında beklenmeyen bir hata oluştu. Lütfen tekrar deneyin."
         }
         val msg = rawMessage.lowercase()
         return when {
+            msg.contains("sending confirmation email") || msg.contains("error sending confirmation email") -> {
+                "Doğrulama e-postası gönderilemedi. Lütfen Supabase panelinden 'Confirm email' ayarını kapatın veya SMTP mail ayarlarınızı yapılandırın."
+            }
             msg.contains("invalid_credentials") || msg.contains("invalid login credentials") || msg.contains("grant_type=password") -> {
                 "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
             }
             msg.contains("email_not_confirmed") || msg.contains("email not confirmed") -> {
-                "E-posta adresiniz henüz doğrulanmamış. Lütfen gelen kutunuzu doğrulayın."
+                "E-posta adresiniz henüz doğrulanmamış. Lütfen gelen kutunuzdaki onay bağlantısına tıklayın."
             }
-            msg.contains("user_already_exists") || msg.contains("user already registered") -> {
-                "Bu e-posta adresiyle zaten kayıtlı bir hesap mevcut."
+            msg.contains("user_already_exists") || msg.contains("user already registered") || msg.contains("already registered") || msg.contains("23505") -> {
+                "Bu e-posta adresiyle zaten kayıtlı bir hesap mevcut. Giriş yapabilirsiniz."
+            }
+            msg.contains("weak_password") || msg.contains("password should be at least") || (msg.contains("password") && msg.contains("short")) -> {
+                "Şifreniz en az 6 karakter olmalı ve yeterli güvenlik seviyesini sağlamalıdır."
+            }
+            msg.contains("signup_disabled") || msg.contains("signups not allowed") -> {
+                "Sistemde yeni üye kaydı şu an kapalıdır. Lütfen sistem yöneticisiyle iletişime geçin."
+            }
+            msg.contains("invalid_email") || msg.contains("valid email") || msg.contains("email format") -> {
+                "Lütfen geçerli bir e-posta adresi giriniz."
             }
             msg.contains("too_many_requests") || msg.contains("rate limit") -> {
-                "Çok fazla hatalı giriş denemesi yapıldı. Lütfen kısa bir süre sonra tekrar deneyin."
+                "Çok fazla istek yapıldı. Lütfen kısa bir süre bekleyip tekrar deneyin."
             }
-            msg.contains("network") || msg.contains("timeout") || msg.contains("connection") -> {
+            msg.contains("network") || msg.contains("timeout") || msg.contains("connection") || msg.contains("unable to resolve") -> {
                 "İnternet bağlantısı kurulamadı. Lütfen ağ bağlantınızı kontrol edin."
             }
             else -> {
-                "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edin."
+                "Kayıt işlemi başarısız: $rawMessage"
             }
         }
     }

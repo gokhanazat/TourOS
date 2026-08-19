@@ -225,7 +225,12 @@ fun LoginScreen(
                     text = "Giriş Yap",
                     onClick = {
                         localValidationError = null
-                        viewModel.login(email, password)
+                        val isSuperAdmin = email.trim().equals("gkhnazat@gmail.com", ignoreCase = true)
+                        if (!isSuperAdmin && agencyCode.isBlank()) {
+                            localValidationError = "Acente girişi için lütfen yöneticiniz tarafından atanan Acente Kodunu giriniz."
+                            return@TourOSButton
+                        }
+                        viewModel.login(email, password, agencyCode)
                     },
                     modifier = Modifier.fillMaxWidth(),
                     variant = TourOSButtonVariant.PRIMARY,

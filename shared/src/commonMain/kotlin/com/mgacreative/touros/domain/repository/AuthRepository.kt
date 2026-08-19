@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
  */
 interface AuthRepository {
     suspend fun signUpWithEmail(email: String, password: String, fullName: String): Result<User>
-    suspend fun signInWithEmail(email: String, password: String): Result<User>
+    suspend fun signInWithEmail(email: String, password: String, agencyCode: String = ""): Result<User>
     suspend fun signOut(): Result<Unit>
     suspend fun getCurrentUser(): User?
     fun observeAuthState(): StateFlow<User?>

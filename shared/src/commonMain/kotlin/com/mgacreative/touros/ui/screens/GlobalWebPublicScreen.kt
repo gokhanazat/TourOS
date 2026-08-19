@@ -383,6 +383,11 @@ fun GlobalWebPublicScreen(
     var showLanguageDropdown by remember { mutableStateOf(false) }
     var companySettings by remember { mutableStateOf<CompanySettings?>(null) }
 
+    LaunchedEffect(currentUser?.tenantId) {
+        val tid = currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001"
+        companySettings = companySettingsRepository.getCompanySettings(tid).getOrNull()
+    }
+
     // Filtreleme State'leri
     var searchQuery by remember { mutableStateOf("") }
     var selectedSearchCategoryTab by remember { mutableStateOf("ALL") } // "ALL", "PACKAGE_TOUR", "HOTEL", "FLIGHT", "LAST_MINUTE"
@@ -866,7 +871,7 @@ fun GlobalWebPublicScreen(
                                         Spacer(modifier = Modifier.width(10.dp))
                                     }
                                     val currentName = companySettings?.name?.ifBlank { "axileto" } ?: "axileto"
-                                    if (!isValidLogo && (currentName.equals("axileto", ignoreCase = true) || currentName.equals("TourOS", ignoreCase = true) || currentName.equals("TourOS Travels", ignoreCase = true))) {
+                                    if (!isValidLogo && (currentName.equals("axileto", ignoreCase = true) || currentName.equals("TourOS", ignoreCase = true) || currentName.equals("TourOS Travels", ignoreCase = true) || currentName.equals("TourOS Acente", ignoreCase = true))) {
                                         AxiletoLogoText(aFontSize = 32.sp, xiletoFontSize = 22.sp, color = Color.White)
                                     } else {
                                         Text(
@@ -881,7 +886,7 @@ fun GlobalWebPublicScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
-                                    // 🌐 Düz Beyaz Font Dil Seçici (TR | EN | RU)
+                                    // Düz Beyaz Font Dil Seçici (TR | EN | RU)
                                     LanguageSelector(
                                         selectedLanguage = when (currentLang.code) {
                                             "ru" -> AppLanguage.RU
@@ -908,12 +913,11 @@ fun GlobalWebPublicScreen(
                                             ) {
                                                 Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
                                                 Text(text = "Admin Paneli", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
-                                                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
                                             }
                                         }
                                     }
 
-                                    // 🧳 Misafir / 🏢 Acenta Seçici Segment Butonları
+                                    // Misafir / Acenta Seçici Segment Butonları
                                     Row(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
@@ -922,8 +926,8 @@ fun GlobalWebPublicScreen(
                                             .padding(2.dp),
                                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
-                                        val guestLabel = "🧳 Misafir"
-                                        val agencyLabel = if (currentUser != null) "🏢 Acenta Paneli ➔" else "🏢 Acenta"
+                                        val guestLabel = "Misafir"
+                                        val agencyLabel = if (currentUser != null) "Acenta Paneli" else "Acenta"
 
                                         listOf(guestLabel, agencyLabel).forEach { modeLabel ->
                                             val isGuest = modeLabel.contains("Misafir")
@@ -1034,23 +1038,21 @@ fun GlobalWebPublicScreen(
                                 )
                         )
 
-                        // Sol Alt Slogan ve Başlık (Screenshot ile Birebir)
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(28.dp)
-                                .widthIn(max = 600.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = companySettings?.heroSubtitle?.ifBlank { "Explore the world with confidence and unforgettable experiences." }
-                                    ?: "Explore the world with confidence and unforgettable experiences.",
-                                style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp)
-                            )
-                            Text(
-                                text = "Dünyanın en seçkin 5 yıldızlı otelleri ve canlı tur paketlerinde canlı karşılaştırmalı fırsatları keşfedin.",
-                                style = TourOSTypography.BodyMedium.copy(color = Color(0xFFE2E8F0))
-                            )
+                        // Sol Alt Slogan (Yalnızca CMS'ten metin girilmişse gösterilir)
+                        val customHeroText = companySettings?.heroSubtitle?.trim().orEmpty()
+                        if (customHeroText.isNotBlank()) {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomStart)
+                                    .padding(28.dp)
+                                    .widthIn(max = 600.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = customHeroText,
+                                    style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp)
+                                )
+                            }
                         }
                     }
                 }
@@ -3047,28 +3049,91 @@ fun OurServicesSection(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
-                // Header (Başlık & Açıklama)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                // 📥 Uygulama İndirme Butonları (Windows Desktop .exe & Android .apk)
+                val uriHandler = LocalUriHandler.current
+                val desktopUrl = companySettings?.desktopAppUrl?.trim().takeIf { !it.isNullOrBlank() } ?: "https://axileto.com/downloads/TourOS-Desktop.exe"
+                val apkUrl = companySettings?.androidApkUrl?.trim().takeIf { !it.isNullOrBlank() } ?: "https://axileto.com/downloads/TourOS-Mobile.apk"
+
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                 ) {
-                    Text(
-                        text = "Hizmetlerimizi Keşfedin / Our Services",
-                        style = TourOSTypography.TitleLarge.copy(
-                            color = Color(0xFF0D5653),
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 26.sp
-                        )
-                    )
-                    Text(
-                        text = "Zengin destinasyon ağımız, lüks otel rezervasyonlarımız, uygun fiyatlı charter uçuşlarımız ve 7/24 acente desteğimiz ile kusursuz seyahat çözümleri sunuyoruz.",
-                        style = TourOSTypography.BodyMedium.copy(
-                            color = Color(0xFF64748B),
-                            fontSize = 13.sp
-                        ),
-                        modifier = Modifier.widthIn(max = 850.dp),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
+                    Surface(
+                        modifier = Modifier
+                            .widthIn(min = 200.dp, max = 240.dp)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                runCatching { uriHandler.openUri(desktopUrl) }
+                            },
+                        color = Color(0xFF0D5653),
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Windows Masaüstü (.exe)",
+                                style = TourOSTypography.BodyMedium.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            )
+                            Text(
+                                text = "Hemen İndir & Kur",
+                                style = TourOSTypography.Caption.copy(
+                                    color = Color(0xFFB0ECE4),
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Surface(
+                        modifier = Modifier
+                            .widthIn(min = 200.dp, max = 240.dp)
+                            .height(46.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable {
+                                runCatching { uriHandler.openUri(apkUrl) }
+                            },
+                        color = Color(0xFF1E293B),
+                        shadowElevation = 2.dp
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Android Mobil (.apk)",
+                                style = TourOSTypography.BodyMedium.copy(
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            )
+                            Text(
+                                text = "Doğrudan İndir & Yükle",
+                                style = TourOSTypography.Caption.copy(
+                                    color = Color(0xFF94A3B8),
+                                    fontSize = 10.sp
+                                )
+                            )
+                        }
+                    }
                 }
 
                 // 6'lı Kart Grid Düzeni (3 Kolon x 2 Satır)

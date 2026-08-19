@@ -28,6 +28,9 @@ data class AgencyBrandingEntity(
     @SerialName("meta_description") val metaDescription: String? = null,
     @SerialName("promo_banners") val promoBanners: List<PromoBannerItem> = emptyList(),
     @SerialName("service_cards") val serviceCards: List<ServiceCardItem> = emptyList(),
+    @SerialName("desktop_app_url") val desktopAppUrl: String? = null,
+    @SerialName("android_apk_url") val androidApkUrl: String? = null,
+    @SerialName("is_app_download_active") val isAppDownloadActive: Boolean? = true,
     @SerialName("created_at") val createdAt: String = "",
     @SerialName("updated_at") val updatedAt: String = ""
 )

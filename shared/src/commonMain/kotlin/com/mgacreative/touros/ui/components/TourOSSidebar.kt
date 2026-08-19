@@ -144,11 +144,11 @@ fun TourOSSidebar(
                                 )
                             )
                             Text(
-                                text = if (isExpanded) "▾" else "▸",
+                                text = if (isExpanded) "—" else "+",
                                 style = TourOSTypography.TitleMedium.copy(
                                     color = TourOSColors.Primary,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                    fontSize = 15.sp
+                                    fontSize = 14.sp
                                 )
                             )
                         }
@@ -217,8 +217,18 @@ fun TourOSSidebar(
                 }
 
                 if (onLogoutClick != null) {
-                    IconButton(onClick = onLogoutClick) {
-                        Text("🚪", style = TourOSTypography.TitleMedium)
+                    androidx.compose.material3.TextButton(
+                        onClick = onLogoutClick,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Çıkış",
+                            style = TourOSTypography.Caption.copy(
+                                color = TourOSColors.Error,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        )
                     }
                 }
             }

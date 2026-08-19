@@ -17,6 +17,9 @@ class TourRepositoryImpl(
 
     override suspend fun getTours(tenantId: String): Result<List<Tour>> {
         return runCatching {
+            if (tenantId != "ALL" && !tenantId.isValidUuid()) {
+                return@runCatching emptyList()
+            }
             val entities = supabaseClient.postgrest.from("tours")
                 .select {
                     filter {

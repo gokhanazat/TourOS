@@ -17,22 +17,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.data.cache.SystemCacheManager
+import com.mgacreative.touros.data.database.entity.AgencyOperatorConnectionEntity
 import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
 import com.mgacreative.touros.ui.components.TourOSTopBar
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSTypography
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
 import org.koin.compose.koinInject
 
 /**
- * 👑 SAAS ADMİN PANELİ: Önbellek & API Performansı Yönetim Masası.
+ * SAAS ADMİN PANELİ: Önbellek & API Performansı Yönetim Masası.
  * Tüm dış operatör API'lerinin önbellek süreleri (TTL), anlık tasarruf oranları ve cache temizliği buradan yönetilir.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SaasCacheManagementScreen(
     onNavigateBack: () -> Unit = {},
-    systemCacheManager: SystemCacheManager = koinInject()
+    systemCacheManager: SystemCacheManager = koinInject(),
+    supabaseClient: SupabaseClient = koinInject()
 ) {
     val cacheConfig by systemCacheManager.config.collectAsState()
     var saveNotification by remember { mutableStateOf<String?>(null) }
@@ -43,10 +48,40 @@ fun SaasCacheManagementScreen(
     var autoFlushOnPriceChange by remember(cacheConfig) { mutableStateOf(cacheConfig.auto_flush_on_price_change) }
     var enabledProviders by remember(cacheConfig) { mutableStateOf(cacheConfig.enabled_providers.toSet()) }
 
+    // Veritabanından Dinamik Gelen Operatör Listesi
+    var dynamicOperators by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        runCatching {
+            val connections = supabaseClient.postgrest["agency_operator_connections"].select {
+                filter { eq("status", "ACTIVE") }
+            }.decodeList<AgencyOperatorConnectionEntity>()
+            val names = connections.map { it.operatorName.trim() }.filter { it.isNotBlank() }.distinct()
+            if (names.isNotEmpty()) {
+                dynamicOperators = names
+            }
+        }.onFailure {
+            // Sessiz fallback
+        }
+    }
+
+    val defaultFallbackProviders = listOf(
+        "Coral Travel",
+        "Pegas Touristik",
+        "Anex Tour",
+        "Travelata",
+        "SunExpress",
+        "Paximum",
+        "Amadeus"
+    )
+    val effectiveProviders = remember(dynamicOperators) {
+        (dynamicOperators + defaultFallbackProviders).distinct()
+    }
+
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = AppLanguageManager.translate("👑 SaaS Admin - Önbellek & API Performansı (Caching)"),
+                title = AppLanguageManager.translate("SaaS Admin - Önbellek & API Performansı (Caching)"),
                 subtitle = AppLanguageManager.translate("Merkezi Dış API Sorgu Kotası, TTL Süreleri, Önbellek & Performans Yönetimi")
             )
         },
@@ -91,7 +126,7 @@ fun SaasCacheManagementScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "⚡ Önbellek & API Performans Yönetim Masası",
+                                "Önbellek & API Performans Yönetim Masası",
                                 style = TourOSTypography.TitleLarge.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
                             )
                             Box(
@@ -116,17 +151,17 @@ fun SaasCacheManagementScreen(
                         Button(
                             onClick = {
                                 systemCacheManager.flushAllCache { count ->
-                                    saveNotification = "🧹 $count adet önbellek kaydı başarıyla temizlendi! Tüm aramalar canlı API'ye yönlendirildi."
+                                    saveNotification = "$count adet önbellek kaydı başarıyla temizlendi! Tüm aramalar canlı API'ye yönlendirildi."
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444), contentColor = Color.White),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Önbelleği Boşalt (Flush) 🧹", fontWeight = FontWeight.Bold)
+                            Text("Önbelleği Boşalt (Flush)", fontWeight = FontWeight.Bold)
                         }
 
                         TourOSButton(
-                            text = "Ayarları Kaydet 💾",
+                            text = "Ayarları Kaydet",
                             onClick = {
                                 val updated = cacheConfig.copy(
                                     is_caching_enabled = isCachingEnabled,
@@ -136,7 +171,7 @@ fun SaasCacheManagementScreen(
                                     enabled_providers = enabledProviders.toList()
                                 )
                                 systemCacheManager.updateConfig(updated) { success ->
-                                    saveNotification = if (success) "✅ Önbellek ayarları ve TTL süreleri başarıyla kaydedildi!" else "⚠️ Ayarlar kaydedilirken hata oluştu."
+                                    saveNotification = if (success) "Önbellek ayarları ve TTL süreleri başarıyla kaydedildi!" else "Ayarlar kaydedilirken hata oluştu."
                                 }
                             },
                             variant = TourOSButtonVariant.PRIMARY
@@ -158,7 +193,7 @@ fun SaasCacheManagementScreen(
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("📊 API Kota Tasarruf Oranı", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold))
+                        Text("API Kota Tasarruf Oranı", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold))
                         Text(
                             text = "%${cacheConfig.hitRatePercent} Hit Rate",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF15803D), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
@@ -178,7 +213,7 @@ fun SaasCacheManagementScreen(
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("⚡ Önbellekten Sunulan İstek", style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.Bold))
+                        Text("Önbellekten Sunulan İstek", style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.Bold))
                         Text(
                             text = "${cacheConfig.total_cache_hits} İstek",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0369A1), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
@@ -198,7 +233,7 @@ fun SaasCacheManagementScreen(
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("🧠 Bellekteki Aktif Cache", style = TourOSTypography.Caption.copy(color = Color(0xFF9333EA), fontWeight = FontWeight.Bold))
+                        Text("Bellekteki Aktif Cache", style = TourOSTypography.Caption.copy(color = Color(0xFF9333EA), fontWeight = FontWeight.Bold))
                         Text(
                             text = "${systemCacheManager.getMemoryItemCount()} Ürün / Arama",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF7E22CE), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
@@ -218,19 +253,29 @@ fun SaasCacheManagementScreen(
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text("⏱️ Saklama Süreleri (TTL - Time to Live)", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                    Text("Saklama Süreleri (TTL - Time to Live)", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         // Fiyat TTL
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Canlı Fiyat ve Kontenjan Önbellek Süresi (Dakika)", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
-                            Text("Aynı arama tekrarlandığında fiyatın API'ye gitmeden gösterilme süresi. (Tavsiye: 10 - 20 dk)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf(5, 10, 15, 30, 60).forEach { mins ->
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Canlı Fiyat ve Kontenjan Önbellek Süresi", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                            Text("Aynı arama tekrarlandığında fiyatın API'ye gitmeden gösterilme süresi. (Tavsiye: 15 dk - 2 Saat)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            
+                            val priceTtlOptions = listOf(
+                                15 to "15 Dk",
+                                30 to "30 Dk",
+                                45 to "45 Dk",
+                                60 to "1 Saat",
+                                120 to "2 Saat",
+                                180 to "3 Saat",
+                                240 to "4 Saat",
+                                300 to "5 Saat"
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                priceTtlOptions.forEach { (mins, label) ->
                                     val isSel = (priceTtlMinutes == mins)
                                     Box(
                                         modifier = Modifier
@@ -239,18 +284,30 @@ fun SaasCacheManagementScreen(
                                             .clickable { priceTtlMinutes = mins }
                                             .padding(horizontal = 14.dp, vertical = 8.dp)
                                     ) {
-                                        Text("$mins Dk", color = if (isSel) Color.White else Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text(label, color = if (isSel) Color.White else Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     }
                                 }
                             }
                         }
 
                         // Katalog TTL
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("Sabit Otel / Destinasyon / Tur Bilgileri Süresi (Saat)", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Sabit Otel / Destinasyon / Tur Bilgileri Süresi", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
                             Text("Otel fotoğrafları, konum ve tesis özellikleri gibi nadir değişen veriler. (Tavsiye: 24 - 48 Saat)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf(6, 12, 24, 48, 72).forEach { hrs ->
+                            
+                            val catalogTtlOptions = listOf(
+                                6 to "6 Saat",
+                                12 to "12 Saat",
+                                24 to "24 Saat",
+                                48 to "48 Saat",
+                                72 to "72 Saat",
+                                168 to "1 Hafta"
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                catalogTtlOptions.forEach { (hrs, label) ->
                                     val isSel = (catalogTtlHours == hrs)
                                     Box(
                                         modifier = Modifier
@@ -259,7 +316,7 @@ fun SaasCacheManagementScreen(
                                             .clickable { catalogTtlHours = hrs }
                                             .padding(horizontal = 14.dp, vertical = 8.dp)
                                     ) {
-                                        Text("$hrs Saat", color = if (isSel) Color.White else Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text(label, color = if (isSel) Color.White else Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     }
                                 }
                             }
@@ -275,7 +332,7 @@ fun SaasCacheManagementScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("⚡ Akıllı Önbellek Sistemi (Master Switch)", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                            Text("Akıllı Önbellek Sistemi (Master Switch)", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
                             Text("Devre dışı bırakılırsa tüm aramalar önbellek atlanarak her seferinde doğrudan dış API'ye gönderilir.", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                         }
                         Switch(
@@ -290,7 +347,7 @@ fun SaasCacheManagementScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("🔄 Fiyat Değişiminde Otomatik Temizle", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                            Text("Fiyat Değişiminde Otomatik Temizle", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
                             Text("Operatörden webhook ile fiyat güncellemesi geldiğinde ilgili ürünün önbelleğini anında düşür.", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                         }
                         Switch(
@@ -301,31 +358,21 @@ fun SaasCacheManagementScreen(
                 }
             }
 
-            // 4. Sağlayıcı & Operatör Bazlı Önbellek İzin Listesi
+            // 4. Sağlayıcı & Operatör Bazlı Önbellek İzin Listesi (Veritabanından Dinamik)
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = TourOSColors.Surface),
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("🔌 Aktif Sağlayıcı ve Dış API Önbellek Filtresi", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
-                    Text("Aşağıdaki sağlayıcılar için önbellek sistemini tek tıkla açıp kapatabilirsiniz:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("Aktif Sağlayıcı ve Dış API Önbellek Filtresi", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                    Text("Aşağıdaki sağlayıcılar için önbellek sistemini tek tıkla açıp kapatabilirsiniz (Veritabanından gelen aktif operatörler listelenir):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
 
-                    val allProviders = listOf(
-                        "Coral Travel",
-                        "Pegas Touristik",
-                        "Anex Tour",
-                        "Travelata",
-                        "SunExpress",
-                        "Paximum",
-                        "Amadeus"
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        allProviders.forEach { provider ->
+                        effectiveProviders.forEach { provider ->
                             val isEnabled = enabledProviders.contains(provider)
                             Surface(
                                 modifier = Modifier
