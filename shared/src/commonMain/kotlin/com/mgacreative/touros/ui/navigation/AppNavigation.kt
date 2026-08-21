@@ -57,11 +57,11 @@ private fun NavDestination?.isAuthRoute(): Boolean =
 private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavGroup> {
     val groups = mutableListOf<TourOSNavGroup>()
 
-    // 👑 SAAS ADMİN PANELİ (Sadece Sistem Yöneticisi görebilir)
+    // SAAS ADMİN PANELİ (Sadece Sistem Yöneticisi görebilir)
     if (isSystemAdmin) {
         groups.add(
             TourOSNavGroup(
-                categoryTitle = AppLanguageManager.translate("👑 SAAS ADMİN PANELİ"),
+                categoryTitle = AppLanguageManager.translate("SAAS ADMİN PANELİ"),
                 items = listOf(
                     TourOSNavItem(
                         title = AppLanguageManager.translate("Onay Bekleyen Acenteler"),
@@ -79,6 +79,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                         isSelected = currentRoute?.contains("AgencyQuotaReportRoute") == true
                     ),
                     TourOSNavItem(
+                        title = AppLanguageManager.translate("Acente Cari & Borç Takibi"),
+                        route = AdminAgencyLedgerRoute,
+                        isSelected = currentRoute?.contains("AdminAgencyLedgerRoute") == true
+                    ),
+                    TourOSNavItem(
                         title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
                         route = GlobalWebCmsRoute,
                         isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
@@ -94,7 +99,7 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                         isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
                     ),
                     TourOSNavItem(
-                        title = AppLanguageManager.translate("🚀 Sürüm & Dağıtım (CI/CD)"),
+                        title = AppLanguageManager.translate("Sürüm & Dağıtım (CI/CD)"),
                         route = AdminDeploymentRoute,
                         isSelected = currentRoute?.contains("AdminDeploymentRoute") == true
                     )
@@ -509,6 +514,24 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<AgencySearchRoute> {
             AgencySearchScreen()
+        }
+
+        composable<AgencyQuotaReportRoute> {
+            AgencyQuotaReportScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<AdminAgencyLedgerRoute> {
+            AdminAgencyLedgerScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<AdminDeploymentRoute> {
+            AdminDeploymentScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<GlobalWebCmsRoute> {

@@ -47,6 +47,8 @@ data class AgencySearchResultDto(
     val subscription_start_date: String? = null,
     val subscription_end_date: String? = null,
     val remaining_days: Int = 365,
+    val daily_query_quota: Int = 250,
+    val today_queries: Int = 0,
     val monthly_query_quota: Int = 5000,
     val current_month_queries: Int = 0,
     val created_at: String
@@ -78,6 +80,8 @@ fun AgencySearchScreen() {
     var editStartDate by remember { mutableStateOf("2026-08-16") }
     var editEndDate by remember { mutableStateOf("2027-08-16") }
     var editRemainingDays by remember { mutableStateOf(365) }
+    var editDailyQuota by remember { mutableStateOf("250") }
+    var editTodayQueries by remember { mutableStateOf("0") }
     var editMonthlyQuota by remember { mutableStateOf("5000") }
     var editCurrentQueries by remember { mutableStateOf("0") }
     var isSaving by remember { mutableStateOf(false) }
@@ -104,6 +108,8 @@ fun AgencySearchScreen() {
                         editStartDate = first.subscription_start_date?.take(10) ?: first.created_at.take(10)
                         editEndDate = first.subscription_end_date?.take(10) ?: "2027-08-16"
                         editRemainingDays = first.remaining_days
+                        editDailyQuota = first.daily_query_quota.toString()
+                        editTodayQueries = first.today_queries.toString()
                         editMonthlyQuota = first.monthly_query_quota.toString()
                         editCurrentQueries = first.current_month_queries.toString()
                     }
@@ -127,6 +133,8 @@ fun AgencySearchScreen() {
                             subscription_start_date = "2026-08-16",
                             subscription_end_date = "2027-08-16",
                             remaining_days = 365,
+                            daily_query_quota = 250,
+                            today_queries = 45,
                             monthly_query_quota = 5000,
                             current_month_queries = 1420,
                             created_at = "2026-08-16T10:00:00Z"
@@ -146,6 +154,8 @@ fun AgencySearchScreen() {
                             subscription_start_date = "2026-08-10",
                             subscription_end_date = "2027-08-10",
                             remaining_days = 359,
+                            daily_query_quota = 1000,
+                            today_queries = 380,
                             monthly_query_quota = 25000,
                             current_month_queries = 8450,
                             created_at = "2026-08-10T12:00:00Z"
@@ -156,6 +166,8 @@ fun AgencySearchScreen() {
                     editStartDate = selectedAgency?.subscription_start_date?.take(10) ?: "2026-08-16"
                     editEndDate = selectedAgency?.subscription_end_date?.take(10) ?: "2027-08-16"
                     editRemainingDays = selectedAgency?.remaining_days ?: 365
+                    editDailyQuota = selectedAgency?.daily_query_quota?.toString() ?: "250"
+                    editTodayQueries = selectedAgency?.today_queries?.toString() ?: "0"
                     editMonthlyQuota = selectedAgency?.monthly_query_quota?.toString() ?: "5000"
                     editCurrentQueries = selectedAgency?.current_month_queries?.toString() ?: "0"
                 }
@@ -175,6 +187,8 @@ fun AgencySearchScreen() {
             editStartDate = agency.subscription_start_date?.take(10) ?: agency.created_at.take(10)
             editEndDate = agency.subscription_end_date?.take(10) ?: "2027-08-16"
             editRemainingDays = agency.remaining_days
+            editDailyQuota = agency.daily_query_quota.toString()
+            editTodayQueries = agency.today_queries.toString()
             editMonthlyQuota = agency.monthly_query_quota.toString()
             editCurrentQueries = agency.current_month_queries.toString()
         }
@@ -182,6 +196,8 @@ fun AgencySearchScreen() {
 
     fun saveAgencySubscriptionAndQuota() {
         val agency = selectedAgency ?: return
+        val dailyQuotaInt = editDailyQuota.toIntOrNull() ?: 250
+        val todayQueriesInt = editTodayQueries.toIntOrNull() ?: 0
         val quotaInt = editMonthlyQuota.toIntOrNull() ?: 5000
         val currentQueriesInt = editCurrentQueries.toIntOrNull() ?: 0
 
@@ -195,11 +211,13 @@ fun AgencySearchScreen() {
                     put("p_is_active", editIsActive)
                     put("p_subscription_start_date", editStartDate)
                     put("p_subscription_end_date", editEndDate)
+                    put("p_daily_query_quota", dailyQuotaInt)
+                    put("p_today_queries", todayQueriesInt)
                     put("p_monthly_query_quota", quotaInt)
                     put("p_current_month_queries", currentQueriesInt)
                 }
                 supabase.postgrest.rpc("update_agency_subscription_and_quota", params)
-                successMsg = "✅ '${agency.agency_name}' lisans ve sorgu kotası başarıyla güncellendi."
+                successMsg = "✅ '${agency.agency_name}' lisans, günlük & aylık sorgu kotası başarıyla güncellendi."
             } catch (e: Exception) {
                 successMsg = "✅ '${agency.agency_name}' lisans ve kota durumu kaydedildi."
             } finally {
@@ -210,6 +228,8 @@ fun AgencySearchScreen() {
                             subscription_start_date = editStartDate,
                             subscription_end_date = editEndDate,
                             remaining_days = editRemainingDays,
+                            daily_query_quota = dailyQuotaInt,
+                            today_queries = todayQueriesInt,
                             monthly_query_quota = quotaInt,
                             current_month_queries = currentQueriesInt
                         )
@@ -607,7 +627,7 @@ fun AgencySearchScreen() {
                                 }
                             }
 
-                            // ─── 2. ARAMA & API SORGU KOTASI YÖNETİMİ ────────────────────
+                            // ─── 2. GÜNLÜK & AYLIK ARAMA SORGU KOTASI YÖNETİMİ ───────────────
                             Surface(
                                 shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
                                 color = TourOSColors.SurfaceVariant.copy(alpha = 0.4f),
@@ -619,24 +639,72 @@ fun AgencySearchScreen() {
                                     verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                 ) {
                                     Text(
-                                        "📊 2. Aylık API & Arama Sorgu Kotası",
+                                        "📊 2. Günlük & Aylık API / Arama Kotaları",
                                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                                     )
                                     Text(
-                                        "Acentenin ay boyunca yapabileceği arama ve API sorgu limitini belirleyin.",
+                                        "Günlük limitler gece 00:00'da, aylık limitler ise ay sonu 00:00'da otomatik sıfırlanır.",
                                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                     )
 
-                                    val quotaNum = editMonthlyQuota.toIntOrNull() ?: 5000
-                                    val currentNum = editCurrentQueries.toIntOrNull() ?: 0
-                                    val usagePercent = if (quotaNum > 0) ((currentNum.toDouble() / quotaNum) * 100).toInt().coerceIn(0, 100) else 0
+                                    // A. GÜNLÜK KOTA VE TÜKETİM BARI
+                                    val dailyQuotaNum = editDailyQuota.toIntOrNull() ?: 250
+                                    val todayNum = editTodayQueries.toIntOrNull() ?: 0
+                                    val dailyUsagePercent = if (dailyQuotaNum > 0) ((todayNum.toDouble() / dailyQuotaNum) * 100).toInt().coerceIn(0, 100) else 0
 
-                                    // CANLI TÜKETİM BARI
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text("Bu Ayki Tüketim: $currentNum / ${if (quotaNum > 0) quotaNum else "Sınırsız"}", style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                                        Text("📅 Bugün: $todayNum / $dailyQuotaNum Arama", style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                                        Text("%$dailyUsagePercent Tüketildi", style = TourOSTypography.Label.copy(
+                                            color = if (dailyUsagePercent >= 90) TourOSColors.Secondary else TourOSColors.Primary,
+                                            fontWeight = FontWeight.Bold
+                                        ))
+                                    }
+
+                                    LinearProgressIndicator(
+                                        progress = { (dailyUsagePercent / 100f).coerceIn(0f, 1f) },
+                                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                        color = if (dailyUsagePercent >= 90) TourOSColors.Secondary else TourOSColors.Primary,
+                                        trackColor = TourOSColors.Surface
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                    ) {
+                                        TourOSTextField(
+                                            value = editDailyQuota,
+                                            onValueChange = { editDailyQuota = it },
+                                            label = "Günlük Arama Limiti (00:00 Sıfırlanır)",
+                                            placeholder = "250",
+                                            modifier = Modifier.weight(1f)
+                                        )
+
+                                        OutlinedButton(
+                                            onClick = { editTodayQueries = "0" },
+                                            modifier = Modifier.padding(top = 22.dp),
+                                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+                                        ) {
+                                            Text("🔄 Günü Sıfırla", fontSize = 11.sp)
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    HorizontalDivider(color = TourOSColors.Border.copy(alpha = 0.5f))
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // B. AYLIK KOTA VE TÜKETİM BARI
+                                    val quotaNum = editMonthlyQuota.toIntOrNull() ?: 5000
+                                    val currentNum = editCurrentQueries.toIntOrNull() ?: 0
+                                    val usagePercent = if (quotaNum > 0) ((currentNum.toDouble() / quotaNum) * 100).toInt().coerceIn(0, 100) else 0
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text("🗓️ Bu Ay: $currentNum / ${if (quotaNum > 0) quotaNum else "Sınırsız"}", style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
                                         Text("%$usagePercent Tüketildi", style = TourOSTypography.Label.copy(
                                             color = if (usagePercent >= 90) TourOSColors.Secondary else TourOSColors.Primary,
                                             fontWeight = FontWeight.Bold
@@ -645,13 +713,13 @@ fun AgencySearchScreen() {
 
                                     LinearProgressIndicator(
                                         progress = { (usagePercent / 100f).coerceIn(0f, 1f) },
-                                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                         color = if (usagePercent >= 90) TourOSColors.Secondary else TourOSColors.Primary,
                                         trackColor = TourOSColors.Surface
                                     )
 
                                     // HIZLI KOTA PAKETLERİ BUTONLARI
-                                    Text("Hızlı Kota Şablonu Ata:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                    Text("Aylık Hızlı Paket Seç:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                         modifier = Modifier.fillMaxWidth()
@@ -676,7 +744,7 @@ fun AgencySearchScreen() {
                                         TourOSTextField(
                                             value = editMonthlyQuota,
                                             onValueChange = { editMonthlyQuota = it },
-                                            label = "Özel Aylık Kota (Adet)",
+                                            label = "Özel Aylık Kota (Ay Sonu 00:00 Sıfırlanır)",
                                             placeholder = "5000 (0 = Sınırsız)",
                                             modifier = Modifier.weight(1f)
                                         )
@@ -686,7 +754,7 @@ fun AgencySearchScreen() {
                                             modifier = Modifier.padding(top = 22.dp),
                                             shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
                                         ) {
-                                            Text("🔄 Sayacı Sıfırla", fontSize = 11.sp)
+                                            Text("🔄 Ayı Sıfırla", fontSize = 11.sp)
                                         }
                                     }
                                 }

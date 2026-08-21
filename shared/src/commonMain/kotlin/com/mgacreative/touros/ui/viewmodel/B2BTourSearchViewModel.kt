@@ -12,6 +12,9 @@ import com.mgacreative.touros.domain.model.Passenger
 import com.mgacreative.touros.domain.repository.BookingRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.rpc
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -124,29 +127,80 @@ class B2BTourSearchViewModel(
     val isSavingBooking = MutableStateFlow(false)
     val createdPnrCode = MutableStateFlow("")
 
-    // ─── Acente Sorgu Kotası State (Quota Guard) ─────────────────────────────
+    // ─── Acente Sorgu Kotası State (Quota Guard - Günlük & Aylık) ───────────
+    val dailyQuota = MutableStateFlow(250)
+    val todayQueries = MutableStateFlow(0)
     val monthlyQuota = MutableStateFlow(5000)
-    val currentQueries = MutableStateFlow(1420)
+    val currentQueries = MutableStateFlow(0)
     val isQuotaExceeded = MutableStateFlow(false)
     val quotaErrorMessage = MutableStateFlow<String?>(null)
+    val quotaExceededType = MutableStateFlow<String?>(null) // "DAILY" or "MONTHLY"
 
     init {
         performSearch()
     }
 
-    fun performSearch() {
+@kotlinx.serialization.Serializable
+data class QuotaCheckResultDto(
+    val allowed: Boolean = true,
+    val reason: String? = null,
+    val message: String? = null,
+    val daily_quota: Int = 250,
+    val today_queries: Int = 0,
+    val monthly_quota: Int = 5000,
+    val current_month_queries: Int = 0
+)
+
+    fun performSearch(companyId: String? = null) {
         viewModelScope.launch {
-            // 1. KOTA AŞIM KONTROLÜ (Güvenlik Kalkanı)
-            if (monthlyQuota.value > 0 && currentQueries.value >= monthlyQuota.value) {
-                isQuotaExceeded.value = true
-                quotaErrorMessage.value = "⛔ Aylık arama ve sorgu kotanız dolmuştur (${currentQueries.value} / ${monthlyQuota.value})."
-                _uiState.value = B2BTourSearchUiState.Error("Aylık sorgu kotanız dolmuştur. Lütfen yöneticiniz ile iletişime geçiniz.")
-                return@launch
+            // 1. CANLI GÜNLÜK & AYLIK KOTA KONTROLÜ (RPC Guard)
+            if (!companyId.isNullOrBlank()) {
+                val checkResult = runCatching {
+                    val params = kotlinx.serialization.json.buildJsonObject {
+                        put("p_company_id", companyId)
+                    }
+                    supabaseClient.postgrest.rpc("check_and_increment_agency_quota", params).decodeAs<QuotaCheckResultDto>()
+                }
+
+                checkResult.onSuccess { res ->
+                    dailyQuota.value = res.daily_quota
+                    todayQueries.value = res.today_queries
+                    monthlyQuota.value = res.monthly_quota
+                    currentQueries.value = res.current_month_queries
+
+                    if (!res.allowed) {
+                        val msg = res.message ?: "Arama kotanız dolmuştur."
+                        isQuotaExceeded.value = true
+                        quotaExceededType.value = if (res.reason?.contains("DAILY") == true) "DAILY" else "MONTHLY"
+                        quotaErrorMessage.value = msg
+                        _uiState.value = B2BTourSearchUiState.Error(msg)
+                        return@launch
+                    }
+                }
+            } else {
+                // Yerel / Fallback Koruma
+                if (dailyQuota.value > 0 && todayQueries.value >= dailyQuota.value) {
+                    isQuotaExceeded.value = true
+                    quotaExceededType.value = "DAILY"
+                    val msg = "⚠️ Günlük arama limitinize (${todayQueries.value}/${dailyQuota.value}) ulaştınız. Limitiniz bu gece 00:00'da yenilenecektir."
+                    quotaErrorMessage.value = msg
+                    _uiState.value = B2BTourSearchUiState.Error(msg)
+                    return@launch
+                }
+                if (monthlyQuota.value > 0 && currentQueries.value >= monthlyQuota.value) {
+                    isQuotaExceeded.value = true
+                    quotaExceededType.value = "MONTHLY"
+                    val msg = "⛔ Aylık arama ve sorgu kotanız dolmuştur (${currentQueries.value}/${monthlyQuota.value})."
+                    quotaErrorMessage.value = msg
+                    _uiState.value = B2BTourSearchUiState.Error(msg)
+                    return@launch
+                }
+                todayQueries.value += 1
+                currentQueries.value += 1
             }
 
-            // Kota aşılmamışsa aramayı say ve devam et
-            currentQueries.value += 1
             isQuotaExceeded.value = false
+            quotaExceededType.value = null
             quotaErrorMessage.value = null
             _uiState.value = B2BTourSearchUiState.Loading
 

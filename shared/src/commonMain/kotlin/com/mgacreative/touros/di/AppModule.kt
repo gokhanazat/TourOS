@@ -57,6 +57,7 @@ import org.koin.dsl.module
 val networkModule = module {
     single { SupabaseClientProvider.create() }
     single { com.mgacreative.touros.data.cache.SystemCacheManager(get()) }
+    single { com.mgacreative.touros.data.remote.TourSearchProxyService(get()) }
 }
 
 val repositoryModule = module {
@@ -203,6 +204,7 @@ val viewModelModule = module {
     single { com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel(get(), get(), getOrNull(), getOrNull()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminDataManagementViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminDeploymentViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AdminAgencyLedgerViewModel(get()) }
 }
 
 /**

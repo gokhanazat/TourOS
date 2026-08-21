@@ -51,6 +51,13 @@ fun B2BTourSearchDashboardScreen(
     val passengers by viewModel.passengers.collectAsState()
     val createdPnrCode by viewModel.createdPnrCode.collectAsState()
 
+    val dailyQuota by viewModel.dailyQuota.collectAsState()
+    val todayQueries by viewModel.todayQueries.collectAsState()
+    val monthlyQuota by viewModel.monthlyQuota.collectAsState()
+    val currentQueries by viewModel.currentQueries.collectAsState()
+    val isQuotaExceeded by viewModel.isQuotaExceeded.collectAsState()
+    val quotaErrorMessage by viewModel.quotaErrorMessage.collectAsState()
+
     var activeSearchTab by remember { mutableStateOf("TOURS") } // "TOURS", "HOTELS", "FLIGHTS", "LOCAL_TOURS", "LOCAL_HOTELS"
     var departureCity by remember { mutableStateOf("") }
     var selectedRegion by remember { mutableStateOf("") }
@@ -315,46 +322,99 @@ fun B2BTourSearchDashboardScreen(
                             .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadius))
                             .background(TourOSColors.Surface)
                     ) {
-                        // 1. ÜST SEKMELER (TourOS Kurumsal Teması)
+                        // 1. ÜST SEKMELER (TourOS Kurumsal Teması) + CANLI KOTA ROZETİ
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(TourOSColors.Primary),
-                            horizontalArrangement = Arrangement.Start
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            listOf(
-                                "Paket Turlar" to "TOURS",
-                                "Oteller" to "HOTELS",
-                                "Uçuşlar" to "FLIGHTS",
-                                "Yerel Turlar" to "LOCAL_TOURS",
-                                "Yerel Oteller" to "LOCAL_HOTELS"
-                            ).forEach { (label, key) ->
-                                val isSelected = (activeSearchTab == key)
-                                Surface(
-                                    modifier = Modifier
-                                        .clickable { 
-                                            activeSearchTab = key 
-                                            if (key == "FLIGHTS") {
-                                                departureCity = ""
-                                                selectedRegion = ""
-                                            }
-                                        },
-                                    color = if (isSelected) TourOSColors.PrimaryContainer else Color.Transparent
+                            Row(horizontalArrangement = Arrangement.Start) {
+                                listOf(
+                                    "Paket Turlar" to "TOURS",
+                                    "Oteller" to "HOTELS",
+                                    "Uçuşlar" to "FLIGHTS",
+                                    "Yerel Turlar" to "LOCAL_TOURS",
+                                    "Yerel Oteller" to "LOCAL_HOTELS"
+                                ).forEach { (label, key) ->
+                                    val isSelected = (activeSearchTab == key)
+                                    Surface(
+                                        modifier = Modifier
+                                            .clickable { 
+                                                activeSearchTab = key 
+                                                if (key == "FLIGHTS") {
+                                                    departureCity = ""
+                                                    selectedRegion = ""
+                                                }
+                                            },
+                                        color = if (isSelected) TourOSColors.PrimaryContainer else Color.Transparent
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            modifier = Modifier.padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
+                                            style = TourOSTypography.TitleMedium.copy(
+                                                color = if (isSelected) TourOSColors.Primary else Color.White,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 13.sp
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+
+                            // CANLI GÜNLÜK & AYLIK KOTA ROZETİ
+                            Surface(
+                                color = if (isQuotaExceeded) TourOSColors.Secondary else Color.White.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                                modifier = Modifier.padding(end = TourOSSpacing.medium)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = label,
-                                        modifier = Modifier.padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
-                                        style = TourOSTypography.TitleMedium.copy(
-                                            color = if (isSelected) TourOSColors.Primary else Color.White,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 13.sp
-                                        )
+                                        "📅 Bugün: $todayQueries/$dailyQuota",
+                                        style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    )
+                                    Text("|", style = TourOSTypography.Caption.copy(color = Color.White.copy(alpha = 0.6f)))
+                                    Text(
+                                        "🗓️ Bu Ay: $currentQueries/${if (monthlyQuota > 0) monthlyQuota else "∞"}",
+                                        style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     )
                                 }
                             }
                         }
 
-                        // 2. AKILLI ARAMA BARI (Nereden | Nereye | Başlangıç Tarihi | Bitiş Tarihi | Gece | Turist)
+                        // 2. KOTA AŞIMI KİLİT UYARISI BANNER'I
+                        if (isQuotaExceeded && !quotaErrorMessage.isNullOrBlank()) {
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = TourOSColors.SecondaryContainer,
+                                border = BorderStroke(1.dp, TourOSColors.Secondary.copy(alpha = 0.4f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(TourOSSpacing.medium),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text("⛔", fontSize = 22.sp)
+                                    Column {
+                                        Text(
+                                            text = "Arama ve Canlı Fiyat Sorgulama Kısıtlaması Devrede",
+                                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold)
+                                        )
+                                        Text(
+                                            text = quotaErrorMessage ?: "",
+                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Secondary)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. AKILLI ARAMA BARI (Nereden | Nereye | Başlangıç Tarihi | Bitiş Tarihi | Gece | Turist)
                         Surface(
                             modifier = Modifier.fillMaxWidth(),
                             color = TourOSColors.Background

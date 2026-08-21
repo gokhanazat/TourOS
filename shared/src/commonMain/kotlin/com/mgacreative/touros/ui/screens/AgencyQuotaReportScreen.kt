@@ -153,22 +153,27 @@ fun AgencyQuotaReportScreen(
 
     val filteredList = agencyList.filter { agency ->
         if (showOnlyExceeded) {
-            agency.monthly_query_quota > 0 && agency.current_month_queries >= agency.monthly_query_quota
+            (agency.monthly_query_quota > 0 && agency.current_month_queries >= agency.monthly_query_quota) ||
+            (agency.daily_query_quota > 0 && agency.today_queries >= agency.daily_query_quota)
         } else {
             true
         }
     }
 
     val totalAgencies = agencyList.size
+    val totalTodayQueries = agencyList.sumOf { it.today_queries }
     val totalQueriesUsed = agencyList.sumOf { it.current_month_queries }
-    val exceededCount = agencyList.count { it.monthly_query_quota > 0 && it.current_month_queries >= it.monthly_query_quota }
+    val exceededCount = agencyList.count { 
+        (it.monthly_query_quota > 0 && it.current_month_queries >= it.monthly_query_quota) ||
+        (it.daily_query_quota > 0 && it.today_queries >= it.daily_query_quota)
+    }
 
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
                 title = "Acente Sorgu & Kota Tüketim Raporu",
-                subtitle = "SaaS Admin: Tüm acentelerin aylık arama kotaları, tüketim oranları ve lisans durumu",
+                subtitle = "SaaS Admin: Tüm acentelerin günlük ve aylık arama kotaları, tüketim oranları ve lisans durumu",
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
@@ -178,70 +183,75 @@ fun AgencyQuotaReportScreen(
                     TourOSButton(
                         text = "🖨️ Yazdır / PDF",
                         onClick = { showPrintPreviewDialog = true },
-                        variant = TourOSButtonVariant.SECONDARY,
-                        modifier = Modifier.padding(end = TourOSSpacing.small)
+                        variant = TourOSButtonVariant.SECONDARY
                     )
+                    Spacer(modifier = Modifier.width(TourOSSpacing.small))
                     TourOSButton(
                         text = "📊 Excel İndir",
-                        onClick = {
-                            actionNotification = "✅ Acente kota raporu Excel (CSV) formatında başarıyla dışa aktarıldı."
-                        },
-                        variant = TourOSButtonVariant.SECONDARY,
-                        modifier = Modifier.padding(end = TourOSSpacing.small)
+                        onClick = { actionNotification = "✅ Acente günlük/aylık kota raporu Excel formatında dışa aktarıldı." },
+                        variant = TourOSButtonVariant.SECONDARY
                     )
+                    Spacer(modifier = Modifier.width(TourOSSpacing.small))
                     TourOSButton(
-                        text = "📤 Raporu Paylaş",
-                        onClick = {
-                            actionNotification = "✅ Rapor PDF paylaşım bağlantısı panoya kopyalandı."
-                        },
+                        text = "📩 Raporu Paylaş",
+                        onClick = { actionNotification = "📩 Günlük ve aylık kota raporu SaaS yöneticilerine e-posta ile iletildi." },
                         variant = TourOSButtonVariant.PRIMARY
                     )
                 }
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(TourOSSpacing.large),
+                .padding(paddingValues)
+                .padding(TourOSSpacing.medium),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
-            // Bildirim
+            // BİLDİRİM BANNER'I
             actionNotification?.let { msg ->
                 Surface(
+                    color = TourOSColors.PrimaryContainer,
                     shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
-                    color = TourOSColors.SuccessContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(TourOSSpacing.medium).fillMaxWidth(),
+                        modifier = Modifier.padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(msg, style = TourOSTypography.Label.copy(color = TourOSColors.Success))
-                        Text(
-                            "✕",
-                            modifier = Modifier.clickable { actionNotification = null }.padding(horizontal = 4.dp),
-                            style = TourOSTypography.Label.copy(color = TourOSColors.Success)
-                        )
+                        Text(msg, style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold))
+                        IconButton(onClick = { actionNotification = null }) {
+                            Text("✕", color = TourOSColors.Primary)
+                        }
                     }
                 }
             }
 
-            // ÖZET METRİK KARTLARI
+            // ÖZET KARTLARI (KPI)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
                 TourOSCard(
                     modifier = Modifier.weight(1f),
-                    backgroundColor = TourOSColors.PrimaryContainer,
+                    backgroundColor = TourOSColors.SurfaceVariant.copy(alpha = 0.5f),
                     contentPadding = TourOSSpacing.medium
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("Toplam SaaS Acentesi", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                         Text("$totalAgencies ACENTE", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
+                    }
+                }
+
+                TourOSCard(
+                    modifier = Modifier.weight(1f),
+                    backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.5f),
+                    contentPadding = TourOSSpacing.medium
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Bugünkü Toplam Sorgu", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
+                        Text("$totalTodayQueries ARAMA", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
                     }
                 }
 
@@ -253,17 +263,6 @@ fun AgencyQuotaReportScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text("Bu Ayki Toplam Sorgu", style = TourOSTypography.Caption.copy(color = TourOSColors.Success))
                         Text("$totalQueriesUsed ARAMA", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Success))
-                    }
-                }
-
-                TourOSCard(
-                    modifier = Modifier.weight(1f),
-                    backgroundColor = if (exceededCount > 0) TourOSColors.SecondaryContainer else TourOSColors.Surface,
-                    contentPadding = TourOSSpacing.medium
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Kotası Dolan Acenteler", style = TourOSTypography.Caption.copy(color = if (exceededCount > 0) TourOSColors.Secondary else TourOSColors.TextSecondary))
-                        Text(if (exceededCount > 0) "$exceededCount ACENTE DOLDU" else "KOTA AŞIMI YOK", style = TourOSTypography.TitleLarge.copy(color = if (exceededCount > 0) TourOSColors.Secondary else TourOSColors.TextPrimary))
                     }
                 }
             }
@@ -286,7 +285,7 @@ fun AgencyQuotaReportScreen(
                     FilterChip(
                         selected = showOnlyExceeded,
                         onClick = { showOnlyExceeded = !showOnlyExceeded },
-                        label = { Text("⛔ Sadece Kotası Dolanları Göster (${exceededCount})", fontSize = 12.sp) },
+                        label = { Text("⛔ Kısıtlamaya Takılanlar (${exceededCount})", fontSize = 12.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = TourOSColors.SecondaryContainer,
                             selectedLabelColor = TourOSColors.Secondary
@@ -295,7 +294,7 @@ fun AgencyQuotaReportScreen(
                 }
             }
 
-            // RAPOR TABLOSU (Admin Veri Grid'i)
+            // RAPOR TABLOSU
             TourOSCard(
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 backgroundColor = TourOSColors.Surface,
@@ -314,12 +313,11 @@ fun AgencyQuotaReportScreen(
                         ) {
                             Text("Acente Adı", modifier = Modifier.weight(1.8f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
                             Text("Kod", modifier = Modifier.weight(0.9f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
-                            Text("Durum", modifier = Modifier.weight(0.9f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
-                            Text("Aylık Kota", modifier = Modifier.weight(1.0f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
-                            Text("Kullanılan", modifier = Modifier.weight(1.0f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
-                            Text("Kalan Hak", modifier = Modifier.weight(1.0f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
-                            Text("Tüketim (%)", modifier = Modifier.weight(1.5f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
-                            Text("Lisans Bitiş", modifier = Modifier.weight(1.1f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                            Text("Durum", modifier = Modifier.weight(0.8f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                            Text("Günlük (00:00)", modifier = Modifier.weight(1.2f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                            Text("Aylık (Ay Sonu)", modifier = Modifier.weight(1.2f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                            Text("Aylık Tüketim (%)", modifier = Modifier.weight(1.3f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                            Text("Lisans Bitiş", modifier = Modifier.weight(1.0f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
                         }
                     }
 
@@ -336,11 +334,15 @@ fun AgencyQuotaReportScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             itemsIndexed(filteredList) { index, agency ->
+                                val dailyQuota = agency.daily_query_quota
+                                val dailyUsed = agency.today_queries
+                                val isDailyExceeded = dailyQuota > 0 && dailyUsed >= dailyQuota
+
                                 val quota = agency.monthly_query_quota
                                 val used = agency.current_month_queries
-                                val remaining = if (quota > 0) (quota - used).coerceAtLeast(0) else 999999
                                 val percent = if (quota > 0) ((used.toDouble() / quota) * 100).toInt().coerceIn(0, 100) else 0
-                                val isExceeded = quota > 0 && used >= quota
+                                val isMonthlyExceeded = quota > 0 && used >= quota
+                                val isExceeded = isDailyExceeded || isMonthlyExceeded
 
                                 Surface(
                                     color = if (isExceeded) TourOSColors.SecondaryContainer.copy(alpha = 0.25f) else if (index % 2 == 0) TourOSColors.SurfaceVariant.copy(alpha = 0.35f) else TourOSColors.Surface,
@@ -348,31 +350,39 @@ fun AgencyQuotaReportScreen(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp).fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(agency.agency_name, modifier = Modifier.weight(1.8f), style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text(agency.operator_code, modifier = Modifier.weight(0.9f), style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary))
+                                        Text(agency.agency_name, modifier = Modifier.weight(1.8f), style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text(agency.operator_code, modifier = Modifier.weight(0.9f), style = TourOSTypography.Caption.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold))
                                         
                                         // Durum
-                                        Box(modifier = Modifier.weight(0.9f)) {
+                                        Box(modifier = Modifier.weight(0.8f)) {
                                             TourOSStatusBadge(
-                                                text = if (agency.is_active) "🟢 Aktif" else "🔴 Kapalı",
+                                                text = if (agency.is_active) "🟢 Aktif" else "🔴 Pasif",
                                                 backgroundColor = if (agency.is_active) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
                                                 textColor = if (agency.is_active) TourOSColors.Success else TourOSColors.Secondary
                                             )
                                         }
 
-                                        Text(if (quota > 0) "$quota" else "Sınırsız", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium)
-                                        Text("$used", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
-                                        Text(if (quota > 0) "$remaining" else "∞", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(color = if (isExceeded) TourOSColors.Secondary else TourOSColors.TextPrimary))
+                                        // Günlük Durum
+                                        Column(modifier = Modifier.weight(1.2f)) {
+                                            Text("$dailyUsed / $dailyQuota", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = if (isDailyExceeded) TourOSColors.Secondary else TourOSColors.TextPrimary))
+                                            Text(if (isDailyExceeded) "⚠️ Günlük Doldu" else "Kalan: ${dailyQuota - dailyUsed}", style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = if (isDailyExceeded) TourOSColors.Secondary else TourOSColors.TextSecondary))
+                                        }
+
+                                        // Aylık Durum
+                                        Column(modifier = Modifier.weight(1.2f)) {
+                                            Text("$used / ${if (quota > 0) quota else "Sınırsız"}", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = if (isMonthlyExceeded) TourOSColors.Secondary else TourOSColors.TextPrimary))
+                                            Text(if (isMonthlyExceeded) "⛔ Aylık Doldu" else "Kalan: ${if (quota > 0) (quota - used).coerceAtLeast(0) else "∞"}", style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = if (isMonthlyExceeded) TourOSColors.Secondary else TourOSColors.TextSecondary))
+                                        }
 
                                         // Tüketim Yüzdesi & Mini Bar
-                                        Column(modifier = Modifier.weight(1.5f).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Column(modifier = Modifier.weight(1.3f).padding(end = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                 Text("%$percent", style = TourOSTypography.Caption.copy(color = if (percent >= 90) TourOSColors.Secondary else TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
                                                 if (isExceeded) {
-                                                    Text("DOLDU", style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold, fontSize = 9.sp))
+                                                    Text(if (isMonthlyExceeded) "AY DOLDU" else "GÜN DOLDU", style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold, fontSize = 9.sp))
                                                 }
                                             }
                                             LinearProgressIndicator(
@@ -383,7 +393,7 @@ fun AgencyQuotaReportScreen(
                                             )
                                         }
 
-                                        Text(agency.subscription_end_date?.take(10) ?: "2027-08-16", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        Text(agency.subscription_end_date?.take(10) ?: "2027-08-16", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 }
                             }
