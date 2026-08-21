@@ -92,6 +92,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                         title = AppLanguageManager.translate("Önbellek & API Performansı"),
                         route = SaasCacheManagementRoute,
                         isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("🚀 Sürüm & Dağıtım (CI/CD)"),
+                        route = AdminDeploymentRoute,
+                        isSelected = currentRoute?.contains("AdminDeploymentRoute") == true
                     )
                 )
             )
@@ -783,6 +788,12 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<SaasCacheManagementRoute> {
             com.mgacreative.touros.ui.screens.SaasCacheManagementScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<AdminDeploymentRoute> {
+            com.mgacreative.touros.ui.screens.AdminDeploymentScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
         }

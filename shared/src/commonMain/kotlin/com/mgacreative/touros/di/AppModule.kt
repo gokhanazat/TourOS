@@ -202,6 +202,7 @@ val viewModelModule = module {
     single { com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel(get(), getOrNull()) }
     single { com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel(get(), get(), getOrNull(), getOrNull()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminDataManagementViewModel(get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.AdminDeploymentViewModel(get()) }
 }
 
 /**

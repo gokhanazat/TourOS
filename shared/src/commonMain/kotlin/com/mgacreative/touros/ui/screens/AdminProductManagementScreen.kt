@@ -448,7 +448,7 @@ private fun DataFeedEditModalDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf(
-                        Triple("🇷🇺 TourVisor (Rusya)", "https://api.tourvisor.ru/search/api/v1", "🇷🇺"),
+                        Triple("🇷🇺 TourVisor (Rusya)", "http://tourvisor.ru/xml/list.php", "🇷🇺"),
                         Triple("✈️ Paximum / SanTSG", "https://api.paximum.com/v2/service", "✈️"),
                         Triple("🌴 Coral / Odeon", "https://b2bapi.coraltravel.com/api/v1", "🌴"),
                         Triple("🏖️ Pegas Touristik", "https://api.pegast.com/v1/search", "🏖️"),
