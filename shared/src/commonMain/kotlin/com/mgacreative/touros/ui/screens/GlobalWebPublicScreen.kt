@@ -3,6 +3,8 @@ package com.mgacreative.touros.ui.screens
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import touros.shared.generated.resources.Res
+import touros.shared.generated.resources.axileto_logo_white
 import com.mgacreative.touros.domain.model.PromoBannerItem
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.clickable
@@ -331,35 +333,17 @@ fun getInitialDefaultOffers(): List<PublicHotelOffer> {
 @Composable
 fun AxiletoLogoText(
     modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 34.dp,
     aFontSize: androidx.compose.ui.unit.TextUnit = 30.sp,
     xiletoFontSize: androidx.compose.ui.unit.TextUnit = 20.sp,
     color: Color = Color.White
 ) {
-    Row(
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.Start,
-        modifier = modifier
-    ) {
-        Text(
-            text = "a",
-            style = androidx.compose.ui.text.TextStyle(
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Default,
-                fontWeight = FontWeight.Black,
-                fontSize = aFontSize,
-                color = color
-            )
-        )
-        Text(
-            text = "xileto",
-            style = androidx.compose.ui.text.TextStyle(
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Default,
-                fontWeight = FontWeight.Bold,
-                fontSize = xiletoFontSize,
-                color = color
-            ),
-            modifier = Modifier.padding(bottom = 2.dp)
-        )
-    }
+    androidx.compose.foundation.Image(
+        painter = org.jetbrains.compose.resources.painterResource(touros.shared.generated.resources.Res.drawable.axileto_logo_white),
+        contentDescription = "Axileto Logo",
+        modifier = modifier.height(height),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
@@ -704,11 +688,11 @@ fun GlobalWebPublicScreen(
                     .fillMaxSize()
                     .background(Color(0xFFF8FAFC))
             ) {
-                // ── 1. ÜST BANT (NAVBAR - KOYU TEAL TEMA / USER FONKSİYONLARI) ─────────
+                // ── 1. ÜST BANT (NAVBAR - KURUMSAL LACİVERT TEMA / USER FONKSİYONLARI) ─────────
                 item {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF0D5653), // Screenshot ile birebir Koyu Yeşil/Teal Tema
+                    color = Color(0xFF0A2540), // Kurumsal Derin Lacivert Tema
                     shadowElevation = 4.dp
                 ) {
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -749,11 +733,12 @@ fun GlobalWebPublicScreen(
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(4.dp))
-                                        }
-                                        val currentName = companySettings?.name?.ifBlank { "axileto" } ?: "axileto"
-                                        if (!isValidLogo && (currentName.equals("axileto", ignoreCase = true) || currentName.equals("TourOS", ignoreCase = true) || currentName.equals("TourOS Travels", ignoreCase = true))) {
-                                            AxiletoLogoText(aFontSize = 26.sp, xiletoFontSize = 18.sp, color = Color.White)
                                         } else {
+                                            AxiletoLogoText(height = 28.dp)
+                                        }
+                                        val currentName = companySettings?.name?.trim().orEmpty()
+                                        if (currentName.isNotBlank() && !currentName.equals("axileto", ignoreCase = true) && !currentName.equals("TourOS", ignoreCase = true) && !currentName.equals("TourOS Travels", ignoreCase = true)) {
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = currentName,
                                                 style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
@@ -761,12 +746,12 @@ fun GlobalWebPublicScreen(
                                         }
                                     }
 
-                                    // 🧳 Misafir / 🏢 Acenta Giriş Butonları
+                                    // 🧳 Misafir / 🏢 Acenta Giriş Butonları (Minimalist & Şık)
                                     Row(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
-                                            .background(Color.Black.copy(alpha = 0.4f))
-                                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                                            .background(Color.White.copy(alpha = 0.08f))
+                                            .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(20.dp))
                                             .padding(2.dp),
                                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
@@ -779,7 +764,7 @@ fun GlobalWebPublicScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(16.dp))
-                                                    .background(if (isSelectedMode) Color(0xFF10B981) else Color(0xFF1E293B))
+                                                    .background(if (isSelectedMode) Color(0xFF0284C7) else Color.Transparent)
                                                     .clickable {
                                                         if (isGuest) {
                                                             userMode = "Turist"
@@ -795,7 +780,7 @@ fun GlobalWebPublicScreen(
                                             ) {
                                                 Text(
                                                     text = modeLabel,
-                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = if (isSelectedMode) FontWeight.Bold else FontWeight.Medium, fontSize = 11.sp)
                                                 )
                                             }
                                         }
@@ -823,17 +808,18 @@ fun GlobalWebPublicScreen(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFFE11D48))
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                                                 .clickable { onNavigateToAdminCms() }
-                                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                                .padding(horizontal = 10.dp, vertical = 4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                                             ) {
-                                                Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(10.dp))
-                                                Text("Admin", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                                Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(11.dp))
+                                                Text("Admin", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 10.sp))
                                             }
                                         }
                                     }
@@ -864,16 +850,17 @@ fun GlobalWebPublicScreen(
                                             AsyncImage(
                                                 model = logoUrl,
                                                 contentDescription = "Marka Logosu",
-                                                modifier = Modifier.height(32.dp),
+                                                modifier = Modifier.height(34.dp),
                                                 contentScale = ContentScale.Fit
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(10.dp))
-                                    }
-                                    val currentName = companySettings?.name?.ifBlank { "axileto" } ?: "axileto"
-                                    if (!isValidLogo && (currentName.equals("axileto", ignoreCase = true) || currentName.equals("TourOS", ignoreCase = true) || currentName.equals("TourOS Travels", ignoreCase = true) || currentName.equals("TourOS Acente", ignoreCase = true))) {
-                                        AxiletoLogoText(aFontSize = 32.sp, xiletoFontSize = 22.sp, color = Color.White)
                                     } else {
+                                        AxiletoLogoText(height = 36.dp)
+                                    }
+                                    val currentName = companySettings?.name?.trim().orEmpty()
+                                    if (currentName.isNotBlank() && !currentName.equals("axileto", ignoreCase = true) && !currentName.equals("TourOS", ignoreCase = true) && !currentName.equals("TourOS Travels", ignoreCase = true) && !currentName.equals("TourOS Acente", ignoreCase = true)) {
+                                        Spacer(modifier = Modifier.width(10.dp))
                                         Text(
                                             text = currentName,
                                             style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold)
@@ -902,27 +889,28 @@ fun GlobalWebPublicScreen(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(16.dp))
-                                                .background(Color(0xFFE11D48))
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                                                 .clickable { onNavigateToAdminCms() }
                                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                                             ) {
-                                                Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
-                                                Text(text = "Admin Paneli", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                                Text(text = "Admin Paneli", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                             }
                                         }
                                     }
 
-                                    // Misafir / Acenta Seçici Segment Butonları
+                                    // Misafir / Acenta Seçici Segment Butonları (Minimalist & Şık)
                                     Row(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
-                                            .background(Color.Black.copy(alpha = 0.4f))
-                                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                                            .background(Color.White.copy(alpha = 0.08f))
+                                            .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(20.dp))
                                             .padding(2.dp),
                                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
@@ -935,7 +923,7 @@ fun GlobalWebPublicScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(16.dp))
-                                                    .background(if (isSelectedMode) Color(0xFF10B981) else Color(0xFF1E293B))
+                                                    .background(if (isSelectedMode) Color(0xFF0284C7) else Color.Transparent)
                                                     .clickable {
                                                         if (isGuest) {
                                                             userMode = "Turist"
@@ -946,12 +934,12 @@ fun GlobalWebPublicScreen(
                                                             }
                                                         }
                                                     }
-                                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                                                    .padding(horizontal = 14.dp, vertical = 6.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
                                                     text = modeLabel,
-                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = if (isSelectedMode) FontWeight.Bold else FontWeight.Medium, fontSize = 11.sp)
                                                 )
                                             }
                                         }
@@ -1094,7 +1082,7 @@ fun GlobalWebPublicScreen(
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(
                                     Brush.linearGradient(
-                                        colors = listOf(Color(0xFF0F5A56), Color(0xFF0F172A))
+                                        colors = listOf(Color(0xFF0F2942), Color(0xFF0A1C30))
                                     )
                                 )
                                 .clickable(enabled = !slideTargetLink.isNullOrBlank()) {
@@ -1200,13 +1188,13 @@ fun GlobalWebPublicScreen(
                             }
                         }
 
-                        // ── SAĞ TARAF: DİKEY KOYU TEAL ARAMA MOTORU KUTUSU (DARALTILMIŞ / KOMPAKT & MODERN) ──
+                        // ── SAĞ TARAF: DİKEY KURUMSAL LACİVERT ARAMA MOTORU KUTUSU (DARALTILMIŞ / KOMPAKT & MODERN) ──
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(20.dp)),
-                            color = Color(0xFF0F5A56), // Koyu Teal
+                            color = Color(0xFF0A2540), // Kurumsal Derin Lacivert
                             shadowElevation = 10.dp
                         ) {
                             Column(
@@ -1218,7 +1206,7 @@ fun GlobalWebPublicScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF09413E))
+                                        .background(Color(0xFF061B2E))
                                         .padding(3.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
@@ -1234,7 +1222,7 @@ fun GlobalWebPublicScreen(
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .clip(RoundedCornerShape(10.dp))
-                                                .background(if (isSelected) Color(0xFF09524F) else Color.Transparent)
+                                                .background(if (isSelected) Color(0xFF0284C7) else Color.Transparent)
                                                 .clickable { selectedSearchCategoryTab = tabKey }
                                                 .padding(vertical = 6.dp),
                                             contentAlignment = Alignment.Center
@@ -1351,7 +1339,7 @@ fun GlobalWebPublicScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 if (flightTripType == "ONE_WAY") {
-                                                    Text("✓", color = Color(0xFF0F5A56), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                                                    Text("✓", color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                                                 }
                                             }
                                             Text(AppLanguageManager.translate("Tek Yön"), style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
@@ -1370,7 +1358,7 @@ fun GlobalWebPublicScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 if (flightTripType == "ROUND_TRIP") {
-                                                    Text("✓", color = Color(0xFF0F5A56), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
+                                                    Text("✓", color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                                                 }
                                             }
                                             Text(AppLanguageManager.translate("Gidiş & Dönüş"), style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp))
@@ -1754,7 +1742,7 @@ fun GlobalWebPublicScreen(
                                 ) {
                                     Text(
                                         text = AppLanguageManager.translate("ARAMA BAŞLAT"),
-                                        style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
+                                        style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0A2540), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                                     )
                                 }
                             }

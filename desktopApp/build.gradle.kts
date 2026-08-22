@@ -30,8 +30,8 @@ compose.desktop {
         mainClass = "com.mgacreative.touros.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.mgacreative.touros"
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
+            packageName = "TourOS"
             packageVersion = "1.0.0"
         }
     }

@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.ui.components.*
@@ -299,6 +300,16 @@ private fun DynamicCustomerRowCard(customer: CustomerCrmDetail) {
             }
 
             // Sağ Taraf: LTV Tutarı ve Aksiyon Butonları
+            val uriHandler = LocalUriHandler.current
+            val digitsPhone = customer.phone.filter { it.isDigit() }
+            val waPhone = when {
+                digitsPhone.startsWith("90") -> digitsPhone
+                digitsPhone.startsWith("0") -> "90" + digitsPhone.removePrefix("0")
+                digitsPhone.length == 10 -> "90$digitsPhone"
+                else -> digitsPhone
+            }
+            val telPhone = if (customer.phone.startsWith("+")) customer.phone.replace(" ", "") else "+$waPhone"
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
                 verticalAlignment = Alignment.CenterVertically
@@ -316,12 +327,24 @@ private fun DynamicCustomerRowCard(customer: CustomerCrmDetail) {
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                     TourOSButton(
                         text = "📞 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ara")}",
-                        onClick = { /* Ara aksiyonu */ },
+                        onClick = {
+                            if (digitsPhone.isNotBlank()) {
+                                runCatching {
+                                    uriHandler.openUri("tel:$telPhone")
+                                }
+                            }
+                        },
                         variant = TourOSButtonVariant.SECONDARY
                     )
                     TourOSButton(
                         text = "💬 WhatsApp",
-                        onClick = { /* WhatsApp aksiyonu */ },
+                        onClick = {
+                            if (waPhone.isNotBlank()) {
+                                runCatching {
+                                    uriHandler.openUri("https://wa.me/$waPhone")
+                                }
+                            }
+                        },
                         variant = TourOSButtonVariant.PRIMARY
                     )
                 }
