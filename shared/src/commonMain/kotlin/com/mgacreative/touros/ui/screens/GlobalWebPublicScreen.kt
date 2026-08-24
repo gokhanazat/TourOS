@@ -1906,16 +1906,16 @@ fun GlobalWebPublicScreen(
                                 .padding(horizontal = 24.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // ── 🌍 ÜLKE SEKMELERİ (HORIZONTAL COUNTRY TABS & PILLS BAR) ──────────────────
-                            val countryTabsList = remember {
+                            // ── 🌍 HİZMETLERİ KEŞFEDİN: ÜLKE GİRİŞ KARTLARI & HIZLI LİSTELEME ──────────────────
+                            val countryDiscoveryCards = remember {
                                 listOf(
-                                    Triple("ALL", "Tüm Destinasyonlar", "🌍"),
-                                    Triple("TR", "Türkiye", "🇹🇷"),
-                                    Triple("EG", "Mısır", "🇪🇬"),
-                                    Triple("TH", "Tayland", "🇹🇭"),
-                                    Triple("VN", "Vietnam", "🇻🇳"),
-                                    Triple("AE", "BAE (Dubai)", "🇦🇪"),
-                                    Triple("RU", "Rusya", "🇷🇺")
+                                    Triple("ALL", "Tüm Dünyayı Keşfet", "🌍") to Triple("https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80", "Global Destinasyonlar", "En İyi Fiyat"),
+                                    Triple("TR", "Türkiye", "🇹🇷") to Triple("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=80", "Antalya · Belek · Bodrum · Kemer", "$580'den başlayan"),
+                                    Triple("EG", "Mısır", "🇪🇬") to Triple("https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&auto=format&fit=crop&q=80", "Şarm El-Şeyh · Hurgada · El Gouna", "$490'dan başlayan"),
+                                    Triple("TH", "Tayland", "🇹🇭") to Triple("https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&auto=format&fit=crop&q=80", "Phuket · Pattaya · Bangkok · Samui", "$790'dan başlayan"),
+                                    Triple("VN", "Vietnam", "🇻🇳") to Triple("https://images.unsplash.com/photo-1528127269322-539801943592?w=800&auto=format&fit=crop&q=80", "Da Nang · Phu Quoc · Nha Trang", "$850'den başlayan"),
+                                    Triple("AE", "BAE (Dubai)", "🇦🇪") to Triple("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop&q=80", "Dubai Marina · Palm Jumeirah", "$690'dan başlayan"),
+                                    Triple("RU", "Rusya", "🇷🇺") to Triple("https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800&auto=format&fit=crop&q=80", "Moskova · Sochi · St. Petersburg", "$420'den başlayan")
                                 )
                             }
 
@@ -1930,79 +1930,158 @@ fun GlobalWebPublicScreen(
                                 )
                             }
 
-                            Surface(
+                            // 1. Ülke Giriş Kartları Başlığı
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(16.dp),
-                                color = Color.White,
-                                shadowElevation = 3.dp,
-                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    // 1. Ana Ülke Sekmeleri
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        countryTabsList.forEach { (code, name, flag) ->
-                                            val isSelected = (selectedCountryTab == code)
-                                            val cCount = if (code == "ALL") dbProducts.size else dbProducts.count { 
-                                                val loc = it.location.lowercase()
-                                                val hName = it.hotelName.lowercase()
-                                                when (code) {
-                                                    "TR" -> loc.contains("antalya") || loc.contains("bodrum") || loc.contains("muğla") || loc.contains("kemer") || loc.contains("belek") || loc.contains("lara") || loc.contains("alanya") || loc.contains("side") || loc.contains("türkiye") || hName.contains("kemer") || hName.contains("belek") || hName.contains("lara") || hName.contains("bodrum")
-                                                    "EG" -> loc.contains("mısır") || loc.contains("şarm") || loc.contains("hurgada") || hName.contains("sharm") || hName.contains("hurghada")
-                                                    "TH" -> loc.contains("tayland") || loc.contains("thailand") || loc.contains("phuket") || loc.contains("pattaya") || loc.contains("bangkok") || hName.contains("phuket") || hName.contains("pattaya")
-                                                    "VN" -> loc.contains("vietnam") || loc.contains("da nang") || loc.contains("phu quoc") || loc.contains("nha trang") || hName.contains("phu quoc") || hName.contains("da nang")
-                                                    "AE" -> loc.contains("dubai") || loc.contains("bae") || loc.contains("abu dhabi") || hName.contains("dubai")
-                                                    "RU" -> loc.contains("rusya") || loc.contains("moskova") || loc.contains("sochi") || hName.contains("moscow")
-                                                    else -> true
-                                                }
-                                            }
+                                    Text("🌍", fontSize = 24.sp)
+                                    Column {
+                                        Text(
+                                            text = "Hizmetleri Keşfedin & Popüler Ülkeler",
+                                            style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                        )
+                                        Text(
+                                            text = "2 Kişi, 7 Gece standardında en avantajlı paket turları tek tıkla listeleyin",
+                                            style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 12.sp)
+                                        )
+                                    }
+                                }
+                            }
 
-                                            Surface(
+                            // 2. Yatay Kayan Görsel Ülke Kartları (Country Photo Carousel)
+                            Row(
+                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                countryDiscoveryCards.forEach { (countryInfo, cardDetail) ->
+                                    val (cCode, cName, cFlag) = countryInfo
+                                    val (cImage, cSubInfo, cPrice) = cardDetail
+                                    val isSelected = (selectedCountryTab == cCode)
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .width(220.dp)
+                                            .height(130.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .clickable {
+                                                selectedCountryTab = cCode
+                                                selectedSubRegionFilter = null
+                                                adultsCount = 2
+                                                flightTripType = "ROUND_TRIP"
+                                                roomsCount = 1
+                                            },
+                                        shape = RoundedCornerShape(16.dp),
+                                        shadowElevation = if (isSelected) 8.dp else 2.dp,
+                                        border = androidx.compose.foundation.BorderStroke(
+                                            width = if (isSelected) 2.5.dp else 1.dp,
+                                            color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0)
+                                        )
+                                    ) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            // Arka Plan Görseli
+                                            AsyncImage(
+                                                model = cImage,
+                                                contentDescription = cName,
+                                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+
+                                            // Gradient Karartma Katmanı
+                                            Box(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape(10.dp))
-                                                    .clickable {
-                                                        selectedCountryTab = code
-                                                        selectedSubRegionFilter = null
-                                                    },
-                                                color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFF8FAFC),
-                                                border = androidx.compose.foundation.BorderStroke(
-                                                    width = 1.dp,
-                                                    color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFCBD5E1)
-                                                ),
-                                                shape = RoundedCornerShape(10.dp)
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(flag, fontSize = 15.sp)
-                                                    Text(
-                                                        text = name,
-                                                        style = TourOSTypography.BodyMedium.copy(
-                                                            color = if (isSelected) Color.White else Color(0xFF1E293B),
-                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                            fontSize = 13.sp
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                            colors = listOf(
+                                                                Color.Black.copy(alpha = 0.2f),
+                                                                Color.Black.copy(alpha = 0.85f)
+                                                            )
                                                         )
                                                     )
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(12.dp))
-                                                            .background(if (isSelected) Color.White.copy(alpha = 0.25f) else Color(0xFFE2E8F0))
-                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+
+                                            // Kart Üzeri Metin ve Bilgiler
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .padding(12.dp),
+                                                verticalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                // Üst Satır: Bayrak ve Seçim İndikatörü
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Surface(
+                                                        color = Color.Black.copy(alpha = 0.4f),
+                                                        shape = RoundedCornerShape(8.dp)
                                                     ) {
                                                         Text(
-                                                            text = "$cCount",
-                                                            style = TourOSTypography.Caption.copy(
-                                                                color = if (isSelected) Color.White else Color(0xFF64748B),
+                                                            text = "$cFlag $cName",
+                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                            style = TourOSTypography.BodyMedium.copy(
+                                                                color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
+                                                                fontSize = 13.sp
+                                                            )
+                                                        )
+                                                    }
+
+                                                    if (isSelected) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(22.dp)
+                                                                .clip(CircleShape)
+                                                                .background(Color(0xFF0F5A56)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                text = "✓",
+                                                                color = Color.White,
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 13.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                // Alt Satır: Beldeler ve Fiyat Rozeti
+                                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                    Text(
+                                                        text = cSubInfo,
+                                                        style = TourOSTypography.Caption.copy(
+                                                            color = Color(0xFFCBD5E1),
+                                                            fontSize = 10.sp
+                                                        ),
+                                                        maxLines = 1,
+                                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                    )
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = "2 Kişi · 7 Gece",
+                                                            style = TourOSTypography.Caption.copy(
+                                                                color = Color(0xFF94A3B8),
                                                                 fontSize = 10.sp
+                                                            )
+                                                        )
+                                                        Text(
+                                                            text = cPrice,
+                                                            style = TourOSTypography.BodyMedium.copy(
+                                                                color = Color(0xFF38BDF8),
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 12.sp
                                                             )
                                                         )
                                                     }
@@ -2010,45 +2089,45 @@ fun GlobalWebPublicScreen(
                                             }
                                         }
                                     }
+                                }
+                            }
 
-                                    // 2. Alt Bölge / Belde Filtreleri
-                                    val currentSubRegions = subRegionsMap[selectedCountryTab]
-                                    if (!currentSubRegions.isNullOrEmpty()) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                            // 3. Alt Belde / Şehir Çipleri (Seçilen Ülkeye Göre)
+                            val currentSubRegions = subRegionsMap[selectedCountryTab]
+                            if (!currentSubRegions.isNullOrEmpty()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "📍 Popüler Beldeler:",
+                                        style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    )
+                                    currentSubRegions.forEach { subRegion ->
+                                        val isSubSelected = if (subRegion == "Tümü") selectedSubRegionFilter == null else selectedSubRegionFilter == subRegion
+                                        Surface(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(20.dp))
+                                                .clickable {
+                                                    selectedSubRegionFilter = if (subRegion == "Tümü") null else subRegion
+                                                },
+                                            color = if (isSubSelected) Color(0xFFE6F4F1) else Color(0xFFF1F5F9),
+                                            border = androidx.compose.foundation.BorderStroke(
+                                                width = 1.dp,
+                                                color = if (isSubSelected) Color(0xFF0F5A56) else Color.Transparent
+                                            ),
+                                            shape = RoundedCornerShape(20.dp)
                                         ) {
                                             Text(
-                                                text = "📍 Popüler Beldeler:",
-                                                style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                text = subRegion,
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+                                                style = TourOSTypography.Caption.copy(
+                                                    color = if (isSubSelected) Color(0xFF0F5A56) else Color(0xFF475569),
+                                                    fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    fontSize = 11.sp
+                                                )
                                             )
-                                            currentSubRegions.forEach { subRegion ->
-                                                val isSubSelected = if (subRegion == "Tümü") selectedSubRegionFilter == null else selectedSubRegionFilter == subRegion
-                                                Surface(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(20.dp))
-                                                        .clickable {
-                                                            selectedSubRegionFilter = if (subRegion == "Tümü") null else subRegion
-                                                        },
-                                                    color = if (isSubSelected) Color(0xFFE6F4F1) else Color(0xFFF1F5F9),
-                                                    border = androidx.compose.foundation.BorderStroke(
-                                                        width = 1.dp,
-                                                        color = if (isSubSelected) Color(0xFF0F5A56) else Color.Transparent
-                                                    ),
-                                                    shape = RoundedCornerShape(20.dp)
-                                                ) {
-                                                    Text(
-                                                        text = subRegion,
-                                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                                        style = TourOSTypography.Caption.copy(
-                                                            color = if (isSubSelected) Color(0xFF0F5A56) else Color(0xFF475569),
-                                                            fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Normal,
-                                                            fontSize = 11.sp
-                                                        )
-                                                    )
-                                                }
-                                            }
                                         }
                                     }
                                 }
@@ -2076,6 +2155,168 @@ fun GlobalWebPublicScreen(
                                 }
                             }
 
+                            // 4. ⚡ HIZLI ARAMA & 2 KİŞİ 7 GECE KOMPAKT TEK SATIR LİSTELEME (FAST DEAL ROWS)
+                            val fast2PersonDeals = countryFilteredProducts.filter {
+                                it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+                            }.take(4)
+
+                            if (fast2PersonDeals.isNotEmpty()) {
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = Color(0xFFF8FAFC),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Text("⚡", fontSize = 16.sp)
+                                                Text(
+                                                    text = "Hızlı Fırsatlar: 2 Kişi / 7 Gece Direkt Uçuşlu Paketler",
+                                                    style = TourOSTypography.BodyMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                )
+                                            }
+                                            Surface(
+                                                color = Color(0xFF0F5A56).copy(alpha = 0.1f),
+                                                shape = RoundedCornerShape(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Uçuş + Transfer + Otel Dahil",
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                    style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                                )
+                                            }
+                                        }
+
+                                        // Tek Satırlık Fırsat Listesi
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            fast2PersonDeals.forEach { dealHotel ->
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .clickable { selectedHotelForDetail = dealHotel },
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = Color.White,
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                                    shadowElevation = 1.dp
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(10.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        // Küçük Otel Görseli
+                                                        AsyncImage(
+                                                            model = dealHotel.imageUrl,
+                                                            contentDescription = dealHotel.hotelName,
+                                                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                            modifier = Modifier
+                                                                .size(width = 90.dp, height = 65.dp)
+                                                                .clip(RoundedCornerShape(8.dp))
+                                                        )
+
+                                                        // Bilgi Bloğu
+                                                        Column(
+                                                            modifier = Modifier.weight(1f),
+                                                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                                                        ) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = dealHotel.hotelName,
+                                                                    style = TourOSTypography.BodyMedium.copy(
+                                                                        color = Color(0xFF1E293B),
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 13.sp
+                                                                    ),
+                                                                    maxLines = 1,
+                                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                )
+                                                                Text("⭐".repeat(dealHotel.stars.coerceIn(1, 5)), fontSize = 10.sp)
+                                                            }
+
+                                                            // Lokasyon ve Uçuş Bilgisi
+                                                            Row(
+                                                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(
+                                                                    text = "📍 ${dealHotel.location}",
+                                                                    style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp),
+                                                                    maxLines = 1
+                                                                )
+                                                                Text(
+                                                                    text = "✈️ 12 - 19 Eyl (7 Gece)",
+                                                                    style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                                                                )
+                                                                Text(
+                                                                    text = "🍴 Her Şey Dahil",
+                                                                    style = TourOSTypography.Caption.copy(color = Color(0xFFD97706), fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                                                                )
+                                                            }
+                                                        }
+
+                                                        // Fiyat ve Hızlı Rezerve Butonu
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Column(horizontalAlignment = Alignment.End) {
+                                                                Text(
+                                                                    text = "2 Kişi Toplam",
+                                                                    style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp)
+                                                                )
+                                                                Text(
+                                                                    text = "$${(dealHotel.minPrice * 2).toInt()}",
+                                                                    style = TourOSTypography.TitleMedium.copy(
+                                                                        color = Color(0xFF0F5A56),
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 16.sp
+                                                                    )
+                                                                )
+                                                            }
+
+                                                            Button(
+                                                                onClick = { selectedHotelForDetail = dealHotel },
+                                                                shape = RoundedCornerShape(8.dp),
+                                                                colors = ButtonDefaults.buttonColors(
+                                                                    containerColor = Color(0xFF0F5A56)
+                                                                ),
+                                                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = "Rezerve Et ➔",
+                                                                    style = TourOSTypography.Caption.copy(
+                                                                        color = Color.White,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 11.sp
+                                                                    )
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             // ── BLOK 1: 🏖️ PAKET TURLAR (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ─────
                             val tourPackagesOnly = countryFilteredProducts.shuffled().filter { 
                                 it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
@@ -2083,7 +2324,7 @@ fun GlobalWebPublicScreen(
                             if (tourPackagesOnly.isNotEmpty()) {
                                 HorizontalProductSection(
                                     titleVectorIcon = Icons.Default.BeachAccess,
-                                    title = if (selectedCountryTab == "ALL") "Paket Turlar" else "${countryTabsList.firstOrNull { it.first == selectedCountryTab }?.second ?: ""} Paket Turları",
+                                    title = if (selectedCountryTab == "ALL") "Paket Turlar" else "${countryDiscoveryCards.firstOrNull { it.first.first == selectedCountryTab }?.first?.second ?: ""} Paket Turları",
                                     subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                     hotels = tourPackagesOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
@@ -2098,7 +2339,7 @@ fun GlobalWebPublicScreen(
                             if (hotelsOnly.isNotEmpty()) {
                                 HorizontalProductSection(
                                     titleVectorIcon = Icons.Default.Hotel,
-                                    title = if (selectedCountryTab == "ALL") "Oteller" else "${countryTabsList.firstOrNull { it.first == selectedCountryTab }?.second ?: ""} Seçkin Otelleri",
+                                    title = if (selectedCountryTab == "ALL") "Oteller" else "${countryDiscoveryCards.firstOrNull { it.first.first == selectedCountryTab }?.first?.second ?: ""} Seçkin Otelleri",
                                     subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
                                     hotels = hotelsOnly,
                                     onHotelClick = { selectedHotelForDetail = it },
