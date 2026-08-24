@@ -392,7 +392,11 @@ fun GlobalWebPublicScreen(
     var startDateText by remember { mutableStateOf("20.08.2026") }
     var endDateText by remember { mutableStateOf("28.08.2026") }
     var selectedNightsText by remember { mutableStateOf("7 - 10 Gece") }
-    var selectedTouristsText by remember { mutableStateOf("2 Yetişkin") }
+    var selectedTouristsText by remember { mutableStateOf("2 Yetişkin · 1 Oda") }
+    var adultsCount by remember { mutableStateOf(2) }
+    var childrenCount by remember { mutableStateOf(0) }
+    var roomsCount by remember { mutableStateOf(1) }
+    var childrenAges by remember { mutableStateOf<List<Int>>(emptyList()) }
     var selectedCountryFilter by remember { mutableStateOf("Türkiye") }
     var flightTripType by remember { mutableStateOf("ONE_WAY") } // "ONE_WAY" veya "ROUND_TRIP"
 
@@ -402,7 +406,7 @@ fun GlobalWebPublicScreen(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
     var showNightsDropdown by remember { mutableStateOf(false) }
-    var showTouristsDropdown by remember { mutableStateOf(false) }
+    var showGuestRoomModal by remember { mutableStateOf(false) }
     var bookingSuccessMessage by remember { mutableStateOf<String?>(null) }
 
     if (showStartDatePicker) {
@@ -420,6 +424,23 @@ fun GlobalWebPublicScreen(
             title = "Gidiş Bitiş Tarihi Seçin",
             onDateSelected = { endDateText = it },
             onDismiss = { showEndDatePicker = false }
+        )
+    }
+
+    if (showGuestRoomModal) {
+        ModernGuestRoomSelectorDialog(
+            initialAdults = adultsCount,
+            initialChildren = childrenCount,
+            initialRooms = roomsCount,
+            initialChildrenAges = childrenAges,
+            onApply = { a, c, r, ages, summary ->
+                adultsCount = a
+                childrenCount = c
+                roomsCount = r
+                childrenAges = ages
+                selectedTouristsText = summary
+            },
+            onDismiss = { showGuestRoomModal = false }
         )
     }
 
@@ -1581,33 +1602,19 @@ fun GlobalWebPublicScreen(
                                                 }
                                             }
 
-                                            // Turist Sayısı
+                                            // Turist ve Oda Sayısı (Booking.com Formatı Modal Tetikleyici)
                                             Box(
                                                 modifier = Modifier
-                                                    .weight(1f)
+                                                    .weight(1.2f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showTouristsDropdown = !showTouristsDropdown }
+                                                    .clickable { showGuestRoomModal = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text(AppLanguageManager.translate("Turist Sayısı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(AppLanguageManager.translate(selectedTouristsText), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Misafir & Oda"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(selectedTouristsText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                                    }
-                                                }
-                                                DropdownMenu(
-                                                    expanded = showTouristsDropdown,
-                                                    onDismissRequest = { showTouristsDropdown = false },
-                                                    modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
-                                                ) {
-                                                    listOf("1 Yetişkin", "2 Yetişkin", "3 Yetişkin", "2 Yetişkin + 1 Çocuk", "2 Yetişkin + 2 Çocuk").forEach { countText ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(AppLanguageManager.translate(countText), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
-                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                            modifier = Modifier.height(34.dp),
-                                                            onClick = { selectedTouristsText = countText; showTouristsDropdown = false }
-                                                        )
                                                     }
                                                 }
                                             }
@@ -3725,3 +3732,248 @@ fun ModernDatePickerDialog(
         }
     }
 }
+
+@Composable
+fun ModernGuestRoomSelectorDialog(
+    initialAdults: Int = 2,
+    initialChildren: Int = 0,
+    initialRooms: Int = 1,
+    initialChildrenAges: List<Int> = emptyList(),
+    onApply: (adults: Int, children: Int, rooms: Int, childrenAges: List<Int>, summaryText: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var adults by remember { mutableStateOf(initialAdults.coerceIn(1, 10)) }
+    var children by remember { mutableStateOf(initialChildren.coerceIn(0, 6)) }
+    var rooms by remember { mutableStateOf(initialRooms.coerceIn(1, 5)) }
+    var childrenAges by remember {
+        mutableStateOf(
+            if (initialChildrenAges.size == initialChildren) initialChildrenAges.toMutableList()
+            else MutableList(initialChildren) { 5 }
+        )
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .width(360.dp)
+                .clip(RoundedCornerShape(24.dp)),
+            color = Color.White,
+            shadowElevation = 16.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Header
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = AppLanguageManager.translate("MİSAFİR VE ODA SEÇİMİ"),
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    )
+                    Text(
+                        text = AppLanguageManager.translate("Kişi & Konaklama Detayları"),
+                        style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    )
+                }
+
+                HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                // 1. Oda Sayısı Row
+                GuestCounterRow(
+                    title = AppLanguageManager.translate("Oda Sayısı"),
+                    subtitle = AppLanguageManager.translate("Grup & Aile Konaklaması"),
+                    count = rooms,
+                    min = 1,
+                    max = 5,
+                    onCountChange = { rooms = it }
+                )
+
+                // 2. Yetişkin Sayısı Row
+                GuestCounterRow(
+                    title = AppLanguageManager.translate("Yetişkin"),
+                    subtitle = AppLanguageManager.translate("12 yaş ve üzeri"),
+                    count = adults,
+                    min = 1,
+                    max = 10,
+                    onCountChange = { adults = it }
+                )
+
+                // 3. Çocuk Sayısı Row
+                GuestCounterRow(
+                    title = AppLanguageManager.translate("Çocuk"),
+                    subtitle = AppLanguageManager.translate("0 - 11 yaş arası"),
+                    count = children,
+                    min = 0,
+                    max = 6,
+                    onCountChange = { newCount ->
+                        children = newCount
+                        val updated = childrenAges.toMutableList()
+                        while (updated.size < newCount) updated.add(5)
+                        while (updated.size > newCount) updated.removeAt(updated.size - 1)
+                        childrenAges = updated
+                    }
+                )
+
+                // 4. Dinamik Çocuk Yaşları Bölümü (Sadece çocuk > 0 ise görünür)
+                if (children > 0) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFF8FAFC), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "👶 ${AppLanguageManager.translate("Çocuk Yaşları (Fiyatlandırma için gereklidir)")}",
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF334155), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        )
+
+                        childrenAges.forEachIndexed { index, age ->
+                            var showAgeMenu by remember { mutableStateOf(false) }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${index + 1}. ${AppLanguageManager.translate("Çocuk Yaşı")}:",
+                                    style = TourOSTypography.BodyMedium.copy(color = Color(0xFF475569), fontSize = 12.sp)
+                                )
+
+                                Box {
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = Color.White,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                                        modifier = Modifier.clickable { showAgeMenu = true }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = if (age == 0) "0 Yaş (Bebek)" else "$age Yaş",
+                                                style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = Color(0xFF0F5A56), fontSize = 12.sp)
+                                            )
+                                            Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
+                                        }
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = showAgeMenu,
+                                        onDismissRequest = { showAgeMenu = false },
+                                        modifier = Modifier.heightIn(max = 200.dp).background(Color.White)
+                                    ) {
+                                        (0..17).forEach { a ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        text = if (a == 0) "0 Yaş (0 - 1.99 Bebek)" else if (a in 2..6) "$a Yaş (2 - 6 Çocuk)" else "$a Yaş",
+                                                        style = TourOSTypography.Caption.copy(fontSize = 11.sp, color = if (a == age) Color(0xFF0F5A56) else Color(0xFF1E293B))
+                                                    )
+                                                },
+                                                onClick = {
+                                                    val updated = childrenAges.toMutableList()
+                                                    if (index < updated.size) {
+                                                        updated[index] = a
+                                                        childrenAges = updated
+                                                    }
+                                                    showAgeMenu = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFFE2E8F0))
+
+                // Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(AppLanguageManager.translate("İptal"), color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            val summary = buildString {
+                                append("$adults Yetişkin")
+                                if (children > 0) append(" · $children Çocuk")
+                                if (rooms > 1) append(" · $rooms Oda")
+                            }
+                            onApply(adults, children, rooms, childrenAges, summary)
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56))
+                    ) {
+                        Text(AppLanguageManager.translate("Uygula"), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GuestCounterRow(
+    title: String,
+    subtitle: String,
+    count: Int,
+    min: Int,
+    max: Int,
+    onCountChange: (Int) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(title, style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp))
+            Text(subtitle, style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp))
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(if (count > min) Color(0xFFF1F5F9) else Color(0xFFF8FAFC))
+                    .clickable(enabled = count > min) { onCountChange(count - 1) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("—", fontSize = 12.sp, color = if (count > min) Color(0xFF0F5A56) else Color(0xFFCBD5E1), fontWeight = FontWeight.Bold)
+            }
+
+            Text(
+                text = "$count",
+                style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp),
+                modifier = Modifier.width(20.dp),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(if (count < max) Color(0xFFF1F5F9) else Color(0xFFF8FAFC))
+                    .clickable(enabled = count < max) { onCountChange(count + 1) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text("+", fontSize = 14.sp, color = if (count < max) Color(0xFF0F5A56) else Color(0xFFCBD5E1), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
