@@ -1016,63 +1016,76 @@ fun GlobalWebPublicScreen(
                     )
                 }
             } else {
-            // ── 2. HERO BANNER GÖRSELİ VE SLOGAN (HAFİF GÖLGE İLE BOYUTLANDIRILMIŞ) ────
+            // ── 2. HERO BANNER GÖRSELİ VE SLOGAN (RESPONSIVE 1320DP CONTAINER İLE HİZALANMIŞ) ────
             item {
-                Surface(
+                Box(
                     modifier = Modifier.fillMaxWidth(),
-                    shadowElevation = 10.dp
+                    contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
+                            .widthIn(max = 1320.dp)
                             .fillMaxWidth()
-                            .height(340.dp)
-                            .background(Color(0xFF0F172A)),
-                        contentAlignment = Alignment.BottomStart
+                            .padding(horizontal = 24.dp, vertical = 8.dp)
                     ) {
-                        val rawHeader = companySettings?.headerImageUrl?.trim()
-                        val headerImg = when {
-                            rawHeader.isNullOrBlank() -> null
-                            rawHeader.contains("unsplash.com") && !rawHeader.contains("auto=format") -> {
-                                if (rawHeader.contains("?")) "$rawHeader&auto=format&fit=crop&q=80"
-                                else "$rawHeader?auto=format&fit=crop&w=1200&q=80"
-                            }
-                            else -> rawHeader
-                        }
-                        
-                        if (!headerImg.isNullOrBlank()) {
-                            AsyncImage(
-                                model = headerImg,
-                                contentDescription = "Header Hero Banner",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        // Overlay Karartma Gradient
-                        Box(
+                        Surface(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
-                                    )
-                                )
-                        )
-
-                        // Sol Alt Slogan (Yalnızca CMS'ten metin girilmişse gösterilir)
-                        val customHeroText = companySettings?.heroSubtitle?.trim().orEmpty()
-                        if (customHeroText.isNotBlank()) {
-                            Column(
-                                modifier = Modifier
-                                    .align(Alignment.BottomStart)
-                                    .padding(28.dp)
-                                    .widthIn(max = 600.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .clip(RoundedCornerShape(20.dp)),
+                            shadowElevation = 8.dp,
+                            color = Color(0xFF0F172A)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.BottomStart
                             ) {
-                                Text(
-                                    text = customHeroText,
-                                    style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp)
+                                val rawHeader = companySettings?.headerImageUrl?.trim()
+                                val headerImg = when {
+                                    rawHeader.isNullOrBlank() -> null
+                                    rawHeader.contains("unsplash.com") && !rawHeader.contains("auto=format") -> {
+                                        if (rawHeader.contains("?")) "$rawHeader&auto=format&fit=crop&q=80"
+                                        else "$rawHeader?auto=format&fit=crop&w=1200&q=80"
+                                    }
+                                    else -> rawHeader
+                                }
+                                
+                                if (!headerImg.isNullOrBlank()) {
+                                    AsyncImage(
+                                        model = headerImg,
+                                        contentDescription = "Header Hero Banner",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+
+                                // Overlay Karartma Gradient
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
+                                            )
+                                        )
                                 )
+
+                                // Sol Alt Slogan (Yalnızca CMS'ten metin girilmişse gösterilir)
+                                val customHeroText = companySettings?.heroSubtitle?.trim().orEmpty()
+                                if (customHeroText.isNotBlank()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .padding(28.dp)
+                                            .widthIn(max = 600.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = customHeroText,
+                                            style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
