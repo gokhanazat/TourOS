@@ -3519,12 +3519,50 @@ fun ModernDatePickerDialog(
     onDateSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedDay by remember { mutableStateOf(initialDateText.split(".").firstOrNull()?.toIntOrNull() ?: 20) }
+    val monthNames = listOf("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")
+    val dayNames = listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz")
+
+    val parts = if (initialDateText.contains(".")) {
+        initialDateText.split(".")
+    } else if (initialDateText.contains("-")) {
+        val p = initialDateText.split("-")
+        if (p.size == 3 && p[0].length == 4) listOf(p[2], p[1], p[0]) else p
+    } else listOf()
+
+    val initDay = parts.getOrNull(0)?.toIntOrNull() ?: 20
+    val initMonth = (parts.getOrNull(1)?.toIntOrNull() ?: 8).coerceIn(1, 12)
+    val initYear = parts.getOrNull(2)?.toIntOrNull() ?: 2026
+
+    var selectedDay by remember { mutableStateOf(initDay) }
+    var currentMonth by remember { mutableStateOf(initMonth) }
+    var currentYear by remember { mutableStateOf(initYear) }
+
+    fun getDaysInMonth(m: Int, y: Int): Int {
+        return when (m) {
+            1, 3, 5, 7, 8, 10, 12 -> 31
+            4, 6, 9, 11 -> 30
+            2 -> if ((y % 4 == 0 && y % 100 != 0) || (y % 400 == 0)) 29 else 28
+            else -> 31
+        }
+    }
+
+    fun getFirstDayOfWeek(m: Int, y: Int): Int {
+        val t = intArrayOf(0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4)
+        val yr = if (m < 3) y - 1 else y
+        val dayOfWeekSunday0 = (yr + yr / 4 - yr / 100 + yr / 400 + t[m - 1] + 1) % 7
+        return if (dayOfWeekSunday0 == 0) 6 else dayOfWeekSunday0 - 1
+    }
+
+    val maxDays = getDaysInMonth(currentMonth, currentYear)
+    if (selectedDay > maxDays) {
+        selectedDay = maxDays
+    }
+    val firstDayOffset = getFirstDayOfWeek(currentMonth, currentYear)
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
-                .width(320.dp)
+                .width(340.dp)
                 .clip(RoundedCornerShape(24.dp)),
             color = Color.White,
             shadowElevation = 16.dp
@@ -3540,50 +3578,64 @@ fun ModernDatePickerDialog(
                         style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                     )
                     Text(
-                        text = "${selectedDay.toString().padStart(2, '0')} Ağustos 2026",
+                        text = "${selectedDay.toString().padStart(2, '0')} ${monthNames[currentMonth - 1]} $currentYear",
                         style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 22.sp)
                     )
                 }
 
                 HorizontalDivider(color = Color(0xFFE2E8F0))
 
-                // Month & Year Selector Header
+                // Month & Year Selector Header with interactive ◀ and ▶ arrows
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Ağustos 2026",
-                        style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        text = "📅 ${monthNames[currentMonth - 1]} $currentYear",
+                        style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFF1F5F9))
-                                .clickable { },
+                                .clickable {
+                                    if (currentMonth > 1) {
+                                        currentMonth--
+                                    } else {
+                                        currentMonth = 12
+                                        currentYear--
+                                    }
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("◀", fontSize = 10.sp, color = Color(0xFF475569))
+                            Text("◀", fontSize = 12.sp, color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold)
                         }
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(32.dp)
                                 .clip(CircleShape)
                                 .background(Color(0xFFF1F5F9))
-                                .clickable { },
+                                .clickable {
+                                    if (currentMonth < 12) {
+                                        currentMonth++
+                                    } else {
+                                        currentMonth = 1
+                                        currentYear++
+                                    }
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("▶", fontSize = 10.sp, color = Color(0xFF475569))
+                            Text("▶", fontSize = 12.sp, color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
                 // Day Names Header Row
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    listOf("Pz", "Sa", "Ça", "Pe", "Cu", "Ct", "Pa").forEach { dayName ->
+                    dayNames.forEach { dayName ->
                         Text(
                             text = dayName,
                             style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold, fontSize = 11.sp),
@@ -3593,29 +3645,36 @@ fun ModernDatePickerDialog(
                     }
                 }
 
-                // Calendar Days Grid (31 Days)
-                val daysList = (1..31).toList()
+                // Calendar Days Grid with accurate Weekday Offset
+                val totalCells = firstDayOffset + maxDays
+                val cellsList = (0 until totalCells).toList()
+
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    daysList.chunked(7).forEach { weekRow ->
+                    cellsList.chunked(7).forEach { weekRow ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            weekRow.forEach { dayNum ->
-                                val isSelected = (dayNum == selectedDay)
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(if (isSelected) Color(0xFF0F5A56) else Color.Transparent)
-                                        .clickable { selectedDay = dayNum },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$dayNum",
-                                        style = TourOSTypography.Caption.copy(
-                                            color = if (isSelected) Color.White else Color(0xFF1E293B),
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                            fontSize = 12.sp
+                            weekRow.forEach { cellIndex ->
+                                if (cellIndex < firstDayOffset) {
+                                    Spacer(modifier = Modifier.size(36.dp))
+                                } else {
+                                    val dayNum = cellIndex - firstDayOffset + 1
+                                    val isSelected = (dayNum == selectedDay)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isSelected) Color(0xFF0F5A56) else Color.Transparent)
+                                            .clickable { selectedDay = dayNum },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "$dayNum",
+                                            style = TourOSTypography.Caption.copy(
+                                                color = if (isSelected) Color.White else Color(0xFF1E293B),
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                fontSize = 12.sp
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                             repeat(7 - weekRow.size) {
@@ -3639,7 +3698,9 @@ fun ModernDatePickerDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            val formattedDate = "${selectedDay.toString().padStart(2, '0')}.08.2026"
+                            val dayStr = selectedDay.toString().padStart(2, '0')
+                            val monthStr = currentMonth.toString().padStart(2, '0')
+                            val formattedDate = "$dayStr.$monthStr.$currentYear"
                             onDateSelected(formattedDate)
                             onDismiss()
                         },

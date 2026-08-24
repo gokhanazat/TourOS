@@ -2749,7 +2749,13 @@ internal fun SimpleDatePickerDialog(
 ) {
     val monthNames = listOf("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")
     
-    val parts = initialDateText.split(".")
+    val parts = if (initialDateText.contains(".")) {
+        initialDateText.split(".")
+    } else if (initialDateText.contains("-")) {
+        val p = initialDateText.split("-")
+        if (p.size == 3 && p[0].length == 4) listOf(p[2], p[1], p[0]) else p
+    } else listOf()
+
     val initDay = parts.getOrNull(0)?.toIntOrNull() ?: 18
     val initMonth = (parts.getOrNull(1)?.toIntOrNull() ?: 8).coerceIn(1, 12)
     val initYear = parts.getOrNull(2)?.toIntOrNull() ?: 2026
@@ -2767,10 +2773,18 @@ internal fun SimpleDatePickerDialog(
         }
     }
 
+    fun getFirstDayOfWeek(m: Int, y: Int): Int {
+        val t = intArrayOf(0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4)
+        val yr = if (m < 3) y - 1 else y
+        val dayOfWeekSunday0 = (yr + yr / 4 - yr / 100 + yr / 400 + t[m - 1] + 1) % 7
+        return if (dayOfWeekSunday0 == 0) 6 else dayOfWeekSunday0 - 1
+    }
+
     val maxDays = getDaysInMonth(currentMonth, currentYear)
     if (selectedDay > maxDays) {
         selectedDay = maxDays
     }
+    val firstDayOffset = getFirstDayOfWeek(currentMonth, currentYear)
 
     AlertDialog(
         onDismissRequest = onDismissRequest,
@@ -2868,25 +2882,29 @@ internal fun SimpleDatePickerDialog(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    items(maxDays) { index ->
-                        val day = index + 1
-                        val isSelected = (day == selectedDay)
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSelected) TourOSColors.Primary else TourOSColors.Background)
-                                .border(1.dp, if (isSelected) TourOSColors.Primary else TourOSColors.Border, RoundedCornerShape(6.dp))
-                                .clickable { selectedDay = day },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "$day",
-                                style = TourOSTypography.Caption.copy(
-                                    color = if (isSelected) Color.White else TourOSColors.TextPrimary,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    items(firstDayOffset + maxDays) { index ->
+                        if (index < firstDayOffset) {
+                            Spacer(modifier = Modifier.size(32.dp))
+                        } else {
+                            val day = index - firstDayOffset + 1
+                            val isSelected = (day == selectedDay)
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) TourOSColors.Primary else TourOSColors.Background)
+                                    .border(1.dp, if (isSelected) TourOSColors.Primary else TourOSColors.Border, RoundedCornerShape(6.dp))
+                                    .clickable { selectedDay = day },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "$day",
+                                    style = TourOSTypography.Caption.copy(
+                                        color = if (isSelected) Color.White else TourOSColors.TextPrimary,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
