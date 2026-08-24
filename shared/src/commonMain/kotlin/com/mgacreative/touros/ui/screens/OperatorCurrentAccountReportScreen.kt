@@ -3,9 +3,11 @@ package com.mgacreative.touros.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -184,10 +186,11 @@ fun OperatorCurrentAccountReportScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                         ) {
-                            // Toplam Borç (Tur Satışı)
+                            // Toplam Borç (Tur Maliyeti)
                             SummaryCard(
-                                title = "Toplam Borç (Tur Satışları)",
-                                value = "${formatCurrency(state.totalSales)} ₺",
+                                title = "Toplam Borç (Tur Maliyeti)",
+                                value = "${formatCurrency(state.totalCost)} ₺",
+                                subtitle = "Paket Satış: ${formatCurrency(state.totalSales)} ₺",
                                 icon = "💳",
                                 containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f),
                                 contentColor = TourOSColors.Primary,
@@ -198,6 +201,7 @@ fun OperatorCurrentAccountReportScreen(
                             SummaryCard(
                                 title = "Toplam Ödeme (TO Ödenen)",
                                 value = "${formatCurrency(state.totalPaid)} ₺",
+                                subtitle = "Acentenin TO'ya Ödediği",
                                 icon = "🟢",
                                 containerColor = Color(0xFFECFDF5),
                                 contentColor = Color(0xFF059669),
@@ -208,6 +212,7 @@ fun OperatorCurrentAccountReportScreen(
                             SummaryCard(
                                 title = "Net Bakiye (Kalan TO Borcu)",
                                 value = "${formatCurrency(state.totalBalance)} ₺",
+                                subtitle = "Kalan Ödenecek Tutar",
                                 icon = "⚖️",
                                 containerColor = Color(0xFFFEF3C7),
                                 contentColor = Color(0xFFD97706),
@@ -215,35 +220,41 @@ fun OperatorCurrentAccountReportScreen(
                             )
                         }
 
-                        // ── 4. Döküm Tablosu (TO PNR - Müşteri Adı - Paket Tur Kodu - Tur Satışı - TO Ödeme - Bakiye) ──
+                        // ── 4. Döküm Tablosu (TO PNR | Müşteri Adı | Paket Tur Kodu | TO Acente Adı | Tur Satış Fiyatı | Acenta % | Tur Satış (Maliyeti) | TO Ödemesi | Bakiye) ──
                         TourOSCard(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = 0.dp) {
-                            Column(modifier = Modifier.fillMaxSize()) {
-                                // Tablo Başlık Satırı
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(TourOSColors.Primary)
-                                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
-                                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text("TO PNR", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                    Text("Müşteri Adı", modifier = Modifier.weight(1.4f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                    Text("Paket Tur Kodu", modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                    Text("Tur Satışı (Maliyet)", modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                    Text("TO Ödeme", modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                    Text("Bakiye", modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                }
-
-                                if (state.filteredItems.isEmpty()) {
-                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text("Filtrelere uygun Tur Operatörü PNR kaydı bulunamadı.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                            val horizontalScrollState = rememberScrollState()
+                            Box(modifier = Modifier.fillMaxSize().horizontalScroll(horizontalScrollState)) {
+                                Column(modifier = Modifier.widthIn(min = 960.dp).fillMaxHeight()) {
+                                    // Tablo Başlık Satırı
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(TourOSColors.Primary)
+                                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("TO PNR", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("Müşteri Adı", modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("Paket Tur Kodu", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("TO Acente Adı", modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("Tur Satış Fiyatı", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("Acenta %", modifier = Modifier.weight(0.8f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("Tur Satışı (Maliyet)", modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("TO Ödemesi", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text("Bakiye", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
                                     }
-                                } else {
-                                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                                        items(state.filteredItems) { item ->
-                                            OperatorLedgerRowItem(item = item)
-                                            HorizontalDivider(color = TourOSColors.Border.copy(alpha = 0.5f))
+
+                                    if (state.filteredItems.isEmpty()) {
+                                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                            Text("Filtrelere uygun Tur Operatörü PNR kaydı bulunamadı.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                                        }
+                                    } else {
+                                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                                            items(state.filteredItems) { item ->
+                                                OperatorLedgerRowItem(item = item)
+                                                HorizontalDivider(color = TourOSColors.Border.copy(alpha = 0.5f))
+                                            }
                                         }
                                     }
                                 }
@@ -260,6 +271,7 @@ fun OperatorCurrentAccountReportScreen(
 private fun SummaryCard(
     title: String,
     value: String,
+    subtitle: String? = null,
     icon: String,
     containerColor: Color,
     contentColor: Color,
@@ -276,6 +288,9 @@ private fun SummaryCard(
                 Text(icon, fontSize = 16.sp)
             }
             Text(value, style = TourOSTypography.TitleLarge.copy(color = contentColor, fontWeight = FontWeight.Bold))
+            if (subtitle != null) {
+                Text(subtitle, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 11.sp))
+            }
         }
     }
 }
@@ -289,59 +304,88 @@ private fun OperatorLedgerRowItem(item: OperatorLedgerItem) {
         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // TO PNR Kodu
-        Box(modifier = Modifier.weight(1.1f)) {
+        // 1. TO PNR Kodu
+        Box(modifier = Modifier.weight(1.0f)) {
             Surface(
                 shape = RoundedCornerShape(6.dp),
                 color = if (item.operatorPnrCode != "-") Color(0xFFECFDF5) else Color(0xFFF1F5F9)
             ) {
                 Text(
                     text = item.operatorPnrCode,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
                     style = TourOSTypography.Label.copy(
                         color = if (item.operatorPnrCode != "-") Color(0xFF059669) else TourOSColors.TextSecondary,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
                     )
                 )
             }
         }
 
-        // Müşteri Adı
+        // 2. Müşteri Adı
         Text(
             text = item.customerName,
-            modifier = Modifier.weight(1.4f),
-            style = TourOSTypography.Label.copy(fontWeight = FontWeight.SemiBold)
+            modifier = Modifier.weight(1.3f),
+            style = TourOSTypography.Label.copy(fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
         )
 
-        // Paket Tur Kodu
+        // 3. Paket Tur Kodu
         Text(
             text = item.bookingCode,
-            modifier = Modifier.weight(1.2f),
-            style = TourOSTypography.Label.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+            modifier = Modifier.weight(1.0f),
+            style = TourOSTypography.Label.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         )
 
-        // Tur Satışı (Maliyet)
+        // 4. TO Acente Adı
+        Text(
+            text = item.operatorName,
+            modifier = Modifier.weight(1.3f),
+            style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.sp)
+        )
+
+        // 5. Tur Satış Fiyatı (Paket Satış Tutarı)
         Text(
             text = "${formatCurrency(item.totalSales)} ₺",
-            modifier = Modifier.weight(1.2f),
-            style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold)
+            modifier = Modifier.weight(1.1f),
+            style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         )
 
-        // TO Ödeme
+        // 6. Acenta % (Komisyon Oranı)
+        Surface(
+            modifier = Modifier.weight(0.8f),
+            shape = RoundedCornerShape(4.dp),
+            color = Color(0xFFEFF6FF)
+        ) {
+            Text(
+                text = "%${formatCurrency(item.commissionRate)}",
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                style = TourOSTypography.Label.copy(color = Color(0xFF2563EB), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            )
+        }
+
+        // 7. Tur Satışı (Maliyet)
+        Text(
+            text = "${formatCurrency(item.tourCost)} ₺",
+            modifier = Modifier.weight(1.2f),
+            style = TourOSTypography.Label.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        )
+
+        // 8. TO Ödemesi
         Text(
             text = "${formatCurrency(item.totalPaid)} ₺",
-            modifier = Modifier.weight(1.2f),
-            style = TourOSTypography.Label.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold)
+            modifier = Modifier.weight(1.0f),
+            style = TourOSTypography.Label.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold, fontSize = 12.sp)
         )
 
-        // Bakiye
+        // 9. Bakiye
         val isZeroBalance = item.balance <= 0.0
         Text(
-            text = if (isZeroBalance) "0.00 ₺ (Kapandı)" else "${formatCurrency(item.balance)} ₺",
-            modifier = Modifier.weight(1.2f),
+            text = if (isZeroBalance) "0 ₺ (Kapandı)" else "${formatCurrency(item.balance)} ₺",
+            modifier = Modifier.weight(1.1f),
             style = TourOSTypography.Label.copy(
                 color = if (isZeroBalance) Color(0xFF64748B) else Color(0xFFD97706),
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp
             )
         )
     }
