@@ -76,9 +76,26 @@ fun CreateBookingStep1Screen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showDualCalendarModal by remember { mutableStateOf(false) }
+    var showHierarchicalDestModal by remember { mutableStateOf(false) }
     var customStartDate by remember { mutableStateOf("20.08.2026") }
     var customEndDate by remember { mutableStateOf("28.08.2026") }
     var customFlexDays by remember { mutableStateOf(3) }
+
+    if (showHierarchicalDestModal) {
+        com.mgacreative.touros.ui.components.HierarchicalDestinationPickerDialog(
+            currentSelection = uiState.searchQuery,
+            onDestinationSelected = { destItem ->
+                val keyword = when (destItem.level) {
+                    com.mgacreative.touros.ui.components.DestinationLevel.COUNTRY -> ""
+                    com.mgacreative.touros.ui.components.DestinationLevel.CITY -> destItem.name.substringBefore(" ")
+                    com.mgacreative.touros.ui.components.DestinationLevel.RESORT -> destItem.name.substringBefore(" /").substringBefore(" (")
+                    else -> destItem.name
+                }
+                viewModel.onSearchQueryChanged(keyword)
+            },
+            onDismiss = { showHierarchicalDestModal = false }
+        )
+    }
 
     if (showDualCalendarModal) {
         com.mgacreative.touros.ui.components.DualMonthRangeDatePickerDialog(
@@ -161,6 +178,7 @@ fun CreateBookingStep1Screen(
                             SelectTourContent(
                                 uiState = uiState,
                                 onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
+                                onOpenDestinationPicker = { showHierarchicalDestModal = true },
                                 onTourSelected = { viewModel.selectTour(it) }
                             )
                         }
@@ -381,15 +399,29 @@ private fun StepIndicatorHeader(currentStep: BookingWizardStep) {
 private fun SelectTourContent(
     uiState: CreateBookingWizardUiState,
     onSearchQueryChanged: (String) -> Unit,
+    onOpenDestinationPicker: () -> Unit,
     onTourSelected: (Tour) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-        TourOSTextField(
-            value = uiState.searchQuery,
-            onValueChange = onSearchQueryChanged,
-            placeholder = "🔍 Tur adı veya şehir arayın...",
-            modifier = Modifier.fillMaxWidth()
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                TourOSTextField(
+                    value = uiState.searchQuery,
+                    onValueChange = onSearchQueryChanged,
+                    placeholder = "🔍 Tur adı, şehir veya otel arayın...",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            TourOSButton(
+                text = "📍 Destinasyon Ağacı",
+                onClick = onOpenDestinationPicker,
+                variant = TourOSButtonVariant.SECONDARY
+            )
+        }
 
         LazyColumn(
             modifier = Modifier.height(240.dp),

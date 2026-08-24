@@ -407,7 +407,19 @@ fun GlobalWebPublicScreen(
     var showEndDatePicker by remember { mutableStateOf(false) }
     var showNightsDropdown by remember { mutableStateOf(false) }
     var showGuestRoomModal by remember { mutableStateOf(false) }
+    var showHierarchicalDestModal by remember { mutableStateOf(false) }
     var bookingSuccessMessage by remember { mutableStateOf<String?>(null) }
+
+    if (showHierarchicalDestModal) {
+        com.mgacreative.touros.ui.components.HierarchicalDestinationPickerDialog(
+            currentSelection = destinationCity,
+            onDestinationSelected = { destItem ->
+                destinationCity = destItem.name
+                selectedDestinationFilter = destItem.name
+            },
+            onDismiss = { showHierarchicalDestModal = false }
+        )
+    }
 
     if (showStartDatePicker) {
         ModernDatePickerDialog(
@@ -1311,7 +1323,7 @@ fun GlobalWebPublicScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showDestinationDropdown = !showDestinationDropdown }
+                                                    .clickable { showHierarchicalDestModal = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
@@ -1319,20 +1331,6 @@ fun GlobalWebPublicScreen(
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                                    }
-                                                }
-                                                DropdownMenu(
-                                                    expanded = showDestinationDropdown,
-                                                    onDismissRequest = { showDestinationDropdown = false },
-                                                    modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
-                                                ) {
-                                                    listOf("Bodrum (Muğla)", "Antalya (AYT)", "Marmaris & Fethiye", "İstanbul (IST)", "Mısır (Şarm El-Şeyh)", "Dubai (BAE)").forEach { destName ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(destName, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
-                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                            modifier = Modifier.height(34.dp),
-                                                            onClick = { destinationCity = destName; selectedDestinationFilter = destName; showDestinationDropdown = false }
-                                                        )
                                                     }
                                                 }
                                             }
@@ -1485,7 +1483,7 @@ fun GlobalWebPublicScreen(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showDestinationDropdown = !showDestinationDropdown }
+                                                    .clickable { showHierarchicalDestModal = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
@@ -1493,20 +1491,6 @@ fun GlobalWebPublicScreen(
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                                    }
-                                                }
-                                                DropdownMenu(
-                                                    expanded = showDestinationDropdown,
-                                                    onDismissRequest = { showDestinationDropdown = false },
-                                                    modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
-                                                ) {
-                                                    listOf("Bodrum (Muğla)", "Antalya (Lara, Belek)", "Marmaris & Fethiye", "İstanbul", "Mısır (Şarm El-Şeyh)", "Dubai (BAE)").forEach { destName ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(destName, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
-                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                            modifier = Modifier.height(34.dp),
-                                                            onClick = { destinationCity = destName; selectedDestinationFilter = destName; showDestinationDropdown = false }
-                                                        )
                                                     }
                                                 }
                                             }
