@@ -2215,15 +2215,73 @@ private fun TourResultMatrixCard(
                     }
                 }
 
-                // Destinasyon / Konum
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📍 ", fontSize = 11.sp)
-                    Text(
-                        text = "${product.region}, ${product.country}".trim().removePrefix(", ").removeSuffix(", "),
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Medium, fontSize = 11.sp),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                // 1. Ülke & Bölge Hiyerarşi Rozeti (🇹🇷 Türkiye · Antalya · Kemer)
+                val fullDestinationText = remember(product.country, product.region, product.hotelName) {
+                    val hName = product.hotelName.lowercase()
+                    val reg = product.region
+                    val ctry = product.country
+                    when {
+                        reg.contains("Kemer", ignoreCase = true) || hName.contains("kemer") -> "🇹🇷 Türkiye · Antalya · Kemer"
+                        reg.contains("Belek", ignoreCase = true) || hName.contains("belek") -> "🇹🇷 Türkiye · Antalya · Belek"
+                        reg.contains("Lara", ignoreCase = true) || reg.contains("Kundu", ignoreCase = true) || hName.contains("lara") || hName.contains("kundu") -> "🇹🇷 Türkiye · Antalya · Lara"
+                        reg.contains("Alanya", ignoreCase = true) || hName.contains("alanya") -> "🇹🇷 Türkiye · Antalya · Alanya"
+                        reg.contains("Side", ignoreCase = true) || reg.contains("Manavgat", ignoreCase = true) || hName.contains("side") -> "🇹🇷 Türkiye · Antalya · Side"
+                        reg.contains("Bodrum", ignoreCase = true) || hName.contains("bodrum") -> "🇹🇷 Türkiye · Muğla · Bodrum"
+                        reg.contains("Marmaris", ignoreCase = true) || hName.contains("marmaris") -> "🇹🇷 Türkiye · Muğla · Marmaris"
+                        reg.contains("Fethiye", ignoreCase = true) || hName.contains("fethiye") -> "🇹🇷 Türkiye · Muğla · Fethiye"
+                        reg.contains("Moskova", ignoreCase = true) || ctry.contains("Rusya", ignoreCase = true) -> "🇷🇺 Rusya · Moskova"
+                        reg.contains("Dubai", ignoreCase = true) || ctry.contains("BAE", ignoreCase = true) -> "🇦🇪 BAE · Dubai"
+                        reg.contains("Şarm", ignoreCase = true) || reg.contains("Hurgada", ignoreCase = true) || ctry.contains("Mısır", ignoreCase = true) -> "🇪🇬 Mısır · Şarm El-Şeyh"
+                        ctry.isNotBlank() && reg.isNotBlank() -> "🇹🇷 $ctry · $reg"
+                        reg.isNotBlank() -> "🇹🇷 Türkiye · $reg"
+                        else -> "🇹🇷 Türkiye · Antalya"
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFFE6F4F1))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = fullDestinationText,
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                            maxLines = 1
+                        )
+                    }
+
+                    if (fullDestinationText.contains("Antalya") || fullDestinationText.contains("Kemer") || fullDestinationText.contains("Belek") || fullDestinationText.contains("Lara") || fullDestinationText.contains("Side")) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFF1F5F9))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "✈️ AYT (Antalya)",
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.SemiBold, fontSize = 9.sp),
+                                maxLines = 1
+                            )
+                        }
+                    } else if (fullDestinationText.contains("Bodrum")) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFF1F5F9))
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "✈️ BJV (Bodrum)",
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.SemiBold, fontSize = 9.sp),
+                                maxLines = 1
+                            )
+                        }
+                    }
                 }
 
                 // Tarih & Gece, Konsept, Sahil & Donanım Rozetleri

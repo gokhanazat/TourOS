@@ -2848,10 +2848,29 @@ fun HorizontalHotelCard(
                     }
                 }
 
+                val publicDestinationText = remember(hotel.location, hotel.hotelName) {
+                    val hName = hotel.hotelName.lowercase()
+                    val loc = hotel.location
+                    when {
+                        loc.contains("Kemer", ignoreCase = true) || hName.contains("kemer") -> "🇹🇷 Türkiye · Antalya · Kemer"
+                        loc.contains("Belek", ignoreCase = true) || hName.contains("belek") -> "🇹🇷 Türkiye · Antalya · Belek"
+                        loc.contains("Lara", ignoreCase = true) || loc.contains("Kundu", ignoreCase = true) || hName.contains("lara") || hName.contains("kundu") -> "🇹🇷 Türkiye · Antalya · Lara"
+                        loc.contains("Alanya", ignoreCase = true) || hName.contains("alanya") -> "🇹🇷 Türkiye · Antalya · Alanya"
+                        loc.contains("Side", ignoreCase = true) || loc.contains("Manavgat", ignoreCase = true) || hName.contains("side") -> "🇹🇷 Türkiye · Antalya · Side"
+                        loc.contains("Bodrum", ignoreCase = true) || hName.contains("bodrum") -> "🇹🇷 Türkiye · Muğla · Bodrum"
+                        loc.contains("Marmaris", ignoreCase = true) || hName.contains("marmaris") -> "🇹🇷 Türkiye · Muğla · Marmaris"
+                        loc.contains("Fethiye", ignoreCase = true) || hName.contains("fethiye") -> "🇹🇷 Türkiye · Muğla · Fethiye"
+                        loc.contains("Moskova", ignoreCase = true) -> "🇷🇺 Rusya · Moskova"
+                        loc.contains("Dubai", ignoreCase = true) -> "🇦🇪 BAE · Dubai"
+                        loc.contains("Şarm", ignoreCase = true) || loc.contains("Hurgada", ignoreCase = true) -> "🇪🇬 Mısır · Şarm El-Şeyh"
+                        else -> "🇹🇷 Türkiye · $loc"
+                    }
+                }
+
                 // Lokasyon & Tur / Uçuş Bilgisi
                 Text(
-                    text = if (isFlightCard) AppLanguageManager.translate("Moskova Kalkışlı · Ekonomi Sınıfı · Gidiş-Dönüş") else "Moskova'dan ${hotel.location} · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${hotel.mealType}",
-                    style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
+                    text = if (isFlightCard) AppLanguageManager.translate("Moskova Kalkışlı · Ekonomi Sınıfı · Gidiş-Dönüş") else "$publicDestinationText · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${hotel.mealType}",
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
