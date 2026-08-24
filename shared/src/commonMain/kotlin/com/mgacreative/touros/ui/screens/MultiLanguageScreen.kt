@@ -55,13 +55,9 @@ fun MultiLanguageScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Dil & Para Birimi Ayarları",
-                subtitle = "Uygulama genel yerelleştirme ve para birimi tercihleri",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                },
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çoklu Dil & Çeviri Yönetimi"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sistem metinleri ve dinamik içerik çevirileri"),
+                onNavigateBack = onNavigateBack,
                 actions = {
                     // UYGULAMA GENELİNDE ÜST BAR'DAKİ HIZLI ERİŞİM MENÜSÜ (Strict Rule)
                     Box {

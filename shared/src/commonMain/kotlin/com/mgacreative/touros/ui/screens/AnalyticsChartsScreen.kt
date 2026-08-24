@@ -55,11 +55,7 @@ fun AnalyticsChartsScreen(
             TourOSTopBar(
                 title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Analitik & Tahmin Grafikleri"),
                 subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen satış trendleri ve AI gelecek tahmin analizi"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

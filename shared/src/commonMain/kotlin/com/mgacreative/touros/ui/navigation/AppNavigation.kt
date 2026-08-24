@@ -46,6 +46,9 @@ import com.mgacreative.touros.ui.localization.AppLanguageManager
 
 import com.mgacreative.touros.ui.components.TourOSNavGroup
 
+// ─── Global NavController CompositionLocal (Tüm sayfalarda Geri Dön ve Navigasyon için) ───
+val LocalNavController = androidx.compose.runtime.staticCompositionLocalOf<NavHostController?> { null }
+
 // ─── Public Landing & Auth Route'ları (Shell & Rehber gizlenir) ─────────────
 private val publicAndAuthRoutePatterns = listOf(
     "SplashRoute", "LoginRoute", "RegisterRoute",
@@ -277,12 +280,11 @@ fun AppNavigation() {
     val currentUser by authRepository.observeAuthState().collectAsState()
     val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
 
-    val isUserLoggedIn = currentUser != null
     val isAuthOrPublicRoute = backStackEntry?.destination.isAuthOrPublicRoute()
-    // Yan sol gezinti menüsü oturumlu acentelerde ve adminlerde AKTİF (Public web ve auth sayfalarında gizlenir)
-    val showShell = isUserLoggedIn && !isAuthOrPublicRoute
-    // Sayfa Rehberi SADECE login olmuş acenta kullanıcılarına iç sayfalarda gösterilir (Ana web sayfası ve Admin sayfaları hariç)
-    val showHelpAssistant = isUserLoggedIn && !currentRoute.isAdminOrPublicRoute()
+    // Yan sol gezinti menüsü iç acente sayfalarında ve admin panellerinde HER ZAMAN SABİT VE AKTİF (Sadece Public landing ve auth sayfalarında gizlenir)
+    val showShell = !isAuthOrPublicRoute
+    // Sayfa Rehberi SADECE iç sayfalarda gösterilir (Ana web sayfası ve Admin sayfaları hariç)
+    val showHelpAssistant = !currentRoute.isAdminOrPublicRoute()
     var isHelpDrawerOpen by remember { mutableStateOf(false) }
 
     fun navigate(route: Any) {
@@ -296,172 +298,174 @@ fun AppNavigation() {
     val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
-    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
-        val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
-        val isMedium = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM
-        val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavGroups(currentRoute, isSystemAdmin) }
-        val navItems = remember(navGroups) { navGroups.flatMap { it.items } }
+    androidx.compose.runtime.CompositionLocalProvider(LocalNavController provides navController) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
+            val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
+            val isMedium = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM
+            val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavGroups(currentRoute, isSystemAdmin) }
+            val navItems = remember(navGroups) { navGroups.flatMap { it.items } }
 
-        // Mobil Bottom Bar için "☰ Menü" Butonlu Liste
-        val menuDummyRoute = "HamburgerMenuOpen"
-        val bottomNavItems = remember(navItems, drawerState.isOpen) {
-            val main4 = navItems.take(4)
-            val menuBtn = TourOSNavItem(
-                title = "Menü ☰",
-                icon = { androidx.compose.material3.Text("☰") },
-                route = menuDummyRoute,
-                isSelected = drawerState.isOpen
-            )
-            main4 + menuBtn
-        }
+            // Mobil Bottom Bar için "☰ Menü" Butonlu Liste
+            val menuDummyRoute = "HamburgerMenuOpen"
+            val bottomNavItems = remember(navItems, drawerState.isOpen) {
+                val main4 = navItems.take(4)
+                val menuBtn = TourOSNavItem(
+                    title = "Menü ☰",
+                    icon = { androidx.compose.material3.Text("☰") },
+                    route = menuDummyRoute,
+                    isSelected = drawerState.isOpen
+                )
+                main4 + menuBtn
+            }
 
-        val displayName = currentUser?.fullName?.ifBlank { currentUser?.email } ?: "Acente Yöneticisi"
-        val displayRole = currentUser?.role?.displayName ?: "SaaS Acentesi"
+            val displayName = currentUser?.fullName?.ifBlank { currentUser?.email } ?: "Acente Yöneticisi"
+            val displayRole = currentUser?.role?.displayName ?: "SaaS Acentesi"
 
-        val handleLogout: () -> Unit = {
-            coroutineScope.launch {
-                authRepository.signOut()
-                if (drawerState.isOpen) drawerState.close()
-                navController.navigate(GlobalWebPublicRoute) {
-                    popUpTo(0) { inclusive = true }
+            val handleLogout: () -> Unit = {
+                coroutineScope.launch {
+                    authRepository.signOut()
+                    if (drawerState.isOpen) drawerState.close()
+                    navController.navigate(GlobalWebPublicRoute) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             }
-        }
 
-        if (isExpanded) {
-            // ── Expanded (≥840dp Masaüstü & Yatay Tablet): Kalıcı Sol Sidebar + Sağ İçerik ──
-            Row(modifier = Modifier.fillMaxSize()) {
-                if (showShell) {
-                    TourOSSidebar(
-                        items = navItems,
-                        groups = navGroups,
-                        onItemSelect = { navigate(it.route) },
-                        userName = displayName,
-                        userRole = displayRole,
-                        onLogoutClick = handleLogout
-                    )
-                }
-                Box(modifier = Modifier.weight(1f).fillMaxSize()) {
-                    AppNavHost(navController)
-                }
-            }
-        } else if (isMedium) {
-            // ── Medium (600dp-839dp Tablet Dikey & Katlanabilir): Çekmece + Esnek İçerik ──
-            androidx.compose.material3.ModalNavigationDrawer(
-                drawerState = drawerState,
-                gesturesEnabled = showShell,
-                drawerContent = {
-                    androidx.compose.material3.ModalDrawerSheet(
-                        drawerContainerColor = TourOSColors.Surface
-                    ) {
+            if (isExpanded) {
+                // ── Expanded (≥840dp Masaüstü & Yatay Tablet): Kalıcı Sol Sidebar + Sağ İçerik ──
+                Row(modifier = Modifier.fillMaxSize()) {
+                    if (showShell) {
                         TourOSSidebar(
                             items = navItems,
                             groups = navGroups,
-                            onItemSelect = { item ->
-                                coroutineScope.launch { drawerState.close() }
-                                navigate(item.route)
-                            },
+                            onItemSelect = { navigate(it.route) },
                             userName = displayName,
                             userRole = displayRole,
                             onLogoutClick = handleLogout
                         )
                     }
-                }
-            ) {
-                Scaffold(
-                    containerColor = TourOSColors.Surface,
-                    bottomBar = {
-                        if (showShell) {
-                            TourOSBottomBar(
-                                items = bottomNavItems,
-                                onItemSelect = { item ->
-                                    if (item.route == menuDummyRoute) {
-                                        coroutineScope.launch {
-                                            if (drawerState.isOpen) drawerState.close() else drawerState.open()
-                                        }
-                                    } else {
-                                        navigate(item.route)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                ) { padding ->
-                    Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                    Box(modifier = Modifier.weight(1f).fillMaxSize()) {
                         AppNavHost(navController)
                     }
                 }
-            }
-        } else {
-            // ── Compact (<600dp Telefon Dikey): Alt Menü Çubuğu (BottomBar) + Drawer ──
-            androidx.compose.material3.ModalNavigationDrawer(
-                drawerState = drawerState,
-                gesturesEnabled = showShell,
-                drawerContent = {
-                    androidx.compose.material3.ModalDrawerSheet(
-                        drawerContainerColor = TourOSColors.Surface
-                    ) {
-                        TourOSSidebar(
-                            items = navItems,
-                            groups = navGroups,
-                            onItemSelect = { item ->
-                                coroutineScope.launch { drawerState.close() }
-                                navigate(item.route)
-                            },
-                            userName = displayName,
-                            userRole = displayRole,
-                            onLogoutClick = handleLogout
-                        )
-                    }
-                }
-            ) {
-                Scaffold(
-                    containerColor = TourOSColors.Surface,
-                    bottomBar = {
-                        if (showShell) {
-                            TourOSBottomBar(
-                                items = bottomNavItems,
+            } else if (isMedium) {
+                // ── Medium (600dp-839dp Tablet Dikey & Katlanabilir): Çekmece + Esnek İçerik ──
+                androidx.compose.material3.ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    gesturesEnabled = showShell,
+                    drawerContent = {
+                        androidx.compose.material3.ModalDrawerSheet(
+                            drawerContainerColor = TourOSColors.Surface
+                        ) {
+                            TourOSSidebar(
+                                items = navItems,
+                                groups = navGroups,
                                 onItemSelect = { item ->
-                                    if (item.route == menuDummyRoute) {
-                                        coroutineScope.launch {
-                                            if (drawerState.isOpen) drawerState.close() else drawerState.open()
-                                        }
-                                    } else {
-                                        navigate(item.route)
-                                    }
-                                }
+                                    coroutineScope.launch { drawerState.close() }
+                                    navigate(item.route)
+                                },
+                                userName = displayName,
+                                userRole = displayRole,
+                                onLogoutClick = handleLogout
                             )
                         }
                     }
-                ) { padding ->
-                    Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                        AppNavHost(navController)
+                ) {
+                    Scaffold(
+                        containerColor = TourOSColors.Surface,
+                        bottomBar = {
+                            if (showShell) {
+                                TourOSBottomBar(
+                                    items = bottomNavItems,
+                                    onItemSelect = { item ->
+                                        if (item.route == menuDummyRoute) {
+                                            coroutineScope.launch {
+                                                if (drawerState.isOpen) drawerState.close() else drawerState.open()
+                                            }
+                                        } else {
+                                            navigate(item.route)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    ) { padding ->
+                        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                            AppNavHost(navController)
+                        }
+                    }
+                }
+            } else {
+                // ── Compact (<600dp Telefon Dikey): Alt Menü Çubuğu (BottomBar) + Drawer ──
+                androidx.compose.material3.ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    gesturesEnabled = showShell,
+                    drawerContent = {
+                        androidx.compose.material3.ModalDrawerSheet(
+                            drawerContainerColor = TourOSColors.Surface
+                        ) {
+                            TourOSSidebar(
+                                items = navItems,
+                                groups = navGroups,
+                                onItemSelect = { item ->
+                                    coroutineScope.launch { drawerState.close() }
+                                    navigate(item.route)
+                                },
+                                userName = displayName,
+                                userRole = displayRole,
+                                onLogoutClick = handleLogout
+                            )
+                        }
+                    }
+                ) {
+                    Scaffold(
+                        containerColor = TourOSColors.Surface,
+                        bottomBar = {
+                            if (showShell) {
+                                TourOSBottomBar(
+                                    items = bottomNavItems,
+                                    onItemSelect = { item ->
+                                        if (item.route == menuDummyRoute) {
+                                            coroutineScope.launch {
+                                                if (drawerState.isOpen) drawerState.close() else drawerState.open()
+                                            }
+                                        } else {
+                                            navigate(item.route)
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    ) { padding ->
+                        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+                            AppNavHost(navController)
+                        }
                     }
                 }
             }
-        }
 
-        // ─── Sayfa İçi Akıllı Yardım & Rehber Asistanı (Web, Desktop, Android, iOS) ───
-        if (showHelpAssistant) {
-            com.mgacreative.touros.ui.components.TourOSHelpAssistantFAB(
-                onClick = { isHelpDrawerOpen = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(
-                        end = 24.dp,
-                        bottom = if (isExpanded) 28.dp else 84.dp
-                    ),
-                isExpandedScreen = isExpanded
-            )
-        }
+            // ─── Sayfa İçi Akıllı Yardım & Rehber Asistanı (Web, Desktop, Android, iOS) ───
+            if (showHelpAssistant) {
+                com.mgacreative.touros.ui.components.TourOSHelpAssistantFAB(
+                    onClick = { isHelpDrawerOpen = true },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(
+                            end = 24.dp,
+                            bottom = if (isExpanded) 28.dp else 84.dp
+                        ),
+                    isExpandedScreen = isExpanded
+                )
+            }
 
-        if (isHelpDrawerOpen && showHelpAssistant) {
-            com.mgacreative.touros.ui.components.TourOSHelpDrawer(
-                currentRoute = currentRoute,
-                onDismiss = { isHelpDrawerOpen = false },
-                isExpandedScreen = isExpanded
-            )
+            if (isHelpDrawerOpen && showHelpAssistant) {
+                com.mgacreative.touros.ui.components.TourOSHelpDrawer(
+                    currentRoute = currentRoute,
+                    onDismiss = { isHelpDrawerOpen = false },
+                    isExpandedScreen = isExpanded
+                )
+            }
         }
     }
 }
@@ -598,7 +602,7 @@ private fun AppNavHost(navController: NavHostController) {
                 onNavigateToBookingDetail = { id -> navController.navigate(BookingDetailRoute(id)) },
                 onNavigateToLogin = {
                     if (currentUser != null) {
-                        navController.navigate(DashboardRoute)
+                        navController.navigate(B2BTourSearchDashboardRoute)
                     } else {
                         navController.navigate(LoginRoute)
                     }

@@ -43,13 +43,9 @@ fun SupplierExpenseScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Cari & Gider Girişi"),
-                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel, araç yakıt ve rehber gider akışları ve cari takibi"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                },
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Gider & Hakediş Yönetimi"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur bazlı otel, transfer, rehber ödemeleri ve hakediş mutabakatı"),
+                onNavigateBack = onNavigateBack,
                 actions = {
                     TourOSButton(
                         text = if (isAddingExpense) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📋 Liste") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("➕ Yeni Gider Gir"),

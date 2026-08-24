@@ -60,7 +60,8 @@ fun TourOSSidebar(
     groups: List<TourOSNavGroup>? = null,
     userName: String = "",
     userRole: String = "",
-    onLogoutClick: (() -> Unit)? = null
+    onLogoutClick: (() -> Unit)? = null,
+    onNavigateToWeb: (() -> Unit)? = null
 ) {
     val expandedGroups = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
 
@@ -108,6 +109,39 @@ fun TourOSSidebar(
         }
 
         HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
+
+        // 🌐 Web'e Dön Butonu (Menü Üstü Kolay Geçiş)
+        if (onNavigateToWeb != null) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onNavigateToWeb() },
+                color = TourOSColors.PrimaryContainer.copy(alpha = 0.7f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.3f)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("🌐", fontSize = 14.sp)
+                    Text(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web Sayfasına Dön"),
+                        style = TourOSTypography.BodyMedium.copy(
+                            color = TourOSColors.Primary,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            fontSize = 12.sp
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("➔", fontSize = 12.sp, color = TourOSColors.Primary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                }
+            }
+            HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
+        }
 
         // Menu Items (Gruplandırılmış veya Tekil Liste - Daraltılmış Dar Satır Aralıklı)
         Column(

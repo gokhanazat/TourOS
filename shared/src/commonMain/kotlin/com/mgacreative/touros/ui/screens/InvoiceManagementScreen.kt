@@ -61,13 +61,9 @@ fun InvoiceManagementScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Fatura Yönetimi & E-Fatura",
-                subtitle = "Gelir/Gider faturası düzenleme, canlı PDF önizleme ve fatura iptal/silme",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Yönetimi & e-Fatura"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("GİB Entegrasyonu, e-Arşiv/e-Fatura Kesme ve İptal Yönetimi"),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

@@ -16,6 +16,9 @@ import com.mgacreative.touros.domain.model.ReportExportResult
 import com.mgacreative.touros.ui.viewmodel.ReportFilterExportUiState
 import com.mgacreative.touros.ui.viewmodel.ReportFilterExportViewModel
 
+import com.mgacreative.touros.ui.components.TourOSTopBar
+import com.mgacreative.touros.ui.theme.TourOSColors
+
 /**
  * 3.3.4 Rapor Filtreleme ve PDF/Excel Export Ekranı.
  */
@@ -32,14 +35,12 @@ fun ReportFilterExportScreen(
     var endDate by remember { mutableStateOf(filter.endDate) }
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("📄 Rapor Filtreleme & Export", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
-                }
+            TourOSTopBar(
+                title = "📄 Rapor Filtreleme & Export",
+                subtitle = "Tarih ve modül bazlı dinamik rapor çıktısı alma",
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

@@ -49,12 +49,21 @@ fun B2BTourFlightServiceSelectionScreen(
 
     val product = selectedProduct ?: run {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(AppLanguageManager.translate("Seçili tur bulunamadı."), style = TourOSTypography.BodyMedium)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                CircularProgressIndicator(color = TourOSColors.Primary)
+                Text(
+                    text = AppLanguageManager.translate("Tur ve uçuş detayları hazırlanıyor..."),
+                    style = TourOSTypography.BodyMedium.copy(color = Color(0xFF64748B))
+                )
+            }
         }
         return
     }
 
-    val basePrice = remember(product.price) { product.price * 1.125 }
+    val basePrice = remember(product.price) { product.price }
     val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
     val extrasTotalEur = remember(extraServices) {
         extraServices.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
@@ -68,11 +77,7 @@ fun B2BTourFlightServiceSelectionScreen(
             TourOSTopBar(
                 title = AppLanguageManager.translate("2. Adım: Uçuş & Hizmet Seçimi"),
                 subtitle = "${product.hotelName} — ${product.region}",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

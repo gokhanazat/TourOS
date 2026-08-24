@@ -9,6 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,22 +79,37 @@ fun OperatorCurrentAccountReportScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        // ── 1. Başlık & Aksiyon Butonları (Paylaş / CSV & Yazdır / PDF) ──
+                        // ── 1. Başlık & Aksiyon Butonları (Paylaş / CSV & Yazdır / PDF & Geri Dön) ──
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text(
-                                    text = "🏢 ${AppLanguageManager.translate("TO Cari Hesap & PNR Ekstresi")}",
-                                    style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary),
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = AppLanguageManager.translate("Tur operatörleri bazında PNR satışları, yapılan ödemeler ve kalan cari bakiye dökümü"),
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                                )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                            ) {
+                                IconButton(
+                                    onClick = onNavigateBack,
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = "Geri Dön",
+                                        tint = TourOSColors.Primary
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = "🏢 ${AppLanguageManager.translate("TO Cari Hesap & PNR Ekstresi")}",
+                                        style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = AppLanguageManager.translate("Tur operatörleri bazında PNR satışları, yapılan ödemeler ve kalan cari bakiye dökümü"),
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                    )
+                                }
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
@@ -224,13 +241,13 @@ fun OperatorCurrentAccountReportScreen(
                         TourOSCard(modifier = Modifier.fillMaxWidth().weight(1f), contentPadding = 0.dp) {
                             val horizontalScrollState = rememberScrollState()
                             Box(modifier = Modifier.fillMaxSize().horizontalScroll(horizontalScrollState)) {
-                                Column(modifier = Modifier.widthIn(min = 960.dp).fillMaxHeight()) {
+                                Column(modifier = Modifier.width(1280.dp).fillMaxHeight()) {
                                     // Tablo Başlık Satırı
                                     Row(
                                         modifier = Modifier
-                                            .fillMaxWidth()
+                                            .width(1280.dp)
                                             .background(TourOSColors.Primary)
-                                            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                                            .padding(horizontal = TourOSSpacing.medium, vertical = 12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -299,8 +316,8 @@ private fun SummaryCard(
 private fun OperatorLedgerRowItem(item: OperatorLedgerItem) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+            .width(1280.dp)
+            .padding(horizontal = TourOSSpacing.medium, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
         verticalAlignment = Alignment.CenterVertically
     ) {

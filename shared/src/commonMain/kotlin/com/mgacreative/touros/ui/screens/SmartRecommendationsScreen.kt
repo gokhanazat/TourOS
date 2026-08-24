@@ -70,13 +70,9 @@ fun SmartRecommendationsScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Akıllı Öneriler Paneli",
-                subtitle = "Yapay zeka kişiselleştirilmiş tur ve rota önerileri",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Akıllı Öneri & Çapraz Satış Motoru"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("AI destekli tur, transfer ve otel çapraz satış önerileri"),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

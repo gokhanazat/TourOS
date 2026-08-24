@@ -41,11 +41,7 @@ fun B2BPassengerCheckoutWizardScreen(
             TourOSTopBar(
                 title = AppLanguageManager.translate("4. Adım: Turist (Yolcu) Bilgileri"),
                 subtitle = AppLanguageManager.translate("Pasaport ve iletişim bilgilerini eksiksiz giriniz"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

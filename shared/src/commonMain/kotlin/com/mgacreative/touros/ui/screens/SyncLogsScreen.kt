@@ -47,13 +47,9 @@ fun SyncLogsScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "OTA Senkronizasyon Logları",
-                subtitle = "API çağrıları, webhook bildirimleri ve hata izleme geçmişi",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                },
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Entegrasyon & Senkronizasyon Logları"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("OTA ve webhook veri aktarım hareketleri ve hata kayıtları"),
+                onNavigateBack = onNavigateBack,
                 actions = {
                     TourOSButton(
                         text = "🔄 Yenile",

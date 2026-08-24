@@ -69,11 +69,7 @@ fun AgencyProductPublishingScreen(
             TourOSTopBar(
                 title = AppLanguageManager.translate("Katalog & Ürün Yayınlama Yönetimi"),
                 subtitle = AppLanguageManager.translate("Bağlı operatör turlarını ve yüklenen verileri kendi sitenizde yayınlayın veya yönetin"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

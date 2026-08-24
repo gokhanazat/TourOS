@@ -66,11 +66,7 @@ fun FinancialReportsScreen(
             TourOSTopBar(
                 title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Finansal Raporlar & Analizler"),
                 subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("KDV, Gelir-Gider, Likidite ve Kârlılık Dökümleri"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                },
+                onNavigateBack = onNavigateBack,
                 actions = {
                     Row(
                         modifier = Modifier.padding(end = TourOSSpacing.small),

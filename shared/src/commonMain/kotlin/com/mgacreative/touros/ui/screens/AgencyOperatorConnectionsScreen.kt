@@ -82,7 +82,7 @@ fun AgencyOperatorConnectionsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = TourOSColors.OnPrimary
+                            tint = TourOSColors.Primary
                         )
                     }
                 }

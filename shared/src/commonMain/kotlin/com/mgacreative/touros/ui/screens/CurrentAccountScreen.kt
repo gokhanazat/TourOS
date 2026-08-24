@@ -47,11 +47,7 @@ fun CurrentAccountScreen(
             TourOSTopBar(
                 title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Hesaplar & Mutabakat"),
                 subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri, acente ve tedarikçi bakiye dökümleri ve ekstreler"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

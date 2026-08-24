@@ -60,11 +60,7 @@ fun CustomerSegmentationScreen(
             TourOSTopBar(
                 title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Segmentleri & CRM"),
                 subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kullanıcı davranışlarına göre canlı segmentasyon ve müşteri dökümü"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

@@ -12,3 +12,4 @@ class JsPlatform: Platform {
 }
 
 actual fun getPlatform(): Platform = JsPlatform()
+actual fun getCurrentEpochMillis(): Long = kotlin.js.Date.now().toLong()

@@ -63,6 +63,8 @@ data class UnifiedProductEntity(
     val safeHotelName: String get() = hotelName
     val safeHotelCategory: Int get() = hotelCategory
     val safeCountry: String get() = country
+    val safeCountryCode: String get() = countryCode
+    val safeCountryName: String get() = countryName
     val safeRegion: String get() = region
     val safeSubRegion: String get() = subRegion
     val safeRoomType: String get() = roomType

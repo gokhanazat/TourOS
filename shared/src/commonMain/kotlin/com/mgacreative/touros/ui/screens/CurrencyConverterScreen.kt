@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.util.KmpCurrencyFormatter
 import com.mgacreative.touros.ui.viewmodel.CurrencyConverterViewModel
 
+import com.mgacreative.touros.ui.components.TourOSTopBar
+import com.mgacreative.touros.ui.theme.TourOSColors
+
 /**
  * 4.4.2 CurrencyFormatter (TRY, EUR, USD, GBP, AED, RUB) Anlık Çeviri Ekranı.
  */
@@ -28,14 +31,12 @@ fun CurrencyConverterScreen(
     val res = state.conversionResult
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("💱 CurrencyFormatter", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
-                }
+            TourOSTopBar(
+                title = "💱 CurrencyFormatter",
+                subtitle = "Anlık döviz çevirici ve formatlama aracı",
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

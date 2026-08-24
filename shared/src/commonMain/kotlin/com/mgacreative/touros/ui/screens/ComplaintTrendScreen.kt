@@ -100,11 +100,7 @@ fun ComplaintTrendScreen(
             TourOSTopBar(
                 title = "Şikayet Trend Paneli",
                 subtitle = "Kategori bazlı müşteri geri bildirim ve risk analiz grafiği",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

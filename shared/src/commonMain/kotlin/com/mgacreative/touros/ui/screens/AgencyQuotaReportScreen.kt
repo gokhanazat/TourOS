@@ -174,11 +174,7 @@ fun AgencyQuotaReportScreen(
             TourOSTopBar(
                 title = "Acente Sorgu & Kota Tüketim Raporu",
                 subtitle = "SaaS Admin: Tüm acentelerin günlük ve aylık arama kotaları, tüketim oranları ve lisans durumu",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                },
+                onNavigateBack = onNavigateBack,
                 actions = {
                     TourOSButton(
                         text = "🖨️ Yazdır / PDF",

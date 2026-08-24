@@ -18,6 +18,9 @@ import com.mgacreative.touros.domain.model.PerformerRanking
 import com.mgacreative.touros.domain.model.TopTourPerformance
 import com.mgacreative.touros.ui.viewmodel.PerformanceReportsViewModel
 
+import com.mgacreative.touros.ui.components.TourOSTopBar
+import com.mgacreative.touros.ui.theme.TourOSColors
+
 /**
  * 3.3.3 Performans Raporları Ekranı (En Çok Satan Turlar, İptal Oranı, Skorkart).
  */
@@ -32,14 +35,12 @@ fun PerformanceReportsScreen(
     val tabs = listOf("🏆 Top Turlar", "⚠️ İptal Oranı", "👥 Skorkartı")
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🏆 Performans Raporları", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
-                }
+            TourOSTopBar(
+                title = "🏆 Performans Raporları",
+                subtitle = "En çok satan turlar, iptal oranları ve personel skorkartı",
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

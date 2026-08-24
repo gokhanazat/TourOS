@@ -64,11 +64,7 @@ fun OTAConnectionDetailScreen(
             TourOSTopBar(
                 title = "OTA Bağlantı Detayı",
                 subtitle = "$providerName API ve kanal senkronizasyon ayarları",
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

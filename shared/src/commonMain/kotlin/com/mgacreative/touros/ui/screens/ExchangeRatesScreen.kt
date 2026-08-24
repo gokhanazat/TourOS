@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.ExchangeRate
 import com.mgacreative.touros.ui.viewmodel.ExchangeRatesViewModel
 
+import com.mgacreative.touros.ui.components.TourOSTopBar
+import com.mgacreative.touros.ui.theme.TourOSColors
+
 /**
  * 3.2.5 Çoklu Para Birimi ve Kur Servisi Ekranı (TRY, EUR, USD, GBP, AED, RUB).
  */
@@ -33,14 +36,12 @@ fun ExchangeRatesScreen(
     val currencies = listOf("TRY", "EUR", "USD", "GBP", "AED", "RUB")
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("💱 Çoklu Para Birimi & Kur Servisi", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
-                }
+            TourOSTopBar(
+                title = "💱 Çoklu Para Birimi & Kur Servisi",
+                subtitle = "TCMB ve serbest piyasa canlı döviz kurları",
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

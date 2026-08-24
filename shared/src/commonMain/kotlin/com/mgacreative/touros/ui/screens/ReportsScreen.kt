@@ -40,13 +40,9 @@ fun ReportsScreen(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("📊 Raporlar & Analitik Merkezi"),
-                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtreli operasyon, otel, tur operatörü satış ve finansal çıktılar"),
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
-                    }
-                }
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel & Finansal Raporlar"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ciro, kârlılık, doluluk ve operasyonel performans grafikleri"),
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->

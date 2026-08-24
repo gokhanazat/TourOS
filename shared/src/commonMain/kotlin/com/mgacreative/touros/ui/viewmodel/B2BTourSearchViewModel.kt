@@ -633,18 +633,31 @@ data class QuotaCheckResultDto(
 
     fun selectProductById(productId: String) {
         if (productId.isBlank()) return
-        if (selectedProduct.value?.id == productId) return
+        val current = selectedProduct.value
+        if (current != null && (current.id == productId || current.id.contains(productId, ignoreCase = true) || productId.contains(current.id, ignoreCase = true))) {
+            return
+        }
 
         viewModelScope.launch {
             var matched: UnifiedProductEntity? = null
-            runCatching {
-                supabaseClient.postgrest["marketplace_products"]
-                    .select { filter { eq("id", productId) } }
-                    .decodeSingleOrNull<UnifiedProductEntity>()
-            }.onSuccess {
-                matched = it
+
+            // 1. RAM Persistent Ürünlerinde Ara
+            matched = com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel.getPersistentProducts().find {
+                it.id == productId || it.id.contains(productId, ignoreCase = true) || productId.contains(it.id, ignoreCase = true)
             }
 
+            // 2. Supabase marketplace_products Tablosunda Ara
+            if (matched == null) {
+                runCatching {
+                    supabaseClient.postgrest["marketplace_products"]
+                        .select { filter { eq("id", productId) } }
+                        .decodeSingleOrNull<UnifiedProductEntity>()
+                }.onSuccess {
+                    matched = it
+                }
+            }
+
+            // 3. Varsayılan Zengin Ülke Fırsatlarında Ara
             if (matched == null) {
                 val defaultOffer = com.mgacreative.touros.ui.screens.getInitialDefaultOffers().find { 
                     it.id == productId || it.id.equals(productId, ignoreCase = true) || productId.contains(it.id, ignoreCase = true)
@@ -654,6 +667,7 @@ data class QuotaCheckResultDto(
                         id = defaultOffer.id,
                         hotelName = defaultOffer.hotelName,
                         region = defaultOffer.location,
+                        country = defaultOffer.countryCode,
                         price = defaultOffer.minPrice,
                         currency = defaultOffer.currency,
                         nights = defaultOffer.nights,
@@ -668,29 +682,32 @@ data class QuotaCheckResultDto(
                 }
             }
 
+            // 4. Arama Sonuçları Listesinde Ara
             if (matched == null && _uiState.value is B2BTourSearchUiState.Success) {
-                matched = (_uiState.value as B2BTourSearchUiState.Success).allProducts.find { it.id == productId }
+                matched = (_uiState.value as B2BTourSearchUiState.Success).allProducts.find {
+                    it.id == productId || it.id.contains(productId, ignoreCase = true) || productId.contains(it.id, ignoreCase = true)
+                }
             }
 
+            // 5. Herhangi bir eşleşme bulunamazsa ID ile anında geçerli bir ürün nesnesi üret
             if (matched == null) {
                 val firstDefault = com.mgacreative.touros.ui.screens.getInitialDefaultOffers().firstOrNull()
-                if (firstDefault != null) {
-                    matched = UnifiedProductEntity(
-                        id = firstDefault.id,
-                        hotelName = firstDefault.hotelName,
-                        region = firstDefault.location,
-                        price = firstDefault.minPrice,
-                        currency = firstDefault.currency,
-                        nights = firstDefault.nights,
-                        mealType = firstDefault.mealType,
-                        roomType = firstDefault.roomType,
-                        flightNumber = firstDefault.flightCode,
-                        hotelCategory = firstDefault.stars,
-                        operatorName = firstDefault.operatorName,
-                        pictureUrl = firstDefault.imageUrl,
-                        productType = firstDefault.category
-                    )
-                }
+                matched = UnifiedProductEntity(
+                    id = productId,
+                    hotelName = firstDefault?.hotelName ?: "Port Nature Luxury Resort Hotel & Spa",
+                    region = firstDefault?.location ?: "Belek, Antalya",
+                    country = firstDefault?.countryCode ?: "TR",
+                    price = firstDefault?.minPrice ?: 301468.0,
+                    currency = firstDefault?.currency ?: "RUB",
+                    nights = firstDefault?.nights ?: 7,
+                    mealType = firstDefault?.mealType ?: "All Inclusive",
+                    roomType = firstDefault?.roomType ?: "Standard Room",
+                    flightNumber = firstDefault?.flightCode ?: "VKO - AYT (Ekonomi 🟢)",
+                    hotelCategory = firstDefault?.stars ?: 5,
+                    operatorName = firstDefault?.operatorName ?: "Coral Travel B2B",
+                    pictureUrl = firstDefault?.imageUrl ?: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+                    productType = firstDefault?.category ?: "PACKAGE_TOUR"
+                )
             }
 
             matched?.let { selectProductForBooking(it) }
@@ -836,7 +853,7 @@ data class QuotaCheckResultDto(
             val mainPayer = pList.firstOrNull { it.isPayer } ?: pList.firstOrNull()
             val payerName = "${mainPayer?.firstName ?: ""} ${mainPayer?.lastName ?: ""}".trim().ifBlank { "Müşteri Yolcu" }
 
-            val basePrice = prod.price * 1.125
+            val basePrice = prod.price
             val flightDelta = fl?.priceDeltaRub ?: 0.0
             val extrasEur = extraServices.value.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
             val totalPriceRub = basePrice + flightDelta + (extrasEur * 100.0)

@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.ui.viewmodel.VoucherContractPdfViewModel
 
+import com.mgacreative.touros.ui.components.TourOSTopBar
+import com.mgacreative.touros.ui.theme.TourOSColors
+
 /**
  * 3.4.2 Voucher ve Sözleşme PDF Şablonları ve Üretim Ekranı.
  */
@@ -28,14 +31,12 @@ fun VoucherContractPdfScreen(
     val booking = state.selectedBooking
 
     Scaffold(
+        containerColor = TourOSColors.Surface,
         topBar = {
-            TopAppBar(
-                title = { Text("🎟️ Voucher & Sözleşme PDF Motoru", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    }
-                }
+            TourOSTopBar(
+                title = "🎟️ Voucher & Sözleşme PDF Motoru",
+                subtitle = "Otomatik sözleşme ve seyahat belgesi üretimi",
+                onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->
