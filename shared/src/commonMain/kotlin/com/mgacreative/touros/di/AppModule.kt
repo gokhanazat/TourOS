@@ -86,6 +86,7 @@ val repositoryModule = module {
     single { com.mgacreative.touros.domain.engine.ComplaintClassifierEngine() }
     single<com.mgacreative.touros.domain.repository.ComplaintClassificationRepository> { com.mgacreative.touros.data.repository.ComplaintClassificationRepositoryImpl(get(), getOrNull()) }
     single<com.mgacreative.touros.domain.repository.ComplaintTrendPerformanceRepository> { com.mgacreative.touros.data.repository.ComplaintTrendPerformanceRepositoryImpl(getOrNull()) }
+    single<com.mgacreative.touros.domain.repository.HelpGuideRepository> { com.mgacreative.touros.data.repository.HelpGuideRepositoryImpl(get()) }
 }
 
 val useCaseModule = module {

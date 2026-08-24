@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,14 +46,26 @@ import com.mgacreative.touros.ui.localization.AppLanguageManager
 
 import com.mgacreative.touros.ui.components.TourOSNavGroup
 
-// ─── Auth-only route'ları (shell gizlenir) ────────────────────────────────────
-private val authRoutePatterns = listOf(
+// ─── Public Landing & Auth Route'ları (Shell & Rehber gizlenir) ─────────────
+private val publicAndAuthRoutePatterns = listOf(
     "SplashRoute", "LoginRoute", "RegisterRoute",
-    "ForgotPasswordRoute", "OnboardingRoute", "EmailVerificationRoute"
+    "ForgotPasswordRoute", "OnboardingRoute", "EmailVerificationRoute",
+    "GlobalWebPublicRoute"
 )
 
-private fun NavDestination?.isAuthRoute(): Boolean =
-    authRoutePatterns.any { this?.route?.contains(it) == true }
+private val adminRoutePatterns = listOf(
+    "AgencyApprovalRoute", "AgencySearchRoute", "AgencyQuotaReportRoute",
+    "AdminAgencyLedgerRoute", "GlobalWebCmsRoute", "AdminProductManagementRoute",
+    "SaasCacheManagementRoute", "AdminDeploymentRoute"
+)
+
+private fun NavDestination?.isAuthOrPublicRoute(): Boolean =
+    publicAndAuthRoutePatterns.any { this?.route?.contains(it) == true }
+
+private fun String?.isAdminOrPublicRoute(): Boolean =
+    this == null ||
+    publicAndAuthRoutePatterns.any { this.contains(it) } ||
+    adminRoutePatterns.any { this.contains(it) }
 
 // ─── Menü Grupları ─────────────────────────────────────────────────────────────
 private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false): List<TourOSNavGroup> {
@@ -259,9 +273,12 @@ fun AppNavigation() {
     val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
 
     val isUserLoggedIn = currentUser != null
-    val isAuthRoute = backStackEntry?.destination.isAuthRoute()
-    // Yan sol gezinti menüsü oturumlu acentelerde ve adminlerde AKTİF
-    val showShell = isUserLoggedIn && !isAuthRoute
+    val isAuthOrPublicRoute = backStackEntry?.destination.isAuthOrPublicRoute()
+    // Yan sol gezinti menüsü oturumlu acentelerde ve adminlerde AKTİF (Public web ve auth sayfalarında gizlenir)
+    val showShell = isUserLoggedIn && !isAuthOrPublicRoute
+    // Sayfa Rehberi SADECE login olmuş acenta kullanıcılarına iç sayfalarda gösterilir (Ana web sayfası ve Admin sayfaları hariç)
+    val showHelpAssistant = isUserLoggedIn && !currentRoute.isAdminOrPublicRoute()
+    var isHelpDrawerOpen by remember { mutableStateOf(false) }
 
     fun navigate(route: Any) {
         navController.navigate(route) {
@@ -418,6 +435,28 @@ fun AppNavigation() {
                     }
                 }
             }
+        }
+
+        // ─── Sayfa İçi Akıllı Yardım & Rehber Asistanı (Web, Desktop, Android, iOS) ───
+        if (showHelpAssistant) {
+            com.mgacreative.touros.ui.components.TourOSHelpAssistantFAB(
+                onClick = { isHelpDrawerOpen = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        end = 24.dp,
+                        bottom = if (isExpanded) 28.dp else 84.dp
+                    ),
+                isExpandedScreen = isExpanded
+            )
+        }
+
+        if (isHelpDrawerOpen && showHelpAssistant) {
+            com.mgacreative.touros.ui.components.TourOSHelpDrawer(
+                currentRoute = currentRoute,
+                onDismiss = { isHelpDrawerOpen = false },
+                isExpandedScreen = isExpanded
+            )
         }
     }
 }
