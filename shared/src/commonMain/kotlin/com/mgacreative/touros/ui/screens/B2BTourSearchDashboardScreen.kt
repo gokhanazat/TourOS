@@ -94,6 +94,7 @@ fun B2BTourSearchDashboardScreen(
     var b2bSelectedCountryTab by remember { mutableStateOf("ALL") }
     var b2bSelectedSubRegion by remember { mutableStateOf<String?>(null) }
     var selectedProductForOperatorModal by remember { mutableStateOf<UnifiedProductEntity?>(null) }
+    var isDetailFilterExpanded by remember { mutableStateOf(true) }
 
     if (showB2BDestinationPicker) {
         com.mgacreative.touros.ui.components.HierarchicalDestinationPickerDialog(
@@ -1142,33 +1143,33 @@ fun B2BTourSearchDashboardScreen(
                                         Spacer(modifier = Modifier.width(1.dp))
                                     }
 
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        TextButton(onClick = {
-                                            selectedStars = setOf(3, 4, 5)
-                                            selectedMealTypes = emptySet()
-                                            selectedOperators = emptySet()
-                                            searchQuery = ""
-                                            selectedHotels = emptySet()
-                                        }) {
-                                            Text("↺ Sıfırla", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
-                                        }
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(onClick = {
+                                                selectedStars = setOf(3, 4, 5)
+                                                selectedMealTypes = emptySet()
+                                                selectedOperators = emptySet()
+                                                searchQuery = ""
+                                                selectedHotels = emptySet()
+                                            }) {
+                                                Text("↺ Sıfırla", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                            }
 
-                                        if (activeSearchTab != "FLIGHTS") {
-                                            TourOSButton(
-                                                text = "TURLARI BUL",
-                                                onClick = { viewModel.performSearch() }
-                                            )
+                                            // Filtre kapalıysa hızlı arama butonu gösterilir
+                                            if (!isDetailFilterExpanded) {
+                                                TourOSButton(
+                                                    text = if (activeSearchTab == "FLIGHTS") "UÇUŞ BUL" else "TURLARI BUL",
+                                                    onClick = { viewModel.performSearch() }
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
 
                         // 3. TOUROS 0.3 TASARIM DİLİNE UYGUN AÇILIR-KAPANIR DETAYLI FİLTRE PANERİ
-                        var isDetailFilterExpanded by remember { mutableStateOf(true) }
 
                         // Dış Paket Tur Operatörleri (Yerel Turlar ve Yerel Oteller Filtrelendi)
                         val dbOperators = remember(allDbProducts) {
@@ -1536,67 +1537,79 @@ fun B2BTourSearchDashboardScreen(
 
                                         HorizontalDivider(color = TourOSColors.Border)
 
-                                        // SATIR 4: HIZLI ONAY VE ULAŞIM SEÇENEKLERİ
+                                        // SATIR 4: HIZLI ONAY VE ULAŞIM SEÇENEKLERİ + 🎯 TURLARI BUL BUTONU
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
+                                            horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                                                modifier = Modifier.clickable {
-                                                    isInstantOnly = !isInstantOnly
-                                                    viewModel.isInstantConfirmationOnly.value = isInstantOnly
-                                                }
+                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
                                             ) {
-                                                Checkbox(
-                                                    checked = isInstantOnly,
-                                                    onCheckedChange = {
-                                                        isInstantOnly = it
-                                                        viewModel.isInstantConfirmationOnly.value = it
-                                                    },
-                                                    colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
-                                                )
-                                                Text(
-                                                    text = "⚡ Anında Onaylı Turlar",
-                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
-                                                )
-                                            }
-
-                                            if (activeSearchTab == "TOURS") {
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                                                    modifier = Modifier.clickable { isDirectFlightOnly = !isDirectFlightOnly }
+                                                    modifier = Modifier.clickable {
+                                                        isInstantOnly = !isInstantOnly
+                                                        viewModel.isInstantConfirmationOnly.value = isInstantOnly
+                                                    }
                                                 ) {
                                                     Checkbox(
-                                                        checked = isDirectFlightOnly,
-                                                        onCheckedChange = { isDirectFlightOnly = it },
+                                                        checked = isInstantOnly,
+                                                        onCheckedChange = {
+                                                            isInstantOnly = it
+                                                            viewModel.isInstantConfirmationOnly.value = it
+                                                        },
                                                         colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
                                                     )
                                                     Text(
-                                                        text = "✈️ Aktarmasız / Direkt Uçuş",
+                                                        text = "⚡ Anında Onaylı Turlar",
+                                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
+                                                    )
+                                                }
+
+                                                if (activeSearchTab == "TOURS") {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                                        modifier = Modifier.clickable { isDirectFlightOnly = !isDirectFlightOnly }
+                                                    ) {
+                                                        Checkbox(
+                                                            checked = isDirectFlightOnly,
+                                                            onCheckedChange = { isDirectFlightOnly = it },
+                                                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                                                        )
+                                                        Text(
+                                                            text = "✈️ Aktarmasız / Direkt Uçuş",
+                                                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
+                                                        )
+                                                    }
+                                                }
+
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                                                    modifier = Modifier.clickable { isTransferIncludedOnly = !isTransferIncludedOnly }
+                                                ) {
+                                                    Checkbox(
+                                                        checked = isTransferIncludedOnly,
+                                                        onCheckedChange = { isTransferIncludedOnly = it },
+                                                        colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                                                    )
+                                                    Text(
+                                                        text = "🚐 Transfer Dahil",
                                                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
                                                     )
                                                 }
                                             }
 
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                                                modifier = Modifier.clickable { isTransferIncludedOnly = !isTransferIncludedOnly }
-                                            ) {
-                                                Checkbox(
-                                                    checked = isTransferIncludedOnly,
-                                                    onCheckedChange = { isTransferIncludedOnly = it },
-                                                    colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
-                                                )
-                                                Text(
-                                                    text = "🚐 Transfer Dahil",
-                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
-                                                )
-                                            }
+                                            // ── 🎯 TURLARI BUL BUTONU (AŞAĞI SAĞA KONUMLANDIRILDI) ──
+                                            TourOSButton(
+                                                text = if (activeSearchTab == "FLIGHTS") "UÇUŞLARI BUL" else "TURLARI BUL",
+                                                onClick = { viewModel.performSearch() },
+                                                modifier = Modifier.height(44.dp).padding(start = 16.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -1733,28 +1746,96 @@ fun B2BTourSearchDashboardScreen(
                                 )
                             }
 
-                            // Ülke ve Alt Bölgeye Göre Daraltılmış Sonuçlar
+                            // Ülke ve Alt Bölgeye Göre Çok Dilli (TR/RU/EN) Eşleştirme Fonksiyonları
+                            fun isB2BMatchingCountry(item: UnifiedProductEntity, countryCode: String): Boolean {
+                                if (countryCode == "ALL") return true
+                                val ctry = item.country.lowercase().trim()
+                                val reg = item.region.lowercase().trim()
+                                val subReg = item.subRegion.lowercase().trim()
+                                val hName = item.safeHotelName.lowercase().trim()
+                                val tName = item.tourName.lowercase().trim()
+                                val fullText = "$ctry $reg $subReg $hName $tName"
+
+                                return when (countryCode) {
+                                    "TR" -> fullText.contains("türkiye") || fullText.contains("turkey") || fullText.contains("турция") || fullText.contains(" tr ") || fullText.startsWith("tr ") || fullText.endsWith(" tr") || fullText == "tr" ||
+                                            fullText.contains("antalya") || fullText.contains("belek") || fullText.contains("kemer") || fullText.contains("lara") ||
+                                            fullText.contains("alanya") || fullText.contains("side") || fullText.contains("bodrum") || fullText.contains("marmaris") ||
+                                            fullText.contains("fethiye") || fullText.contains("çeşme") || fullText.contains("istanbul") || fullText.contains("белек") ||
+                                            fullText.contains("кемер") || fullText.contains("анталья") || fullText.contains("аланья") || fullText.contains("сиде") ||
+                                            fullText.contains("бодрум") || fullText.contains("мармарис") || fullText.contains("фетхие") || fullText.contains("стамбул")
+                                    "EG" -> fullText.contains("mısır") || fullText.contains("egypt") || fullText.contains("египет") || fullText.contains(" eg ") || fullText.startsWith("eg ") || fullText == "eg" ||
+                                            fullText.contains("şarm") || fullText.contains("sharm") || fullText.contains("hurgada") || fullText.contains("hurghada") ||
+                                            fullText.contains("el gouna") || fullText.contains("makadi") || fullText.contains("шарм") || fullText.contains("хургада") ||
+                                            fullText.contains("эль гуна") || fullText.contains("макади")
+                                    "TH" -> fullText.contains("tayland") || fullText.contains("thailand") || fullText.contains("таиланд") || fullText.contains("тайланд") || fullText.contains(" th ") || fullText.startsWith("th ") || fullText == "th" ||
+                                            fullText.contains("phuket") || fullText.contains("pattaya") || fullText.contains("bangkok") || fullText.contains("samui") ||
+                                            fullText.contains("krabi") || fullText.contains("пхукет") || fullText.contains("паттайя") || fullText.contains("бангкок") ||
+                                            fullText.contains("самуи") || fullText.contains("краби")
+                                    "VN" -> fullText.contains("vietnam") || fullText.contains("вьетнам") || fullText.contains(" vn ") || fullText.startsWith("vn ") || fullText == "vn" ||
+                                            fullText.contains("da nang") || fullText.contains("phu quoc") || fullText.contains("nha trang") || fullText.contains("hoi an") ||
+                                            fullText.contains("дананг") || fullText.contains("фукуок") || fullText.contains("нячанг") || fullText.contains("хойан")
+                                    "AE" -> fullText.contains("bae") || fullText.contains("dubai") || fullText.contains("uae") || fullText.contains("оаэ") || fullText.contains(" ae ") || fullText.startsWith("ae ") || fullText == "ae" ||
+                                            fullText.contains("дубай") || fullText.contains("abu dhabi") || fullText.contains("абу-даби") || fullText.contains("sharjah") ||
+                                            fullText.contains("шарджа") || fullText.contains("jumeirah") || fullText.contains("marina")
+                                    "RU" -> fullText.contains("rusya") || fullText.contains("russia") || fullText.contains("россия") || fullText.contains(" ru ") || fullText.startsWith("ru ") || fullText == "ru" ||
+                                            fullText.contains("moskova") || fullText.contains("moscow") || fullText.contains("москва") || fullText.contains("sochi") ||
+                                            fullText.contains("сочи") || fullText.contains("st. petersburg") || fullText.contains("петербург") || fullText.contains("kazan") ||
+                                            fullText.contains("казань")
+                                    else -> true
+                                }
+                            }
+
+                            fun isB2BMatchingSubRegion(item: UnifiedProductEntity, subRegion: String?): Boolean {
+                                if (subRegion.isNullOrBlank() || subRegion == "Tümü") return true
+                                val s = subRegion.lowercase().trim()
+                                val fullText = "${item.country} ${item.region} ${item.subRegion} ${item.safeHotelName} ${item.tourName}".lowercase()
+
+                                val synonyms = when (s) {
+                                    "belek" -> listOf("belek", "белек")
+                                    "kemer" -> listOf("kemer", "кемер")
+                                    "antalya" -> listOf("antalya", "анталья", "ayt")
+                                    "alanya" -> listOf("alanya", "аланья")
+                                    "side" -> listOf("side", "сиде")
+                                    "bodrum" -> listOf("bodrum", "бодрум")
+                                    "marmaris" -> listOf("marmaris", "мармарис")
+                                    "fethiye" -> listOf("fethiye", "фетхие")
+                                    "çeşme" -> listOf("çeşme", "cesme", "чешме")
+                                    "şarm el-şeyh" -> listOf("şarm", "sharm", "шарм")
+                                    "hurgada" -> listOf("hurgada", "hurghada", "хургада")
+                                    "el gouna" -> listOf("el gouna", "gouna", "эль гуна")
+                                    "makadi bay" -> listOf("makadi", "макади")
+                                    "phuket" -> listOf("phuket", "пхукет")
+                                    "pattaya" -> listOf("pattaya", "паттайя")
+                                    "bangkok" -> listOf("bangkok", "бангкок")
+                                    "koh samui" -> listOf("samui", "самуи")
+                                    "krabi" -> listOf("krabi", "краби")
+                                    "da nang" -> listOf("da nang", "danang", "дананг")
+                                    "phu quoc" -> listOf("phu quoc", "phuquoc", "фукуок")
+                                    "nha trang" -> listOf("nha trang", "nhatrang", "нячанг")
+                                    "hoi an" -> listOf("hoi an", "hoian", "хойан")
+                                    "dubai marina" -> listOf("dubai", "marina", "дубай")
+                                    "palm jumeirah" -> listOf("palm", "jumeirah", "пальм")
+                                    "downtown" -> listOf("downtown", "даунтаун")
+                                    "abu dhabi" -> listOf("abu dhabi", "абу-даби")
+                                    "moskova" -> listOf("moskova", "moscow", "москва")
+                                    "st. petersburg" -> listOf("petersburg", "петербург", "питер")
+                                    "sochi" -> listOf("sochi", "сочи")
+                                    "kazan" -> listOf("kazan", "казань")
+                                    else -> listOf(s)
+                                }
+                                return synonyms.any { fullText.contains(it) }
+                            }
+
+                            // Ülke ve Alt Bölgeye Göre Kesin Filtrelenmiş Sonuçlar
                             val b2bCountryFilteredProducts = remember(products, b2bSelectedCountryTab, b2bSelectedSubRegion) {
-                                products.filter { item ->
-                                    val reg = item.region.lowercase()
-                                    val ctry = item.country.lowercase()
-                                    val hName = item.safeHotelName.lowercase()
-
-                                    val matchCtry = when (b2bSelectedCountryTab) {
-                                        "TR" -> ctry.contains("türkiye") || ctry.contains("tr") || reg.contains("antalya") || reg.contains("bodrum") || reg.contains("kemer") || reg.contains("belek") || reg.contains("lara") || reg.contains("alanya") || reg.contains("side") || hName.contains("kemer") || hName.contains("belek") || hName.contains("lara")
-                                        "EG" -> ctry.contains("mısır") || ctry.contains("eg") || reg.contains("şarm") || reg.contains("hurgada") || hName.contains("sharm") || hName.contains("hurghada")
-                                        "TH" -> ctry.contains("tayland") || ctry.contains("thailand") || ctry.contains("th") || reg.contains("phuket") || reg.contains("pattaya") || reg.contains("bangkok") || hName.contains("phuket") || hName.contains("pattaya")
-                                        "VN" -> ctry.contains("vietnam") || ctry.contains("vn") || reg.contains("da nang") || reg.contains("phu quoc") || reg.contains("nha trang") || hName.contains("phu quoc") || hName.contains("da nang")
-                                        "AE" -> ctry.contains("dubai") || ctry.contains("bae") || ctry.contains("ae") || reg.contains("dubai") || reg.contains("abu dhabi") || hName.contains("dubai")
-                                        "RU" -> ctry.contains("rusya") || ctry.contains("ru") || reg.contains("moskova") || reg.contains("sochi") || hName.contains("moscow")
-                                        else -> true
+                                if (b2bSelectedCountryTab == "ALL" && (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü")) {
+                                    products
+                                } else {
+                                    products.filter { item ->
+                                        isB2BMatchingCountry(item, b2bSelectedCountryTab) &&
+                                        isB2BMatchingSubRegion(item, b2bSelectedSubRegion)
                                     }
-
-                                    val matchSub = if (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü") true
-                                    else reg.contains(b2bSelectedSubRegion!!.lowercase()) || hName.contains(b2bSelectedSubRegion!!.lowercase())
-
-                                    matchCtry && matchSub
-                                }.ifEmpty { products }
+                                }
                             }
 
                             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
@@ -1776,19 +1857,7 @@ fun B2BTourSearchDashboardScreen(
                                         ) {
                                             b2bCountryTabsList.forEach { (code, name, flag) ->
                                                 val isSelected = (b2bSelectedCountryTab == code)
-                                                val cCount = if (code == "ALL") products.size else products.count { 
-                                                    val reg = it.region.lowercase()
-                                                    val ctry = it.country.lowercase()
-                                                    when (code) {
-                                                        "TR" -> ctry.contains("türkiye") || ctry.contains("tr") || reg.contains("antalya") || reg.contains("bodrum") || reg.contains("kemer") || reg.contains("belek") || reg.contains("lara")
-                                                        "EG" -> ctry.contains("mısır") || ctry.contains("eg") || reg.contains("şarm") || reg.contains("hurgada")
-                                                        "TH" -> ctry.contains("tayland") || ctry.contains("thailand") || ctry.contains("th") || reg.contains("phuket") || reg.contains("pattaya") || reg.contains("bangkok")
-                                                        "VN" -> ctry.contains("vietnam") || ctry.contains("vn") || reg.contains("da nang") || reg.contains("phu quoc")
-                                                        "AE" -> ctry.contains("dubai") || ctry.contains("bae") || ctry.contains("ae") || reg.contains("dubai")
-                                                        "RU" -> ctry.contains("rusya") || ctry.contains("ru") || reg.contains("moskova") || reg.contains("sochi")
-                                                        else -> true
-                                                    }
-                                                }
+                                                val cCount = if (code == "ALL") products.size else products.count { isB2BMatchingCountry(it, code) }
 
                                                 Surface(
                                                     modifier = Modifier
@@ -1882,21 +1951,55 @@ fun B2BTourSearchDashboardScreen(
                                     )
                                 }
 
-                                // 📱/💻 KOMPAKT SATIR LİSTE DÜZENİ (B2B Compact Horizontal List Row)
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-                                ) {
-                                    b2bCountryFilteredProducts.forEach { item ->
-                                        val isSelected = selectedProduct?.id == item.id
-                                        TourResultMatrixCard(
-                                            product = item,
-                                            isSelected = isSelected,
-                                            isFlightTab = (activeSearchTab == "FLIGHTS"),
-                                            onSelectForBooking = {
-                                                selectedProductForOperatorModal = item
-                                            }
-                                        )
+                                // 📱/💻 KOMPAKT SATIR LİSTE DÜZENİ VEYA TEMİZ BOŞ DURUM MESAJI
+                                if (b2bCountryFilteredProducts.isEmpty()) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = TourOSSpacing.medium),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = TourOSColors.Surface,
+                                        border = BorderStroke(1.dp, TourOSColors.Border)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth().padding(28.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Text("🏝️", fontSize = 32.sp)
+                                            Text(
+                                                text = "Seçilen Ülke / Belde İçin Aktif Tur Bulunamadı",
+                                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Bold)
+                                            )
+                                            Text(
+                                                text = "Arama kriterlerinize uygun tur veya otel bulunamadı. Lütfen diğer ülkeleri inceleyin veya tüm ülkelere dönün.",
+                                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            TourOSButton(
+                                                text = "Tüm Ülkelere Dön",
+                                                onClick = {
+                                                    b2bSelectedCountryTab = "ALL"
+                                                    b2bSelectedSubRegion = null
+                                                }
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                    ) {
+                                        b2bCountryFilteredProducts.forEach { item ->
+                                            val isSelected = selectedProduct?.id == item.id
+                                            TourResultMatrixCard(
+                                                product = item,
+                                                isSelected = isSelected,
+                                                isFlightTab = (activeSearchTab == "FLIGHTS"),
+                                                onSelectForBooking = {
+                                                    selectedProductForOperatorModal = item
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
