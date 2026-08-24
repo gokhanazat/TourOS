@@ -8,6 +8,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -421,6 +423,31 @@ private fun SelectTourContent(
                 onClick = onOpenDestinationPicker,
                 variant = TourOSButtonVariant.SECONDARY
             )
+        }
+
+        // Ülke Hızlı Seçim Sekmeleri (Türkiye, Mısır, Tayland, Vietnam, BAE, Rusya)
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            listOf(
+                "Tümü" to "",
+                "🇹🇷 Türkiye" to "Türkiye",
+                "🇪🇬 Mısır" to "Mısır",
+                "🇹🇭 Tayland" to "Tayland",
+                "🇻🇳 Vietnam" to "Vietnam",
+                "🇦🇪 BAE (Dubai)" to "Dubai",
+                "🇷🇺 Rusya" to "Rusya"
+            ).forEach { (label, keyword) ->
+                val isSelected = (keyword.isEmpty() && uiState.searchQuery.isEmpty()) || (keyword.isNotEmpty() && uiState.searchQuery.contains(keyword, ignoreCase = true))
+                TourOSStatusBadge(
+                    text = label,
+                    backgroundColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Surface,
+                    textColor = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary,
+                    modifier = Modifier.clickable { onSearchQueryChanged(keyword) }
+                )
+            }
         }
 
         LazyColumn(

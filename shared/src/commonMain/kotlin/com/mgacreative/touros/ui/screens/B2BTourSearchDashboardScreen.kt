@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -89,7 +90,20 @@ fun B2BTourSearchDashboardScreen(
     var isTransferIncludedOnly by remember { mutableStateOf(false) }
     var activeStep by remember { mutableStateOf(1) }
     var showSuccessModal by remember { mutableStateOf(false) }
+    var showB2BDestinationPicker by remember { mutableStateOf(false) }
+    var b2bSelectedCountryTab by remember { mutableStateOf("ALL") }
+    var b2bSelectedSubRegion by remember { mutableStateOf<String?>(null) }
     var selectedProductForOperatorModal by remember { mutableStateOf<UnifiedProductEntity?>(null) }
+
+    if (showB2BDestinationPicker) {
+        com.mgacreative.touros.ui.components.HierarchicalDestinationPickerDialog(
+            currentSelection = selectedRegion,
+            onDestinationSelected = { destItem ->
+                selectedRegion = destItem.name
+            },
+            onDismiss = { showB2BDestinationPicker = false }
+        )
+    }
 
     // Veritabanından gelen benzersiz Kalkış Şehirleri ve Destinasyonlar
     val allDbProducts = (uiState as? B2BTourSearchUiState.Success)?.allProducts ?: emptyList()
@@ -999,36 +1013,20 @@ fun B2BTourSearchDashboardScreen(
                                                 }
                                             }
 
-                                            // 2. NEREYE DROPDOWN
+                                            // 2. NEREYE (HİYERARŞİK DESTİNASYON SEÇİCİ)
                                             Box(modifier = Modifier.weight(1.5f)) {
                                                 TourOSTextField(
-                                                    value = selectedRegion,
-                                                    onValueChange = {
-                                                        selectedRegion = it
-                                                        showRegionDropdown = true
-                                                    },
-                                                    label = "Nereye (Destinasyon / Ülke)",
+                                                    value = if (selectedRegion.isBlank()) "Tüm Destinasyonlar ▼" else "$selectedRegion ▼",
+                                                    onValueChange = { },
+                                                    readOnly = true,
+                                                    label = "Nereye (Ülke / Şehir / Belde)",
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
-                                                val matchingDest = dbDestinations.filter { isFuzzyMatch(selectedRegion, it) }
-                                                DropdownMenu(
-                                                    expanded = showRegionDropdown && matchingDest.isNotEmpty(),
-                                                    onDismissRequest = { showRegionDropdown = false },
-                                                    modifier = Modifier.width(300.dp).background(TourOSColors.Surface)
-                                                ) {
-                                                    Column(modifier = Modifier.heightIn(max = 220.dp).verticalScroll(rememberScrollState())) {
-                                                        matchingDest.forEach { dest ->
-                                                            DropdownMenuItem(
-                                                                text = { Text("📍 $dest", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
-                                                                onClick = {
-                                                                    selectedRegion = dest.substringAfter("- ").ifBlank { dest }
-                                                                    showRegionDropdown = false
-                                                                },
-                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                                            )
-                                                        }
-                                                    }
-                                                }
+                                                Box(
+                                                    modifier = Modifier
+                                                        .matchParentSize()
+                                                        .clickable { showB2BDestinationPicker = true }
+                                                )
                                             }
 
                                             // 3. GİDİŞ BAŞLANGIÇ TARİHİ (POP-UP TAKVİMLİ)
@@ -1712,7 +1710,159 @@ fun B2BTourSearchDashboardScreen(
                                 }
                             }
 
+                            val b2bCountryTabsList = remember {
+                                listOf(
+                                    Triple("ALL", "Tüm Ülkeler", "🌍"),
+                                    Triple("TR", "Türkiye", "🇹🇷"),
+                                    Triple("EG", "Mısır", "🇪🇬"),
+                                    Triple("TH", "Tayland", "🇹🇭"),
+                                    Triple("VN", "Vietnam", "🇻🇳"),
+                                    Triple("AE", "BAE (Dubai)", "🇦🇪"),
+                                    Triple("RU", "Rusya", "🇷🇺")
+                                )
+                            }
+
+                            val b2bSubRegionsMap = remember {
+                                mapOf(
+                                    "TR" to listOf("Tümü", "Antalya", "Belek", "Kemer", "Lara", "Alanya", "Side", "Bodrum", "Marmaris", "Fethiye", "Çeşme"),
+                                    "EG" to listOf("Tümü", "Şarm El-Şeyh", "Hurgada", "El Gouna", "Makadi Bay"),
+                                    "TH" to listOf("Tümü", "Phuket", "Pattaya", "Bangkok", "Koh Samui", "Krabi"),
+                                    "VN" to listOf("Tümü", "Da Nang", "Phu Quoc", "Nha Trang", "Hoi An"),
+                                    "AE" to listOf("Tümü", "Dubai Marina", "Palm Jumeirah", "Downtown", "Abu Dhabi"),
+                                    "RU" to listOf("Tümü", "Moskova", "St. Petersburg", "Sochi", "Kazan")
+                                )
+                            }
+
+                            // Ülke ve Alt Bölgeye Göre Daraltılmış Sonuçlar
+                            val b2bCountryFilteredProducts = remember(products, b2bSelectedCountryTab, b2bSelectedSubRegion) {
+                                products.filter { item ->
+                                    val reg = item.region.lowercase()
+                                    val ctry = item.country.lowercase()
+                                    val hName = item.safeHotelName.lowercase()
+
+                                    val matchCtry = when (b2bSelectedCountryTab) {
+                                        "TR" -> ctry.contains("türkiye") || ctry.contains("tr") || reg.contains("antalya") || reg.contains("bodrum") || reg.contains("kemer") || reg.contains("belek") || reg.contains("lara") || reg.contains("alanya") || reg.contains("side") || hName.contains("kemer") || hName.contains("belek") || hName.contains("lara")
+                                        "EG" -> ctry.contains("mısır") || ctry.contains("eg") || reg.contains("şarm") || reg.contains("hurgada") || hName.contains("sharm") || hName.contains("hurghada")
+                                        "TH" -> ctry.contains("tayland") || ctry.contains("thailand") || ctry.contains("th") || reg.contains("phuket") || reg.contains("pattaya") || reg.contains("bangkok") || hName.contains("phuket") || hName.contains("pattaya")
+                                        "VN" -> ctry.contains("vietnam") || ctry.contains("vn") || reg.contains("da nang") || reg.contains("phu quoc") || reg.contains("nha trang") || hName.contains("phu quoc") || hName.contains("da nang")
+                                        "AE" -> ctry.contains("dubai") || ctry.contains("bae") || ctry.contains("ae") || reg.contains("dubai") || reg.contains("abu dhabi") || hName.contains("dubai")
+                                        "RU" -> ctry.contains("rusya") || ctry.contains("ru") || reg.contains("moskova") || reg.contains("sochi") || hName.contains("moscow")
+                                        else -> true
+                                    }
+
+                                    val matchSub = if (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü") true
+                                    else reg.contains(b2bSelectedSubRegion!!.lowercase()) || hName.contains(b2bSelectedSubRegion!!.lowercase())
+
+                                    matchCtry && matchSub
+                                }.ifEmpty { products }
+                            }
+
                             Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                                // ── 🌍 ÜLKE SEKMELERİ ÇUBUĞU (B2B Yatay Country Tabs) ─────────────
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = TourOSColors.Surface,
+                                    border = BorderStroke(1.dp, TourOSColors.Border)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            b2bCountryTabsList.forEach { (code, name, flag) ->
+                                                val isSelected = (b2bSelectedCountryTab == code)
+                                                val cCount = if (code == "ALL") products.size else products.count { 
+                                                    val reg = it.region.lowercase()
+                                                    val ctry = it.country.lowercase()
+                                                    when (code) {
+                                                        "TR" -> ctry.contains("türkiye") || ctry.contains("tr") || reg.contains("antalya") || reg.contains("bodrum") || reg.contains("kemer") || reg.contains("belek") || reg.contains("lara")
+                                                        "EG" -> ctry.contains("mısır") || ctry.contains("eg") || reg.contains("şarm") || reg.contains("hurgada")
+                                                        "TH" -> ctry.contains("tayland") || ctry.contains("thailand") || ctry.contains("th") || reg.contains("phuket") || reg.contains("pattaya") || reg.contains("bangkok")
+                                                        "VN" -> ctry.contains("vietnam") || ctry.contains("vn") || reg.contains("da nang") || reg.contains("phu quoc")
+                                                        "AE" -> ctry.contains("dubai") || ctry.contains("bae") || ctry.contains("ae") || reg.contains("dubai")
+                                                        "RU" -> ctry.contains("rusya") || ctry.contains("ru") || reg.contains("moskova") || reg.contains("sochi")
+                                                        else -> true
+                                                    }
+                                                }
+
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .clickable {
+                                                            b2bSelectedCountryTab = code
+                                                            b2bSelectedSubRegion = null
+                                                        },
+                                                    color = if (isSelected) TourOSColors.Primary else TourOSColors.Background,
+                                                    border = BorderStroke(1.dp, if (isSelected) TourOSColors.Primary else TourOSColors.Border),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(flag, fontSize = 14.sp)
+                                                        Text(
+                                                            text = name,
+                                                            style = TourOSTypography.BodyMedium.copy(
+                                                                color = if (isSelected) Color.White else TourOSColors.TextPrimary,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                                fontSize = 12.sp
+                                                            )
+                                                        )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(10.dp))
+                                                                .background(if (isSelected) Color.White.copy(alpha = 0.25f) else TourOSColors.PrimaryContainer)
+                                                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "$cCount",
+                                                                style = TourOSTypography.Caption.copy(
+                                                                    color = if (isSelected) Color.White else TourOSColors.Primary,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 9.sp
+                                                                )
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Alt Beldeler
+                                        val curSubRegs = b2bSubRegionsMap[b2bSelectedCountryTab]
+                                        if (!curSubRegs.isNullOrEmpty()) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "📍 Beldeler:",
+                                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                                )
+                                                curSubRegs.forEach { sReg ->
+                                                    val isSubActive = if (sReg == "Tümü") b2bSelectedSubRegion == null else b2bSelectedSubRegion == sReg
+                                                    TourOSStatusBadge(
+                                                        text = sReg,
+                                                        backgroundColor = if (isSubActive) TourOSColors.PrimaryContainer else TourOSColors.Background,
+                                                        textColor = if (isSubActive) TourOSColors.Primary else TourOSColors.TextSecondary,
+                                                        modifier = Modifier.clickable {
+                                                            b2bSelectedSubRegion = if (sReg == "Tümü") null else sReg
+                                                        }
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1721,7 +1871,7 @@ fun B2BTourSearchDashboardScreen(
                                     val foundTitle = if (activeSearchTab == "FLIGHTS") "Bulunan Uçuş Seferleri" else "Bulunan Tur Seçenekleri"
                                     val foundCountLabel = if (activeSearchTab == "FLIGHTS") "Uçuş Seferi Bulundu" else "Tur Bulundu"
                                     Text(
-                                        text = "2. ${AppLanguageManager.translate(foundTitle)} (${products.size} ${AppLanguageManager.translate(foundCountLabel)})",
+                                        text = "2. ${AppLanguageManager.translate(foundTitle)} (${b2bCountryFilteredProducts.size} ${AppLanguageManager.translate(foundCountLabel)})",
                                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                                         fontWeight = FontWeight.Bold
                                     )
@@ -1737,7 +1887,7 @@ fun B2BTourSearchDashboardScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                 ) {
-                                    products.forEach { item ->
+                                    b2bCountryFilteredProducts.forEach { item ->
                                         val isSelected = selectedProduct?.id == item.id
                                         TourResultMatrixCard(
                                             product = item,
