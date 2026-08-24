@@ -61,7 +61,7 @@ fun B2BTourSearchDashboardScreen(
     var activeSearchTab by remember { mutableStateOf("TOURS") } // "TOURS", "HOTELS", "FLIGHTS", "LOCAL_TOURS", "LOCAL_HOTELS"
     var departureCity by remember { mutableStateOf("") }
     var selectedRegion by remember { mutableStateOf("") }
-    var nights by remember { mutableStateOf(7) }
+    var nightsText by remember { mutableStateOf("7 - 10 Gece") }
     var adults by remember { mutableStateOf(2) }
     var childs by remember { mutableStateOf(0) }
 
@@ -732,7 +732,7 @@ fun B2BTourSearchDashboardScreen(
                                             ) {
                                                 Box(modifier = Modifier.weight(1f)) {
                                                     TourOSTextField(
-                                                        value = "$nights Gece ▼",
+                                                        value = "$nightsText ▼",
                                                         onValueChange = { },
                                                         readOnly = true,
                                                         label = "Gece Sayısı",
@@ -742,16 +742,16 @@ fun B2BTourSearchDashboardScreen(
                                                     DropdownMenu(
                                                         expanded = showNightsDropdown,
                                                         onDismissRequest = { showNightsDropdown = false },
-                                                        modifier = Modifier.width(140.dp).background(TourOSColors.Surface)
+                                                        modifier = Modifier.width(180.dp).background(TourOSColors.Surface)
                                                     ) {
-                                                        (1..14).forEach { n ->
+                                                        listOf("1 - 4 Gece", "5 - 7 Gece", "7 - 10 Gece", "10 - 14 Gece", "14 - 21 Gece", "Tüm Geceler (1 - 30)").forEach { nOpt ->
                                                             DropdownMenuItem(
-                                                                text = { Text("$n Gece", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                                text = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(nOpt), style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
                                                                 onClick = {
-                                                                    nights = n
+                                                                    nightsText = nOpt
                                                                     showNightsDropdown = false
                                                                 },
-                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                                             )
                                                         }
                                                     }
@@ -1054,11 +1054,10 @@ fun B2BTourSearchDashboardScreen(
                                                 )
                                                 Box(modifier = Modifier.matchParentSize().clickable { showEndDatePicker = true })
                                             }
-
                                             // 5. GECE SAYISI DROPDOWN
                                             Box(modifier = Modifier.weight(0.9f)) {
                                                 TourOSTextField(
-                                                    value = "$nights Gece ▼",
+                                                    value = "$nightsText ▼",
                                                     onValueChange = { },
                                                     readOnly = true,
                                                     label = "Gece Sayısı",
@@ -1068,16 +1067,16 @@ fun B2BTourSearchDashboardScreen(
                                                 DropdownMenu(
                                                     expanded = showNightsDropdown,
                                                     onDismissRequest = { showNightsDropdown = false },
-                                                    modifier = Modifier.width(140.dp).background(TourOSColors.Surface)
+                                                    modifier = Modifier.width(180.dp).background(TourOSColors.Surface)
                                                 ) {
-                                                    (1..14).forEach { n ->
+                                                    listOf("1 - 4 Gece", "5 - 7 Gece", "7 - 10 Gece", "10 - 14 Gece", "14 - 21 Gece", "Tüm Geceler (1 - 30)").forEach { nOpt ->
                                                         DropdownMenuItem(
-                                                            text = { Text("$n Gece", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                            text = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(nOpt), style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
                                                             onClick = {
-                                                                nights = n
+                                                                nightsText = nOpt
                                                                 showNightsDropdown = false
                                                             },
-                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                                                         )
                                                     }
                                                 }
@@ -1675,7 +1674,19 @@ fun B2BTourSearchDashboardScreen(
                                 val flightDepMatch = !isFlightTab || departureCity.isBlank() || item.departureCity.contains(departureCity, ignoreCase = true)
                                 val flightDestMatch = !isFlightTab || selectedRegion.isBlank() || item.region.contains(selectedRegion, ignoreCase = true) || item.country.contains(selectedRegion, ignoreCase = true)
 
-                                val nightsMatch = isFlightTab || item.nights == nights || item.nights <= 0
+                                 val (b2bMinNights, b2bMaxNights) = when {
+                                     nightsText.contains("1 - 4") -> 1 to 4
+                                     nightsText.contains("5 - 7") -> 5 to 7
+                                     nightsText.contains("7 - 10") -> 7 to 10
+                                     nightsText.contains("10 - 14") -> 10 to 14
+                                     nightsText.contains("14 - 21") -> 14 to 21
+                                     nightsText.contains("Tüm") -> 1 to 30
+                                     else -> {
+                                         val num = nightsText.filter { it.isDigit() }.toIntOrNull() ?: 7
+                                         num to num
+                                     }
+                                 }
+                                 val nightsMatch = isFlightTab || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
 
                                 val isTourOrHotel = (activeSearchTab == "TOURS" || activeSearchTab == "HOTELS")
                                 val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == 0 || item.beachLine == selectedBeachLine

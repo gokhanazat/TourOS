@@ -391,7 +391,7 @@ fun GlobalWebPublicScreen(
     var destinationCity by remember { mutableStateOf("Antalya (Lara, Belek, Alanya)") }
     var startDateText by remember { mutableStateOf("20.08.2026") }
     var endDateText by remember { mutableStateOf("28.08.2026") }
-    var selectedNightsText by remember { mutableStateOf("7 Gece") }
+    var selectedNightsText by remember { mutableStateOf("7 - 10 Gece") }
     var selectedTouristsText by remember { mutableStateOf("2 Yetişkin") }
     var selectedCountryFilter by remember { mutableStateOf("Türkiye") }
     var flightTripType by remember { mutableStateOf("ONE_WAY") } // "ONE_WAY" veya "ROUND_TRIP"
@@ -1570,7 +1570,7 @@ fun GlobalWebPublicScreen(
                                                     onDismissRequest = { showNightsDropdown = false },
                                                     modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
                                                 ) {
-                                                    listOf("3 Gece", "5 Gece", "7 Gece", "10 Gece", "14 Gece").forEach { nightOpt ->
+                                                    listOf("1 - 4 Gece", "5 - 7 Gece", "7 - 10 Gece", "10 - 14 Gece", "14 - 21 Gece", "Tüm Geceler (1 - 30)").forEach { nightOpt ->
                                                         DropdownMenuItem(
                                                             text = { Text(AppLanguageManager.translate(nightOpt), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
                                                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
@@ -1695,7 +1695,19 @@ fun GlobalWebPublicScreen(
                                         .background(Color.White)
                                         .clickable {
                                             val destClean = destinationCity.substringBefore("(").trim()
-                                            val targetNights = selectedNightsText.substringBefore(" ").toIntOrNull() ?: 7
+                                            val (minNights, maxNights) = when {
+                                                selectedNightsText.contains("1 - 4") -> 1 to 4
+                                                selectedNightsText.contains("5 - 7") -> 5 to 7
+                                                selectedNightsText.contains("7 - 10") -> 7 to 10
+                                                selectedNightsText.contains("10 - 14") -> 10 to 14
+                                                selectedNightsText.contains("14 - 21") -> 14 to 21
+                                                selectedNightsText.contains("3") -> 3 to 3
+                                                selectedNightsText.contains("5") -> 5 to 5
+                                                selectedNightsText.contains("7") -> 7 to 7
+                                                selectedNightsText.contains("10") -> 10 to 10
+                                                selectedNightsText.contains("14") -> 14 to 14
+                                                else -> 1 to 30
+                                            }
 
                                             // 1. Aşama: Tam Eşleşme
                                             var matches = dbProducts.filter { h ->
@@ -1707,7 +1719,7 @@ fun GlobalWebPublicScreen(
                                                     h.location.contains(destClean, ignoreCase = true) ||
                                                     h.hotelName.contains(destClean, ignoreCase = true)
 
-                                                val matchesNights = (h.nights == targetNights)
+                                                val matchesNights = (h.nights in minNights..maxNights || h.nights <= 0)
                                                 if (selectedSearchCategoryTab == "FLIGHT") matchesDest else (matchesDest && matchesNights)
                                             }
 
