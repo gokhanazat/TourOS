@@ -338,10 +338,30 @@ fun AdminDeploymentScreen(
                     TourOSTextField(
                         value = uiState.githubToken,
                         onValueChange = { viewModel.updateGithubToken(it) },
-                        label = "GitHub Kişisel Erişim Tokeni (Opsiyonel - Doğrudan API Tetikleme için)",
-                        placeholder = "ghp_...",
+                        label = "GitHub Kişisel Erişim Tokeni (PAT) — Doğrudan API Tetikleme için",
+                        placeholder = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (uiState.githubToken.isNotBlank()) "🟢 Doğrudan API Tetikleme Aktif (Panelden Derleme Başlatılabilir)" else "⚪ Token Girilmedi (Tarayıcı Yönlendirme Modu)",
+                            style = TourOSTypography.Caption.copy(
+                                color = if (uiState.githubToken.isNotBlank()) TourOSColors.Success else TourOSColors.TextSecondary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+
+                        TourOSButton(
+                            text = "🔑 Token Oluştur (GitHub)",
+                            onClick = { uriHandler.openUri("https://github.com/settings/tokens/new?scopes=repo,workflow&description=TourOS-Deploy-Token") },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                    }
                 }
             }
         }

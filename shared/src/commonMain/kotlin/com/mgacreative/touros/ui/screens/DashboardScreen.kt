@@ -185,7 +185,7 @@ private fun KpiGridSection(summary: DashboardSummary, columnsCount: Int) {
 
     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
         Text(
-            text = "📊 Key Performance Indicators (KPI)",
+            text = "📊 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Key Performance Indicators (KPI)"),
             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
         )
 
@@ -199,35 +199,35 @@ private fun KpiGridSection(summary: DashboardSummary, columnsCount: Int) {
         ) {
             item {
                 KpiStatCard(
-                    title = "Günlük Ciro",
+                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Günlük Ciro"),
                     value = "${summary.dailySales} ₺",
                     trendText = "↗ +14.2%"
                 )
             }
             item {
                 KpiStatCard(
-                    title = "Bu Ay Toplam",
+                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bu Ay Toplam"),
                     value = "${summary.monthlySales} ₺",
                     trendText = "↗ +8.5%"
                 )
             }
             item {
                 KpiStatCard(
-                    title = "Doluluk Oranı",
+                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Doluluk Oranı"),
                     value = "%${summary.occupancyRate}",
                     trendText = "↗ +5.1%"
                 )
             }
             item {
                 KpiStatCard(
-                    title = "İptal Sayısı",
+                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İptal Sayısı"),
                     value = "${summary.cancellationCount}",
                     trendText = "↘ -2.4%"
                 )
             }
             item {
                 KpiStatCard(
-                    title = "Bekleyen Alacak",
+                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bekleyen Alacak"),
                     value = "${summary.pendingPaymentsAmount} ₺",
                     trendText = "↗ +1.1%"
                 )
@@ -280,26 +280,39 @@ private fun UpcomingToursWidget(tours: List<UpcomingTour>) {
         borderColor = TourOSColors.Border,
         contentPadding = TourOSSpacing.large
     ) {
-        Text(text = "🗓️ Yaklaşan Turlar", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        Text(
+            text = "🗓️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yaklaşan Turlar"),
+            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+        )
         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-        tours.forEach { tour ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = tour.tourTitle, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                    Text(text = "📅 Kalkış: ${tour.departureDate}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+        if (tours.isEmpty()) {
+            Text(
+                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz planlanmış aktif tur bulunmuyor."),
+                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+            )
+        } else {
+            tours.forEach { tour ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = tour.tourTitle, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                        Text(
+                            text = "📅 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kalkış")}: ${tour.departureDate}",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                        )
+                    }
+                    TourOSStatusBadge(
+                        text = "${tour.bookedCount}/${tour.capacity} Pax",
+                        backgroundColor = TourOSColors.PrimaryContainer,
+                        textColor = TourOSColors.Primary
+                    )
                 }
-                TourOSStatusBadge(
-                    text = "${tour.bookedCount}/${tour.capacity} Pax",
-                    backgroundColor = TourOSColors.PrimaryContainer,
-                    textColor = TourOSColors.Primary
-                )
+                HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.padding(vertical = TourOSSpacing.small))
             }
-            HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.padding(vertical = TourOSSpacing.small))
         }
     }
 }
@@ -312,7 +325,10 @@ private fun VehicleOccupancyWidget(vehicles: List<VehicleOccupancy>) {
         borderColor = TourOSColors.Border,
         contentPadding = TourOSSpacing.large
     ) {
-        Text(text = "🚌 Araç Dolulukları Özeti", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        Text(
+            text = "🚌 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç Dolulukları Özeti"),
+            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+        )
         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
         vehicles.forEach { vehicle ->
@@ -328,7 +344,7 @@ private fun VehicleOccupancyWidget(vehicles: List<VehicleOccupancy>) {
                 ) {
                     Text(text = "${vehicle.plateNumber} (${vehicle.modelName})", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                     TourOSStatusBadge(
-                        text = "%$occupancyPercentage Dolu",
+                        text = "%$occupancyPercentage " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dolu"),
                         backgroundColor = TourOSColors.PrimaryContainer,
                         textColor = TourOSColors.Primary
                     )
@@ -348,8 +364,14 @@ private fun VehicleOccupancyWidget(vehicles: List<VehicleOccupancy>) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "👨‍✈️ Kaptan: ${vehicle.driverName}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(text = "💺 ${vehicle.occupiedSeats}/$safeCapacity Koltuk", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary))
+                    Text(
+                        text = "👨‍✈️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kaptan")}: ${vehicle.driverName}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
+                    Text(
+                        text = "💺 ${vehicle.occupiedSeats}/$safeCapacity ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Koltuk")}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary)
+                    )
                 }
             }
             HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.padding(vertical = TourOSSpacing.small))
@@ -365,7 +387,10 @@ private fun GuideStatusWidget(guides: List<GuideStatusInfo>) {
         borderColor = TourOSColors.Border,
         contentPadding = TourOSSpacing.large
     ) {
-        Text(text = "🚩 Rehber Durumu & Performans", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+        Text(
+            text = "🚩 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber Durumu & Performans"),
+            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+        )
         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
         guides.forEach { guide ->
@@ -376,7 +401,10 @@ private fun GuideStatusWidget(guides: List<GuideStatusInfo>) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = guide.fullName, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                    Text(text = "Diller: ${guide.languages.joinToString(", ")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text(
+                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Diller")}: ${guide.languages.joinToString(", ")}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
@@ -386,7 +414,7 @@ private fun GuideStatusWidget(guides: List<GuideStatusInfo>) {
                         textColor = TourOSColors.Secondary
                     )
                     TourOSStatusBadge(
-                        text = guide.status,
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(guide.status),
                         backgroundColor = TourOSColors.PrimaryContainer,
                         textColor = TourOSColors.Primary
                     )

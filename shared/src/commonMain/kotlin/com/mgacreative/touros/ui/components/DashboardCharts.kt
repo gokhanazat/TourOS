@@ -44,7 +44,7 @@ fun DashboardChartsSection(
         modifier = modifier.fillMaxWidth()
     ) {
         Text(
-            text = "📈 Operasyonel Analytics & Trend Analizi",
+            text = "📈 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel Analytics & Trend Analizi"),
             style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
         )
 
@@ -56,7 +56,10 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(text = "📉 Aylık Satış Trendi (Ciro)", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text(
+                    text = "📉 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aylık Satış Trendi (Ciro)"),
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 MonthlySalesTrendChart(items = charts.monthlyTrends)
             }
@@ -67,7 +70,10 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(text = "🌍 Ülkelere Göre Satış Dağılımı", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text(
+                    text = "🌍 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ülkelere Göre Satış Dağılımı"),
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 SalesByCountryChart(items = charts.countrySales)
             }
@@ -81,7 +87,10 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(text = "🏆 Tur Bazlı Gelir Sıralaması", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text(
+                    text = "🏆 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Bazlı Gelir Sıralaması"),
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 TourRevenueChart(items = charts.tourRevenues)
             }
@@ -92,7 +101,10 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(text = "📢 Kanal Bazlı Satış Dağılımı", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text(
+                    text = "📢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kanal Bazlı Satış Dağılımı"),
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                )
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 SalesByChannelChart(items = charts.channelSales)
             }

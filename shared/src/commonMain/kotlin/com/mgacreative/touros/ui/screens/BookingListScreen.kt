@@ -95,7 +95,7 @@ fun BookingListScreen(
                     TourOSTextField(
                         value = successState?.searchQuery ?: "",
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
-                        placeholder = "🔍 Rezervasyon kodu, müşteri adı, telefon veya e-posta ile ara...",
+                        placeholder = "🔍 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon kodu, müşteri adı, telefon veya e-posta ile ara..."),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -110,7 +110,7 @@ fun BookingListScreen(
                         FilterChip(
                             selected = selectedStatus == null,
                             onClick = { viewModel.onStatusFilterSelected(null) },
-                            label = { Text("Tüm Rezervasyonlar", style = TourOSTypography.BodyMedium) },
+                            label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm Rezervasyonlar"), style = TourOSTypography.BodyMedium) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TourOSColors.PrimaryContainer,
                                 selectedLabelColor = TourOSColors.Primary
@@ -124,7 +124,7 @@ fun BookingListScreen(
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { viewModel.onStatusFilterSelected(status) },
-                                label = { Text(status.displayName, style = TourOSTypography.BodyMedium) },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(status.displayName), style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = badgeBg,
                                     selectedLabelColor = badgeText
@@ -145,68 +145,68 @@ fun BookingListScreen(
 
                 when (val state = uiState) {
                     is BookingListUiState.Loading -> {
-                        TourOSLoadingIndicator(message = "Rezervasyonlar yükleniyor...")
+                        TourOSLoadingIndicator(message = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyonlar yükleniyor..."))
                     }
                     is BookingListUiState.Error -> {
                         TourOSEmptyState(
-                            title = "Hata Oluştu",
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hata Oluştu"),
                             description = state.message,
-                            actionButtonText = "Yeniden Dene",
+                            actionButtonText = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeniden Dene"),
                             onActionClick = { viewModel.onSearchQueryChanged("") }
                         )
                     }
                     is BookingListUiState.Success -> {
                         if (state.bookings.isEmpty()) {
                             TourOSEmptyState(
-                                title = "Rezervasyon Bulunamadı",
-                                description = "Aradığınız kriterlere uygun herhangi bir rezervasyon kaydı yok.",
-                                actionButtonText = "+ Yeni Rezervasyon Ekle",
+                                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon Bulunamadı"),
+                                description = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aradığınız kriterlere uygun herhangi bir rezervasyon kaydı yok."),
+                                actionButtonText = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Rezervasyon Ekle"),
                                 onActionClick = onNavigateToCreateBooking
                             )
                         } else {
                             val bookingColumns = listOf(
-                                TourOSColumn<Booking>(title = "REZERVASYON KODU & MÜŞTERİ", weight = 2.2f) { booking ->
+                                TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("REZERVASYON KODU & MÜŞTERİ"), weight = 2.2f) { booking ->
                                     Column {
                                         Text(text = booking.bookingCode, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
                                         Text(text = booking.customerName, style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                         Text(text = "📞 ${booking.customerPhone ?: '-'} • ✉️ ${booking.customerEmail ?: '-'}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 },
-                                TourOSColumn<Booking>(title = "ACENTE / OPERATÖR", weight = 1.8f) { booking ->
+                                TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("ACENTE / OPERATÖR"), weight = 1.8f) { booking ->
                                     Text(text = "🏢 ${booking.operatorName}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                 },
-                                TourOSColumn<Booking>(title = "ÜRÜN / HİZMET ADI & TARİH", weight = 2.5f) { booking ->
+                                TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("ÜRÜN / HİZMET ADI & TARİH"), weight = 2.5f) { booking ->
                                     val isHotel = booking.bookingType == "HOTEL" || !booking.hotelId.isNullOrBlank()
                                     val icon = if (isHotel) "🏨" else "🚌"
                                     val dateInfo = if (isHotel && !booking.checkInDate.isNullOrBlank()) {
-                                        "📅 Giriş: ${booking.checkInDate} (${booking.nights} Gece)"
+                                        "📅 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Giriş")}: ${booking.checkInDate} (${booking.nights} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gece")})"
                                     } else {
-                                        "📅 Kalkış: ${booking.departureDate}"
+                                        "📅 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kalkış")}: ${booking.departureDate}"
                                     }
                                     Column {
                                         Text(text = "$icon ${booking.productName}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                         Text(text = dateInfo, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
                                     }
                                 },
-                                TourOSColumn<Booking>(title = "PAX / TUTAR", weight = 1.5f) { booking ->
+                                TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PAX / TUTAR"), weight = 1.5f) { booking ->
                                     val unitPrice = booking.totalPrice / maxOf(1, booking.paxCount)
                                     Column {
                                         Text(text = "${booking.totalPrice} ${booking.currency}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-                                        Text(text = "👥 ${booking.paxCount} Kişi ($unitPrice ₺/Pax)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        Text(text = "👥 ${booking.paxCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kişi")} ($unitPrice ₺/Pax)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 },
-                                TourOSColumn<Booking>(title = "DURUM", weight = 1.3f) { booking ->
+                                TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("DURUM"), weight = 1.3f) { booking ->
                                     val (badgeBg, badgeText) = getStatusColors(booking.status)
                                     TourOSStatusBadge(
-                                        text = booking.status.displayName,
+                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(booking.status.displayName),
                                         backgroundColor = badgeBg,
                                         textColor = badgeText
                                     )
                                 },
-                                TourOSColumn<Booking>(title = "İŞLEM", weight = 1.2f) { booking ->
+                                TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İŞLEM"), weight = 1.2f) { booking ->
                                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
                                         TourOSButton(
-                                            text = "Detay ›",
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Detay") + " ›",
                                             onClick = { onNavigateToBookingDetail(booking.id.ifBlank { booking.bookingCode }) },
                                             variant = TourOSButtonVariant.TERTIARY
                                         )

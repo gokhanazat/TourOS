@@ -149,11 +149,11 @@ fun TourFormScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = if (tourId == null) "Yeni Tur Oluştur" else "Turu Düzenle",
-                subtitle = "Tur detaylarını, lokasyon bilgilerini ve kapak medyasını tanımlayın",
+                title = if (tourId == null) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeni Tur Oluştur") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Turu Düzenle"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur detaylarını, lokasyon bilgilerini ve kapak medyasını tanımlayın"),
                 navigationIcon = {
                     TourOSButton(
-                        text = "← İptal",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("← İptal"),
                         onClick = onNavigateBack,
                         variant = TourOSButtonVariant.TERTIARY
                     )

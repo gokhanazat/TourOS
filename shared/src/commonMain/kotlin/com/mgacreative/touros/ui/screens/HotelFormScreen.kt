@@ -75,8 +75,8 @@ fun HotelFormScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = if (uiState.hotelId.isNullOrBlank()) "🏨 Yeni Otel Kaydı" else "🏨 Otel Bilgilerini Düzenle",
-                subtitle = "Konaklama tesisi detayları, görsel seçimi, periyotlar ve oda fiyatlandırması",
+                title = if (uiState.hotelId.isNullOrBlank()) "🏨 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeni Otel Ekle") else "🏨 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Oteli Düzenle"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Konaklama tesislerini, kontrat şartlarını ve otel bilgilerini yönetin"),
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Text("←", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.OnPrimary))
