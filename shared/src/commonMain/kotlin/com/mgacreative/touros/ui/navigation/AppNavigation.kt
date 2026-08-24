@@ -246,6 +246,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
             categoryTitle = AppLanguageManager.translate("AYARLAR"),
             items = listOf(
                 TourOSNavItem(
+                    title = AppLanguageManager.translate("Tur Operatörleri"),
+                    route = AgencyOperatorConnectionsRoute,
+                    isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true
+                ),
+                TourOSNavItem(
                     title = AppLanguageManager.translate("Ayarlar & Dil"),
                     route = SettingsRoute,
                     isSelected = currentRoute?.contains("SettingsRoute") == true || currentRoute?.contains("MultiLanguageRoute") == true
@@ -835,7 +840,9 @@ private fun AppNavHost(navController: NavHostController) {
         }
 
         composable<AgencyOperatorConnectionsRoute> {
-            com.mgacreative.touros.ui.screens.AgencyOperatorConnectionsScreen()
+            com.mgacreative.touros.ui.screens.AgencyOperatorConnectionsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable<AgencyProductPublishingRoute> {

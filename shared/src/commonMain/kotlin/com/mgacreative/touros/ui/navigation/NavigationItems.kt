@@ -155,6 +155,10 @@ val navigationGroups = listOf(
         title = "AYARLAR",
         items = listOf(
             NavigationItem(
+                title = "Tur Operatörleri",
+                route = AgencyOperatorConnectionsRoute
+            ),
+            NavigationItem(
                 title = "Ayarlar & Dil",
                 route = SettingsRoute
             )
