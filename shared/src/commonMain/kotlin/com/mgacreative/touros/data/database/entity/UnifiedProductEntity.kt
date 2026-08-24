@@ -21,6 +21,8 @@ data class UnifiedProductEntity(
     @SerialName("hotel_name") val hotelName: String = "",
     @SerialName("hotel_category") val hotelCategory: Int = 5,
     val country: String = "",
+    @SerialName("country_code") val countryCode: String = "",
+    @SerialName("country_name") val countryName: String = "",
     val region: String = "",
     @SerialName("sub_region") val subRegion: String = "",
     @SerialName("room_type") val roomType: String = "",

@@ -1682,22 +1682,37 @@ fun B2BTourSearchDashboardScreen(
                                 val hotelMatch = isFlightTab || selectedHotels.isEmpty() || selectedHotels.any { hName -> item.safeHotelName.contains(hName, ignoreCase = true) }
                                 val queryMatch = searchQuery.isBlank() || item.safeHotelName.contains(searchQuery, ignoreCase = true) || item.tourName.contains(searchQuery, ignoreCase = true) || item.region.contains(searchQuery, ignoreCase = true)
 
-                                val flightDepMatch = !isFlightTab || departureCity.isBlank() || item.departureCity.contains(departureCity, ignoreCase = true)
-                                val flightDestMatch = !isFlightTab || selectedRegion.isBlank() || item.region.contains(selectedRegion, ignoreCase = true) || item.country.contains(selectedRegion, ignoreCase = true)
+                                val flightDepMatch = departureCity.isBlank() ||
+                                    item.departureCity.contains(departureCity, ignoreCase = true) ||
+                                    (departureCity.contains("Moskova", ignoreCase = true) && (item.departureCity.contains("Moskova", ignoreCase = true) || item.departureCity.contains("Москва", ignoreCase = true) || item.departureCity.contains("SVO", ignoreCase = true) || item.departureCity.contains("VKO", ignoreCase = true) || item.departureCity.contains("DME", ignoreCase = true))) ||
+                                    (departureCity.contains("İstanbul", ignoreCase = true) && (item.departureCity.contains("İstanbul", ignoreCase = true) || item.departureCity.contains("Istanbul", ignoreCase = true) || item.departureCity.contains("IST", ignoreCase = true) || item.departureCity.contains("SAW", ignoreCase = true)))
 
-                                 val (b2bMinNights, b2bMaxNights) = when {
-                                     nightsText.contains("1 - 4") -> 1 to 4
-                                     nightsText.contains("5 - 7") -> 5 to 7
-                                     nightsText.contains("7 - 10") -> 7 to 10
-                                     nightsText.contains("10 - 14") -> 10 to 14
-                                     nightsText.contains("14 - 21") -> 14 to 21
-                                     nightsText.contains("Tüm") -> 1 to 30
-                                     else -> {
-                                         val num = nightsText.filter { it.isDigit() }.toIntOrNull() ?: 7
-                                         num to num
-                                     }
-                                 }
-                                 val nightsMatch = isFlightTab || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
+                                val flightDestMatch = selectedRegion.isBlank() ||
+                                    item.region.contains(selectedRegion, ignoreCase = true) ||
+                                    item.country.contains(selectedRegion, ignoreCase = true) ||
+                                    item.countryName.contains(selectedRegion, ignoreCase = true) ||
+                                    item.subRegion.contains(selectedRegion, ignoreCase = true) ||
+                                    item.safeHotelName.contains(selectedRegion, ignoreCase = true) ||
+                                    (selectedRegion.contains("Antalya", ignoreCase = true) && (item.region.contains("Antalya", ignoreCase = true) || item.region.contains("Анталья", ignoreCase = true) || item.region.contains("Belek", ignoreCase = true) || item.region.contains("Kemer", ignoreCase = true) || item.region.contains("Lara", ignoreCase = true) || item.region.contains("Alanya", ignoreCase = true) || item.region.contains("Side", ignoreCase = true))) ||
+                                    (selectedRegion.contains("Mısır", ignoreCase = true) && (item.countryCode == "EG" || item.country.contains("Mısır", ignoreCase = true) || item.country.contains("Египет", ignoreCase = true) || item.region.contains("Sharm", ignoreCase = true) || item.region.contains("Hurghada", ignoreCase = true))) ||
+                                    (selectedRegion.contains("Tayland", ignoreCase = true) && (item.countryCode == "TH" || item.country.contains("Tayland", ignoreCase = true) || item.country.contains("Thailand", ignoreCase = true) || item.country.contains("Таиланд", ignoreCase = true) || item.region.contains("Phuket", ignoreCase = true) || item.region.contains("Pattaya", ignoreCase = true))) ||
+                                    (selectedRegion.contains("Vietnam", ignoreCase = true) && (item.countryCode == "VN" || item.country.contains("Vietnam", ignoreCase = true) || item.country.contains("Вьетнам", ignoreCase = true) || item.region.contains("Phu Quoc", ignoreCase = true) || item.region.contains("Da Nang", ignoreCase = true))) ||
+                                    (selectedRegion.contains("Dubai", ignoreCase = true) && (item.countryCode == "AE" || item.country.contains("Dubai", ignoreCase = true) || item.country.contains("BAE", ignoreCase = true) || item.country.contains("ОАЭ", ignoreCase = true))) ||
+                                    (selectedRegion.contains("Rusya", ignoreCase = true) && (item.countryCode == "RU" || item.country.contains("Rusya", ignoreCase = true) || item.country.contains("Россия", ignoreCase = true) || item.region.contains("Sochi", ignoreCase = true) || item.region.contains("Сочи", ignoreCase = true)))
+
+                                val (b2bMinNights, b2bMaxNights) = when {
+                                    nightsText.contains("1 - 4") -> 1 to 4
+                                    nightsText.contains("5 - 7") -> 5 to 7
+                                    nightsText.contains("7 - 10") -> 7 to 10
+                                    nightsText.contains("10 - 14") -> 10 to 14
+                                    nightsText.contains("14 - 21") -> 14 to 21
+                                    nightsText.contains("Tüm") -> 1 to 30
+                                    else -> {
+                                        val num = nightsText.filter { it.isDigit() }.toIntOrNull() ?: 7
+                                        num to num
+                                    }
+                                }
+                                val nightsMatch = isFlightTab || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
 
                                 val isTourOrHotel = (activeSearchTab == "TOURS" || activeSearchTab == "HOTELS")
                                 val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == 0 || item.beachLine == selectedBeachLine
@@ -1707,20 +1722,6 @@ fun B2BTourSearchDashboardScreen(
                                 val transferMatch = !isTourOrHotel || !isTransferIncludedOnly || item.hasTransfer
 
                                 tabMatch && operatorMatch && mealMatch && starMatch && hotelMatch && queryMatch && flightDepMatch && flightDestMatch && nightsMatch && beachMatch && ratingMatch && amenityMatch && directFlightMatch && transferMatch
-                            }.ifEmpty {
-                                // Tam gece/filtre eşleşmesi yoksa -> Mevcut olan tur/otel paketlerini getir (hiçbiri gelmiyor sorunu engellendi)
-                                rawProducts.filter { item ->
-                                    val pType = item.safeProductType.uppercase()
-                                    val opName = item.safeOperatorName.uppercase()
-                                    val isLocalHotel = item.id.startsWith("local-hotel-") || pType == "LOCAL_HOTEL" || opName == "YEREL OTELLER"
-                                    val isLocalTour = item.id.startsWith("local-tour-") || pType == "LOCAL_TOUR" || opName == "YEREL TURLAR"
-                                    when (activeSearchTab) {
-                                        "TOURS" -> !isLocalHotel && !isLocalTour
-                                        "HOTELS" -> !isLocalHotel && !isLocalTour
-                                        "FLIGHTS" -> pType.contains("FLIGHT") || item.flightNumber.isNotBlank()
-                                        else -> true
-                                    }
-                                }
                             }
 
                             val b2bCountryTabsList = remember {
@@ -1746,41 +1747,47 @@ fun B2BTourSearchDashboardScreen(
                                 )
                             }
 
-                            // Ülke ve Alt Bölgeye Göre Çok Dilli (TR/RU/EN) Eşleştirme Fonksiyonları
+                            // Ülke ve Alt Bölgeye Göre Çok Dilli (TR/RU/EN) Eşleştirme Fonksiyonları (Yalnızca Destinasyon Kontrol Edilir)
                             fun isB2BMatchingCountry(item: UnifiedProductEntity, countryCode: String): Boolean {
                                 if (countryCode == "ALL") return true
+                                if (item.countryCode.isNotBlank()) {
+                                    if (item.countryCode.equals(countryCode, ignoreCase = true)) return true
+                                    if (item.countryCode.isNotBlank() && !item.countryCode.equals("TR", ignoreCase = true) && !item.countryCode.equals(countryCode, ignoreCase = true)) {
+                                        return false
+                                    }
+                                }
+
                                 val ctry = item.country.lowercase().trim()
+                                val ctryName = item.countryName.lowercase().trim()
                                 val reg = item.region.lowercase().trim()
                                 val subReg = item.subRegion.lowercase().trim()
                                 val hName = item.safeHotelName.lowercase().trim()
-                                val tName = item.tourName.lowercase().trim()
-                                val fullText = "$ctry $reg $subReg $hName $tName"
+                                val destText = "$ctry $ctryName $reg $subReg $hName"
 
                                 return when (countryCode) {
-                                    "TR" -> fullText.contains("türkiye") || fullText.contains("turkey") || fullText.contains("турция") || fullText.contains(" tr ") || fullText.startsWith("tr ") || fullText.endsWith(" tr") || fullText == "tr" ||
-                                            fullText.contains("antalya") || fullText.contains("belek") || fullText.contains("kemer") || fullText.contains("lara") ||
-                                            fullText.contains("alanya") || fullText.contains("side") || fullText.contains("bodrum") || fullText.contains("marmaris") ||
-                                            fullText.contains("fethiye") || fullText.contains("çeşme") || fullText.contains("istanbul") || fullText.contains("белек") ||
-                                            fullText.contains("кемер") || fullText.contains("анталья") || fullText.contains("аланья") || fullText.contains("сиде") ||
-                                            fullText.contains("бодрум") || fullText.contains("мармарис") || fullText.contains("фетхие") || fullText.contains("стамбул")
-                                    "EG" -> fullText.contains("mısır") || fullText.contains("egypt") || fullText.contains("египет") || fullText.contains(" eg ") || fullText.startsWith("eg ") || fullText == "eg" ||
-                                            fullText.contains("şarm") || fullText.contains("sharm") || fullText.contains("hurgada") || fullText.contains("hurghada") ||
-                                            fullText.contains("el gouna") || fullText.contains("makadi") || fullText.contains("шарм") || fullText.contains("хургада") ||
-                                            fullText.contains("эль гуна") || fullText.contains("макади")
-                                    "TH" -> fullText.contains("tayland") || fullText.contains("thailand") || fullText.contains("таиланд") || fullText.contains("тайланд") || fullText.contains(" th ") || fullText.startsWith("th ") || fullText == "th" ||
-                                            fullText.contains("phuket") || fullText.contains("pattaya") || fullText.contains("bangkok") || fullText.contains("samui") ||
-                                            fullText.contains("krabi") || fullText.contains("пхукет") || fullText.contains("паттайя") || fullText.contains("бангкок") ||
-                                            fullText.contains("самуи") || fullText.contains("краби")
-                                    "VN" -> fullText.contains("vietnam") || fullText.contains("вьетнам") || fullText.contains(" vn ") || fullText.startsWith("vn ") || fullText == "vn" ||
-                                            fullText.contains("da nang") || fullText.contains("phu quoc") || fullText.contains("nha trang") || fullText.contains("hoi an") ||
-                                            fullText.contains("дананг") || fullText.contains("фукуок") || fullText.contains("нячанг") || fullText.contains("хойан")
-                                    "AE" -> fullText.contains("bae") || fullText.contains("dubai") || fullText.contains("uae") || fullText.contains("оаэ") || fullText.contains(" ae ") || fullText.startsWith("ae ") || fullText == "ae" ||
-                                            fullText.contains("дубай") || fullText.contains("abu dhabi") || fullText.contains("абу-даби") || fullText.contains("sharjah") ||
-                                            fullText.contains("шарджа") || fullText.contains("jumeirah") || fullText.contains("marina")
-                                    "RU" -> fullText.contains("rusya") || fullText.contains("russia") || fullText.contains("россия") || fullText.contains(" ru ") || fullText.startsWith("ru ") || fullText == "ru" ||
-                                            fullText.contains("moskova") || fullText.contains("moscow") || fullText.contains("москва") || fullText.contains("sochi") ||
-                                            fullText.contains("сочи") || fullText.contains("st. petersburg") || fullText.contains("петербург") || fullText.contains("kazan") ||
-                                            fullText.contains("казань")
+                                    "TR" -> destText.contains("türkiye") || destText.contains("turkey") || destText.contains("турция") || destText.contains(" tr ") || destText.startsWith("tr ") || destText.endsWith(" tr") || destText == "tr" ||
+                                            destText.contains("antalya") || destText.contains("belek") || destText.contains("kemer") || destText.contains("lara") ||
+                                            destText.contains("alanya") || destText.contains("side") || destText.contains("bodrum") || destText.contains("marmaris") ||
+                                            destText.contains("fethiye") || destText.contains("çeşme") || destText.contains("белек") ||
+                                            destText.contains("кемер") || destText.contains("анталья") || destText.contains("аланья") || destText.contains("сиде") ||
+                                            destText.contains("бодрум") || destText.contains("мармарис") || destText.contains("фетхие") || (destText.contains("istanbul") && !destText.contains("sharm") && !destText.contains("dubai"))
+                                    "EG" -> destText.contains("mısır") || destText.contains("egypt") || destText.contains("египет") || destText.contains(" eg ") || destText.startsWith("eg ") || destText == "eg" ||
+                                            destText.contains("şarm") || destText.contains("sharm") || destText.contains("hurgada") || destText.contains("hurghada") ||
+                                            destText.contains("el gouna") || destText.contains("makadi") || destText.contains("шарм") || destText.contains("хургада") ||
+                                            destText.contains("эль гуна") || destText.contains("макади")
+                                    "TH" -> destText.contains("tayland") || destText.contains("thailand") || destText.contains("таиланд") || destText.contains("тайланд") || destText.contains(" th ") || destText.startsWith("th ") || destText == "th" ||
+                                            destText.contains("phuket") || destText.contains("pattaya") || destText.contains("bangkok") || destText.contains("samui") ||
+                                            destText.contains("krabi") || destText.contains("пхукет") || destText.contains("паттайя") || destText.contains("бангкок") ||
+                                            destText.contains("самуи") || destText.contains("краби")
+                                    "VN" -> destText.contains("vietnam") || destText.contains("вьетнам") || destText.contains(" vn ") || destText.startsWith("vn ") || destText == "vn" ||
+                                            destText.contains("da nang") || destText.contains("phu quoc") || destText.contains("nha trang") || destText.contains("hoi an") ||
+                                            destText.contains("дананг") || destText.contains("фукуок") || destText.contains("нячанг") || destText.contains("хойан")
+                                    "AE" -> destText.contains("bae") || destText.contains("dubai") || destText.contains("uae") || destText.contains("оаэ") || destText.contains(" ae ") || destText.startsWith("ae ") || destText == "ae" ||
+                                            destText.contains("дубай") || destText.contains("abu dhabi") || destText.contains("абу-даби") || destText.contains("sharjah") ||
+                                            destText.contains("шарджа") || destText.contains("jumeirah") || destText.contains("marina")
+                                    "RU" -> (destText.contains("rusya") || destText.contains("russia") || destText.contains("россия") || destText.contains("sochi") ||
+                                            destText.contains("сочи") || destText.contains("st. petersburg") || destText.contains("петербург") || destText.contains("kazan") ||
+                                            destText.contains("казань")) && !destText.contains("antalya") && !destText.contains("belek") && !destText.contains("kemer") && !destText.contains("lara")
                                     else -> true
                                 }
                             }
@@ -1788,7 +1795,7 @@ fun B2BTourSearchDashboardScreen(
                             fun isB2BMatchingSubRegion(item: UnifiedProductEntity, subRegion: String?): Boolean {
                                 if (subRegion.isNullOrBlank() || subRegion == "Tümü") return true
                                 val s = subRegion.lowercase().trim()
-                                val fullText = "${item.country} ${item.region} ${item.subRegion} ${item.safeHotelName} ${item.tourName}".lowercase()
+                                val fullText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion} ${item.safeHotelName}".lowercase()
 
                                 val synonyms = when (s) {
                                     "belek" -> listOf("belek", "белек")
