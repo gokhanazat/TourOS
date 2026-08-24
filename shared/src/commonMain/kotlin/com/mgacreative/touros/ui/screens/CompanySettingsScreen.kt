@@ -297,7 +297,7 @@ fun CompanySettingsScreen(
                                 )
                                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                                SettingsCategory.entries.forEach { category ->
+                                SettingsCategory.entries.filter { it != SettingsCategory.MARKA }.forEach { category ->
                                     val isSelected = category == selectedCategory
                                     Box(
                                         modifier = Modifier
