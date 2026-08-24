@@ -85,7 +85,30 @@ fun HierarchicalDestinationPickerDialog(
             DestinationItem("ru_svo", "Moskova (Tüm Havalimanları)", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "SVO", "Şeremetyevo, Domodedovo, Vnukovo"),
             DestinationItem("ru_led", "St. Petersburg", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "LED", "Pulkovo & Kültür Turları"),
             DestinationItem("ru_aer", "Sochi / Adler / Krasnaya Polyana", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "AER", "Karadeniz Sahili & Kayak Merkezleri"),
-            DestinationItem("ru_kzn", "Kazan", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "KZN", "Volga & Tataristan")
+            DestinationItem("ru_kzn", "Kazan", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "KZN", "Volga & Tataristan"),
+
+            // MISIR
+            DestinationItem("eg_all", "Mısır (Tüm Bölgeler)", null, "Mısır", "🇪🇬", DestinationLevel.COUNTRY, null, "Kızıldeniz & Nil Nehri Turları"),
+            DestinationItem("eg_ssh", "Şarm El-Şeyh (Naama / Nabq)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "SSH", "Dalış Merkezleri & Mercan Resifleri"),
+            DestinationItem("eg_hrg", "Hurgada (El Gouna / Makadi)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "HRG", "Kum Plajlar & Su Sporları"),
+
+            // TAYLAND
+            DestinationItem("th_all", "Tayland (Tüm Bölgeler)", null, "Tayland", "🇹🇭", DestinationLevel.COUNTRY, null, "Phuket, Pattaya, Bangkok, Koh Samui"),
+            DestinationItem("th_hkt", "Phuket (Patong, Karon, Kata)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "HKT", "Tropikal Ada & Plaj Kulüpleri"),
+            DestinationItem("th_utp", "Pattaya (Jomtien, Naklua)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "UTP", "Eğlence, Gece Hayatı & Su Sporları"),
+            DestinationItem("th_bkk", "Bangkok (Sukhumvit, Silom)", "Tayland", "Tayland", "🏙️", DestinationLevel.CITY, "BKK", "Tapınaklar & Alışveriş"),
+            DestinationItem("th_usm", "Koh Samui (Chaweng)", "Tayland", "Tayland", "🏝️", DestinationLevel.RESORT, "USM", "Palmiye Plajları & Lüks Villalar"),
+
+            // VİETNAM
+            DestinationItem("vn_all", "Vietnam (Tüm Bölgeler)", null, "Vietnam", "🇻🇳", DestinationLevel.COUNTRY, null, "Da Nang, Phu Quoc, Nha Trang"),
+            DestinationItem("vn_dad", "Da Nang / Hoi An", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "DAD", "Mermer Dağları & Altın Köprü"),
+            DestinationItem("vn_pqc", "Phu Quoc (Long Beach)", "Vietnam", "Vietnam", "🏝️", DestinationLevel.RESORT, "PQC", "Tropikal Ada & Gün Batımı Kasabası"),
+            DestinationItem("vn_cxr", "Nha Trang (Tran Phu)", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "CXR", "Akdeniz Havasında Asya Sahili"),
+
+            // BAE
+            DestinationItem("ae_all", "Birleşik Arap Emirlikleri", null, "BAE", "🇦🇪", DestinationLevel.COUNTRY, null, "Dubai, Abu Dhabi, Sharjah"),
+            DestinationItem("ae_dxb", "Dubai (Marina, Palm, Downtown)", "BAE", "BAE", "🏙️", DestinationLevel.CITY, "DXB", "Lüks Oteller & Çöl Safarisi"),
+            DestinationItem("ae_auh", "Abu Dhabi (Saadiyat, Yas)", "BAE", "BAE", "🏖️", DestinationLevel.CITY, "AUH", "Louvre & Tema Parklar")
         )
     }
 
