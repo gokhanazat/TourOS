@@ -33,9 +33,11 @@ data class CreateBookingWizardUiState(
     val selectedHotel: Hotel? = null,
     val selectedRoomType: RoomType? = null,
     val nightCount: Int = 1,
-    val adultCount: Int = 1,
+    val roomCount: Int = 1,
+    val adultCount: Int = 2,
     val childCount: Int = 0,
     val infantCount: Int = 0,
+    val childrenAges: List<Int> = emptyList(),
     val leadPassengerName: String = "",
     val leadPassengerEmail: String = "",
     val leadPassengerPhone: String = "",
@@ -228,14 +230,26 @@ class CreateBookingWizardViewModel(
         updatePaxCounts(count, _uiState.value.childCount, _uiState.value.infantCount)
     }
 
+    fun setRoomCount(count: Int) {
+        if (count in 1..10) _uiState.value = _uiState.value.copy(roomCount = count)
+    }
+
+    fun setChildrenAges(ages: List<Int>) {
+        _uiState.value = _uiState.value.copy(childrenAges = ages, childCount = ages.size)
+    }
+
     fun updatePaxCounts(adults: Int, children: Int, infants: Int) {
         val safeAdults = adults.coerceAtLeast(1)
         val safeChildren = children.coerceAtLeast(0)
         val safeInfants = infants.coerceAtLeast(0)
+        val currentAges = _uiState.value.childrenAges.toMutableList()
+        while (currentAges.size < safeChildren) currentAges.add(5)
+        while (currentAges.size > safeChildren) currentAges.removeAt(currentAges.size - 1)
         _uiState.value = _uiState.value.copy(
             adultCount = safeAdults,
             childCount = safeChildren,
-            infantCount = safeInfants
+            infantCount = safeInfants,
+            childrenAges = currentAges
         )
     }
 

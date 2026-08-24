@@ -23,13 +23,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.Departure
@@ -186,8 +192,10 @@ fun CreateBookingStep1Screen(
                     item {
                         AccordionCardSection(
                             stepNumber = 4,
-                            title = "4. Oda Tipi & Kişi Sayısı (PAX)",
-                            summaryText = uiState.selectedRoomType?.let { "${it.name} • ${uiState.paxCount} Kişi" } ?: "Henüz oda seçilmedi",
+                            title = "4. Oda Tipi, Oda Sayısı & Kişi Detayları",
+                            summaryText = uiState.selectedRoomType?.let {
+                                "${it.name} • ${uiState.roomCount} Oda • ${uiState.adultCount} Yetişkin" + (if (uiState.childCount > 0) " · ${uiState.childCount} Çocuk" else "")
+                            } ?: "Henüz oda seçilmedi",
                             isExpanded = uiState.currentStep == BookingWizardStep.SELECT_ROOM_TYPE,
                             isCompleted = uiState.selectedRoomType != null,
                             onHeaderClick = {
@@ -200,7 +208,10 @@ fun CreateBookingStep1Screen(
                                 uiState = uiState,
                                 onRoomTypeSelected = { viewModel.selectRoomType(it) },
                                 onNightCountChanged = { viewModel.setNightCount(it) },
-                                onPaxCountChanged = { viewModel.setPaxCount(it) }
+                                onRoomCountChanged = { viewModel.setRoomCount(it) },
+                                onAdultCountChanged = { viewModel.updatePaxCounts(it, uiState.childCount, uiState.infantCount) },
+                                onChildCountChanged = { viewModel.updatePaxCounts(uiState.adultCount, it, uiState.infantCount) },
+                                onChildrenAgesChanged = { viewModel.setChildrenAges(it) }
                             )
                         }
                     }
@@ -485,31 +496,124 @@ private fun SelectRoomTypeContent(
     uiState: CreateBookingWizardUiState,
     onRoomTypeSelected: (RoomType) -> Unit,
     onNightCountChanged: (Int) -> Unit,
-    onPaxCountChanged: (Int) -> Unit
+    onRoomCountChanged: (Int) -> Unit,
+    onAdultCountChanged: (Int) -> Unit,
+    onChildCountChanged: (Int) -> Unit,
+    onChildrenAgesChanged: (List<Int>) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-        Row(
+        // Konaklama ve Kişi Parametreleri Kartı
+        TourOSCard(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            backgroundColor = TourOSColors.Surface,
+            contentPadding = TourOSSpacing.medium
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Kişi Sayısı (PAX): ", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                TourOSButton(
-                    text = "-",
-                    onClick = { onPaxCountChanged(uiState.paxCount - 1) },
-                    variant = TourOSButtonVariant.TERTIARY
-                )
-                Spacer(modifier = Modifier.width(TourOSSpacing.small))
-                Text(text = "${uiState.paxCount}", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
-                Spacer(modifier = Modifier.width(TourOSSpacing.small))
-                TourOSButton(
-                    text = "+",
-                    onClick = { onPaxCountChanged(uiState.paxCount + 1) },
-                    variant = TourOSButtonVariant.TERTIARY
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Oda Sayısı
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Oda: ", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary))
+                        TourOSButton(
+                            text = "-",
+                            onClick = { if (uiState.roomCount > 1) onRoomCountChanged(uiState.roomCount - 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        Text(text = "${uiState.roomCount}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        TourOSButton(
+                            text = "+",
+                            onClick = { if (uiState.roomCount < 5) onRoomCountChanged(uiState.roomCount + 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                    }
+
+                    // Yetişkin Sayısı
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Yetişkin: ", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary))
+                        TourOSButton(
+                            text = "-",
+                            onClick = { if (uiState.adultCount > 1) onAdultCountChanged(uiState.adultCount - 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        Text(text = "${uiState.adultCount}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        TourOSButton(
+                            text = "+",
+                            onClick = { if (uiState.adultCount < 10) onAdultCountChanged(uiState.adultCount + 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                    }
+
+                    // Çocuk Sayısı
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Çocuk: ", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary))
+                        TourOSButton(
+                            text = "-",
+                            onClick = { if (uiState.childCount > 0) onChildCountChanged(uiState.childCount - 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        Text(text = "${uiState.childCount}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        TourOSButton(
+                            text = "+",
+                            onClick = { if (uiState.childCount < 6) onChildCountChanged(uiState.childCount + 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                    }
+
+                    // Gece Sayısı
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Gece: ", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary))
+                        TourOSButton(
+                            text = "-",
+                            onClick = { if (uiState.nightCount > 1) onNightCountChanged(uiState.nightCount - 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        Text(text = "${uiState.nightCount}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                        Spacer(modifier = Modifier.width(TourOSSpacing.xSmall))
+                        TourOSButton(
+                            text = "+",
+                            onClick = { onNightCountChanged(uiState.nightCount + 1) },
+                            variant = TourOSButtonVariant.TERTIARY
+                        )
+                    }
+                }
+
+                // Çocuk Yaşları Dinamik Seçimi (Çocuk > 0 ise)
+                if (uiState.childCount > 0) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = "👶 Çocuk Yaşları: ", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary))
+                        uiState.childrenAges.forEachIndexed { index, age ->
+                            ChildAgeSelectorItem(
+                                index = index,
+                                age = age,
+                                onAgeSelected = { selectedAge ->
+                                    val updated = uiState.childrenAges.toMutableList()
+                                    if (index < updated.size) {
+                                        updated[index] = selectedAge
+                                        onChildrenAgesChanged(updated)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
+
+        Text(text = "Müsait Oda Tipleri:", style = TourOSTypography.TitleSmall.copy(color = TourOSColors.TextPrimary))
 
         LazyColumn(
             modifier = Modifier.height(200.dp),
@@ -585,3 +689,34 @@ private fun Step1BottomBar(
         }
     }
 }
+
+@Composable
+private fun ChildAgeSelectorItem(
+    index: Int,
+    age: Int,
+    onAgeSelected: (Int) -> Unit
+) {
+    var showAgeMenu by remember { mutableStateOf(false) }
+    Box {
+        TourOSButton(
+            text = "${index + 1}. Çocuk: $age Yaş ▼",
+            onClick = { showAgeMenu = true },
+            variant = TourOSButtonVariant.SECONDARY
+        )
+        DropdownMenu(
+            expanded = showAgeMenu,
+            onDismissRequest = { showAgeMenu = false }
+        ) {
+            (0..17).forEach { a ->
+                DropdownMenuItem(
+                    text = { Text("$a Yaş" + (if (a < 2) " (Bebek)" else if (a in 2..6) " (Çocuk)" else "")) },
+                    onClick = {
+                        onAgeSelected(a)
+                        showAgeMenu = false
+                    }
+                )
+            }
+        }
+    }
+}
+
