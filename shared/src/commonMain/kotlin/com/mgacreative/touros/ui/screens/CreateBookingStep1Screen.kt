@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
@@ -74,6 +75,25 @@ fun CreateBookingStep1Screen(
     viewModel: CreateBookingWizardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showDualCalendarModal by remember { mutableStateOf(false) }
+    var customStartDate by remember { mutableStateOf("20.08.2026") }
+    var customEndDate by remember { mutableStateOf("28.08.2026") }
+    var customFlexDays by remember { mutableStateOf(3) }
+
+    if (showDualCalendarModal) {
+        com.mgacreative.touros.ui.components.DualMonthRangeDatePickerDialog(
+            initialStartDateText = customStartDate,
+            initialEndDateText = customEndDate,
+            initialFlexibilityDays = customFlexDays,
+            onRangeSelected = { start, end, nights, flex ->
+                customStartDate = start
+                customEndDate = end
+                customFlexDays = flex
+                viewModel.setNightCount(nights)
+            },
+            onDismiss = { showDualCalendarModal = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -162,6 +182,11 @@ fun CreateBookingStep1Screen(
                         ) {
                             SelectDepartureContent(
                                 uiState = uiState,
+                                startDate = customStartDate,
+                                endDate = customEndDate,
+                                flexDays = customFlexDays,
+                                onOpenDualCalendar = { showDualCalendarModal = true },
+                                onFlexDaysChanged = { customFlexDays = it },
                                 onDepartureSelected = { viewModel.selectDeparture(it) }
                             )
                         }
@@ -410,38 +435,104 @@ private fun SelectTourContent(
 @Composable
 private fun SelectDepartureContent(
     uiState: CreateBookingWizardUiState,
+    startDate: String,
+    endDate: String,
+    flexDays: Int,
+    onOpenDualCalendar: () -> Unit,
+    onFlexDaysChanged: (Int) -> Unit,
     onDepartureSelected: (Departure) -> Unit
 ) {
-    if (uiState.departures.isEmpty()) {
-        Text(text = "Seçilen tur için aktif kalkış tarihi bulunmuyor.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
-    } else {
-        LazyColumn(
-            modifier = Modifier.height(200.dp),
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+        // Çift Ay Takvim ve Esneklik Çubuğu
+        TourOSCard(
+            modifier = Modifier.fillMaxWidth(),
+            backgroundColor = TourOSColors.Surface,
+            contentPadding = TourOSSpacing.medium
         ) {
-            items(uiState.departures, key = { it.id }) { dep ->
-                val isSelected = uiState.selectedDeparture?.id == dep.id
-                TourOSCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onDepartureSelected(dep) },
-                    backgroundColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Background,
-                    borderColor = if (isSelected) TourOSColors.Primary else TourOSColors.Border,
-                    contentPadding = TourOSSpacing.medium
+            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(text = "📅 Kalkış: ${dep.departureDate}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                            Text(text = "Dönüş: ${dep.returnDate ?: '-'}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                        }
+                    Column {
                         Text(
-                            text = "${dep.priceOverride ?: uiState.selectedTour?.basePrice ?: 0.0} TRY",
-                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                            text = "🗓️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gidiş - Dönüş Tarihleri")}",
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary)
                         )
+                        Text(
+                            text = "$startDate ➔ $endDate (${uiState.nightCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gece")})",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    TourOSButton(
+                        text = "📅 Çift Ay Takvim Aç ›",
+                        onClick = onOpenDualCalendar,
+                        variant = TourOSButtonVariant.SECONDARY
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "⚡ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Esneklik")}: ",
+                        style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary)
+                    )
+
+                    listOf(0 to "Tam Tarihler", 1 to "±1 Gün", 2 to "±2 Gün", 3 to "±3 Gün Esnek").forEach { (fDays, label) ->
+                        val isSelected = (flexDays == fDays)
+                        TourOSButton(
+                            text = (if (isSelected) "✓ " else "") + com.mgacreative.touros.ui.localization.AppLanguageManager.translate(label),
+                            onClick = { onFlexDaysChanged(fDays) },
+                            variant = if (isSelected) TourOSButtonVariant.PRIMARY else TourOSButtonVariant.TERTIARY
+                        )
+                    }
+                }
+
+                if (flexDays > 0) {
+                    Text(
+                        text = "💡 ±$flexDays gün esneklik devrede: Seçilen tarihin yakınındaki en uygun kalkışlar listeleniyor.",
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.SemiBold)
+                    )
+                }
+            }
+        }
+
+        if (uiState.departures.isEmpty()) {
+            Text(text = "Seçilen tur için aktif kalkış tarihi bulunmuyor.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+        } else {
+            LazyColumn(
+                modifier = Modifier.height(200.dp),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            ) {
+                items(uiState.departures, key = { it.id }) { dep ->
+                    val isSelected = uiState.selectedDeparture?.id == dep.id
+                    TourOSCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onDepartureSelected(dep) },
+                        backgroundColor = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Background,
+                        borderColor = if (isSelected) TourOSColors.Primary else TourOSColors.Border,
+                        contentPadding = TourOSSpacing.medium
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(text = "📅 Kalkış: ${dep.departureDate}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
+                                Text(text = "Dönüş: ${dep.returnDate ?: '-'}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            }
+                            Text(
+                                text = "${dep.priceOverride ?: uiState.selectedTour?.basePrice ?: 0.0} TRY",
+                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                            )
+                        }
                     }
                 }
             }
