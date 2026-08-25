@@ -137,9 +137,10 @@ fun HierarchicalDestinationPickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
-                .width(640.dp)
-                .height(650.dp)
-                .clip(RoundedCornerShape(24.dp)),
+                .widthIn(min = 360.dp, max = 940.dp)
+                .fillMaxWidth(0.92f)
+                .heightIn(min = 520.dp, max = 720.dp)
+                .clip(RoundedCornerShape(20.dp)),
             color = Color.White,
             shadowElevation = 24.dp
         ) {
@@ -229,8 +230,8 @@ fun HierarchicalDestinationPickerDialog(
 
                         val indentPadding = when (item.level) {
                             DestinationLevel.COUNTRY -> 0.dp
-                            DestinationLevel.CITY -> 14.dp
-                            DestinationLevel.RESORT -> 28.dp
+                            DestinationLevel.CITY -> 12.dp
+                            DestinationLevel.RESORT -> 24.dp
                             else -> 0.dp
                         }
 
@@ -265,37 +266,46 @@ fun HierarchicalDestinationPickerDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                    .padding(horizontal = 14.dp, vertical = 9.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
+                                    modifier = Modifier.weight(1f),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(item.flag, fontSize = 20.sp)
-                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                                    ) {
                                         Row(
+                                            modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
                                                 text = if (item.nameRu.isNotBlank()) "${item.name} · ${item.nameRu}" else item.name,
                                                 style = TourOSTypography.BodyMedium.copy(
-                                                    fontWeight = if (item.level == DestinationLevel.COUNTRY || item.level == DestinationLevel.CITY) FontWeight.Bold else FontWeight.Medium,
+                                                    fontWeight = if (item.level == DestinationLevel.COUNTRY || item.level == DestinationLevel.CITY) FontWeight.Bold else FontWeight.SemiBold,
                                                     color = Color(0xFF0F172A),
                                                     fontSize = 13.sp
-                                                )
+                                                ),
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
                                             )
                                             if (item.airportCode != null) {
                                                 Surface(
                                                     shape = RoundedCornerShape(4.dp),
-                                                    color = Color(0xFFEFF6FF)
+                                                    color = Color(0xFFEFF6FF),
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
                                                 ) {
                                                     Text(
                                                         text = "✈ ${item.airportCode}",
-                                                        style = TourOSTypography.Caption.copy(color = Color(0xFF2563EB), fontWeight = FontWeight.Bold, fontSize = 10.sp),
-                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                        style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                                     )
                                                 }
                                             }
@@ -303,20 +313,25 @@ fun HierarchicalDestinationPickerDialog(
                                         if (item.description != null) {
                                             Text(
                                                 text = item.description,
-                                                style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
+                                                style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp),
+                                                maxLines = 1,
+                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                             )
                                         }
                                     }
                                 }
 
+                                Spacer(modifier = Modifier.width(12.dp))
+
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(6.dp),
                                     color = badgeBg
                                 ) {
                                     Text(
                                         text = badgeText,
                                         style = TourOSTypography.Caption.copy(color = badgeTextColor, fontWeight = FontWeight.Bold, fontSize = 9.sp),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        maxLines = 1
                                     )
                                 }
                             }

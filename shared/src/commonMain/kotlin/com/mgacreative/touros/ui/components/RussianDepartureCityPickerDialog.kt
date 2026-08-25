@@ -86,8 +86,9 @@ fun RussianDepartureCityPickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
-                .width(580.dp)
-                .height(600.dp)
+                .widthIn(min = 360.dp, max = 820.dp)
+                .fillMaxWidth(0.92f)
+                .heightIn(min = 480.dp, max = 650.dp)
                 .clip(RoundedCornerShape(20.dp)),
             color = Color.White,
             shadowElevation = 24.dp
