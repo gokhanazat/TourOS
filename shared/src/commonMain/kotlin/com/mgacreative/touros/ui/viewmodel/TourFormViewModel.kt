@@ -164,25 +164,13 @@ class TourFormViewModel(
         insuranceDetails: String?,
         includedServices: String? = null,
         excludedServices: String? = null,
-        coverBytes: ByteArray? = null,
-        coverFileName: String? = null,
-        existingCoverImageUrl: String? = null
+        coverImageUrl: String? = null
     ) {
         viewModelScope.launch {
             _uiState.value = TourFormUiState.Loading
 
             val currentUser = getCurrentUserUseCase()
             val tenantId = currentUser?.tenantId?.takeIf { it.isValidUuid() } ?: "00000000-0000-0000-0000-000000000001"
-
-            var uploadedCoverUrl = existingCoverImageUrl
-            if (coverBytes != null && coverBytes.isNotEmpty()) {
-                val uploadResult = tourRepository.uploadTourCoverImage(
-                    tourId = id.ifBlank { "new" },
-                    fileBytes = coverBytes,
-                    fileName = coverFileName ?: "cover.jpg"
-                )
-                uploadedCoverUrl = uploadResult.getOrNull() ?: existingCoverImageUrl
-            }
 
             val tour = Tour(
                 id = id,
@@ -206,7 +194,7 @@ class TourFormViewModel(
                 insuranceDetails = insuranceDetails?.trim()?.ifBlank { null },
                 includedServices = includedServices?.trim()?.ifBlank { null },
                 excludedServices = excludedServices?.trim()?.ifBlank { null },
-                coverImageUrl = uploadedCoverUrl,
+                coverImageUrl = coverImageUrl?.trim()?.ifBlank { null },
                 tenantId = tenantId
             )
 

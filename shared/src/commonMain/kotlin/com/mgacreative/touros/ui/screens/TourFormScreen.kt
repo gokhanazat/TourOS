@@ -60,9 +60,6 @@ import org.koin.compose.viewmodel.koinViewModel
 
 import coil3.compose.AsyncImage
 
-import com.mgacreative.touros.utils.MAX_IMAGE_SIZE_BYTES
-import com.mgacreative.touros.utils.rememberFilePickerLauncher
-
 /**
  * TourOS 0.3 Tasarım Sistemine uygun Tur Oluşturma / Düzenleme Ekranı.
  * - Expanded (Desktop/Web): İki sütunlu düzen (Solda form, sağda Medya/Galeri yükleme).
@@ -105,10 +102,7 @@ fun TourFormScreen(
     var initialDepartureDate by remember { mutableStateOf("") }
     var initialReturnDate by remember { mutableStateOf("") }
     var errorMessageOverride by remember { mutableStateOf<String?>(null) }
-
-    var coverFileName by remember { mutableStateOf<String?>(null) }
-    var coverBytes by remember { mutableStateOf<ByteArray?>(null) }
-    var galleryItems by remember { mutableStateOf<List<Pair<String, ByteArray>>>(emptyList()) }
+    var coverImageUrl by remember { mutableStateOf("") }
 
     LaunchedEffect(tourId) {
         viewModel.loadTourForEdit(tourId)
@@ -143,6 +137,7 @@ fun TourFormScreen(
             insuranceDetails = tour.insuranceDetails ?: ""
             includedServices = tour.includedServices ?: ""
             excludedServices = tour.excludedServices ?: ""
+            coverImageUrl = tour.coverImageUrl ?: ""
         }
     }
 
@@ -214,33 +209,9 @@ fun TourFormScreen(
 
                     if (isCompact) {
                         // COMPACT LAYOUT (Mobil: Medya alanı en üstte, sonra form)
-                        MediaUploadSection(
-                            coverFileName = coverFileName,
-                            coverBytes = coverBytes,
-                            existingCoverUrl = loadedTour?.coverImageUrl,
-                            galleryItems = galleryItems,
-                            onCoverSelected = { fileName, bytes ->
-                                if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
-                                    val sizeMb = bytes.size / (1024 * 1024.0)
-                                    errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
-                                } else {
-                                    errorMessageOverride = null
-                                    coverFileName = fileName
-                                    coverBytes = bytes
-                                }
-                            },
-                            onGalleryImageSelected = { fileName, bytes ->
-                                if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
-                                    val sizeMb = bytes.size / (1024 * 1024.0)
-                                    errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
-                                } else {
-                                    errorMessageOverride = null
-                                    galleryItems = (galleryItems + (fileName to bytes)).take(10)
-                                }
-                            },
-                            onRemoveGalleryImage = { index ->
-                                galleryItems = galleryItems.filterIndexed { i, _ -> i != index }
-                            }
+                        TourCoverImageSection(
+                            coverImageUrl = coverImageUrl,
+                            onCoverImageUrlChange = { coverImageUrl = it }
                         )
                         TourFormFieldsSection(
                             title = title,
@@ -354,33 +325,9 @@ fun TourFormScreen(
                             }
 
                             Column(modifier = Modifier.weight(1f)) {
-                                MediaUploadSection(
-                                    coverFileName = coverFileName,
-                                    coverBytes = coverBytes,
-                                    existingCoverUrl = loadedTour?.coverImageUrl,
-                                    galleryItems = galleryItems,
-                                    onCoverSelected = { fileName, bytes ->
-                                        if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
-                                            val sizeMb = bytes.size / (1024 * 1024.0)
-                                            errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
-                                        } else {
-                                            errorMessageOverride = null
-                                            coverFileName = fileName
-                                            coverBytes = bytes
-                                        }
-                                    },
-                                    onGalleryImageSelected = { fileName, bytes ->
-                                        if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
-                                            val sizeMb = bytes.size / (1024 * 1024.0)
-                                            errorMessageOverride = "⚠️ Görsel boyutu 1 MB sınırını aşıyor (${(sizeMb * 100).toInt() / 100.0} MB). Veritabanını korumak için lütfen 1 MB'tan küçük bir görsel seçin."
-                                        } else {
-                                            errorMessageOverride = null
-                                            galleryItems = (galleryItems + (fileName to bytes)).take(10)
-                                        }
-                                    },
-                                    onRemoveGalleryImage = { index ->
-                                        galleryItems = galleryItems.filterIndexed { i, _ -> i != index }
-                                    }
+                                TourCoverImageSection(
+                                    coverImageUrl = coverImageUrl,
+                                    onCoverImageUrlChange = { coverImageUrl = it }
                                 )
                             }
                         }
@@ -418,9 +365,7 @@ fun TourFormScreen(
                                     insuranceDetails = insuranceDetails,
                                     includedServices = includedServices,
                                     excludedServices = excludedServices,
-                                    coverBytes = coverBytes,
-                                    coverFileName = coverFileName,
-                                    existingCoverImageUrl = loadedTour?.coverImageUrl
+                                    coverImageUrl = coverImageUrl
                                 )
                             },
                             variant = TourOSButtonVariant.PRIMARY,
@@ -761,190 +706,50 @@ private fun TourFormFieldsSection(
 }
 
 @Composable
-private fun MediaUploadSection(
-    coverFileName: String?,
-    coverBytes: ByteArray?,
-    existingCoverUrl: String? = null,
-    galleryItems: List<Pair<String, ByteArray>>,
-    onCoverSelected: (String, ByteArray) -> Unit,
-    onGalleryImageSelected: (String, ByteArray) -> Unit,
-    onRemoveGalleryImage: (Int) -> Unit
+private fun TourCoverImageSection(
+    coverImageUrl: String,
+    onCoverImageUrlChange: (String) -> Unit
 ) {
-    val launchCoverPicker = rememberFilePickerLauncher(mimeType = "image/*", onFileSelected = onCoverSelected)
-    val launchGalleryPicker = rememberFilePickerLauncher(mimeType = "image/*", onFileSelected = onGalleryImageSelected)
-
-    val coverBitmap = remember(coverBytes) {
-        coverBytes?.let {
-            runCatching { it.decodeToImageBitmap() }.getOrNull()
-        }
-    }
-
     TourOSCard(
         modifier = Modifier.fillMaxWidth(),
         backgroundColor = TourOSColors.Background,
         borderColor = TourOSColors.Border,
-        contentPadding = TourOSSpacing.xLarge
+        contentPadding = TourOSSpacing.large
     ) {
-        Text(text = "Tur Kapak Görseli & Galeri", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-        Text(text = "Voucher ve web katalogunda gösterilecek tur fotoğrafları.", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+            Text(
+                text = "🖼️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Kapak Görseli (URL)"),
+                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+            )
+            Text(
+                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Katalog, voucher ve web sayfasında gösterilecek kapak görseli web linkini girin."),
+                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+            )
 
-        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+            TourOSTextField(
+                value = coverImageUrl,
+                onValueChange = onCoverImageUrlChange,
+                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Görsel URL Adresi (Web Linki)"),
+                placeholder = "https://images.unsplash.com/... veya https://.../tour.jpg",
+                modifier = Modifier.fillMaxWidth()
+            )
 
-        // Kapak Resmi Yükleme Dropzone / Preview
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(180.dp)
-                .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
-                .background(if (coverFileName != null || !existingCoverUrl.isNullOrBlank()) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer)
-                .border(
-                    width = TourOSSpacing.borderWidth,
-                    color = if (coverFileName != null || !existingCoverUrl.isNullOrBlank()) TourOSColors.Success else TourOSColors.Primary,
-                    shape = RoundedCornerShape(TourOSSpacing.cornerRadius)
-                )
-                .clickable { launchCoverPicker() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (coverBitmap != null) {
-                Image(
-                    bitmap = coverBitmap,
-                    contentDescription = "Kapak Görseli",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+            // Canlı Önizleme Kutusu
+            if (coverImageUrl.isNotBlank()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.65f))
-                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "✅ $coverFileName",
-                            style = TourOSTypography.Caption.copy(color = Color.White),
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "Değiştir ✏️",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.PrimaryContainer)
-                        )
-                    }
-                }
-            } else if (!existingCoverUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = existingCoverUrl,
-                    contentDescription = "Kapak Görseli",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .background(Color.Black.copy(alpha = 0.65f))
-                        .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "✅ Mevcut Kapak Görseli",
-                            style = TourOSTypography.Caption.copy(color = Color.White),
-                            maxLines = 1
-                        )
-                        Text(
-                            text = "Değiştir ✏️",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.PrimaryContainer)
-                        )
-                    }
-                }
-            } else if (coverFileName != null) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "✅ Kapak Seçildi: $coverFileName", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Success))
-                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                    Text(text = "Değiştirmek için tekrar tıklayın (Maks 1MB)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                }
-            } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(text = "📸 Kapak Resmi Yükleyin", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-                    Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-                    Text(text = "Yüksek çözünürlüklü JPG/PNG (Maks 1MB)", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(TourOSSpacing.large))
-
-        Text(text = "Ek Fotoğraf Galerisi (Maks. 10 Görsel)", style = TourOSTypography.Label.copy(color = TourOSColors.TextSecondary))
-        Spacer(modifier = Modifier.height(TourOSSpacing.small))
-
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-        ) {
-            galleryItems.forEachIndexed { index, (name, bytes) ->
-                val galleryBitmap = remember(bytes) {
-                    runCatching { bytes.decodeToImageBitmap() }.getOrNull()
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(TourOSColors.PrimaryContainer)
-                        .border(TourOSSpacing.borderWidth, TourOSColors.Primary, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)),
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
+                        .background(TourOSColors.PrimaryContainer),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (galleryBitmap != null) {
-                        Image(
-                            bitmap = galleryBitmap,
-                            contentDescription = name,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Text(text = "🖼️", style = TourOSTypography.TitleLarge)
-                    }
-
-                    // Görsel Silme (X) Butonu
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .align(Alignment.TopEnd)
-                            .background(TourOSColors.Error, shape = RoundedCornerShape(bottomStart = 8.dp))
-                            .clickable { onRemoveGalleryImage(index) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "✕", style = TourOSTypography.Caption.copy(color = Color.White))
-                    }
-                }
-            }
-
-            if (galleryItems.size < 10) {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .background(TourOSColors.Surface)
-                        .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                        .clickable { launchGalleryPicker() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "+", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextSecondary))
+                    AsyncImage(
+                        model = coverImageUrl,
+                        contentDescription = "Tur Kapak Görseli Önizleme",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
         }

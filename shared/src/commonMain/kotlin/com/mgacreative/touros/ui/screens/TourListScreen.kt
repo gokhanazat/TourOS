@@ -211,7 +211,7 @@ fun TourListScreen(
                             val tourColumns = listOf(
                                 TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TUR KODU & ADI"), weight = 2.5f) { tour ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        TourThumbnail(category = tour.category)
+                                        TourThumbnail(imageUrl = tour.coverImageUrl, title = tour.title)
                                         Spacer(modifier = Modifier.width(TourOSSpacing.medium))
                                         Column {
                                             Text(text = tour.title, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
@@ -331,7 +331,8 @@ fun TourListScreen(
 }
 
 @Composable
-private fun TourThumbnail(category: TourCategory) {
+private fun TourThumbnail(imageUrl: String?, title: String) {
+    val initial = title.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "T"
     Box(
         modifier = Modifier
             .size(42.dp)
@@ -340,9 +341,21 @@ private fun TourThumbnail(category: TourCategory) {
             .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = "✈️",
-            style = TourOSTypography.TitleMedium
-        )
+        if (!imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            Text(
+                text = initial,
+                style = TourOSTypography.TitleMedium.copy(
+                    color = TourOSColors.Primary, 
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                )
+            )
+        }
     }
 }
