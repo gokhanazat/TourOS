@@ -108,7 +108,9 @@ data class PublicHotelOffer(
     val ratingScore: Double? = null,
     val isLastMinute: Boolean = false,
     val agencyPrices: List<AgencyPriceOption> = emptyList(),
-    val countryCode: String = "TR"
+    val countryCode: String = "TR",
+    val departureDate: String? = "2026-08-20",
+    val returnDate: String? = "2026-08-28"
 )
 
 fun matchesSelectedCountry(offer: PublicHotelOffer, selectedCode: String): Boolean {
@@ -612,6 +614,8 @@ fun GlobalWebPublicScreen(
     var destinationCity by remember { mutableStateOf("Antalya (Lara, Belek, Alanya)") }
     var startDateText by remember { mutableStateOf("20.08.2026") }
     var endDateText by remember { mutableStateOf("28.08.2026") }
+    var returnStartDateText by remember { mutableStateOf("28.08.2026") }
+    var returnEndDateText by remember { mutableStateOf("05.09.2026") }
     var selectedNightsText by remember { mutableStateOf("7 - 10 Gece") }
     var selectedTouristsText by remember { mutableStateOf("2 Yetişkin · 1 Oda") }
     var adultsCount by remember { mutableStateOf(2) }
@@ -633,6 +637,8 @@ fun GlobalWebPublicScreen(
     var showCountryDropdown by remember { mutableStateOf(false) }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
+    var showDepartureRangePicker by remember { mutableStateOf(false) }
+    var showReturnRangePicker by remember { mutableStateOf(false) }
     var showNightsDropdown by remember { mutableStateOf(false) }
     var showGuestRoomModal by remember { mutableStateOf(false) }
     var showHierarchicalDestModal by remember { mutableStateOf(false) }
@@ -646,6 +652,32 @@ fun GlobalWebPublicScreen(
                 selectedDestinationFilter = destItem.name
             },
             onDismiss = { showHierarchicalDestModal = false }
+        )
+    }
+
+    if (showDepartureRangePicker) {
+        B2BDateRangePickerDialog(
+            initialStartDateText = startDateText,
+            initialEndDateText = endDateText,
+            title = "🗓️ Gidiş Tarih Aralığı Seçin",
+            onDateRangeSelected = { sDate, eDate ->
+                startDateText = sDate
+                endDateText = eDate
+            },
+            onDismissRequest = { showDepartureRangePicker = false }
+        )
+    }
+
+    if (showReturnRangePicker) {
+        B2BDateRangePickerDialog(
+            initialStartDateText = returnStartDateText,
+            initialEndDateText = returnEndDateText,
+            title = "🗓️ Dönüş Tarih Aralığı Seçin",
+            onDateRangeSelected = { sDate, eDate ->
+                returnStartDateText = sDate
+                returnEndDateText = eDate
+            },
+            onDismissRequest = { showReturnRangePicker = false }
         )
     }
 
@@ -1695,7 +1727,7 @@ fun GlobalWebPublicScreen(
                                         }
                                     }
 
-                                    // 2. TARİH (MODERN MATERIAL DATE PICKER)
+                                    // 2. TARİH ARALIĞI (GİDİŞ & DÖNÜŞ B2B FORMATI)
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(AppLanguageManager.translate("Tarih"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
@@ -1706,35 +1738,35 @@ fun GlobalWebPublicScreen(
                                                 .padding(4.dp),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            // Gidiş Başlangıç
+                                            // Gidiş Tarih Aralığı
                                             Box(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showStartDatePicker = true }
+                                                    .clickable { showDepartureRangePicker = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text(AppLanguageManager.translate("Gidiş Başlangıç"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(startDateText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Gidiş Tarih Aralığı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                        Text("$startDateText — $endDateText", style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("📅", fontSize = 10.sp)
                                                     }
                                                 }
                                             }
 
-                                            // Gidiş Bitiş
+                                            // Dönüş Tarih Aralığı
                                             Box(
                                                 modifier = Modifier
                                                     .weight(1f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showEndDatePicker = true }
+                                                    .clickable { showReturnRangePicker = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text(AppLanguageManager.translate("Gidiş Bitiş"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(endDateText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("Dönüş Tarih Aralığı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                                        Text("$returnStartDateText — $returnEndDateText", style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
                                                         Text("📅", fontSize = 10.sp)
                                                     }
                                                 }
@@ -1898,6 +1930,42 @@ fun GlobalWebPublicScreen(
                                                 else -> 1 to 30
                                             }
 
+                                            fun parseDateToInt(dStr: String?): Int {
+                                                if (dStr.isNullOrBlank()) return 0
+                                                val parts = if (dStr.contains(".")) dStr.split(".")
+                                                else if (dStr.contains("-")) {
+                                                    val p = dStr.split("-")
+                                                    if (p.size == 3 && p[0].length == 4) listOf(p[2], p[1], p[0]) else p
+                                                } else emptyList()
+                                                val d = parts.getOrNull(0)?.toIntOrNull() ?: 1
+                                                val m = parts.getOrNull(1)?.toIntOrNull() ?: 1
+                                                val y = parts.getOrNull(2)?.toIntOrNull() ?: 2026
+                                                return y * 10000 + m * 100 + d
+                                            }
+
+                                            val startInt = parseDateToInt(startDateText)
+                                            val endInt = parseDateToInt(endDateText)
+
+                                            fun getOfferDatePriorityScore(h: PublicHotelOffer): Int {
+                                                var score = 0
+                                                val depInt = parseDateToInt(h.departureDate)
+                                                if (depInt in startInt..endInt && startInt > 0) {
+                                                    score += 10000 // Seçili Gidiş Tarih Aralığı Tam Eşleşmesi (En Yüksek Öncelik)
+                                                } else if (depInt > 0 && startInt > 0) {
+                                                    val diff = kotlin.math.abs(depInt - startInt)
+                                                    if (diff <= 3) score += 5000 // ±3 Gün Esneklik
+                                                    else score += (2000 - diff * 10).coerceAtLeast(0)
+                                                }
+                                                if (selectedOperatorFilter != "Tüm Operatörler" && h.operatorName.equals(selectedOperatorFilter, ignoreCase = true)) {
+                                                    score += 500
+                                                }
+                                                // Assuming matchesSelectedCountry is available in the scope or logic
+                                                if (selectedCountryFilter != "Tüm Ülkeler" && (h.location.contains(selectedCountryFilter, ignoreCase = true))) {
+                                                    score += 500
+                                                }
+                                                return score
+                                            }
+
                                             // 1. Aşama: Tam Eşleşme
                                             var matches = dbProducts.filter { h ->
                                                 val isPureFlight = h.category.uppercase() == "FLIGHT" || h.hotelName.startsWith("Uçuş:", ignoreCase = true) || h.hotelName.startsWith("✈️", ignoreCase = true)
@@ -1932,7 +2000,11 @@ fun GlobalWebPublicScreen(
                                                 !(h.category.uppercase() == "FLIGHT" || h.hotelName.startsWith("✈️", ignoreCase = true) || h.hotelName.startsWith("Uçuş:", ignoreCase = true))
                                             }
 
-                                            searchResultsList = matches.ifEmpty { if (selectedSearchCategoryTab == "FLIGHT") pureFlightFallback else nonFlightFallback }
+                                            val sortedMatches = matches.sortedByDescending { getOfferDatePriorityScore(it) }
+                                            val sortedPureFlightFallback = pureFlightFallback.sortedByDescending { getOfferDatePriorityScore(it) }
+                                            val sortedNonFlightFallback = nonFlightFallback.sortedByDescending { getOfferDatePriorityScore(it) }
+
+                                            searchResultsList = sortedMatches.ifEmpty { if (selectedSearchCategoryTab == "FLIGHT") sortedPureFlightFallback else sortedNonFlightFallback }
                                             isInlineSearchActive = true
                                             coroutineScope.launch {
                                                 runCatching { mainLazyListState.animateScrollToItem(3) }
@@ -2013,7 +2085,7 @@ fun GlobalWebPublicScreen(
                                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                         )
                                         Text(
-                                            text = "📍 Destinasyon: $selectedDestinationFilter  |  🔍 Otel/Tur: ${searchQuery.ifBlank { "Tüm Turlar" }}",
+                                            text = "🗓️ Tarih: $startDateText — $endDateText  |  📍 Destinasyon: $destinationCity  |  🌙 Gece: $selectedNightsText",
                                             style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                                         )
                                     }

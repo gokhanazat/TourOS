@@ -54,6 +54,8 @@ data class ExtraService(
 
 data class PassengerInfo(
     val index: Int,
+    var passengerType: String = "ADULT", // "ADULT", "CHILD", "INFANT"
+    var childAge: Int? = null,
     var gender: String = "MALE", // "MALE", "FEMALE"
     var firstName: String = "",
     var lastName: String = "",
@@ -99,20 +101,42 @@ class B2BTourSearchViewModel(
     private val tourRepository: com.mgacreative.touros.domain.repository.TourRepository? = null
 ) : ViewModel() {
 
+    companion object {
+        fun calculateMultiplier(adultsCount: Int, childAgesList: List<Int>): Double {
+            val adultWeight = adultsCount.coerceAtLeast(1) * 1.0
+            val childWeight = childAgesList.sumOf { age ->
+                when {
+                    age <= 2 -> 0.10 // Bebek (%10 vergi/sigorta)
+                    age <= 6 -> 0.50 // Küçük Çocuk (%50)
+                    age <= 12 -> 0.70 // Büyük Çocuk (%70)
+                    else -> 1.00 // 13-17 Genç/Yetişkin (%100)
+                }
+            }
+            // Standart 2 Yetişkin Baz Fiyatı üzerinden oran: (Kişi Başı Baz = basePrice / 2)
+            val totalWeight = adultWeight + childWeight
+            return totalWeight / 2.0
+        }
+
+        fun calculateDynamicPrice(basePrice: Double, adultsCount: Int, childAgesList: List<Int>): Double {
+            return basePrice * calculateMultiplier(adultsCount, childAgesList)
+        }
+    }
+
     private val _uiState = MutableStateFlow<B2BTourSearchUiState>(B2BTourSearchUiState.Loading)
     val uiState: StateFlow<B2BTourSearchUiState> = _uiState.asStateFlow()
     val searchFilterMetadata = MutableStateFlow<SearchFilterMetadataDto?>(null)
 
     // Arama Parametreleri State
-    var departureCity = MutableStateFlow("Moskova")
-    var destinationCountry = MutableStateFlow("Türkiye")
-    var selectedRegion = MutableStateFlow("Antalya")
+    var departureCity = MutableStateFlow("")
+    var destinationCountry = MutableStateFlow("")
+    var selectedRegion = MutableStateFlow("")
     var nights = MutableStateFlow(7)
     var adults = MutableStateFlow(2)
     var childs = MutableStateFlow(0)
-    var selectedStars = MutableStateFlow(setOf(3, 4, 5))
-    var selectedMealTypes = MutableStateFlow(setOf<String>())
-    var selectedRoomTypes = MutableStateFlow(setOf<String>())
+    var childrenAges = MutableStateFlow<List<Int>>(emptyList())
+    var selectedStars = MutableStateFlow(emptySet<Int>())
+    var selectedMealTypes = MutableStateFlow(emptySet<String>())
+    var selectedRoomTypes = MutableStateFlow(emptySet<String>())
     var isInstantConfirmationOnly = MutableStateFlow(false)
     var isPromoOnly = MutableStateFlow(false)
     var searchQuery = MutableStateFlow("")
@@ -625,7 +649,17 @@ data class QuotaCheckResultDto(
                     item.operatorName.lowercase().contains(q)
 
             val matchesStar = stars.isEmpty() || item.hotelCategory == 0 || stars.contains(item.hotelCategory)
-            val matchesMeal = meals.isEmpty() || item.mealType.isBlank() || meals.contains(item.mealType)
+            val matchesMeal = meals.isEmpty() || item.mealType.isBlank() || meals.any { m ->
+                val lower = item.mealType.lowercase()
+                when (m.uppercase()) {
+                    "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
+                    "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
+                    "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный пансион")
+                    "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
+                    "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
+                    else -> lower.contains(m.lowercase())
+                }
+            }
 
             matchesSearch && matchesStar && matchesMeal
         }
@@ -752,60 +786,100 @@ data class QuotaCheckResultDto(
         val paxCount = (adults.value + childs.value).coerceAtLeast(1)
 
         // Dinamik Ekstra Hizmetler (Yolcu Sayısına Bağlı)
+        val infantCount = childrenAges.value.count { it <= 2 }
         extraServices.value = listOf(
             ExtraService("srv-1", "SOGLASIE Medikal Sigorta 50.000 EUR", "INSURANCE", 16.25, isMandatory = true, isSelected = true, paxCount = paxCount),
             ExtraService("srv-2", "Seyahat İptal / Vize İptal Sigortası", "INSURANCE", 25.00, isMandatory = false, isSelected = true, paxCount = paxCount),
             ExtraService("srv-3", "Elite VIP Özel Havalimanı Transferi", "TRANSFER", 0.00, isMandatory = false, isSelected = true, paxCount = paxCount),
-            ExtraService("srv-4", "Bebek Oto Koltuğu Ekstrası", "EXTRA", 15.00, isMandatory = false, isSelected = false, paxCount = 1)
+            ExtraService("srv-4", "Bebek Oto Koltuğu Ekstrası", "EXTRA", 15.00, isMandatory = false, isSelected = (infantCount > 0), paxCount = infantCount.coerceAtLeast(1))
         )
 
-        // Dinamik Boş Yolcu Formu
-        val initialPaxList = (1..paxCount).map { idx ->
-            PassengerInfo(
-                index = idx,
-                gender = if (idx % 2 != 0) "MALE" else "FEMALE",
-                firstName = "",
-                lastName = "",
-                birthDate = "",
-                citizenship = "Türkiye",
-                documentType = "Pasaport",
-                passportSeries = "",
-                passportNumber = "",
-                documentExpiryDate = "",
-                isPayer = (idx == 1),
-                phone = "",
-                email = ""
+        // Dinamik Yolcu Formu (Yetişkinler + Çocuk Yaşları)
+        val paxList = mutableListOf<PassengerInfo>()
+        var idx = 1
+        repeat(adults.value.coerceAtLeast(1)) {
+            paxList.add(
+                PassengerInfo(
+                    index = idx,
+                    passengerType = "ADULT",
+                    gender = if (idx % 2 != 0) "MALE" else "FEMALE",
+                    isPayer = (idx == 1),
+                    citizenship = "Türkiye",
+                    documentType = "Pasaport"
+                )
             )
+            idx++
         }
-        passengers.value = initialPaxList
+        childrenAges.value.forEach { age ->
+            paxList.add(
+                PassengerInfo(
+                    index = idx,
+                    passengerType = if (age <= 2) "INFANT" else "CHILD",
+                    childAge = age,
+                    gender = if (idx % 2 != 0) "MALE" else "FEMALE",
+                    citizenship = "Türkiye",
+                    documentType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport",
+                    isPayer = false
+                )
+            )
+            idx++
+        }
+        passengers.value = paxList
     }
 
     /**
-     * Yolcu Ekleme (Dinamik Form)
+     * Yetişkin Yolcu Ekleme
      */
-    fun addPassenger() {
+    fun addAdultPassenger() {
+        adults.value = adults.value + 1
         val current = passengers.value.toMutableList()
         val nextIdx = current.size + 1
         current.add(
             PassengerInfo(
                 index = nextIdx,
+                passengerType = "ADULT",
+                childAge = null,
                 gender = "MALE",
-                firstName = "",
-                lastName = "",
-                birthDate = "",
                 citizenship = "Türkiye",
                 documentType = "Pasaport",
-                passportSeries = "",
-                passportNumber = "",
-                documentExpiryDate = "",
-                isPayer = (current.isEmpty()),
-                phone = "",
-                email = ""
+                isPayer = false
             )
         )
         passengers.value = current
-
         updateExtraServicesPaxCount(current.size)
+    }
+
+    /**
+     * Çocuk Yolcu Ekleme (Yaş Seçimli)
+     */
+    fun addChildPassenger(age: Int = 5) {
+        val currentAges = childrenAges.value.toMutableList()
+        currentAges.add(age)
+        childrenAges.value = currentAges
+        childs.value = currentAges.size
+
+        val current = passengers.value.toMutableList()
+        val nextIdx = current.size + 1
+        current.add(
+            PassengerInfo(
+                index = nextIdx,
+                passengerType = if (age <= 2) "INFANT" else "CHILD",
+                childAge = age,
+                gender = "MALE",
+                citizenship = "Türkiye",
+                documentType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport",
+                isPayer = false
+            )
+        )
+        passengers.value = current
+        updateExtraServicesPaxCount(current.size)
+    }
+
+    /**
+     * Yolcu Ekleme (Genel)
+     */
+    fun addPassenger() {
+        addAdultPassenger()
     }
 
     /**
@@ -814,12 +888,44 @@ data class QuotaCheckResultDto(
     fun removePassenger(paxIndex: Int) {
         val current = passengers.value.toMutableList()
         if (current.size > 1) {
+            val removed = current.find { it.index == paxIndex }
+            if (removed != null) {
+                if (removed.passengerType == "ADULT") {
+                    adults.value = (adults.value - 1).coerceAtLeast(1)
+                } else {
+                    val currentAges = childrenAges.value.toMutableList()
+                    if (currentAges.isNotEmpty()) {
+                        currentAges.removeAt(currentAges.lastIndex)
+                        childrenAges.value = currentAges
+                        childs.value = currentAges.size
+                    }
+                }
+            }
             current.removeAll { it.index == paxIndex }
             val reindexed = current.mapIndexed { idx, p ->
                 p.copy(index = idx + 1, isPayer = (idx == 0))
             }
             passengers.value = reindexed
             updateExtraServicesPaxCount(reindexed.size)
+        }
+    }
+
+    fun setChildAgeForPassenger(paxIndex: Int, newAge: Int) {
+        val current = passengers.value.toMutableList()
+        val idx = current.indexOfFirst { it.index == paxIndex }
+        if (idx != -1) {
+            val p = current[idx]
+            current[idx] = p.copy(
+                childAge = newAge,
+                passengerType = if (newAge <= 2) "INFANT" else "CHILD",
+                documentType = if (newAge <= 2) "Doğum Belgesi / Pasaport" else "Pasaport"
+            )
+            passengers.value = current
+
+            // childrenAges senkronizasyonu
+            val allChildAges = current.filter { it.passengerType != "ADULT" }.mapNotNull { it.childAge }
+            childrenAges.value = allChildAges
+            childs.value = allChildAges.size
         }
     }
 

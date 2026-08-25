@@ -63,8 +63,10 @@ fun B2BTourSearchDashboardScreen(
     var departureCity by remember { mutableStateOf("") }
     var selectedRegion by remember { mutableStateOf("") }
     var nightsText by remember { mutableStateOf("7 - 10 Gece") }
-    var adults by remember { mutableStateOf(2) }
-    var childs by remember { mutableStateOf(0) }
+    val adults by viewModel.adults.collectAsState()
+    val childs by viewModel.childs.collectAsState()
+    val childrenAges by viewModel.childrenAges.collectAsState()
+    var showTouristDialog by remember { mutableStateOf(false) }
 
     // Ayrıştırılmış ve Pop-up Açılır Takvim Destekli Canlı Dinamik Tarih State'leri
     val todayDateTriple = remember { com.mgacreative.touros.getTodayTriple() }
@@ -83,11 +85,11 @@ fun B2BTourSearchDashboardScreen(
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
 
-    var selectedMealTypes by remember { mutableStateOf(setOf("UAI", "AI", "FB", "HB", "BB")) }
-    var selectedOperators by remember { mutableStateOf(setOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Fun & Sun", "MGA Creative")) }
+    var selectedMealTypes by remember { mutableStateOf(emptySet<String>()) }
+    var selectedOperators by remember { mutableStateOf(emptySet<String>()) }
     var operatorSearchText by remember { mutableStateOf("") }
 
-    var selectedStars by remember { mutableStateOf(setOf(3, 4, 5)) }
+    var selectedStars by remember { mutableStateOf(emptySet<Int>()) }
     var isInstantOnly by remember { mutableStateOf(false) }
     var isPromoOnly by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -118,6 +120,21 @@ fun B2BTourSearchDashboardScreen(
         )
     }
 
+    if (showTouristDialog) {
+        B2BTouristAndChildAgePickerDialog(
+            adults = adults,
+            childrenAges = childrenAges,
+            onAdultsChange = { newAdults ->
+                viewModel.adults.value = newAdults
+            },
+            onChildrenAgesChange = { newAges ->
+                viewModel.childrenAges.value = newAges
+                viewModel.childs.value = newAges.size
+            },
+            onDismiss = { showTouristDialog = false }
+        )
+    }
+
     // Tam Kapsamlı Sıfırlama Fonksiyonu
     fun resetAllFilters() {
         departureCity = ""
@@ -138,8 +155,9 @@ fun B2BTourSearchDashboardScreen(
         isInstantOnly = false
         viewModel.isInstantConfirmationOnly.value = false
         nightsText = "Tüm Geceler (1 - 30)"
-        adults = 2
-        childs = 0
+        viewModel.adults.value = 2
+        viewModel.childs.value = 0
+        viewModel.childrenAges.value = emptyList()
         viewModel.performSearch()
     }
 
@@ -904,40 +922,17 @@ fun B2BTourSearchDashboardScreen(
                                                 }
                                             }
 
-                                            // 6. YOLCU SAYISI DROPDOWN
+                                            // 6. YOLCU SAYISI
+                                            val touristSummaryText = if (childrenAges.isEmpty()) "$adults Yetişkin ▼" else "$adults Yetişkin, ${childrenAges.size} Çoc (${childrenAges.joinToString(",") { "${it}y" }}) ▼"
                                             Box(modifier = Modifier.weight(1.1f)) {
                                                 TourOSTextField(
-                                                    value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                    value = touristSummaryText,
                                                     onValueChange = { },
                                                     readOnly = true,
                                                     label = "Yolcu Sayısı",
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
-                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
-                                                DropdownMenu(
-                                                    expanded = showTouristsDropdown,
-                                                    onDismissRequest = { showTouristsDropdown = false },
-                                                    modifier = Modifier.width(220.dp).background(TourOSColors.Surface)
-                                                ) {
-                                                    listOf(
-                                                        "1 Yetişkin" to (1 to 0),
-                                                        "2 Yetişkin" to (2 to 0),
-                                                        "2 Yetişkin + 1 Çocuk" to (2 to 1),
-                                                        "2 Yetişkin + 2 Çocuk" to (2 to 2),
-                                                        "3 Yetişkin" to (3 to 0),
-                                                        "4 Yetişkin" to (4 to 0)
-                                                    ).forEach { (label, counts) ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
-                                                            onClick = {
-                                                                adults = counts.first
-                                                                childs = counts.second
-                                                                showTouristsDropdown = false
-                                                            },
-                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
+                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristDialog = true })
                                             }
 
                                             // 7. UÇUŞ ARA BUTONU
@@ -1092,39 +1087,16 @@ fun B2BTourSearchDashboardScreen(
                                                     }
                                                 }
 
+                                                val touristSummaryText = if (childrenAges.isEmpty()) "$adults Yetişkin ▼" else "$adults Yetişkin, ${childrenAges.size} Çoc (${childrenAges.joinToString(",") { "${it}y" }}) ▼"
                                                 Box(modifier = Modifier.weight(1f)) {
                                                     TourOSTextField(
-                                                        value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                        value = touristSummaryText,
                                                         onValueChange = { },
                                                         readOnly = true,
                                                         label = "Turist Sayısı",
                                                         modifier = Modifier.fillMaxWidth()
                                                     )
-                                                    Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
-                                                    DropdownMenu(
-                                                        expanded = showTouristsDropdown,
-                                                        onDismissRequest = { showTouristsDropdown = false },
-                                                        modifier = Modifier.width(200.dp).background(TourOSColors.Surface)
-                                                     ) {
-                                                        listOf(
-                                                            "1 Yetişkin" to (1 to 0),
-                                                            "2 Yetişkin" to (2 to 0),
-                                                            "2 Yetişkin + 1 Çocuk" to (2 to 1),
-                                                            "2 Yetişkin + 2 Çocuk" to (2 to 2),
-                                                            "3 Yetişkin" to (3 to 0),
-                                                            "4 Yetişkin" to (4 to 0)
-                                                        ).forEach { (label, counts) ->
-                                                            DropdownMenuItem(
-                                                                text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
-                                                                onClick = {
-                                                                    adults = counts.first
-                                                                    childs = counts.second
-                                                                    showTouristsDropdown = false
-                                                                },
-                                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                                            )
-                                                        }
-                                                    }
+                                                    Box(modifier = Modifier.matchParentSize().clickable { showTouristDialog = true })
                                                 }
                                             }
                                         }
@@ -1320,8 +1292,9 @@ fun B2BTourSearchDashboardScreen(
                                                         DropdownMenuItem(
                                                             text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
                                                             onClick = {
-                                                                adults = counts.first
-                                                                childs = counts.second
+                                                                viewModel.adults.value = counts.first
+                                                                viewModel.childs.value = counts.second
+                                                                viewModel.childrenAges.value = if (counts.second > 0) List(counts.second) { 5 } else emptyList()
                                                                 showTouristsDropdown = false
                                                             },
                                                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
@@ -1475,40 +1448,17 @@ fun B2BTourSearchDashboardScreen(
                                                 }
                                             }
 
-                                            // 6. TURİST SAYISI DROPDOWN
+                                            // 6. TURİST SAYISI (DİNAMİK ÇOCUK YAŞLARI)
+                                            val touristSummaryText = if (childrenAges.isEmpty()) "$adults Yetişkin ▼" else "$adults Yetişkin, ${childrenAges.size} Çoc (${childrenAges.joinToString(",") { "${it}y" }}) ▼"
                                             Box(modifier = Modifier.weight(1.1f)) {
                                                 TourOSTextField(
-                                                    value = ("$adults Yetişkin" + (if (childs > 0) " + $childs Çoc" else "")) + " ▼",
+                                                    value = touristSummaryText,
                                                     onValueChange = { },
                                                     readOnly = true,
                                                     label = "Turist Sayısı",
                                                     modifier = Modifier.fillMaxWidth()
                                                 )
-                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristsDropdown = !showTouristsDropdown })
-                                                DropdownMenu(
-                                                    expanded = showTouristsDropdown,
-                                                    onDismissRequest = { showTouristsDropdown = false },
-                                                    modifier = Modifier.width(220.dp).background(TourOSColors.Surface)
-                                                ) {
-                                                    listOf(
-                                                        "1 Yetişkin" to (1 to 0),
-                                                        "2 Yetişkin" to (2 to 0),
-                                                        "2 Yetişkin + 1 Çocuk" to (2 to 1),
-                                                        "2 Yetişkin + 2 Çocuk" to (2 to 2),
-                                                        "3 Yetişkin" to (3 to 0),
-                                                        "4 Yetişkin" to (4 to 0)
-                                                    ).forEach { (label, counts) ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(label, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
-                                                            onClick = {
-                                                                adults = counts.first
-                                                                childs = counts.second
-                                                                showTouristsDropdown = false
-                                                            },
-                                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
+                                                Box(modifier = Modifier.matchParentSize().clickable { showTouristDialog = true })
                                             }
 
                                             // 7. TURLARI BUL & SIFIRLA BUTONLARI (ÜST SATIRDA)
@@ -1677,94 +1627,191 @@ fun B2BTourSearchDashboardScreen(
                                     if (isDetailFilterExpanded) {
                                         HorizontalDivider(color = TourOSColors.Border)
 
-                                        // SATIR 1: 4 SÜTUN YAN YANA (SAHİL ŞERİDİ, BESLENME, OTEL KATEGORİSİ, OTEL PUANI)
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
-                                            verticalAlignment = Alignment.Top
-                                        ) {
-                                            // 1. Sahil Şeridi (Denize Mesafe)
-                                            Column(modifier = Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                Text("🏖️ Sahil Şeridi (Denize Mesafe):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
-                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    listOf(0 to "Hepsi", 1 to "1. Hat (<100m)", 2 to "2. Hat (<500m)", 3 to "3. Hat (<2km)").forEach { (code, label) ->
-                                                        val isSelected = (selectedBeachLine == code)
-                                                        FilterChip(
-                                                            selected = isSelected,
-                                                            onClick = { selectedBeachLine = code },
-                                                            label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                                            colors = FilterChipDefaults.filterChipColors(
-                                                                selectedContainerColor = TourOSColors.PrimaryContainer,
-                                                                selectedLabelColor = TourOSColors.Primary
-                                                            )
-                                                        )
-                                                    }
-                                                }
-                                            }
+                                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                            val isFilterNarrow = maxWidth < 1120.dp
 
-                                            // 2. Beslenme / Konsept (Çoklu Seçim)
-                                            Column(
-                                                modifier = Modifier.weight(1.1f),
-                                                horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                                            ) {
-                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    Text("🍴 Beslenme / Konsept:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
-                                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                        dbMealTypes.forEach { meal ->
-                                                            val isSelected = selectedMealTypes.contains(meal)
-                                                            FilterChip(
-                                                                selected = isSelected,
-                                                                onClick = {
-                                                                    selectedMealTypes = if (isSelected) selectedMealTypes - meal else selectedMealTypes + meal
-                                                                },
-                                                                label = { Text(meal, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                                                colors = FilterChipDefaults.filterChipColors(
-                                                                    selectedContainerColor = TourOSColors.PrimaryContainer,
-                                                                    selectedLabelColor = TourOSColors.Primary
-                                                                )
-                                                            )
+                                            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                                                if (isFilterNarrow) {
+                                                    // ── DAR EKRAN / TABLET / MOBİL (2'Lİ SATIRLAR) ──
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                                    ) {
+                                                        // 1. Sahil Şeridi (Denize Mesafe)
+                                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("🏖️ Sahil Şeridi (Denize Mesafe):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                listOf(0 to "Hepsi", 1 to "< 100m", 2 to "< 500m", 3 to "< 2km").forEach { (code, label) ->
+                                                                    val isSelected = (selectedBeachLine == code)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = { selectedBeachLine = code },
+                                                                        label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 2. Beslenme / Konsept
+                                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("🍴 Beslenme / Konsept:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                dbMealTypes.forEach { meal ->
+                                                                    val isSelected = selectedMealTypes.contains(meal)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = {
+                                                                            selectedMealTypes = if (isSelected) selectedMealTypes - meal else selectedMealTypes + meal
+                                                                        },
+                                                                        label = { Text(meal, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
                                                         }
                                                     }
-                                                }
-                                            }
 
-                                            // 3. Otel Kategorisi (Yıldız)
-                                            Column(modifier = Modifier.weight(0.9f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                Text("⭐ Otel Kategorisi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
-                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    listOf(5, 4, 3, 2).forEach { star ->
-                                                        val isSelected = selectedStars.contains(star)
-                                                        FilterChip(
-                                                            selected = isSelected,
-                                                            onClick = {
-                                                                selectedStars = if (isSelected) selectedStars - star else selectedStars + star
-                                                            },
-                                                            label = { Text("$star★", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                                            colors = FilterChipDefaults.filterChipColors(
-                                                                selectedContainerColor = TourOSColors.PrimaryContainer,
-                                                                selectedLabelColor = TourOSColors.Primary
-                                                            )
-                                                        )
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                                    ) {
+                                                        // 3. Otel Kategorisi (Yıldız)
+                                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("⭐ Otel Kategorisi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                listOf(5, 4, 3, 2).forEach { star ->
+                                                                    val isSelected = selectedStars.contains(star)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = {
+                                                                            selectedStars = if (isSelected) selectedStars - star else selectedStars + star
+                                                                        },
+                                                                        label = { Text("$star★", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 4. Otel Puanı (Misafir Değerlendirmesi)
+                                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("🏆 Otel Puanı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                listOf(0.0 to "Hepsi", 7.0 to "7.0+", 8.0 to "8.0+", 9.0 to "9.0+").forEach { (rVal, label) ->
+                                                                    val isSelected = (minRating == rVal)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = { minRating = rVal },
+                                                                        label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
                                                     }
-                                                }
-                                            }
+                                                } else {
+                                                    // ── GENİŞ EKRAN (4 SÜTUN YAN YANA) ──
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                                                        verticalAlignment = Alignment.Top
+                                                    ) {
+                                                        // 1. Sahil Şeridi (Denize Mesafe)
+                                                        Column(modifier = Modifier.weight(1.1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("🏖️ Sahil Şeridi (Denize Mesafe):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                listOf(0 to "Hepsi", 1 to "< 100m", 2 to "< 500m", 3 to "< 2km").forEach { (code, label) ->
+                                                                    val isSelected = (selectedBeachLine == code)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = { selectedBeachLine = code },
+                                                                        label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
 
-                                            // 4. Otel Puanı (Misafir Değerlendirmesi)
-                                            Column(modifier = Modifier.weight(0.9f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                Text("🏆 Otel Puanı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
-                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    listOf(0.0 to "Hepsi", 7.0 to "7.0+", 8.0 to "8.0+", 9.0 to "9.0+").forEach { (rVal, label) ->
-                                                        val isSelected = (minRating == rVal)
-                                                        FilterChip(
-                                                            selected = isSelected,
-                                                            onClick = { minRating = rVal },
-                                                            label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                                            colors = FilterChipDefaults.filterChipColors(
-                                                                selectedContainerColor = TourOSColors.PrimaryContainer,
-                                                                selectedLabelColor = TourOSColors.Primary
-                                                            )
-                                                        )
+                                                        // 2. Beslenme / Konsept (Çoklu Seçim)
+                                                        Column(
+                                                            modifier = Modifier.weight(1.1f),
+                                                            horizontalAlignment = Alignment.Start,
+                                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Text("🍴 Beslenme / Konsept:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                dbMealTypes.forEach { meal ->
+                                                                    val isSelected = selectedMealTypes.contains(meal)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = {
+                                                                            selectedMealTypes = if (isSelected) selectedMealTypes - meal else selectedMealTypes + meal
+                                                                        },
+                                                                        label = { Text(meal, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 3. Otel Kategorisi (Yıldız)
+                                                        Column(modifier = Modifier.weight(0.9f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("⭐ Otel Kategorisi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                listOf(5, 4, 3, 2).forEach { star ->
+                                                                    val isSelected = selectedStars.contains(star)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = {
+                                                                            selectedStars = if (isSelected) selectedStars - star else selectedStars + star
+                                                                        },
+                                                                        label = { Text("$star★", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 4. Otel Puanı (Misafir Değerlendirmesi)
+                                                        Column(modifier = Modifier.weight(0.9f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                            Text("🏆 Otel Puanı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+                                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                                listOf(0.0 to "Hepsi", 7.0 to "7.0+", 8.0 to "8.0+", 9.0 to "9.0+").forEach { (rVal, label) ->
+                                                                    val isSelected = (minRating == rVal)
+                                                                    FilterChip(
+                                                                        selected = isSelected,
+                                                                        onClick = { minRating = rVal },
+                                                                        label = { Text(label, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                                                                        colors = FilterChipDefaults.filterChipColors(
+                                                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                                                            selectedLabelColor = TourOSColors.Primary
+                                                                        )
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1940,8 +1987,6 @@ fun B2BTourSearchDashboardScreen(
                     }
 
                     // KOTA ENGELLEME VE BİLGİLENDİRME UYARISI
-                    val isQuotaExceeded by viewModel.isQuotaExceeded.collectAsState()
-                    val quotaErrorMessage by viewModel.quotaErrorMessage.collectAsState()
 
                     if (isQuotaExceeded) {
                         Surface(
@@ -1989,7 +2034,7 @@ fun B2BTourSearchDashboardScreen(
                                 val isLocalTour = item.id.startsWith("local-tour-") || pType == "LOCAL_TOUR" || opName == "YEREL TURLAR"
 
                                 val tabMatch = when (activeSearchTab) {
-                                    "TOURS" -> !isLocalHotel && !isLocalTour && (pType.contains("TOUR") || pType.contains("PACKAGE") || (pType.isBlank() && !pType.contains("FLIGHT")))
+                                    "TOURS" -> !isLocalHotel && !isLocalTour && !pType.contains("FLIGHT")
                                     "HOTELS" -> !isLocalHotel && !isLocalTour && (pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank()))
                                     "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank() || item.tourName.contains("Uçuş", ignoreCase = true)
                                     "LOCAL_TOURS" -> isLocalTour
@@ -1999,12 +2044,29 @@ fun B2BTourSearchDashboardScreen(
 
                                 val isFlightTab = (activeSearchTab == "FLIGHTS")
                                 val operatorMatch = isFlightTab || selectedOperators.isEmpty() || selectedOperators.any { op -> item.safeOperatorName.contains(op, ignoreCase = true) }
-                                val mealMatch = isFlightTab || selectedMealTypes.isEmpty() || selectedMealTypes.any { m -> item.safeMealType.contains(m, ignoreCase = true) }
+                                
+                                val mealMatch = isFlightTab || selectedMealTypes.isEmpty() || selectedMealTypes.any { m ->
+                                    val lower = item.safeMealType.lowercase()
+                                    when (m.uppercase()) {
+                                        "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
+                                        "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
+                                        "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный пансион")
+                                        "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
+                                        "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
+                                        "RO" -> lower.contains("ro") || lower.contains("room only") || lower.contains("sadece oda") || lower.contains("bez pitaniya") || lower.contains("без питания")
+                                        else -> lower.contains(m.lowercase())
+                                    }
+                                }
+
                                 val starMatch = isFlightTab || selectedStars.isEmpty() || selectedStars.contains(item.hotelCategory)
                                 val hotelMatch = isFlightTab || selectedHotels.isEmpty() || selectedHotels.any { hName -> item.safeHotelName.contains(hName, ignoreCase = true) }
                                 val queryMatch = searchQuery.isBlank() || item.safeHotelName.contains(searchQuery, ignoreCase = true) || item.tourName.contains(searchQuery, ignoreCase = true) || item.region.contains(searchQuery, ignoreCase = true)
 
                                 val flightDepMatch = departureCity.isBlank() ||
+                                    departureCity.equals("Tüm Kalkış Şehirleri", ignoreCase = true) ||
+                                    departureCity.contains("Tüm", ignoreCase = true) ||
+                                    departureCity.contains("Hepsi", ignoreCase = true) ||
+                                    item.departureCity.isBlank() ||
                                     item.departureCity.contains(departureCity, ignoreCase = true) ||
                                     (departureCity.contains("Moskova", ignoreCase = true) && (item.departureCity.contains("Moskova", ignoreCase = true) || item.departureCity.contains("Москва", ignoreCase = true) || item.departureCity.contains("SVO", ignoreCase = true) || item.departureCity.contains("VKO", ignoreCase = true) || item.departureCity.contains("DME", ignoreCase = true))) ||
                                     (departureCity.contains("İstanbul", ignoreCase = true) && (item.departureCity.contains("İstanbul", ignoreCase = true) || item.departureCity.contains("Istanbul", ignoreCase = true) || item.departureCity.contains("IST", ignoreCase = true) || item.departureCity.contains("SAW", ignoreCase = true)))
@@ -2023,7 +2085,7 @@ fun B2BTourSearchDashboardScreen(
                                         num to num
                                     }
                                 }
-                                val nightsMatch = isFlightTab || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
+                                val nightsMatch = isFlightTab || nightsText.contains("Tüm") || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
 
                                 val isTourOrHotel = (activeSearchTab == "TOURS" || activeSearchTab == "HOTELS")
                                 val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == 0 || item.beachLine == selectedBeachLine
@@ -2031,8 +2093,9 @@ fun B2BTourSearchDashboardScreen(
                                 val amenityMatch = !isTourOrHotel || selectedAmenities.isEmpty() || selectedAmenities.all { am -> item.amenities.any { a -> a.contains(am, ignoreCase = true) } }
                                 val directFlightMatch = (activeSearchTab != "TOURS") || !isDirectFlightOnly || item.isDirectFlight
                                 val transferMatch = !isTourOrHotel || !isTransferIncludedOnly || item.hasTransfer
+                                val instantMatch = !isInstantOnly || item.isInstantConfirmation
 
-                                tabMatch && operatorMatch && mealMatch && starMatch && hotelMatch && queryMatch && flightDepMatch && flightDestMatch && nightsMatch && beachMatch && ratingMatch && amenityMatch && directFlightMatch && transferMatch
+                                tabMatch && operatorMatch && mealMatch && starMatch && hotelMatch && queryMatch && flightDepMatch && flightDestMatch && nightsMatch && beachMatch && ratingMatch && amenityMatch && directFlightMatch && transferMatch && instantMatch
                             }
 
                             // Ülke ve Alt Bölgeye Göre Kesin Filtrelenmiş Sonuçlar
@@ -2111,6 +2174,8 @@ fun B2BTourSearchDashboardScreen(
                                             TourResultMatrixCard(
                                                 product = item,
                                                 isSelected = isSelected,
+                                                adults = adults,
+                                                childrenAges = childrenAges,
                                                 isFlightTab = (activeSearchTab == "FLIGHTS"),
                                                 onSelectForBooking = {
                                                     selectedProductForOperatorModal = item
@@ -2150,7 +2215,8 @@ fun B2BTourSearchDashboardScreen(
                             }
                         }
                     } else {
-                        val basePrice = curProduct.price
+                        val dynamicMultiplier = B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges)
+                        val basePrice = curProduct.price * dynamicMultiplier
 
                         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                             Row(
@@ -2192,8 +2258,9 @@ fun B2BTourSearchDashboardScreen(
                                             text = "🏢 ${AppLanguageManager.translate("Operatör")}: ${curProduct.safeOperatorName}  ·  ${curProduct.roomType.ifBlank { "FAMILY ROOM" }}  ·  ${curProduct.mealType.ifBlank { "Ultra All Inclusive" }}",
                                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.SemiBold)
                                         )
+                                        val paxDesc = "$adults ADL" + (if (childrenAges.isNotEmpty()) " + ${childrenAges.size} CHD (${childrenAges.joinToString(",") { "${it}y" }})" else "")
                                         Text(
-                                            text = "${curProduct.departureDate ?: "21.08.2026"} (7 ${AppLanguageManager.translate("Gece")})  ·  2 ADL + 2 CHD  ·  ${curProduct.region}",
+                                            text = "${curProduct.departureDate ?: startDateText} (${curProduct.nights} ${AppLanguageManager.translate("Gece")})  ·  $paxDesc  ·  ${curProduct.region}",
                                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                                             fontWeight = FontWeight.SemiBold
                                         )
@@ -2283,7 +2350,8 @@ fun B2BTourSearchDashboardScreen(
                             }
                         }
                     } else {
-                        val basePrice = curProduct.price
+                        val dynamicMultiplier = B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges)
+                        val basePrice = curProduct.price * dynamicMultiplier
                         val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
                         val extrasTotalEur = extraServices.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
                         val extrasTotalRub = extrasTotalEur * 100.0
@@ -2308,10 +2376,16 @@ fun B2BTourSearchDashboardScreen(
                                         variant = TourOSButtonVariant.SECONDARY
                                     )
                                     OutlinedButton(
-                                        onClick = { viewModel.addPassenger() },
+                                        onClick = { viewModel.addAdultPassenger() },
                                         colors = ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f))
                                     ) {
-                                        Text("+ ${AppLanguageManager.translate("Yolcu Ekle")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+                                        Text("+ 👤 ${AppLanguageManager.translate("Yetişkin")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+                                    }
+                                    OutlinedButton(
+                                        onClick = { viewModel.addChildPassenger(5) },
+                                        colors = ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f))
+                                    ) {
+                                        Text("+ 👶 ${AppLanguageManager.translate("Çocuk")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -2323,9 +2397,14 @@ fun B2BTourSearchDashboardScreen(
                                     canRemove = passengers.size > 1,
                                     onRemove = { viewModel.removePassenger(pax.index) },
                                     onUpdatePassenger = { updated ->
-                                        viewModel.passengers.value = viewModel.passengers.value.mapIndexed { i, old ->
+                                        val current = viewModel.passengers.value.mapIndexed { i, old ->
                                             if (i == idx) updated else old
                                         }
+                                        viewModel.passengers.value = current
+                                        val childAges = current.filter { it.passengerType != "ADULT" }.mapNotNull { it.childAge }
+                                        viewModel.childrenAges.value = childAges
+                                        viewModel.childs.value = childAges.size
+                                        viewModel.adults.value = current.count { it.passengerType == "ADULT" }.coerceAtLeast(1)
                                     }
                                 )
                             }
@@ -2459,10 +2538,15 @@ fun B2BTourSearchDashboardScreen(
 private fun TourResultMatrixCard(
     product: UnifiedProductEntity,
     isSelected: Boolean,
+    adults: Int = 2,
+    childrenAges: List<Int> = emptyList(),
     isFlightTab: Boolean = false,
     onSelectForBooking: () -> Unit
 ) {
-    val marginCalculatedPrice = remember(product.price) { product.price }
+    val dynamicMultiplier = remember(adults, childrenAges) {
+        B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges)
+    }
+    val marginCalculatedPrice = remember(product.price, dynamicMultiplier) { product.price * dynamicMultiplier }
     val isFlightCard = isFlightTab || product.safeProductType.uppercase().contains("FLIGHT") || product.flightNumber.isNotBlank() || product.tourName.contains("Uçuş", ignoreCase = true)
 
     val effectiveImage = remember(product) {
@@ -2608,6 +2692,27 @@ private fun TourResultMatrixCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    // 1. Acenta / Tur Operatörü Rozeti
+                    val opName = product.safeOperatorName.ifBlank { product.operatorName.ifBlank { "Coral Travel" } }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(TourOSColors.Primary.copy(alpha = 0.12f))
+                            .border(1.dp, TourOSColors.Primary.copy(alpha = 0.35f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "🏢 $opName",
+                            style = TourOSTypography.Caption.copy(
+                                color = TourOSColors.Primary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            maxLines = 1
+                        )
+                    }
+
+                    // 2. Ülke & Bölge Hiyerarşi Rozeti (🇹🇷 Türkiye · Antalya · Kemer)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
@@ -2692,7 +2797,7 @@ private fun TourResultMatrixCard(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = "🏖️ ${product.beachLine}. Hat",
+                                text = "🏖️ " + (if (product.beachLine == 1) "< 100m" else if (product.beachLine == 2) "< 500m" else "< 2km"),
                                 style = TourOSTypography.Caption.copy(color = Color(0xFF2563EB), fontWeight = FontWeight.SemiBold, fontSize = 10.sp)
                             )
                         }
@@ -2984,6 +3089,59 @@ private fun ExtraServiceCardItem(
 // ─── GÖRSEL 5 & 6 ESİNTİLİ YOLCU FORM KART BİLEŞENİ ───────────────────────────
 
 @Composable
+private fun B2BCompactField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String = "",
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label,
+            style = TourOSTypography.Caption.copy(
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TourOSColors.TextSecondary
+            ),
+            maxLines = 1
+        )
+        androidx.compose.foundation.text.BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = TourOSTypography.BodyMedium.copy(
+                fontSize = 13.sp,
+                color = TourOSColors.TextPrimary,
+                fontWeight = FontWeight.Medium
+            ),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(TourOSColors.Background)
+                        .border(1.dp, TourOSColors.Border, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (value.isEmpty() && placeholder.isNotEmpty()) {
+                        Text(
+                            text = placeholder,
+                            style = TourOSTypography.Caption.copy(fontSize = 12.sp, color = TourOSColors.TextDisabled)
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+
+// ─── GÖRSEL 5 & 6 ESİNTİLİ ULTRA-KOMPAKT B2B YOLCU FORM KART BİLEŞENİ ─────────
+
+@Composable
 private fun PassengerFormCardItem(
     passenger: PassengerInfo,
     paxIndex: Int,
@@ -2994,165 +3152,366 @@ private fun PassengerFormCardItem(
     TourOSCard(
         modifier = Modifier.fillMaxWidth(),
         backgroundColor = TourOSColors.Surface,
-        contentPadding = TourOSSpacing.medium
+        contentPadding = 8.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-            // BAŞLIK VE CİNSİYET SEÇİMİ (GÖRSEL 5)
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            var showTypeAgeMenu by remember { mutableStateOf(false) }
+
+            // 1. ÜST BAŞLIK: TİP / YAŞ SEÇİCİ, TURİST ADI VE CİNSİYET (KOMPAKT)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val typeBadgeText = when (passenger.passengerType) {
+                        "INFANT" -> "🍼 Bebek (${passenger.childAge ?: 1} Yaş)"
+                        "CHILD" -> "👶 Çocuk (${passenger.childAge ?: 5} Yaş)"
+                        else -> "👤 Yetişkin"
+                    }
+                    val badgeColor = when (passenger.passengerType) {
+                        "INFANT" -> Color(0xFFEA580C)
+                        "CHILD" -> Color(0xFF0284C7)
+                        else -> TourOSColors.Primary
+                    }
+
+                    // Tıklanabilir Yaş & Tip Açılır Menüsü
+                    Box {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = badgeColor.copy(alpha = 0.12f),
+                            border = BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f)),
+                            modifier = Modifier.clickable { showTypeAgeMenu = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "$typeBadgeText ▼",
+                                    style = TourOSTypography.Caption.copy(color = badgeColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = showTypeAgeMenu,
+                            onDismissRequest = { showTypeAgeMenu = false },
+                            modifier = Modifier.width(260.dp).background(TourOSColors.Surface)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("👤 Yetişkin (18+ Yaş)", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)) },
+                                onClick = {
+                                    onUpdatePassenger(passenger.copy(passengerType = "ADULT", childAge = null, documentType = "Pasaport"))
+                                    showTypeAgeMenu = false
+                                }
+                            )
+                            HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
+                            (0..17).forEach { age ->
+                                val label = when {
+                                    age == 0 -> "🍼 0 Yaş (Bebek < 1 yaş - %90 İndirim)"
+                                    age <= 2 -> "🍼 $age Yaş (Bebek - %90 İndirim)"
+                                    age <= 6 -> "👶 $age Yaş (Küçük Çocuk - %50 İndirim)"
+                                    age <= 12 -> "🧒 $age Yaş (Büyük Çocuk - %30 İndirim)"
+                                    else -> "🧑 $age Yaş (Genç - Standart)"
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp)) },
+                                    onClick = {
+                                        val pType = if (age <= 2) "INFANT" else "CHILD"
+                                        val docType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport"
+                                        onUpdatePassenger(passenger.copy(passengerType = pType, childAge = age, documentType = docType))
+                                        showTypeAgeMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
                     Text(
-                        text = "👤 ${AppLanguageManager.translate("Turist")} $paxIndex ${if (passenger.isPayer) "(${AppLanguageManager.translate("Sipariş Veren Müşteri")})" else ""}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.Bold
+                        text = "${AppLanguageManager.translate("Turist")} $paxIndex ${if (passenger.isPayer) "(${AppLanguageManager.translate("Sipariş Veren Lead")})" else ""}",
+                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     )
                     if (canRemove) {
-                        Spacer(modifier = Modifier.width(TourOSSpacing.small))
-                        IconButton(onClick = onRemove, modifier = Modifier.size(24.dp)) {
-                            Text("🗑️", fontSize = 12.sp)
+                        IconButton(onClick = onRemove, modifier = Modifier.size(20.dp)) {
+                            Text("🗑️", fontSize = 11.sp)
                         }
                     }
                 }
 
-                // CİNSİYET TOGGLE BUTONLARI (GÖRSEL 5 & 6)
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                    FilterChip(
-                        selected = passenger.gender == "MALE",
-                        onClick = { onUpdatePassenger(passenger.copy(gender = "MALE")) },
-                        label = { Text(AppLanguageManager.translate("Bay (Мужской)"), style = TourOSTypography.Caption) }
-                    )
-                    FilterChip(
-                        selected = passenger.gender == "FEMALE",
-                        onClick = { onUpdatePassenger(passenger.copy(gender = "FEMALE")) },
-                        label = { Text(AppLanguageManager.translate("Bayan (Женский)"), style = TourOSTypography.Caption) }
-                    )
+                // Cinsiyet Seçimi (Kompakt Butonlar)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    val isMale = passenger.gender == "MALE"
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (isMale) TourOSColors.Primary else TourOSColors.Background,
+                        border = BorderStroke(1.dp, if (isMale) TourOSColors.Primary else TourOSColors.Border),
+                        modifier = Modifier.clickable { onUpdatePassenger(passenger.copy(gender = "MALE")) }
+                    ) {
+                        Text(
+                            text = AppLanguageManager.translate("Bay (Муж)"),
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isMale) Color.White else TourOSColors.TextPrimary,
+                                fontWeight = if (isMale) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 11.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    val isFemale = passenger.gender == "FEMALE"
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (isFemale) TourOSColors.Primary else TourOSColors.Background,
+                        border = BorderStroke(1.dp, if (isFemale) TourOSColors.Primary else TourOSColors.Border),
+                        modifier = Modifier.clickable { onUpdatePassenger(passenger.copy(gender = "FEMALE")) }
+                    ) {
+                        Text(
+                            text = AppLanguageManager.translate("Bayan (Жен)"),
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isFemale) Color.White else TourOSColors.TextPrimary,
+                                fontWeight = if (isFemale) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 11.sp
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
-
-            // FORM SATIRI 1: AD, SOYAD, DOĞUM TARİHİ
+            // 2. ANA FORM: TEK SATIRDA 6 SÜTUN GRID
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    TourOSTextField(
-                        value = passenger.firstName,
-                        onValueChange = { onUpdatePassenger(passenger.copy(firstName = it)) },
-                        label = AppLanguageManager.translate("Adı (Имя)"),
-                        placeholder = "AHMET",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    TourOSTextField(
-                        value = passenger.lastName,
-                        onValueChange = { onUpdatePassenger(passenger.copy(lastName = it)) },
-                        label = AppLanguageManager.translate("Soyadı (Фамилия)"),
-                        placeholder = "YILMAZ",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    TourOSTextField(
-                        value = passenger.birthDate,
-                        onValueChange = { onUpdatePassenger(passenger.copy(birthDate = it)) },
-                        label = AppLanguageManager.translate("Doğum Tarihi (GG.AA.YYYY)"),
-                        placeholder = "12.05.1985",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
+                B2BCompactField(
+                    value = passenger.firstName,
+                    onValueChange = { onUpdatePassenger(passenger.copy(firstName = it)) },
+                    label = AppLanguageManager.translate("Adı (Имя)"),
+                    placeholder = "AHMET",
+                    modifier = Modifier.weight(1.1f)
+                )
+                B2BCompactField(
+                    value = passenger.lastName,
+                    onValueChange = { onUpdatePassenger(passenger.copy(lastName = it)) },
+                    label = AppLanguageManager.translate("Soyadı (Фамилия)"),
+                    placeholder = "YILMAZ",
+                    modifier = Modifier.weight(1.1f)
+                )
 
-            // FORM SATIRI 2: UYRUK, PASAPORT NO, GEÇERLİLİK
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    TourOSTextField(
-                        value = passenger.citizenship,
-                        onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it)) },
-                        label = AppLanguageManager.translate("Uyruk (Гражданство)"),
-                        placeholder = "Türkiye",
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                // EĞER ÇOCUK/BEBEK İSE SÜTUN İÇİNDE DİREKT YAŞ SEÇİM KUTUSU
+                if (passenger.passengerType != "ADULT") {
+                    var showGridAgeMenu by remember { mutableStateOf(false) }
+                    val currentAge = passenger.childAge ?: 5
+                    Column(modifier = Modifier.weight(1.0f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = AppLanguageManager.translate("👶 Çocuk Yaşı"),
+                            style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7)),
+                            maxLines = 1
+                        )
+                        Box {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF0284C7).copy(alpha = 0.1f),
+                                border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth().height(34.dp).clickable { showGridAgeMenu = true }
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "$currentAge Yaş",
+                                        style = TourOSTypography.BodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
+                                    )
+                                    Text("▼", fontSize = 10.sp, color = Color(0xFF0284C7))
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = showGridAgeMenu,
+                                onDismissRequest = { showGridAgeMenu = false },
+                                modifier = Modifier.width(260.dp).background(TourOSColors.Surface)
+                            ) {
+                                (0..17).forEach { age ->
+                                    val label = when {
+                                        age == 0 -> "🍼 0 Yaş (Bebek < 1 yaş - %90 İndirim)"
+                                        age <= 2 -> "🍼 $age Yaş (Bebek - %90 İndirim)"
+                                        age <= 6 -> "👶 $age Yaş (Küçük Çocuk - %50 İndirim)"
+                                        age <= 12 -> "🧒 $age Yaş (Büyük Çocuk - %30 İndirim)"
+                                        else -> "🧑 $age Yaş (Genç - Standart)"
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp, fontWeight = if (age == currentAge) FontWeight.Bold else FontWeight.Normal)) },
+                                        onClick = {
+                                            val pType = if (age <= 2) "INFANT" else "CHILD"
+                                            val docType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport"
+                                            onUpdatePassenger(passenger.copy(passengerType = pType, childAge = age, documentType = docType))
+                                            showGridAgeMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
-                Box(modifier = Modifier.weight(1f)) {
-                    TourOSTextField(
-                        value = passenger.passportNumber,
-                        onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it)) },
-                        label = AppLanguageManager.translate("Pasaport No (Номер)"),
-                        placeholder = "84920492",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    TourOSTextField(
+
+                B2BCompactField(
+                    value = passenger.birthDate,
+                    onValueChange = { onUpdatePassenger(passenger.copy(birthDate = it)) },
+                    label = AppLanguageManager.translate("Doğum Tarihi"),
+                    placeholder = "12.05.1985",
+                    modifier = Modifier.weight(1.0f)
+                )
+                B2BCompactField(
+                    value = passenger.citizenship,
+                    onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it)) },
+                    label = AppLanguageManager.translate("Uyruk"),
+                    placeholder = "Türkiye",
+                    modifier = Modifier.weight(0.9f)
+                )
+                B2BCompactField(
+                    value = passenger.passportNumber,
+                    onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it)) },
+                    label = AppLanguageManager.translate("Pasaport No"),
+                    placeholder = "84920492",
+                    modifier = Modifier.weight(1.0f)
+                )
+                if (passenger.passengerType == "ADULT") {
+                    B2BCompactField(
                         value = passenger.documentExpiryDate,
                         onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = it)) },
-                        label = AppLanguageManager.translate("Son Geçerlilik (Срок действия)"),
+                        label = AppLanguageManager.translate("Son Geçerlilik"),
                         placeholder = "12.05.2030",
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.weight(1.0f)
                     )
                 }
             }
 
-            // FORM SATIRI 3: İLETİŞİM BİLGİLERİ (Sadece 1. Turist için)
+            // 3. ALT ŞERİT (Turist 1 için İletişim, Çocuk için Sorumlu Yetişkin)
             if (passenger.isPayer) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        TourOSTextField(
-                            value = passenger.phone,
-                            onValueChange = { onUpdatePassenger(passenger.copy(phone = it)) },
-                            label = AppLanguageManager.translate("Telefon No"),
-                            placeholder = "+90 532 100 2030",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1.5f)) {
-                        TourOSTextField(
-                            value = passenger.email,
-                            onValueChange = { onUpdatePassenger(passenger.copy(email = it)) },
-                            label = AppLanguageManager.translate("E-posta Adresi"),
-                            placeholder = "ahmet@gmail.com",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            } else {
-                // ── GÖRSEL 6: ÇOCUK/BEBEK YOLCU ÖZEL ALANLARI ("Ответственный за ребенка") ──
-                Spacer(modifier = Modifier.height(4.dp))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
-                        .padding(TourOSSpacing.small),
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.25f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("📞", fontSize = 12.sp)
+                        Text(
+                            text = AppLanguageManager.translate("Telefon:"),
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary, fontSize = 11.sp)
+                        )
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = passenger.phone,
+                            onValueChange = { onUpdatePassenger(passenger.copy(phone = it)) },
+                            singleLine = true,
+                            textStyle = TourOSTypography.Caption.copy(fontSize = 12.sp, color = TourOSColors.Primary, fontWeight = FontWeight.SemiBold),
+                            decorationBox = { inner ->
+                                Box(modifier = Modifier.width(130.dp).background(TourOSColors.Surface, RoundedCornerShape(4.dp)).border(1.dp, TourOSColors.Border, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                    if (passenger.phone.isEmpty()) Text("+90 532...", style = TourOSTypography.Caption.copy(color = TourOSColors.TextDisabled, fontSize = 11.sp))
+                                    inner()
+                                }
+                            }
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("✉️", fontSize = 12.sp)
+                        Text(
+                            text = AppLanguageManager.translate("E-posta:"),
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary, fontSize = 11.sp)
+                        )
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = passenger.email,
+                            onValueChange = { onUpdatePassenger(passenger.copy(email = it)) },
+                            singleLine = true,
+                            textStyle = TourOSTypography.Caption.copy(fontSize = 12.sp, color = TourOSColors.Primary, fontWeight = FontWeight.SemiBold),
+                            decorationBox = { inner ->
+                                Box(modifier = Modifier.width(180.dp).background(TourOSColors.Surface, RoundedCornerShape(4.dp)).border(1.dp, TourOSColors.Border, RoundedCornerShape(4.dp)).padding(horizontal = 6.dp, vertical = 2.dp)) {
+                                    if (passenger.email.isEmpty()) Text("ornek@mail.com", style = TourOSTypography.Caption.copy(color = TourOSColors.TextDisabled, fontSize = 11.sp))
+                                    inner()
+                                }
+                            }
+                        )
+                    }
+                }
+            } else if (passenger.passengerType != "ADULT") {
+                var showSubAgeMenu by remember { mutableStateOf(false) }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.35f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val cAge = passenger.childAge ?: 5
+                    val discountLabel = when {
+                        cAge <= 2 -> "%90 İndirim (Bebek)"
+                        cAge <= 6 -> "%50 İndirim"
+                        cAge <= 12 -> "%30 İndirim"
+                        else -> "Standart"
+                    }
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "👨‍👦 ${AppLanguageManager.translate("Çocuktan Sorumlu Yetişkin (Ответственный за ребенка)")}:",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                            fontWeight = FontWeight.Bold
+                            text = "👨‍👦 ${AppLanguageManager.translate("Sorumlu Yetişkin:")} Turist 1 (Lead)",
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                         )
-                        Text(
-                            text = "Turist 1 (Yetişkin / Lead)",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
-                            fontWeight = FontWeight.Bold
-                        )
+
+                        Box {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF0284C7).copy(alpha = 0.15f),
+                                border = BorderStroke(1.dp, Color(0xFF0284C7).copy(alpha = 0.4f)),
+                                modifier = Modifier.clickable { showSubAgeMenu = true }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "👶 Yaş: $cAge ($discountLabel) ▼",
+                                        style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = showSubAgeMenu,
+                                onDismissRequest = { showSubAgeMenu = false },
+                                modifier = Modifier.width(260.dp).background(TourOSColors.Surface)
+                            ) {
+                                (0..17).forEach { age ->
+                                    val label = when {
+                                        age == 0 -> "🍼 0 Yaş (Bebek < 1 yaş - %90 İndirim)"
+                                        age <= 2 -> "🍼 $age Yaş (Bebek - %90 İndirim)"
+                                        age <= 6 -> "👶 $age Yaş (Küçük Çocuk - %50 İndirim)"
+                                        age <= 12 -> "🧒 $age Yaş (Büyük Çocuk - %30 İndirim)"
+                                        else -> "🧑 $age Yaş (Genç - Standart)"
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp, fontWeight = if (age == cAge) FontWeight.Bold else FontWeight.Normal)) },
+                                        onClick = {
+                                            val pType = if (age <= 2) "INFANT" else "CHILD"
+                                            val docType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport"
+                                            onUpdatePassenger(passenger.copy(passengerType = pType, childAge = age, documentType = docType))
+                                            showSubAgeMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -3161,11 +3520,13 @@ private fun PassengerFormCardItem(
                             onCheckedChange = { isChecked ->
                                 onUpdatePassenger(passenger.copy(isInfantSeatRequested = isChecked))
                             },
-                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary),
+                            modifier = Modifier.size(24.dp)
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = AppLanguageManager.translate("İnfant İçin Uchakta Ayrı Koltuk"),
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                            text = AppLanguageManager.translate("İnfant Ayrı Koltuk"),
+                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 11.sp)
                         )
                     }
                 }
@@ -3178,6 +3539,7 @@ private fun PassengerFormCardItem(
 internal fun B2BDateRangePickerDialog(
     initialStartDateText: String,
     initialEndDateText: String,
+    title: String = "🗓️ Gidiş Tarih Aralığı Seçin",
     onDateRangeSelected: (startDate: String, endDate: String) -> Unit,
     onDismissRequest: () -> Unit
 ) {
@@ -3277,7 +3639,7 @@ internal fun B2BDateRangePickerDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "🗓️ Gidiş Tarih Aralığı Seçin",
+                    text = AppLanguageManager.translate(title),
                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                 )
             }
@@ -3658,4 +4020,204 @@ private fun isFuzzyMatch(query: String, target: String): Boolean {
         }
     }
     return matchCount >= (q.length - 1) && q.length >= 3
+}
+
+@Composable
+fun B2BTouristAndChildAgePickerDialog(
+    adults: Int,
+    childrenAges: List<Int>,
+    onAdultsChange: (Int) -> Unit,
+    onChildrenAgesChange: (List<Int>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var tempAdults by remember { mutableStateOf(adults) }
+    var tempChildAges by remember { mutableStateOf(childrenAges) }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = TourOSColors.Surface,
+            border = BorderStroke(1.dp, TourOSColors.Border),
+            modifier = Modifier.width(380.dp).padding(8.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "👥 Yolcu & Turist Sayısı",
+                        style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Text("✕", fontSize = 14.sp, color = TourOSColors.TextSecondary)
+                    }
+                }
+
+                // 1. Yetişkin Sayacı (Adults Counter)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Yetişkinler", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                        Text("18 yaş ve üzeri", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FilledIconButton(
+                            onClick = { if (tempAdults > 1) tempAdults-- },
+                            enabled = tempAdults > 1,
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = TourOSColors.PrimaryContainer)
+                        ) {
+                            Text("–", fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                        }
+                        Text("$tempAdults", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.widthIn(min = 20.dp))
+                        FilledIconButton(
+                            onClick = { if (tempAdults < 8) tempAdults++ },
+                            enabled = tempAdults < 8,
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = TourOSColors.PrimaryContainer)
+                        ) {
+                            Text("+", fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
+
+                // 2. Çocuk Sayacı (Children Counter)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Çocuklar & Bebekler", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                        Text("0 - 17 yaş arası", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FilledIconButton(
+                            onClick = {
+                                if (tempChildAges.isNotEmpty()) {
+                                    tempChildAges = tempChildAges.dropLast(1)
+                                }
+                            },
+                            enabled = tempChildAges.isNotEmpty(),
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = TourOSColors.PrimaryContainer)
+                        ) {
+                            Text("–", fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                        }
+                        Text("${tempChildAges.size}", style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.widthIn(min = 20.dp))
+                        FilledIconButton(
+                            onClick = {
+                                if (tempChildAges.size < 5) {
+                                    tempChildAges = tempChildAges + listOf(5) // Varsayılan 5 yaş
+                                }
+                            },
+                            enabled = tempChildAges.size < 5,
+                            modifier = Modifier.size(32.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(containerColor = TourOSColors.PrimaryContainer)
+                        ) {
+                            Text("+", fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                        }
+                    }
+                }
+
+                // 3. Çocuk Yaşları Seçimi (Dinamik)
+                if (tempChildAges.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(TourOSColors.PrimaryContainer.copy(alpha = 0.25f))
+                            .padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "👶 Çocuk Yaşları & İndirim Oranları:",
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
+                        )
+
+                        tempChildAges.forEachIndexed { index, age ->
+                            var showAgeMenu by remember { mutableStateOf(false) }
+                            val categoryText = when {
+                                age <= 2 -> "(0-2 Yaş Bebek: %90 İndirim)"
+                                age <= 6 -> "(3-6 Yaş: %50 İndirim)"
+                                age <= 12 -> "(7-12 Yaş: %30 İndirim)"
+                                else -> "(13-17 Yaş: Standart)"
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${index + 1}. Çocuk $categoryText",
+                                    style = TourOSTypography.Caption.copy(fontSize = 11.sp, color = TourOSColors.TextPrimary)
+                                )
+                                Box {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        border = BorderStroke(1.dp, TourOSColors.Primary),
+                                        color = TourOSColors.Surface,
+                                        modifier = Modifier.clickable { showAgeMenu = true }
+                                    ) {
+                                        Text(
+                                            text = "$age Yaş ▼",
+                                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary),
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showAgeMenu,
+                                        onDismissRequest = { showAgeMenu = false }
+                                    ) {
+                                        (0..17).forEach { a ->
+                                            val label = when (a) {
+                                                0 -> "0 Yaş (Bebek < 1 yaş)"
+                                                1, 2 -> "$a Yaş (Bebek)"
+                                                in 3..6 -> "$a Yaş (Küçük Çocuk)"
+                                                in 7..12 -> "$a Yaş (Büyük Çocuk)"
+                                                else -> "$a Yaş (Genç)"
+                                            }
+                                            DropdownMenuItem(
+                                                text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp)) },
+                                                onClick = {
+                                                    val updated = tempChildAges.toMutableList()
+                                                    if (index < updated.size) {
+                                                        updated[index] = a
+                                                        tempChildAges = updated
+                                                    }
+                                                    showAgeMenu = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 4. Uygula Butonu
+                TourOSButton(
+                    text = "Seçimi Uygula",
+                    onClick = {
+                        onAdultsChange(tempAdults)
+                        onChildrenAgesChange(tempChildAges)
+                        onDismiss()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
 }

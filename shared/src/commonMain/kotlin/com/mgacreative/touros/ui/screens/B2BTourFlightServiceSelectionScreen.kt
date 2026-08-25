@@ -46,6 +46,8 @@ fun B2BTourFlightServiceSelectionScreen(
     val availableFlightOptions by viewModel.availableFlightOptions.collectAsState()
     val selectedFlightOption by viewModel.selectedFlightOption.collectAsState()
     val extraServices by viewModel.extraServices.collectAsState()
+    val adults by viewModel.adults.collectAsState()
+    val childrenAges by viewModel.childrenAges.collectAsState()
 
     val product = selectedProduct ?: run {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -63,7 +65,10 @@ fun B2BTourFlightServiceSelectionScreen(
         return
     }
 
-    val basePrice = remember(product.price) { product.price }
+    val dynamicMultiplier = remember(adults, childrenAges) {
+        B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges)
+    }
+    val basePrice = remember(product.price, dynamicMultiplier) { product.price * dynamicMultiplier }
     val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
     val extrasTotalEur = remember(extraServices) {
         extraServices.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
@@ -76,7 +81,7 @@ fun B2BTourFlightServiceSelectionScreen(
         topBar = {
             TourOSTopBar(
                 title = AppLanguageManager.translate("2. Adım: Uçuş & Hizmet Seçimi"),
-                subtitle = "${product.hotelName} — ${product.region}",
+                subtitle = "${product.hotelName} — ${product.region}  ·  🏢 ${product.safeOperatorName.ifBlank { "Coral Travel" }}",
                 onNavigateBack = onNavigateBack
             )
         }
@@ -99,6 +104,8 @@ fun B2BTourFlightServiceSelectionScreen(
             ) {
                 // ── SEÇİLİ KONAKLAMA ÖZET KARTI (GÖRSEL 3 & 9) ────────────────────
                 item {
+                    val starsStr = "⭐".repeat(product.safeHotelCategory.coerceIn(1, 5))
+                    val displayHotelName = product.safeHotelName.ifBlank { product.safeTourName.ifBlank { "Holiday Inn Istanbul Airport" } }
                     TourOSCard(
                         modifier = Modifier.fillMaxWidth(),
                         backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f),
@@ -109,24 +116,60 @@ fun B2BTourFlightServiceSelectionScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    text = "🏨 ${product.hotelName} ⭐".repeat(product.hotelCategory.coerceAtMost(5)),
-                                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                                    fontWeight = FontWeight.Bold
-                                )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "🏨 $displayHotelName $starsStr",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    // Tur Operatörü Rozeti
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = TourOSColors.Primary.copy(alpha = 0.12f),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.3f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text("🏢", fontSize = 11.sp)
+                                            Text(
+                                                text = "${AppLanguageManager.translate("Operatör")}: ${product.safeOperatorName.ifBlank { "Coral Travel" }}",
+                                                style = TourOSTypography.Caption.copy(
+                                                    color = TourOSColors.Primary,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
                                 Text(
                                     text = "🛏️ ${product.roomType.ifBlank { "FAMILY ROOM" }}  ·  🍽️ ${product.mealType.ifBlank { "Ultra All Inclusive" }}",
                                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                 )
+                                val paxDesc = "$adults ADL" + (if (childrenAges.isNotEmpty()) " + ${childrenAges.size} CHD (${childrenAges.joinToString(",") { "${it}y" }})" else "")
                                 Text(
-                                    text = "📅 21.08.26 - 28.08.26 (7 ${AppLanguageManager.translate("Gece")})  ·  👥 2 ADL + 2 CHD",
+                                    text = "📅 ${product.departureDate?.ifBlank { "21.08.2026" } ?: "21.08.2026"} (${product.nights} ${AppLanguageManager.translate("Gece")})  ·  👥 $paxDesc",
                                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
 
-                            Column(horizontalAlignment = Alignment.End) {
+                            Column(
+                                horizontalAlignment = Alignment.End,
+                                modifier = Modifier.padding(start = 16.dp)
+                            ) {
                                 Text(
                                     text = AppLanguageManager.translate("Konaklama Fiyatı"),
                                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
@@ -158,7 +201,7 @@ fun B2BTourFlightServiceSelectionScreen(
                     )
                 }
 
-                // ── EKSTRA HİZMETLER VE SİGORTALAR ("Основные и дополнительные услуги" - GÖRSEL 3 & 4) ───
+                // ── EKSTRA HİZMETLER VE SİGORTALAR (COMPACT BİLEŞİK KART - GÖRSEL 3 & 4) ───
                 item {
                     Spacer(modifier = Modifier.height(TourOSSpacing.small))
                     Text(
@@ -168,11 +211,28 @@ fun B2BTourFlightServiceSelectionScreen(
                     )
                 }
 
-                items(extraServices, key = { it.id }) { srv ->
-                    ExtraServiceCardItem(
-                        service = srv,
-                        onToggle = { viewModel.toggleExtraService(srv.id) }
-                    )
+                item {
+                    TourOSCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        backgroundColor = TourOSColors.Surface,
+                        contentPadding = 8.dp
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            extraServices.forEachIndexed { idx, srv ->
+                                if (idx > 0) {
+                                    HorizontalDivider(
+                                        color = TourOSColors.Divider.copy(alpha = 0.3f),
+                                        thickness = 0.5.dp,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+                                CompactExtraServiceRow(
+                                    service = srv,
+                                    onToggle = { viewModel.toggleExtraService(srv.id) }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -420,75 +480,74 @@ private fun FlightOptionCardItem(
     }
 }
 
-// ─── EKSTRA HİZMET KART BİLEŞENİ (GÖRSEL 3 & 4) ────────────────────────────────
+// ─── COMPACT EKSTRA HİZMET SATIR BİLEŞENİ (GÖRSEL 3 & 4) ─────────────────────────
 
 @Composable
-private fun ExtraServiceCardItem(
+private fun CompactExtraServiceRow(
     service: ExtraService,
     onToggle: () -> Unit
 ) {
-    TourOSCard(
-        modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.Surface,
-        contentPadding = TourOSSpacing.medium
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(enabled = !service.isMandatory) { onToggle() }
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Switch(
-                    checked = service.isSelected,
-                    onCheckedChange = { if (!service.isMandatory) onToggle() },
-                    enabled = !service.isMandatory,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = TourOSColors.Surface,
-                        checkedTrackColor = TourOSColors.Success
-                    )
+            Switch(
+                checked = service.isSelected,
+                onCheckedChange = { if (!service.isMandatory) onToggle() },
+                enabled = !service.isMandatory,
+                modifier = Modifier.height(24.dp),
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = TourOSColors.Surface,
+                    checkedTrackColor = TourOSColors.Success
                 )
+            )
 
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = service.name,
-                            style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (service.isMandatory) {
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(TourOSColors.PrimaryContainer)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "Zorunlu",
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = service.name,
+                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontSize = 13.sp),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (service.isMandatory) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(TourOSColors.PrimaryContainer)
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "Zorunlu",
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
-
-                    Text(
-                        text = "Kişi Başı: ${service.unitPriceEur} EUR  ·  Toplam (${service.paxCount} Yolcu): ${(service.unitPriceEur * service.paxCount)} EUR",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                    )
                 }
-            }
 
-            Text(
-                text = "${(service.unitPriceEur * service.paxCount * 100).toInt()} RUB",
-                style = TourOSTypography.Label.copy(color = TourOSColors.Primary),
-                fontWeight = FontWeight.Bold
-            )
+                Text(
+                    text = "Kişi Başı: ${service.unitPriceEur} EUR  ·  Toplam (${service.paxCount} Yolcu): ${(service.unitPriceEur * service.paxCount)} EUR",
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 10.sp)
+                )
+            }
         }
+
+        Text(
+            text = "${(service.unitPriceEur * service.paxCount * 100).toInt()} RUB",
+            style = TourOSTypography.Label.copy(color = TourOSColors.Primary, fontSize = 13.sp),
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 12.dp)
+        )
     }
 }

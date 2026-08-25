@@ -129,6 +129,8 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
     groups.add(
         TourOSNavGroup(
             categoryTitle = AppLanguageManager.translate("B2B SATIŞ & REZERVASYON"),
+            isCollapsible = true,
+            isInitiallyExpanded = true,
             items = listOf(
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Rezervasyonlar"),
@@ -144,9 +146,32 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
         )
     )
 
+    // TUR OPERATÖRÜ GRUBU
+    groups.add(
+        TourOSNavGroup(
+            categoryTitle = AppLanguageManager.translate("TUR OPERATÖRÜ"),
+            isCollapsible = true,
+            isInitiallyExpanded = true,
+            items = listOf(
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("TO Cari Hesap"),
+                    route = OperatorCurrentAccountReportRoute,
+                    isSelected = currentRoute?.contains("OperatorCurrentAccountReportRoute") == true
+                ),
+                TourOSNavItem(
+                    title = AppLanguageManager.translate("Operatör Bağlantıları & API"),
+                    route = AgencyOperatorConnectionsRoute,
+                    isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true
+                )
+            )
+        )
+    )
+
     groups.add(
         TourOSNavGroup(
             categoryTitle = AppLanguageManager.translate("MUHASEBE"),
+            isCollapsible = true,
+            isInitiallyExpanded = false,
             items = listOf(
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Finans"),
@@ -175,6 +200,8 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
     groups.add(
         TourOSNavGroup(
             categoryTitle = AppLanguageManager.translate("ANALİTİK"),
+            isCollapsible = true,
+            isInitiallyExpanded = false,
             items = listOf(
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Dashboard"),
@@ -195,11 +222,6 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     title = AppLanguageManager.translate("Müşteri & CRM"),
                     route = CustomerSegmentationRoute,
                     isSelected = currentRoute?.contains("CustomerSegmentationRoute") == true
-                ),
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("TO Cari Hesap"),
-                    route = OperatorCurrentAccountReportRoute,
-                    isSelected = currentRoute?.contains("OperatorCurrentAccountReportRoute") == true
                 )
             )
         )
@@ -229,6 +251,8 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
     groups.add(
         TourOSNavGroup(
             categoryTitle = AppLanguageManager.translate("YEREL"),
+            isCollapsible = true,
+            isInitiallyExpanded = false,
             items = listOf(
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Yerel Tur"),
@@ -247,12 +271,9 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
     groups.add(
         TourOSNavGroup(
             categoryTitle = AppLanguageManager.translate("AYARLAR"),
+            isCollapsible = true,
+            isInitiallyExpanded = false,
             items = listOf(
-                TourOSNavItem(
-                    title = AppLanguageManager.translate("Tur Operatörleri"),
-                    route = AgencyOperatorConnectionsRoute,
-                    isSelected = currentRoute?.contains("AgencyOperatorConnectionsRoute") == true
-                ),
                 TourOSNavItem(
                     title = AppLanguageManager.translate("Ayarlar & Dil"),
                     route = SettingsRoute,

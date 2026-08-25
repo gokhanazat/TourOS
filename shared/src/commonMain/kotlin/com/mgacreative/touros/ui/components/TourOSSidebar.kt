@@ -36,7 +36,7 @@ import com.mgacreative.touros.ui.theme.TourOSTypography
 data class TourOSNavGroup(
     val categoryTitle: String,
     val items: List<TourOSNavItem>,
-    val isCollapsible: Boolean = false,
+    val isCollapsible: Boolean = true,
     val isInitiallyExpanded: Boolean = true
 )
 
@@ -143,44 +143,46 @@ fun TourOSSidebar(
             HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
         }
 
-        // Menu Items (Gruplandırılmış veya Tekil Liste - Daraltılmış Dar Satır Aralıklı)
+        // Menu Items (Gruplandırılmış veya Tekil Liste - Akıcı ve Katlanabilir Başlıklar)
         Column(
             modifier = Modifier
                 .weight(1f)
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 4.dp, horizontal = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
+                .padding(vertical = 6.dp, horizontal = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             if (groups != null && groups.isNotEmpty()) {
                 groups.forEach { group ->
-                    val isExpanded = expandedGroups[group.categoryTitle] ?: (group.isInitiallyExpanded || group.items.any { it.isSelected })
+                    val hasActiveChild = group.items.any { it.isSelected }
+                    val isExpanded = expandedGroups[group.categoryTitle] ?: (group.isInitiallyExpanded || hasActiveChild)
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     if (group.isCollapsible) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(6.dp))
+                                .background(if (hasActiveChild) TourOSColors.PrimaryContainer.copy(alpha = 0.35f) else Color.Transparent)
                                 .clickable {
                                     expandedGroups[group.categoryTitle] = !isExpanded
                                 }
-                                .padding(horizontal = 6.dp, vertical = 3.dp),
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = group.categoryTitle.uppercase(),
                                 style = TourOSTypography.TitleMedium.copy(
-                                    color = TourOSColors.Primary,
+                                    color = if (hasActiveChild) TourOSColors.Primary else TourOSColors.TextPrimary,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
-                                    fontSize = 13.sp,
-                                    letterSpacing = 0.5.sp
+                                    fontSize = 12.sp,
+                                    letterSpacing = 0.6.sp
                                 )
                             )
                             Text(
-                                text = if (isExpanded) "—" else "+",
+                                text = if (isExpanded) "▾" else "▸",
                                 style = TourOSTypography.TitleMedium.copy(
-                                    color = TourOSColors.Primary,
+                                    color = if (hasActiveChild) TourOSColors.Primary else TourOSColors.TextSecondary,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                                     fontSize = 14.sp
                                 )
@@ -192,16 +194,25 @@ fun TourOSSidebar(
                             style = TourOSTypography.TitleMedium.copy(
                                 color = TourOSColors.Primary,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
-                                fontSize = 13.sp,
-                                letterSpacing = 0.5.sp
+                                fontSize = 12.sp,
+                                letterSpacing = 0.6.sp
                             ),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
 
-                    if (!group.isCollapsible || isExpanded) {
-                        group.items.forEach { item ->
-                            RenderSidebarItem(item = item, onItemSelect = onItemSelect)
+                    androidx.compose.animation.AnimatedVisibility(
+                        visible = !group.isCollapsible || isExpanded,
+                        enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                        exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                            modifier = Modifier.padding(top = 2.dp, bottom = 4.dp)
+                        ) {
+                            group.items.forEach { item ->
+                                RenderSidebarItem(item = item, onItemSelect = onItemSelect)
+                            }
                         }
                     }
                 }
