@@ -629,6 +629,9 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<GlobalWebPublicRoute> {
             GlobalWebPublicScreen(
+                onNavigateToB2BSearch = {
+                    navController.navigate(B2BTourSearchDashboardRoute)
+                },
                 onNavigateToBookingDetail = { id -> navController.navigate(BookingDetailRoute(id)) },
                 onNavigateToLogin = {
                     if (currentUser != null) {

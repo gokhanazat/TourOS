@@ -782,6 +782,7 @@ fun AxiletoLogoText(
 @Composable
 fun GlobalWebPublicScreen(
     referralCode: String? = null,
+    onNavigateToB2BSearch: () -> Unit = {},
     onNavigateToBookingDetail: (String) -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
     onNavigateToAdminCms: () -> Unit = {},
@@ -1652,10 +1653,7 @@ fun GlobalWebPublicScreen(
                             b2bTourSearchViewModel.childrenAges.value = childrenAges
                             b2bTourSearchViewModel.searchQuery.value = searchQuery
                             b2bTourSearchViewModel.performSearch()
-                            isInlineSearchActive = true
-                            coroutineScope.launch {
-                                runCatching { mainLazyListState.animateScrollToItem(3) }
-                            }
+                            onNavigateToB2BSearch()
                         }
 
                         UniversalTourSearchBar(
