@@ -34,7 +34,7 @@ data class AdminDeploymentUiState(
     val lastWebDeployTime: String = "Canlıda (axileto.com & GitHub Pages)",
     val liveWebUrl: String = "https://axileto.com",
     val githubPagesUrl: String = "https://gokhanazat.github.io/TourOS/",
-    val desktopDownloadUrl: String = "https://github.com/gokhanazat/TourOS/releases",
+    val desktopDownloadUrl: String = "https://axileto.com/downloads/TourOS-Kurulum.msi",
     val githubActionsUrl: String = "https://github.com/gokhanazat/TourOS/actions"
 )
 
