@@ -3296,7 +3296,7 @@ fun VerticalSearchResultsGridSection(
                                         style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp)
                                     )
                                     Text(
-                                        text = "${hotel.minPrice.toInt()} ${hotel.currency}",
+                                        text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.minPrice, decimals = false)} ${hotel.currency}",
                                         style = TourOSTypography.TitleMedium.copy(
                                             color = Color(0xFF0F5A56),
                                             fontWeight = FontWeight.Bold,

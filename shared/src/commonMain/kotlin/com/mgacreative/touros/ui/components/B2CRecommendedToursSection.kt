@@ -163,6 +163,5 @@ fun SmartRecommendationCard(
 }
 
 private fun formatRecMoney(amount: Double): String {
-    val rounded = (amount * 100).toLong() / 100.0
-    return rounded.toString()
+    return com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(amount)
 }

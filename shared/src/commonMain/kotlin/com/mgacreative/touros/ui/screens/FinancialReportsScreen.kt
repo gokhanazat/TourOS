@@ -666,12 +666,5 @@ private fun FinancialDetailsTable(summary: FinancialReportSummary, selectedTab: 
 
 private fun formatConvertedMoney(amount: Double, symbol: String, rate: Double): String {
     val converted = amount * rate
-    val formattedVal = if (converted % 1.0 == 0.0) {
-        converted.toLong().toString()
-    } else {
-        val whole = converted.toInt().toString()
-        val decimal = ((converted - converted.toInt()) * 100).toInt()
-        "$whole.${if (decimal < 10) "0$decimal" else decimal}"
-    }
-    return "$symbol $formattedVal"
+    return "$symbol ${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(converted)}"
 }

@@ -482,12 +482,5 @@ fun ReportsScreen(
 }
 
 private fun formatCurrency(value: Double): String {
-    val longVal = value.toLong()
-    return if (value % 1.0 == 0.0) {
-        longVal.toString()
-    } else {
-        val whole = (value.toInt()).toString()
-        val decimal = ((value - value.toInt()) * 100).toInt()
-        "$whole.${if (decimal < 10) "0$decimal" else decimal}"
-    }
+    return com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(value, decimals = false)
 }

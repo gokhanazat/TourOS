@@ -266,13 +266,13 @@ fun AdminAgencyLedgerScreen(
                                         Text(agency.name, style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Text(agency.operator_code ?: "KODSUZ", style = TourOSTypography.Caption.copy(fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold))
-                                            Text("• Abonelik: ${agency.monthly_subscription_fee.toInt()} ₺", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                            Text("• Abonelik: ${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(agency.monthly_subscription_fee, decimals = false)} ₺", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                         }
                                     }
 
                                     Column(horizontalAlignment = Alignment.End) {
                                         Text(
-                                            text = if (hasDebt) "${agency.current_balance.toInt()} ₺ Borç" else "0 ₺ Borçsuz",
+                                            text = if (hasDebt) "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(agency.current_balance, decimals = false)} ₺ Borç" else "0 ₺ Borçsuz",
                                             style = TourOSTypography.BodyMedium.copy(
                                                 color = if (hasDebt) TourOSColors.Secondary else TourOSColors.Success,
                                                 fontWeight = FontWeight.Bold
@@ -354,7 +354,7 @@ fun AdminAgencyLedgerScreen(
                                     style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
-                                    text = "${current.current_balance.toInt()} ₺ ${if (current.current_balance > 0) "(BORÇLU)" else "(ÖDENDİ)"}",
+                                    text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(current.current_balance, decimals = false)} ₺ ${if (current.current_balance > 0) "(BORÇLU)" else "(ÖDENDİ)"}",
                                     style = TourOSTypography.TitleLarge.copy(
                                         color = if (current.current_balance > 0) TourOSColors.Secondary else TourOSColors.Success,
                                         fontWeight = FontWeight.Bold
@@ -401,9 +401,9 @@ fun AdminAgencyLedgerScreen(
                                                 Text(tx.description, style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                 Text("Ref: ${tx.reference_no ?: "-"} • ${tx.created_by ?: "Admin"}", style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = TourOSColors.TextSecondary))
                                             }
-                                            Text(if (isDebit) "${tx.amount.toInt()} ₺" else "-", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold), textAlign = TextAlign.End)
-                                            Text(if (!isDebit) "${tx.amount.toInt()} ₺" else "-", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Success, fontWeight = FontWeight.Bold), textAlign = TextAlign.End)
-                                            Text("${tx.balance_after.toInt()} ₺", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.End)
+                                            Text(if (isDebit) "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(tx.amount, decimals = false)} ₺" else "-", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold), textAlign = TextAlign.End)
+                                            Text(if (!isDebit) "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(tx.amount, decimals = false)} ₺" else "-", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Success, fontWeight = FontWeight.Bold), textAlign = TextAlign.End)
+                                            Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(tx.balance_after, decimals = false)} ₺", modifier = Modifier.weight(1.0f), style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold), textAlign = TextAlign.End)
                                         }
                                     }
                                 }

@@ -1,25 +1,62 @@
 package com.mgacreative.touros.domain.util
 
+import kotlin.math.abs
+
 /**
- * 4.4.2 Pure Kotlin Multiplatform (KMP) Currency Formatter.
- * TRY, EUR, USD, GBP, AED, RUB destekler. String.format() kullanmaz.
+ * TourOS Merkezi KMP Para Birimi & Sayı Formatlayıcı.
+ * Tüm projede standart binlik ayracı ve 2 basamaklı kuruş formatı sağlar.
+ * Örnek: 1037717.47 -> "1,037,717.47" | format(1037717.47, "TRY") -> "₺ 1,037,717.47"
  */
 object KmpCurrencyFormatter {
 
-    fun format(amount: Double, currencyCode: String): String {
+    /**
+     * Sadece sayıyı binlik ayracı ile formatlar (Örn: 1037717.47 -> "1,037,717.47")
+     */
+    fun formatAmount(
+        amount: Double,
+        decimals: Boolean = true,
+        useTurkishSeparators: Boolean = false
+    ): String {
+        val isNegative = amount < 0
+        val absAmount = abs(amount)
+
+        val thousandSep = if (useTurkishSeparators) "." else ","
+        val decimalSep = if (useTurkishSeparators) "," else "."
+
+        if (!decimals) {
+            val whole = (absAmount + 0.5).toLong()
+            val formattedWhole = formatThousands(whole.toString(), thousandSep)
+            return if (isNegative) "-$formattedWhole" else formattedWhole
+        }
+
+        val totalCents = (absAmount * 100 + 0.5).toLong()
+        val integerPart = totalCents / 100
+        val decimalPart = (totalCents % 100).toInt()
+
+        val formattedWhole = formatThousands(integerPart.toString(), thousandSep)
+        val formattedDec = if (decimalPart < 10) "0$decimalPart" else "$decimalPart"
+        val sign = if (isNegative) "-" else ""
+
+        return "$sign$formattedWhole$decimalSep$formattedDec"
+    }
+
+    /**
+     * Para birimi sembolü ile birlikte formatlar (Örn: "₺ 1,037,717.47")
+     */
+    fun format(
+        amount: Double,
+        currencyCode: String = "TRY",
+        decimals: Boolean = true,
+        useTurkishSeparators: Boolean = false
+    ): String {
         val symbol = getSymbol(currencyCode)
-        val wholePart = amount.toLong()
-        val decVal = kotlin.math.abs(((amount - wholePart) * 100).toLong()).coerceIn(0, 99)
-        val decStr = if (decVal < 10) "0$decVal" else "$decVal"
-
-        val formattedWhole = formatWholeWithSeparators(wholePart)
-
-        return "$symbol $formattedWhole.$decStr"
+        val formatted = formatAmount(amount, decimals, useTurkishSeparators)
+        return "$symbol $formatted"
     }
 
     fun getSymbol(currencyCode: String): String {
-        return when (currencyCode.uppercase()) {
-            "TRY" -> "₺"
+        return when (currencyCode.uppercase().trim()) {
+            "TRY", "TL" -> "₺"
             "EUR" -> "€"
             "USD" -> "$"
             "GBP" -> "£"
@@ -29,22 +66,16 @@ object KmpCurrencyFormatter {
         }
     }
 
-    private fun formatWholeWithSeparators(number: Long): String {
-        val str = number.toString()
-        val isNegative = str.startsWith("-")
-        val cleanStr = if (isNegative) str.substring(1) else str
-
+    private fun formatThousands(digits: String, separator: String): String {
+        val len = digits.length
         val sb = StringBuilder()
-        var count = 0
-        for (i in cleanStr.length - 1 downTo 0) {
-            sb.append(cleanStr[i])
-            count++
-            if (count % 3 == 0 && i > 0) {
-                sb.append(".")
+        for (i in 0 until len) {
+            sb.append(digits[i])
+            val remaining = len - 1 - i
+            if (remaining > 0 && remaining % 3 == 0) {
+                sb.append(separator)
             }
         }
-
-        if (isNegative) sb.append("-")
-        return sb.reverse().toString()
+        return sb.toString()
     }
 }
