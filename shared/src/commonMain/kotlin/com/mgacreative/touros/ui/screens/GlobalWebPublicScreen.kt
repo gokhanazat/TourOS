@@ -2172,144 +2172,160 @@ fun GlobalWebPublicScreen(
                                         Text("🌍", fontSize = 24.sp)
                                         Column {
                                             Text(
-                                                text = "Hizmetleri Keşfedin & Popüler Ülkeler",
+                                                text = AppLanguageManager.translate("Hizmetleri Keşfedin & Popüler Ülkeler"),
                                                 style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                             )
                                             Text(
-                                                text = "Karta tıklayarak ilgili ülkenin bağımsız arama sayfasına gidin veya anında fırsatları inceleyin",
+                                                text = AppLanguageManager.translate("Karta tıklayarak ilgili ülkenin bağımsız arama sayfasına gidin veya anında fırsatları inceleyin"),
                                                 style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 12.sp)
                                             )
                                         }
                                     }
                                 }
 
-                                // ── 2. Yatay Kayan Görsel Ülke Kartları (Country Photo Carousel) ──
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    countryDiscoveryCards.forEach { (countryInfo, cardDetail) ->
-                                        val (cCode, cName, cFlag) = countryInfo
-                                        val (cImage, cSubInfo, cPrice) = cardDetail
-                                        val isSelected = (selectedCountryTab == cCode)
+                                // ── 2. Yatay Kayan / Eşit Dağılımlı Görsel Ülke Kartları (Responsive Country Discovery Bar) ──
+                                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                                    val isWideScreen = maxWidth >= 960.dp
+                                    val rowModifier = if (isWideScreen) {
+                                        Modifier.fillMaxWidth()
+                                    } else {
+                                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                                    }
 
-                                        Surface(
-                                            modifier = Modifier
-                                                .width(220.dp)
-                                                .height(130.dp)
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .clickable {
-                                                    selectedCountryTab = cCode
-                                                    activeCountryDetailPage = if (cCode == "ALL") null else cCode
-                                                    countryDedicatedSubRegion = "Tümü"
-                                                    selectedSubRegionFilter = null
-                                                    adultsCount = 2
-                                                    flightTripType = "ROUND_TRIP"
-                                                    roomsCount = 1
-                                                },
-                                            shape = RoundedCornerShape(16.dp),
-                                            shadowElevation = if (isSelected) 8.dp else 2.dp,
-                                            border = androidx.compose.foundation.BorderStroke(
-                                                width = if (isSelected) 2.5.dp else 1.dp,
-                                                color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0)
-                                            )
-                                        ) {
-                                            Box(modifier = Modifier.fillMaxSize()) {
-                                                AsyncImage(
-                                                    model = cImage,
-                                                    contentDescription = cName,
-                                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                                    modifier = Modifier.fillMaxSize()
+                                    Row(
+                                        modifier = rowModifier,
+                                        horizontalArrangement = Arrangement.spacedBy(if (isWideScreen) 8.dp else 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        countryDiscoveryCards.forEach { (countryInfo, cardDetail) ->
+                                            val (cCode, cName, cFlag) = countryInfo
+                                            val (cImage, cSubInfo, cPrice) = cardDetail
+                                            val isSelected = (selectedCountryTab == cCode)
+
+                                            val cardModifier = if (isWideScreen) {
+                                                Modifier.weight(1f).height(124.dp)
+                                            } else {
+                                                Modifier.width(175.dp).height(120.dp)
+                                            }
+
+                                            Surface(
+                                                modifier = cardModifier
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .clickable {
+                                                        selectedCountryTab = cCode
+                                                        activeCountryDetailPage = if (cCode == "ALL") null else cCode
+                                                        countryDedicatedSubRegion = "Tümü"
+                                                        selectedSubRegionFilter = null
+                                                        adultsCount = 2
+                                                        flightTripType = "ROUND_TRIP"
+                                                        roomsCount = 1
+                                                    },
+                                                shape = RoundedCornerShape(14.dp),
+                                                shadowElevation = if (isSelected) 6.dp else 2.dp,
+                                                border = androidx.compose.foundation.BorderStroke(
+                                                    width = if (isSelected) 2.5.dp else 1.dp,
+                                                    color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0)
                                                 )
+                                            ) {
+                                                Box(modifier = Modifier.fillMaxSize()) {
+                                                    AsyncImage(
+                                                        model = cImage,
+                                                        contentDescription = cName,
+                                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    )
 
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .background(
-                                                            androidx.compose.ui.graphics.Brush.verticalGradient(
-                                                                colors = listOf(
-                                                                    Color.Black.copy(alpha = 0.2f),
-                                                                    Color.Black.copy(alpha = 0.85f)
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .background(
+                                                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                                    colors = listOf(
+                                                                        Color.Black.copy(alpha = 0.2f),
+                                                                        Color.Black.copy(alpha = 0.85f)
+                                                                    )
                                                                 )
                                                             )
-                                                        )
-                                                )
+                                                    )
 
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .padding(12.dp),
-                                                    verticalArrangement = Arrangement.SpaceBetween
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .padding(10.dp),
+                                                        verticalArrangement = Arrangement.SpaceBetween
                                                     ) {
-                                                        Surface(
-                                                            color = Color.Black.copy(alpha = 0.4f),
-                                                            shape = RoundedCornerShape(8.dp)
-                                                        ) {
-                                                            Text(
-                                                                text = "$cFlag $cName",
-                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                                style = TourOSTypography.BodyMedium.copy(
-                                                                    color = Color.White,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 13.sp
-                                                                )
-                                                            )
-                                                        }
-
-                                                        if (isSelected) {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(22.dp)
-                                                                    .clip(CircleShape)
-                                                                    .background(Color(0xFF0F5A56)),
-                                                                contentAlignment = Alignment.Center
-                                                            ) {
-                                                                Text(
-                                                                    text = "✓",
-                                                                    color = Color.White,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 13.sp
-                                                                )
-                                                            }
-                                                        }
-                                                    }
-
-                                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                                        Text(
-                                                            text = cSubInfo,
-                                                            style = TourOSTypography.Caption.copy(
-                                                                color = Color(0xFFCBD5E1),
-                                                                fontSize = 10.sp
-                                                            ),
-                                                            maxLines = 1,
-                                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                                        )
                                                         Row(
                                                             modifier = Modifier.fillMaxWidth(),
                                                             horizontalArrangement = Arrangement.SpaceBetween,
                                                             verticalAlignment = Alignment.CenterVertically
                                                         ) {
+                                                            Surface(
+                                                                color = Color.Black.copy(alpha = 0.45f),
+                                                                shape = RoundedCornerShape(6.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = "$cFlag $cName",
+                                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                                                    style = TourOSTypography.BodyMedium.copy(
+                                                                        color = Color.White,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 11.sp
+                                                                    ),
+                                                                    maxLines = 1,
+                                                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                                )
+                                                            }
+
+                                                            if (isSelected) {
+                                                                Box(
+                                                                    modifier = Modifier
+                                                                        .size(20.dp)
+                                                                        .clip(CircleShape)
+                                                                        .background(Color(0xFF0F5A56)),
+                                                                    contentAlignment = Alignment.Center
+                                                                ) {
+                                                                    Text(
+                                                                        text = "✓",
+                                                                        color = Color.White,
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 11.sp
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+
+                                                        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                                             Text(
-                                                                text = "2 Kişi · 7 Gece",
+                                                                text = cSubInfo,
                                                                 style = TourOSTypography.Caption.copy(
-                                                                    color = Color(0xFF94A3B8),
-                                                                    fontSize = 10.sp
-                                                                )
+                                                                    color = Color(0xFFCBD5E1),
+                                                                    fontSize = 9.sp
+                                                                ),
+                                                                maxLines = 1,
+                                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                                             )
-                                                            Text(
-                                                                text = cPrice,
-                                                                style = TourOSTypography.BodyMedium.copy(
-                                                                    color = Color(0xFF38BDF8),
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    fontSize = 12.sp
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(
+                                                                    text = "2 Kişi · 7G",
+                                                                    style = TourOSTypography.Caption.copy(
+                                                                        color = Color(0xFF94A3B8),
+                                                                        fontSize = 9.sp
+                                                                    )
                                                                 )
-                                                            )
+                                                                Text(
+                                                                    text = cPrice,
+                                                                    style = TourOSTypography.BodyMedium.copy(
+                                                                        color = Color(0xFF38BDF8),
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        fontSize = 11.sp
+                                                                    ),
+                                                                    maxLines = 1
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
