@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.Invoice
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -146,6 +147,7 @@ fun InvoiceManagementScreen(
                                     notes = notes.ifBlank { null }
                                 )
                             },
+                            onNavigateToPdf = { selectedMainTab = 1 },
                             isSaving = state.isCreatingInvoice,
                             modifier = Modifier.fillMaxSize()
                         )
@@ -191,109 +193,259 @@ private fun InvoiceFormPanel(
     taxRateStr: String, onTaxRateChange: (String) -> Unit,
     notes: String, onNotesChange: (String) -> Unit,
     onSaveInvoice: () -> Unit,
+    onNavigateToPdf: () -> Unit = {},
     isSaving: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    TourOSCard(
-        modifier = modifier,
-        backgroundColor = TourOSColors.SecondaryContainer.copy(alpha = 0.4f),
-        contentPadding = TourOSSpacing.large
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-            // FATURA TÜRÜ SEÇİMİ (GELİR / GİDER)
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Türü Seçiniz:"), style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    FilterChip(
-                        selected = invoiceType == "sale",
-                        onClick = { onInvoiceTypeChange("sale") },
-                        label = { Text("📈 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Satış Faturası (Gelir)")}", style = TourOSTypography.Caption, fontWeight = FontWeight.Bold) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TourOSColors.SuccessContainer,
-                            selectedLabelColor = TourOSColors.Success
+    val subtotal = subtotalStr.toDoubleOrNull() ?: 0.0
+    val taxRate = taxRateStr.toDoubleOrNull() ?: 20.0
+    val taxAmount = subtotal * (taxRate / 100.0)
+    val totalAmount = subtotal + taxAmount
+
+    BoxWithConstraints(modifier = modifier) {
+        val isWide = maxWidth >= 860.dp
+
+        if (isWide) {
+            // 🖥️ Masaüstü / Web: 2 Sütunlu Finansal Izgara (Sol: Form | Sağ: Canlı Hesap Kartı)
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
+            ) {
+                // SOL SÜTUN (Form Alanları)
+                Surface(
+                    modifier = Modifier.weight(1.4f).fillMaxHeight(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Divider),
+                    shadowElevation = 1.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(TourOSSpacing.large),
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                    ) {
+                        // 1. Satır: Fatura Türü & Seri No
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Türü:"),
+                                    style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextSecondary)
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    FilterChip(
+                                        selected = invoiceType == "sale",
+                                        onClick = { onInvoiceTypeChange("sale") },
+                                        label = { Text("📈 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Satış (Gelir)"), style = TourOSTypography.Caption, fontWeight = FontWeight.Bold) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = TourOSColors.SuccessContainer,
+                                            selectedLabelColor = TourOSColors.Success
+                                        )
+                                    )
+                                    FilterChip(
+                                        selected = invoiceType == "purchase",
+                                        onClick = { onInvoiceTypeChange("purchase") },
+                                        label = { Text("📉 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Alış (Gider)"), style = TourOSTypography.Caption, fontWeight = FontWeight.Bold) },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = TourOSColors.PrimaryContainer,
+                                            selectedLabelColor = TourOSColors.Primary
+                                        )
+                                    )
+                                }
+                            }
+
+                            TourOSTextField(
+                                value = invoiceNo,
+                                onValueChange = onInvoiceNoChange,
+                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Seri / No"),
+                                placeholder = "Örn: INV-202608-001",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // 2. Satır: Müşteri/Tedarikçi Adı & VKN/TC No
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            TourOSTextField(
+                                value = customerName,
+                                onValueChange = onCustomerNameChange,
+                                label = if (invoiceType == "purchase") com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi / Satıcı Ünvanı") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri / Cari Adı"),
+                                placeholder = if (invoiceType == "purchase") "Travego Turizm A.Ş." else "Ahmet Yılmaz",
+                                modifier = Modifier.weight(1.3f)
+                            )
+                            TourOSTextField(
+                                value = customerTaxNo,
+                                onValueChange = onCustomerTaxNoChange,
+                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi / TC Kimlik No"),
+                                placeholder = "12345678901",
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        // 3. Kalem / Hizmet Açıklaması
+                        TourOSTextField(
+                            value = serviceDescription,
+                            onValueChange = onServiceDescriptionChange,
+                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hizmet / Kalem Açıklaması"),
+                            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Kapadokya VIP Tur Paket Hizmeti Bedeli"),
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    )
-                    FilterChip(
-                        selected = invoiceType == "purchase",
-                        onClick = { onInvoiceTypeChange("purchase") },
-                        label = { Text("📉 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Alış / Gider Faturası (Gider)")}", style = TourOSTypography.Caption, fontWeight = FontWeight.Bold) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TourOSColors.PrimaryContainer,
-                            selectedLabelColor = TourOSColors.Primary
+
+                        // 4. Satır: Matrah & KDV Oranı
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                        ) {
+                            TourOSTextField(
+                                value = subtotalStr,
+                                onValueChange = onSubtotalChange,
+                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Matrah (KDV Hariç ₺)"),
+                                placeholder = "15000",
+                                modifier = Modifier.weight(1.2f)
+                            )
+                            TourOSTextField(
+                                value = taxRateStr,
+                                onValueChange = onTaxRateChange,
+                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("KDV Oranı (%)"),
+                                placeholder = "20",
+                                modifier = Modifier.weight(0.8f)
+                            )
+                        }
+
+                        // 5. Notlar & Banka Bilgisi
+                        TourOSTextField(
+                            value = notes,
+                            onValueChange = onNotesChange,
+                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Notları & Banka / IBAN"),
+                            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: 7 gün içinde ödenmelidir... TR00 0000 0000..."),
+                            modifier = Modifier.fillMaxWidth()
                         )
+                    }
+                }
+
+                // SAĞ SÜTUN (Canlı Fatura Özeti & Aksiyon Paneli)
+                Surface(
+                    modifier = Modifier.weight(0.9f).fillMaxHeight(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF0F172A), // Modern Koyu Finansal Kart
+                    shadowElevation = 2.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(TourOSSpacing.large),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                            // Başlık & GİB Rozeti
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "🧾 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Özeti"),
+                                    style = TourOSTypography.TitleMedium.copy(color = Color.White, fontWeight = FontWeight.Bold)
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF1E293B)
+                                ) {
+                                    Text(
+                                        "🟢 GİB e-Arşiv",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        style = TourOSTypography.Caption.copy(color = Color(0xFF34D399), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = Color(0xFF334155))
+
+                            // Matrah
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Matrah (KDV Hariç):"), style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 12.sp))
+                                Text("₺ ${formatMoney(subtotal)}", style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.SemiBold))
+                            }
+
+                            // KDV Tutarı
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hesaplanan KDV (%$taxRateStr):"), style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 12.sp))
+                                Text("₺ ${formatMoney(taxAmount)}", style = TourOSTypography.BodyMedium.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold))
+                            }
+
+                            HorizontalDivider(color = Color(0xFF334155))
+
+                            // Ödenecek Genel Toplam
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    com.mgacreative.touros.ui.localization.AppLanguageManager.translate("GENEL TOPLAM (Ödenecek)"),
+                                    style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                )
+                                Text(
+                                    "₺ ${formatMoney(totalAmount)}",
+                                    style = TourOSTypography.DisplaySmall.copy(color = Color(0xFF34D399), fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
+                                )
+                            }
+                        }
+
+                        // Butonlar
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            TourOSButton(
+                                text = if (isSaving) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kaydediliyor...") else "💾 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Faturayı Kaydet")}",
+                                onClick = onSaveInvoice,
+                                variant = TourOSButtonVariant.PRIMARY,
+                                enabled = customerName.isNotBlank() && subtotalStr.toDoubleOrNull() != null && !isSaving,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            TourOSButton(
+                                text = "📄 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PDF Önizleme")}",
+                                onClick = onNavigateToPdf,
+                                variant = TourOSButtonVariant.SECONDARY,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            }
+        } else {
+            // 📱 Mobil Görünüm (Dikey Akış)
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Divider)
+            ) {
+                Column(
+                    modifier = Modifier.padding(TourOSSpacing.medium),
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                ) {
+                    TourOSTextField(value = invoiceNo, onValueChange = onInvoiceNoChange, label = "Fatura Seri / No", placeholder = "INV-202608-001", modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = customerName, onValueChange = onCustomerNameChange, label = "Müşteri / Cari Adı", placeholder = "Ahmet Yılmaz", modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = customerTaxNo, onValueChange = onCustomerTaxNoChange, label = "Vergi / TC No", placeholder = "12345678901", modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = serviceDescription, onValueChange = onServiceDescriptionChange, label = "Hizmet Açıklaması", placeholder = "Tur Hizmet Bedeli", modifier = Modifier.fillMaxWidth())
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TourOSTextField(value = subtotalStr, onValueChange = onSubtotalChange, label = "Matrah (₺)", placeholder = "15000", modifier = Modifier.weight(1f))
+                        TourOSTextField(value = taxRateStr, onValueChange = onTaxRateChange, label = "KDV (%)", placeholder = "20", modifier = Modifier.weight(1f))
+                    }
+                    Text("Genel Toplam: ₺ ${formatMoney(totalAmount)}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold))
+                    TourOSButton(
+                        text = if (isSaving) "Kaydediliyor..." else "💾 Faturayı Kaydet",
+                        onClick = onSaveInvoice,
+                        variant = TourOSButtonVariant.PRIMARY,
+                        enabled = customerName.isNotBlank() && subtotalStr.toDoubleOrNull() != null && !isSaving,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
-
-            TourOSTextField(
-                value = invoiceNo,
-                onValueChange = onInvoiceNoChange,
-                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Seri / No"),
-                placeholder = "Örn: INV-202608-001",
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            TourOSTextField(
-                value = customerName,
-                onValueChange = onCustomerNameChange,
-                label = if (invoiceType == "purchase") com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi / Satıcı Adı") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Adı / Unvanı"),
-                placeholder = if (invoiceType == "purchase") com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Travego Otobüs İşletmeleri A.Ş.") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Ahmet Yılmaz"),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            TourOSTextField(
-                value = customerTaxNo,
-                onValueChange = onCustomerTaxNoChange,
-                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi No / T.C. Kimlik"),
-                placeholder = "Örn: 12345678901",
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            TourOSTextField(
-                value = serviceDescription,
-                onValueChange = onServiceDescriptionChange,
-                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hizmet / Kalem Açıklaması"),
-                placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Kapadokya VIP Tur Paket Hizmeti Bedeli"),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-            ) {
-                TourOSTextField(
-                    value = subtotalStr,
-                    onValueChange = onSubtotalChange,
-                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Matrah (KDV Hariç ₺)"),
-                    placeholder = "Örn: 15000",
-                    modifier = Modifier.weight(1f)
-                )
-                TourOSTextField(
-                    value = taxRateStr,
-                    onValueChange = onTaxRateChange,
-                    label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("KDV Oranı (%)"),
-                    placeholder = "20",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            TourOSTextField(
-                value = notes,
-                onValueChange = onNotesChange,
-                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Notları & Banka Bilgileri"),
-                placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: 7 gün içinde ödenmelidir..."),
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            HorizontalDivider(color = TourOSColors.Divider)
-
-            TourOSButton(
-                text = if (isSaving) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kaydediliyor...") else "💾 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Faturayı Veritabanına Kaydet")}",
-                onClick = onSaveInvoice,
-                variant = TourOSButtonVariant.PRIMARY,
-                enabled = customerName.isNotBlank() && subtotalStr.toDoubleOrNull() != null && !isSaving,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }
