@@ -341,11 +341,13 @@ class BookingRepositoryImpl(
     override suspend fun updateOperatorPnr(bookingId: String, pnrCode: String, operatorStatus: String): Result<Unit> {
         return runCatching {
             val targetId = bookingId
+            val cleanPnr = pnrCode.trim().uppercase()
             val idx = localCache.indexOfFirst { it.id == targetId || it.bookingCode == targetId }
             if (idx != -1) {
                 val old = localCache[idx]
                 localCache[idx] = old.copy(
-                    operatorPnrCode = pnrCode,
+                    bookingCode = cleanPnr,
+                    operatorPnrCode = cleanPnr,
                     operatorStatus = operatorStatus,
                     status = "ONAYLANDI"
                 )
@@ -358,7 +360,8 @@ class BookingRepositoryImpl(
 
                 supabaseClient.postgrest.from("bookings")
                     .update(mapOf(
-                        "operator_pnr_code" to pnrCode,
+                        "booking_code" to cleanPnr,
+                        "operator_pnr_code" to cleanPnr,
                         "operator_status" to operatorStatus,
                         "status" to "ONAYLANDI"
                     )) {

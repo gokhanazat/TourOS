@@ -111,17 +111,42 @@ private fun BookingDetailContent(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
+                val hasOperatorPnr = !booking.operatorPnrCode.isNullOrBlank()
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = booking.bookingCode,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(
+                                text = if (hasOperatorPnr) "✈️ ${booking.operatorPnrCode}" else booking.bookingCode,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            if (hasOperatorPnr) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFECFDF5),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981))
+                                ) {
+                                    Text(
+                                        text = "✓ RESMİ TO PNR",
+                                        style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                        if (hasOperatorPnr && booking.bookingCode != booking.operatorPnrCode) {
+                            Text(
+                                text = "Dahili Rezervasyon Referansı: #${booking.bookingCode}",
+                                style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            )
+                        }
+                    }
                     DetailStatusBadge(status = booking.status)
                 }
 
@@ -136,52 +161,94 @@ private fun BookingDetailContent(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // ✈️ Tur Operatörü Onay Bilgileri (TO PNR) Kartı
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "✈️ Tur Operatörü PNR (TO PNR):",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    if (!booking.operatorPnrCode.isNullOrBlank()) {
+                if (hasOperatorPnr) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(0xFFF0FDF4),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF86EFAC))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Text("🔒", fontSize = 20.sp)
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = "Resmi Tur Operatörü PNR: ${booking.operatorPnrCode}",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF166534))
+                                    )
+                                    Text(
+                                        text = "Bu rezervasyon resmi olarak kilitlenmiştir. Tüm cari, ödeme, fatura ve operasyonel süreçlerde bu PNR ile takip edilir.",
+                                        style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFF15803D))
+                                    )
+                                }
+                            }
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF16A34A)
+                            ) {
+                                Text(
+                                    text = "✓ Kilitli",
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "✈️ Tur Operatörü PNR (TO PNR):",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = Color(0xFFECFDF5)
+                            color = Color(0xFFFEF2F2)
                         ) {
                             Text(
-                                text = "✓ PNR Onaylı (${booking.operatorPnrCode})",
+                                text = "⚠️ PNR Henüz Girilmedi",
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF059669),
+                                color = Color(0xFFDC2626),
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = pnrInputText,
-                        onValueChange = { pnrInputText = it },
-                        placeholder = { Text("Örn: PEGAS-1029 / CP-98765", fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    Button(
-                        onClick = { onSaveOperatorPnr(pnrInputText) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56), contentColor = Color.White)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("PNR Kaydet & Onayla", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        OutlinedTextField(
+                            value = pnrInputText,
+                            onValueChange = { pnrInputText = it },
+                            placeholder = { Text("Örn: PEGAS-1029 / CP-98765", fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        Button(
+                            onClick = { onSaveOperatorPnr(pnrInputText) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56), contentColor = Color.White)
+                        ) {
+                            Text("PNR Kaydet & Değişmez Kod Yap", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
