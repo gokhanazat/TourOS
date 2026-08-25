@@ -452,13 +452,44 @@ fun CompanySettingsScreen(
                                         )
                                         Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                                        TourOSTextField(
-                                            value = defaultMasterAgencyCode,
-                                            onValueChange = { defaultMasterAgencyCode = it },
-                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Kodu (B2B SaaS / Master Referans Kodu)"),
-                                            placeholder = "Örn: ACT-001 / AGN-MASTER-8492",
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente Kodu (B2B SaaS / Master Referans Kodu)"),
+                                                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                                                )
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = Color(0xFFF1F5F9),
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFCBD5E1))
+                                                ) {
+                                                    Text(
+                                                        text = "🔒 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Admin Tarafından Kilitlendi"),
+                                                        style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                            TourOSTextField(
+                                                value = defaultMasterAgencyCode,
+                                                onValueChange = { /* Kilitli - Değiştirilemez */ },
+                                                readOnly = true,
+                                                enabled = false,
+                                                placeholder = "Örn: ACT-001 / AGN-MASTER-8492",
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                            Text(
+                                                text = "ℹ️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bu acente referans kodu sistem yöneticisi (Admin) tarafından tahsis edilmiştir ve acente tarafından değiştirilemez."),
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                            )
+                                        }
                                     }
 
                                     SettingsCategory.MARKA -> {
