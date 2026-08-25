@@ -2027,75 +2027,94 @@ fun B2BTourSearchDashboardScreen(
 
                         is B2BTourSearchUiState.Success -> {
                             val rawProducts = state.filteredProducts
-                            val products = rawProducts.filter { item ->
-                                val pType = item.safeProductType.uppercase()
-                                val opName = item.safeOperatorName.uppercase()
-                                val isLocalHotel = item.id.startsWith("local-hotel-") || pType == "LOCAL_HOTEL" || opName == "YEREL OTELLER"
-                                val isLocalTour = item.id.startsWith("local-tour-") || pType == "LOCAL_TOUR" || opName == "YEREL TURLAR"
+                            val products = remember(
+                                rawProducts,
+                                activeSearchTab,
+                                selectedOperators,
+                                selectedMealTypes,
+                                selectedStars,
+                                selectedHotels,
+                                searchQuery,
+                                departureCity,
+                                selectedRegion,
+                                nightsText,
+                                selectedBeachLine,
+                                minRating,
+                                selectedAmenities,
+                                isDirectFlightOnly,
+                                isTransferIncludedOnly,
+                                isInstantOnly
+                            ) {
+                                rawProducts.filter { item ->
+                                    val pType = item.safeProductType.uppercase()
+                                    val opName = item.safeOperatorName.uppercase()
+                                    val isLocalHotel = item.id.startsWith("local-hotel-") || pType == "LOCAL_HOTEL" || opName == "YEREL OTELLER"
+                                    val isLocalTour = item.id.startsWith("local-tour-") || pType == "LOCAL_TOUR" || opName == "YEREL TURLAR"
 
-                                val tabMatch = when (activeSearchTab) {
-                                    "TOURS" -> !isLocalHotel && !isLocalTour && !pType.contains("FLIGHT")
-                                    "HOTELS" -> !isLocalHotel && !isLocalTour && (pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank()))
-                                    "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank() || item.tourName.contains("Uçuş", ignoreCase = true)
-                                    "LOCAL_TOURS" -> isLocalTour
-                                    "LOCAL_HOTELS" -> isLocalHotel
-                                    else -> true
-                                }
-
-                                val isFlightTab = (activeSearchTab == "FLIGHTS")
-                                val operatorMatch = isFlightTab || selectedOperators.isEmpty() || selectedOperators.any { op -> item.safeOperatorName.contains(op, ignoreCase = true) }
-                                
-                                val mealMatch = isFlightTab || selectedMealTypes.isEmpty() || selectedMealTypes.any { m ->
-                                    val lower = item.safeMealType.lowercase()
-                                    when (m.uppercase()) {
-                                        "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
-                                        "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
-                                        "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный пансион")
-                                        "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
-                                        "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
-                                        "RO" -> lower.contains("ro") || lower.contains("room only") || lower.contains("sadece oda") || lower.contains("bez pitaniya") || lower.contains("без питания")
-                                        else -> lower.contains(m.lowercase())
+                                    val tabMatch = when (activeSearchTab) {
+                                        "TOURS" -> !isLocalHotel && !isLocalTour && !pType.contains("FLIGHT")
+                                        "HOTELS" -> !isLocalHotel && !isLocalTour && (pType.contains("HOTEL") || (item.hotelName.isNotBlank() && item.flightNumber.isBlank()))
+                                        "FLIGHTS" -> pType.contains("FLIGHT") || pType.contains("CHARTER") || item.flightNumber.isNotBlank() || item.tourName.contains("Uçuş", ignoreCase = true)
+                                        "LOCAL_TOURS" -> isLocalTour
+                                        "LOCAL_HOTELS" -> isLocalHotel
+                                        else -> true
                                     }
-                                }
 
-                                val starMatch = isFlightTab || selectedStars.isEmpty() || selectedStars.contains(item.hotelCategory)
-                                val hotelMatch = isFlightTab || selectedHotels.isEmpty() || selectedHotels.any { hName -> item.safeHotelName.contains(hName, ignoreCase = true) }
-                                val queryMatch = searchQuery.isBlank() || item.safeHotelName.contains(searchQuery, ignoreCase = true) || item.tourName.contains(searchQuery, ignoreCase = true) || item.region.contains(searchQuery, ignoreCase = true)
-
-                                val flightDepMatch = departureCity.isBlank() ||
-                                    departureCity.equals("Tüm Kalkış Şehirleri", ignoreCase = true) ||
-                                    departureCity.contains("Tüm", ignoreCase = true) ||
-                                    departureCity.contains("Hepsi", ignoreCase = true) ||
-                                    item.departureCity.isBlank() ||
-                                    item.departureCity.contains(departureCity, ignoreCase = true) ||
-                                    (departureCity.contains("Moskova", ignoreCase = true) && (item.departureCity.contains("Moskova", ignoreCase = true) || item.departureCity.contains("Москва", ignoreCase = true) || item.departureCity.contains("SVO", ignoreCase = true) || item.departureCity.contains("VKO", ignoreCase = true) || item.departureCity.contains("DME", ignoreCase = true))) ||
-                                    (departureCity.contains("İstanbul", ignoreCase = true) && (item.departureCity.contains("İstanbul", ignoreCase = true) || item.departureCity.contains("Istanbul", ignoreCase = true) || item.departureCity.contains("IST", ignoreCase = true) || item.departureCity.contains("SAW", ignoreCase = true)))
-
-                                val flightDestMatch = isDestinationMatching(item, selectedRegion)
-
-                                val (b2bMinNights, b2bMaxNights) = when {
-                                    nightsText.contains("1 - 4") -> 1 to 4
-                                    nightsText.contains("5 - 7") -> 5 to 7
-                                    nightsText.contains("7 - 10") -> 7 to 10
-                                    nightsText.contains("10 - 14") -> 10 to 14
-                                    nightsText.contains("14 - 21") -> 14 to 21
-                                    nightsText.contains("Tüm") -> 1 to 30
-                                    else -> {
-                                        val num = nightsText.filter { it.isDigit() }.toIntOrNull() ?: 7
-                                        num to num
+                                    val isFlightTab = (activeSearchTab == "FLIGHTS")
+                                    val operatorMatch = isFlightTab || selectedOperators.isEmpty() || selectedOperators.any { op -> item.safeOperatorName.contains(op, ignoreCase = true) }
+                                    
+                                    val mealMatch = isFlightTab || selectedMealTypes.isEmpty() || selectedMealTypes.any { m ->
+                                        val lower = item.safeMealType.lowercase()
+                                        when (m.uppercase()) {
+                                            "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
+                                            "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
+                                            "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный пансион")
+                                            "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
+                                            "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
+                                            "RO" -> lower.contains("ro") || lower.contains("room only") || lower.contains("sadece oda") || lower.contains("bez pitaniya") || lower.contains("без питания")
+                                            else -> lower.contains(m.lowercase())
+                                        }
                                     }
+
+                                    val starMatch = isFlightTab || selectedStars.isEmpty() || selectedStars.contains(item.hotelCategory)
+                                    val hotelMatch = isFlightTab || selectedHotels.isEmpty() || selectedHotels.any { hName -> item.safeHotelName.contains(hName, ignoreCase = true) }
+                                    val queryMatch = searchQuery.isBlank() || item.safeHotelName.contains(searchQuery, ignoreCase = true) || item.tourName.contains(searchQuery, ignoreCase = true) || item.region.contains(searchQuery, ignoreCase = true)
+
+                                    val flightDepMatch = departureCity.isBlank() ||
+                                        departureCity.equals("Tüm Kalkış Şehirleri", ignoreCase = true) ||
+                                        departureCity.contains("Tüm", ignoreCase = true) ||
+                                        departureCity.contains("Hepsi", ignoreCase = true) ||
+                                        item.departureCity.isBlank() ||
+                                        item.departureCity.contains(departureCity, ignoreCase = true) ||
+                                        (departureCity.contains("Moskova", ignoreCase = true) && (item.departureCity.contains("Moskova", ignoreCase = true) || item.departureCity.contains("Москва", ignoreCase = true) || item.departureCity.contains("SVO", ignoreCase = true) || item.departureCity.contains("VKO", ignoreCase = true) || item.departureCity.contains("DME", ignoreCase = true))) ||
+                                        (departureCity.contains("İstanbul", ignoreCase = true) && (item.departureCity.contains("İstanbul", ignoreCase = true) || item.departureCity.contains("Istanbul", ignoreCase = true) || item.departureCity.contains("IST", ignoreCase = true) || item.departureCity.contains("SAW", ignoreCase = true)))
+
+                                    val flightDestMatch = isDestinationMatching(item, selectedRegion)
+
+                                    val (b2bMinNights, b2bMaxNights) = when {
+                                        nightsText.contains("1 - 4") -> 1 to 4
+                                        nightsText.contains("5 - 7") -> 5 to 7
+                                        nightsText.contains("7 - 10") -> 7 to 10
+                                        nightsText.contains("10 - 14") -> 10 to 14
+                                        nightsText.contains("14 - 21") -> 14 to 21
+                                        nightsText.contains("Tüm") -> 1 to 30
+                                        else -> {
+                                            val num = nightsText.filter { it.isDigit() }.toIntOrNull() ?: 7
+                                            num to num
+                                        }
+                                    }
+                                    val nightsMatch = isFlightTab || nightsText.contains("Tüm") || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
+
+                                    val isTourOrHotel = (activeSearchTab == "TOURS" || activeSearchTab == "HOTELS")
+                                    val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == 0 || item.beachLine == selectedBeachLine
+                                    val ratingMatch = !isTourOrHotel || minRating <= 0.0 || item.hotelRating <= 0.0 || item.hotelRating >= minRating
+                                    val amenityMatch = !isTourOrHotel || selectedAmenities.isEmpty() || selectedAmenities.all { am -> item.amenities.any { a -> a.contains(am, ignoreCase = true) } }
+                                    val directFlightMatch = (activeSearchTab != "TOURS") || !isDirectFlightOnly || item.isDirectFlight
+                                    val transferMatch = !isTourOrHotel || !isTransferIncludedOnly || item.hasTransfer
+                                    val instantMatch = !isInstantOnly || item.isInstantConfirmation
+
+                                    tabMatch && operatorMatch && mealMatch && starMatch && hotelMatch && queryMatch && flightDepMatch && flightDestMatch && nightsMatch && beachMatch && ratingMatch && amenityMatch && directFlightMatch && transferMatch && instantMatch
                                 }
-                                val nightsMatch = isFlightTab || nightsText.contains("Tüm") || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
-
-                                val isTourOrHotel = (activeSearchTab == "TOURS" || activeSearchTab == "HOTELS")
-                                val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == 0 || item.beachLine == selectedBeachLine
-                                val ratingMatch = !isTourOrHotel || minRating <= 0.0 || item.hotelRating <= 0.0 || item.hotelRating >= minRating
-                                val amenityMatch = !isTourOrHotel || selectedAmenities.isEmpty() || selectedAmenities.all { am -> item.amenities.any { a -> a.contains(am, ignoreCase = true) } }
-                                val directFlightMatch = (activeSearchTab != "TOURS") || !isDirectFlightOnly || item.isDirectFlight
-                                val transferMatch = !isTourOrHotel || !isTransferIncludedOnly || item.hasTransfer
-                                val instantMatch = !isInstantOnly || item.isInstantConfirmation
-
-                                tabMatch && operatorMatch && mealMatch && starMatch && hotelMatch && queryMatch && flightDepMatch && flightDestMatch && nightsMatch && beachMatch && ratingMatch && amenityMatch && directFlightMatch && transferMatch && instantMatch
                             }
 
                             // Ülke ve Alt Bölgeye Göre Kesin Filtrelenmiş Sonuçlar

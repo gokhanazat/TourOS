@@ -154,6 +154,11 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
             isInitiallyExpanded = true,
             items = listOf(
                 TourOSNavItem(
+                    title = AppLanguageManager.translate("TO Ödeme & PNR"),
+                    route = OperatorPaymentManagementRoute,
+                    isSelected = currentRoute?.contains("OperatorPaymentManagementRoute") == true
+                ),
+                TourOSNavItem(
                     title = AppLanguageManager.translate("TO Cari Hesap"),
                     route = OperatorCurrentAccountReportRoute,
                     isSelected = currentRoute?.contains("OperatorCurrentAccountReportRoute") == true
@@ -837,6 +842,9 @@ private fun AppNavHost(navController: NavHostController) {
 
         composable<ReportsRoute> {
             ReportsScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
+        }
+        composable<OperatorPaymentManagementRoute> {
+            com.mgacreative.touros.ui.screens.OperatorPaymentManagementScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })
         }
         composable<OperatorCurrentAccountReportRoute> {
             com.mgacreative.touros.ui.screens.OperatorCurrentAccountReportScreen(viewModel = koinViewModel(), onNavigateBack = { navController.popBackStack() })

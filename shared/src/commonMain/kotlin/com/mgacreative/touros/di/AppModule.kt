@@ -179,6 +179,7 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.CreateBookingWizardViewModel(get(), get(), get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.BookingListViewModel(get(), get(), get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.ReportsViewModel(get(), get()) }
+    factory { com.mgacreative.touros.ui.viewmodel.OperatorPaymentViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.OperatorCurrentAccountReportViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.CustomerSegmentationViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.BookingDetailViewModel(get(), get(), get()) }
