@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.mgacreative.touros.domain.model.Booking
 import com.mgacreative.touros.ui.components.*
@@ -288,16 +289,21 @@ fun CustomerSegmentationScreen(
                             weight = 2.0f,
                             cellContent = { customer ->
                                 val digitsPhone = customer.phone.filter { it.isDigit() }
+                                val isRussianNumber = digitsPhone.startsWith("7") || (digitsPhone.startsWith("8") && digitsPhone.length == 11)
+                                val cleanRussianPhone = if (digitsPhone.startsWith("8") && digitsPhone.length == 11) "7" + digitsPhone.substring(1) else digitsPhone
                                 val waPhone = when {
                                     digitsPhone.startsWith("90") -> digitsPhone
                                     digitsPhone.startsWith("0") -> "90" + digitsPhone.removePrefix("0")
                                     digitsPhone.length == 10 -> "90$digitsPhone"
+                                    isRussianNumber -> cleanRussianPhone
                                     else -> digitsPhone
                                 }
+                                val tgPhone = if (isRussianNumber) cleanRussianPhone else waPhone
+                                val maxPhone = if (isRussianNumber) cleanRussianPhone else digitsPhone
                                 val telPhone = if (customer.phone.startsWith("+")) customer.phone.replace(" ", "") else "+$waPhone"
 
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(3.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // WhatsApp Butonu
@@ -313,10 +319,53 @@ fun CustomerSegmentationScreen(
                                     ) {
                                         Text(
                                             text = "💬 WA",
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                             style = TourOSTypography.Caption,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF128C7E)
+                                            color = Color(0xFF128C7E),
+                                            fontSize = 10.sp
+                                        )
+                                    }
+
+                                    // MAX Messenger Butonu (Rusya Entegrasyonu)
+                                    Surface(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .clickable {
+                                                if (maxPhone.isNotBlank()) {
+                                                    runCatching { uriHandler.openUri("https://max.im/chat?phone=+$maxPhone") }
+                                                }
+                                            },
+                                        color = Color(0xFF3B82F6).copy(alpha = 0.15f)
+                                    ) {
+                                        Text(
+                                            text = "🔵 MAX",
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                            style = TourOSTypography.Caption,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF1D4ED8),
+                                            fontSize = 10.sp
+                                        )
+                                    }
+
+                                    // Telegram Butonu
+                                    Surface(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .clickable {
+                                                if (tgPhone.isNotBlank()) {
+                                                    runCatching { uriHandler.openUri("https://t.me/+$tgPhone") }
+                                                }
+                                            },
+                                        color = Color(0xFF0088CC).copy(alpha = 0.15f)
+                                    ) {
+                                        Text(
+                                            text = "✈️ TG",
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                            style = TourOSTypography.Caption,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0088CC),
+                                            fontSize = 10.sp
                                         )
                                     }
 
@@ -333,10 +382,11 @@ fun CustomerSegmentationScreen(
                                     ) {
                                         Text(
                                             text = "📞 Ara",
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                             style = TourOSTypography.Caption,
                                             fontWeight = FontWeight.Bold,
-                                            color = TourOSColors.Primary
+                                            color = TourOSColors.Primary,
+                                            fontSize = 10.sp
                                         )
                                     }
 
@@ -349,10 +399,11 @@ fun CustomerSegmentationScreen(
                                     ) {
                                         Text(
                                             text = "Detay ›",
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                             style = TourOSTypography.Caption,
                                             fontWeight = FontWeight.Bold,
-                                            color = TourOSColors.TextPrimary
+                                            color = TourOSColors.TextPrimary,
+                                            fontSize = 10.sp
                                         )
                                     }
                                 }
@@ -419,12 +470,17 @@ private fun CustomerDetailHistoryDialog(
     uriHandler: androidx.compose.ui.platform.UriHandler
 ) {
     val digitsPhone = customer.phone.filter { it.isDigit() }
+    val isRussianNumber = digitsPhone.startsWith("7") || (digitsPhone.startsWith("8") && digitsPhone.length == 11)
+    val cleanRussianPhone = if (digitsPhone.startsWith("8") && digitsPhone.length == 11) "7" + digitsPhone.substring(1) else digitsPhone
     val waPhone = when {
         digitsPhone.startsWith("90") -> digitsPhone
         digitsPhone.startsWith("0") -> "90" + digitsPhone.removePrefix("0")
         digitsPhone.length == 10 -> "90$digitsPhone"
+        isRussianNumber -> cleanRussianPhone
         else -> digitsPhone
     }
+    val tgPhone = if (isRussianNumber) cleanRussianPhone else waPhone
+    val maxPhone = if (isRussianNumber) cleanRussianPhone else digitsPhone
     val telPhone = if (customer.phone.startsWith("+")) customer.phone.replace(" ", "") else "+$waPhone"
 
     Dialog(onDismissRequest = onDismiss) {
@@ -554,7 +610,7 @@ private fun CustomerDetailHistoryDialog(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                         TourOSButton(
-                            text = "💬 WhatsApp ile Teklif / Mesaj Gönder",
+                            text = "💬 WhatsApp",
                             onClick = {
                                 if (waPhone.isNotBlank()) {
                                     runCatching { uriHandler.openUri("https://wa.me/$waPhone") }
@@ -563,7 +619,25 @@ private fun CustomerDetailHistoryDialog(
                             variant = TourOSButtonVariant.PRIMARY
                         )
                         TourOSButton(
-                            text = "📞 Telefonla Ara",
+                            text = "🔵 MAX",
+                            onClick = {
+                                if (maxPhone.isNotBlank()) {
+                                    runCatching { uriHandler.openUri("https://max.im/chat?phone=+$maxPhone") }
+                                }
+                            },
+                            variant = TourOSButtonVariant.SECONDARY
+                        )
+                        TourOSButton(
+                            text = "✈️ Telegram",
+                            onClick = {
+                                if (tgPhone.isNotBlank()) {
+                                    runCatching { uriHandler.openUri("https://t.me/+$tgPhone") }
+                                }
+                            },
+                            variant = TourOSButtonVariant.SECONDARY
+                        )
+                        TourOSButton(
+                            text = "📞 Ara",
                             onClick = {
                                 if (digitsPhone.isNotBlank()) {
                                     runCatching { uriHandler.openUri("tel:$telPhone") }
