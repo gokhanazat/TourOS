@@ -18,7 +18,8 @@ data class CustomerCrmDetail(
     val totalBookings: Int,
     val ltvAmount: Double,
     val lastActivityDate: String,
-    val bookingTypeStr: String
+    val bookingTypeStr: String,
+    val bookings: List<Booking> = emptyList()
 )
 
 data class SegmentCategory(
@@ -61,6 +62,7 @@ class CustomerSegmentationViewModel(
 
             getBookingsUseCase.getBookings(tenantId).onSuccess { bookings ->
                 val customersMap = mutableMapOf<String, CustomerCrmDetail>()
+                val customerBookingsMap = mutableMapOf<String, MutableList<Booking>>()
 
                 bookings.forEach { b ->
                     val cPhone = b.customerPhone.orEmpty()
@@ -77,6 +79,9 @@ class CustomerSegmentationViewModel(
                         val lastDate = if (existing == null || bDate > existing.lastActivityDate) bDate else existing.lastActivityDate
                         val typeStr = if (b.bookingType == "HOTEL") "Otel" else "Tur"
 
+                        val list = customerBookingsMap.getOrPut(key) { mutableListOf() }
+                        list.add(b)
+
                         customersMap[key] = CustomerCrmDetail(
                             id = key,
                             name = name,
@@ -85,7 +90,8 @@ class CustomerSegmentationViewModel(
                             totalBookings = count,
                             ltvAmount = ltv,
                             lastActivityDate = lastDate,
-                            bookingTypeStr = typeStr
+                            bookingTypeStr = typeStr,
+                            bookings = list
                         )
                     }
                 }
