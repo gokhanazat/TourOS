@@ -37,7 +37,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import com.mgacreative.touros.utils.rememberFilePickerLauncher
 import com.mgacreative.touros.ui.components.TourOSButton
 import com.mgacreative.touros.ui.components.TourOSButtonVariant
 import com.mgacreative.touros.ui.components.TourOSCard
@@ -65,12 +64,6 @@ fun HotelFormScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val scrollState = rememberScrollState()
-
-    val coverPickerLauncher = rememberFilePickerLauncher(
-        mimeType = "image/*"
-    ) { fileName, _ ->
-        viewModel.updateCoverImageUrl(fileName)
-    }
 
     Scaffold(
         topBar = {
@@ -189,29 +182,17 @@ fun HotelFormScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                     Text(
-                        "🖼️ Kapak Fotoğrafı & Görsel Seçimi",
+                        "🖼️ Kapak Fotoğrafı (Görsel URL)",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        TourOSTextField(
-                            value = uiState.coverImageUrl,
-                            onValueChange = { viewModel.updateCoverImageUrl(it) },
-                            label = "Görsel URL veya Dosya Yolu",
-                            placeholder = "https://images.unsplash.com/... veya C:/dosya.jpg",
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        TourOSButton(
-                            text = "📁 Görsel Seç",
-                            onClick = { coverPickerLauncher() },
-                            variant = TourOSButtonVariant.SECONDARY
-                        )
-                    }
+                    TourOSTextField(
+                        value = uiState.coverImageUrl,
+                        onValueChange = { viewModel.updateCoverImageUrl(it) },
+                        label = "Görsel URL Adresi (Web Linki)",
+                        placeholder = "https://images.unsplash.com/... veya https://.../hotel.jpg",
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     // Canlı Önizleme Kutusu
                     if (uiState.coverImageUrl.isNotBlank()) {
