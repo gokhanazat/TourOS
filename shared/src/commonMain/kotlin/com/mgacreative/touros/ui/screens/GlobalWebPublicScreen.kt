@@ -610,8 +610,8 @@ fun GlobalWebPublicScreen(
     var searchResultsList by remember { mutableStateOf<List<PublicHotelOffer>>(emptyList()) }
 
     // Hero Arama Barı Form State'leri
-    var departureCity by remember { mutableStateOf("Moskova (VKO)") }
-    var destinationCity by remember { mutableStateOf("Antalya (Lara, Belek, Alanya)") }
+    var departureCity by remember { mutableStateOf("Москва (Все аэропорты)") }
+    var destinationCity by remember { mutableStateOf("Türkiye (Antalya)") }
     var startDateText by remember { mutableStateOf("20.08.2026") }
     var endDateText by remember { mutableStateOf("28.08.2026") }
     var returnStartDateText by remember { mutableStateOf("28.08.2026") }
@@ -642,14 +642,26 @@ fun GlobalWebPublicScreen(
     var showNightsDropdown by remember { mutableStateOf(false) }
     var showGuestRoomModal by remember { mutableStateOf(false) }
     var showHierarchicalDestModal by remember { mutableStateOf(false) }
+    var showRussianDepartureModal by remember { mutableStateOf(false) }
     var bookingSuccessMessage by remember { mutableStateOf<String?>(null) }
+
+    if (showRussianDepartureModal) {
+        com.mgacreative.touros.ui.components.RussianDepartureCityPickerDialog(
+            currentSelection = departureCity,
+            onCitySelected = { city ->
+                departureCity = "${city.nameRu} (${city.airportCode})"
+            },
+            onDismiss = { showRussianDepartureModal = false }
+        )
+    }
 
     if (showHierarchicalDestModal) {
         com.mgacreative.touros.ui.components.HierarchicalDestinationPickerDialog(
             currentSelection = destinationCity,
             onDestinationSelected = { destItem ->
-                destinationCity = destItem.name
+                destinationCity = if (destItem.nameRu.isNotBlank()) "${destItem.name} (${destItem.nameRu})" else destItem.name
                 selectedDestinationFilter = destItem.name
+                selectedCountryFilter = destItem.countryName
             },
             onDismiss = { showHierarchicalDestModal = false }
         )
@@ -1506,7 +1518,7 @@ fun GlobalWebPublicScreen(
                                 if (selectedSearchCategoryTab == "FLIGHT") {
                                     // ── ✈️ UÇUŞLAR SEKMESİNE ÖZEL FİLTRE DÜZENİ (MOCKUP BİREBİR) ──
 
-                                    // 1. Destinasyon (Nereden / Nereye)
+                                    // 1. Destinasyon (1. Ülke & Destinasyon / 2. Rusya Kalkış Şehri)
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(AppLanguageManager.translate("Destinasyon"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
@@ -1517,49 +1529,35 @@ fun GlobalWebPublicScreen(
                                                 .padding(4.dp),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            // Nereden
+                                            // 1. Nereye (Ülke & Destinasyon) - ÖNCE ÜLKEDEN BAŞLAMA
                                             Box(
                                                 modifier = Modifier
-                                                    .weight(1f)
-                                                    .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showDepartureDropdown = !showDepartureDropdown }
-                                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                            ) {
-                                                Column {
-                                                    Text(AppLanguageManager.translate("Nereden (Kalkış Şehri)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
-                                                        Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                                    }
-                                                }
-                                                DropdownMenu(
-                                                    expanded = showDepartureDropdown,
-                                                    onDismissRequest = { showDepartureDropdown = false },
-                                                    modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
-                                                ) {
-                                                    listOf("İstanbul (IST)", "Moskova (VKO)", "Ankara (ESB)", "İzmir (ADB)", "Kazan (KZN)").forEach { city ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(city, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
-                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                            modifier = Modifier.height(34.dp),
-                                                            onClick = { departureCity = city; showDepartureDropdown = false }
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            // Nereye
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
+                                                    .weight(1.15f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
                                                     .clickable { showHierarchicalDestModal = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text(AppLanguageManager.translate("Nereye (Destinasyon / Ülke)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("1. Nereye (Ülke / Şehir)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                        Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. Nereden (Rusya Kalkış Şehri - Sadece Rusya)
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
+                                                    .clickable { showRussianDepartureModal = true }
+                                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                            ) {
+                                                Column {
+                                                    Text("2. " + AppLanguageManager.translate("Kalkış (Rusya)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                        Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
                                                     }
                                                 }
@@ -1666,7 +1664,7 @@ fun GlobalWebPublicScreen(
                                     }
                                 } else {
                                     // ── TÜM DİĞER SEKMELER (Tur Paketi & Oteller) FİLTRELERİ ──
-                                    // 1. DESTİNASYON
+                                    // 1. DESTİNASYON (1. Ülke & Destinasyon / 2. Rusya Kalkış Şehri)
                                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Text(AppLanguageManager.translate("Destinasyon"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                         Row(
@@ -1677,49 +1675,35 @@ fun GlobalWebPublicScreen(
                                                 .padding(4.dp),
                                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            // Nereden
+                                            // 1. Nereye (Ülke & Destinasyon) - ÖNCE ÜLKEDEN BAŞLAMA
                                             Box(
                                                 modifier = Modifier
-                                                    .weight(1f)
-                                                    .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
-                                                    .clickable { showDepartureDropdown = !showDepartureDropdown }
-                                                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                                            ) {
-                                                Column {
-                                                    Text(AppLanguageManager.translate("Nereden (Kalkış Şehri)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                                        Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1)
-                                                        Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                                    }
-                                                }
-                                                DropdownMenu(
-                                                    expanded = showDepartureDropdown,
-                                                    onDismissRequest = { showDepartureDropdown = false },
-                                                    modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
-                                                ) {
-                                                    listOf("İstanbul (IST)", "Moskova (VKO)", "Ankara (ESB)", "İzmir (ADB)", "Kazan (KZN)").forEach { city ->
-                                                        DropdownMenuItem(
-                                                            text = { Text(city, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
-                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                            modifier = Modifier.height(34.dp),
-                                                            onClick = { departureCity = city; showDepartureDropdown = false }
-                                                        )
-                                                    }
-                                                }
-                                            }
-
-                                            // Nereye
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
+                                                    .weight(1.15f)
                                                     .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
                                                     .clickable { showHierarchicalDestModal = true }
                                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                             ) {
                                                 Column {
-                                                    Text(AppLanguageManager.translate("Nereye (Destinasyon / Ülke)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Text(AppLanguageManager.translate("1. Nereye (Ülke / Şehir)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
                                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                                         Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                                        Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
+                                                    }
+                                                }
+                                            }
+
+                                            // 2. Nereden (Rusya Kalkış Şehri - Sadece Rusya)
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .background(Color(0xFFF8FAFC), RoundedCornerShape(6.dp))
+                                                    .clickable { showRussianDepartureModal = true }
+                                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                            ) {
+                                                Column {
+                                                    Text("2. " + AppLanguageManager.translate("Kalkış (Rusya)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
+                                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                                        Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 11.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                                                         Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
                                                     }
                                                 }

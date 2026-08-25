@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ enum class DestinationLevel {
 data class DestinationItem(
     val id: String,
     val name: String,
+    val nameRu: String = "",
     val parentName: String? = null,
     val countryName: String,
     val flag: String,
@@ -40,7 +42,8 @@ data class DestinationItem(
 )
 
 /**
- * TourOS Tasarım Sistemine uygun Hiyerarşik Destinasyon Seçici (Ülke -> Şehir/Hub -> Belde/Resort).
+ * TourOS Hiyerarşik Destinasyon Seçici (Ülke -> Şehir/Hub -> Belde/Resort).
+ * Çift Dilli (Türkçe & Kiril Rusça) ve Kademeli Ülke Filtreli.
  */
 @Composable
 fun HierarchicalDestinationPickerDialog(
@@ -49,93 +52,100 @@ fun HierarchicalDestinationPickerDialog(
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var selectedCountryTab by remember { mutableStateOf("ALL") }
 
     val allDestinations = remember {
         listOf(
             // TÜRKİYE
-            DestinationItem("tr_all", "Türkiye (Tüm Bölgeler)", null, "Türkiye", "🇹🇷", DestinationLevel.COUNTRY, null, "Tüm Türkiye turları ve otelleri"),
+            DestinationItem("tr_all", "Türkiye (Tüm Bölgeler)", "Турция (Все регионы)", null, "Türkiye", "🇹🇷", DestinationLevel.COUNTRY, null, "Tüm Türkiye turları ve otelleri"),
             
             // ANTALYA
-            DestinationItem("tr_ayt", "Antalya (Tüm Bölge)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Lara, Belek, Side, Kemer, Alanya"),
-            DestinationItem("tr_ayt_belek", "Belek / Boğazkent", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Lüks Resort & Golf Otelleri"),
-            DestinationItem("tr_ayt_lara", "Lara / Kundu", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Havalimanına En Yakın Sahil Bandı"),
-            DestinationItem("tr_ayt_side", "Side / Manavgat", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Tarihi Yarımada & Kum Plajlar"),
-            DestinationItem("tr_ayt_kemer", "Kemer / Beldibi / Tekirova", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Dağ & Deniz Manzaralı Tesisler"),
-            DestinationItem("tr_ayt_alanya", "Alanya / Okurcalar / Mahmutlar", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "GZP", "Kleopatra Plajı & Kalabalık Merkez"),
-            DestinationItem("tr_ayt_cirali", "Çıralı / Olimpos / Kaş", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Butik & Doğa Otelleri"),
+            DestinationItem("tr_ayt", "Antalya (Tüm Bölge)", "Анталья (Все курорты)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Lara, Belek, Side, Kemer, Alanya"),
+            DestinationItem("tr_ayt_belek", "Belek / Boğazkent", "Белек / Богазкент", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Lüks Resort & Golf Otelleri"),
+            DestinationItem("tr_ayt_lara", "Lara / Kundu", "Лара / Кунду", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Havalimanına En Yakın Sahil Bandı"),
+            DestinationItem("tr_ayt_side", "Side / Manavgat", "Сиде / Манавгат", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Tarihi Yarımada & Kum Plajlar"),
+            DestinationItem("tr_ayt_kemer", "Kemer / Beldibi / Tekirova", "Кемер / Бельдиби / Текирова", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Dağ & Deniz Manzaralı Tesisler"),
+            DestinationItem("tr_ayt_alanya", "Alanya / Okurcalar / Mahmutlar", "Аланья / Окурджалар / Махмутлар", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "GZP", "Kleopatra Plajı & Kalabalık Merkez"),
+            DestinationItem("tr_ayt_cirali", "Çıralı / Olimpos / Kaş", "Чиралы / Олимпос / Каш", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Butik & Doğa Otelleri"),
 
             // MUĞLA / EGE
-            DestinationItem("tr_mugla", "Muğla (Tüm Ege)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Bodrum, Marmaris, Fethiye, Datça"),
-            DestinationItem("tr_bjv_bodrum", "Bodrum (Yalıkavak, Torba, Gümbet)", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "BJV", "Gece Hayatı & Marinalar"),
-            DestinationItem("tr_dlm_marmaris", "Marmaris / İçmeler / Turunç", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Koylar & Çam Ormanları"),
-            DestinationItem("tr_dlm_fethiye", "Fethiye / Ölüdeniz / Göcek", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Mavi Yolculuk & Yamaç Paraşütü"),
-            DestinationItem("tr_dlm_datca", "Datça", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Sakin Koylar & Taş Evler"),
+            DestinationItem("tr_mugla", "Muğla (Tüm Ege)", "Эгейское побережье (Мугла)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Bodrum, Marmaris, Fethiye, Datça"),
+            DestinationItem("tr_bjv_bodrum", "Bodrum (Yalıkavak, Torba, Gümbet)", "Бодрум (Ялыкавак, Торба, Гюмбет)", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "BJV", "Gece Hayatı & Marinalar"),
+            DestinationItem("tr_dlm_marmaris", "Marmaris / İçmeler / Turunç", "Мармарис / Ичмелер / Турунч", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Koylar & Çam Ormanları"),
+            DestinationItem("tr_dlm_fethiye", "Fethiye / Ölüdeniz / Göcek", "Фетхие / Олюдениз / Гёчек", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Mavi Yolculuk & Yamaç Paraşütü"),
+            DestinationItem("tr_dlm_datca", "Datça", "Датча", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Sakin Koylar & Taş Evler"),
 
             // İZMİR
-            DestinationItem("tr_izmir", "İzmir (Tüm Bölge)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Çeşme, Alaçatı, Kuşadası"),
-            DestinationItem("tr_adb_cesme", "Çeşme / Alaçatı", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Rüzgar Sörfü & Butik Taş Oteller"),
-            DestinationItem("tr_adb_kusadasi", "Kuşadası / Selçuk", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Efes Antik Kenti & Plajlar"),
+            DestinationItem("tr_izmir", "İzmir (Tüm Bölge)", "Измир (Чешме, Кушадасы)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Çeşme, Alaçatı, Kuşadası"),
+            DestinationItem("tr_adb_cesme", "Çeşme / Alaçatı", "Чешме / Алачаты", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Rüzgar Sörfü & Butik Taş Oteller"),
+            DestinationItem("tr_adb_kusadasi", "Kuşadası / Selçuk", "Кушадасы / Сельчук", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Efes Antik Kenti & Plajlar"),
 
-            // İSTANBUL & DİĞER
-            DestinationItem("tr_ist", "İstanbul (Tüm Şehir)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "Sultanahmet, Taksim, Boğaz"),
-            DestinationItem("tr_nav", "Kapadokya (Göreme / Ürgüp)", "Nevşehir", "Türkiye", "🎈", DestinationLevel.RESORT, "NAV", "Balon Turları & Mağara Oteller"),
-
-            // RUSYA
-            DestinationItem("ru_all", "Rusya (Tüm Şehirler)", null, "Rusya", "🇷🇺", DestinationLevel.COUNTRY, null, "Moskova, St. Petersburg, Sochi, Kazan"),
-            DestinationItem("ru_svo", "Moskova (Tüm Havalimanları)", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "SVO", "Şeremetyevo, Domodedovo, Vnukovo"),
-            DestinationItem("ru_led", "St. Petersburg", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "LED", "Pulkovo & Kültür Turları"),
-            DestinationItem("ru_aer", "Sochi / Adler / Krasnaya Polyana", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "AER", "Karadeniz Sahili & Kayak Merkezleri"),
-            DestinationItem("ru_kzn", "Kazan", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "KZN", "Volga & Tataristan"),
+            // İSTANBUL & KAPADOKYA
+            DestinationItem("tr_ist", "İstanbul (Tüm Şehir)", "Стамбул (Все районы)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "Sultanahmet, Taksim, Boğaz"),
+            DestinationItem("tr_nav", "Kapadokya (Göreme / Ürgüp)", "Каппадокия (Гёреме / Ургюп)", "Nevşehir", "Türkiye", "🎈", DestinationLevel.RESORT, "NAV", "Balon Turları & Mağara Oteller"),
 
             // MISIR
-            DestinationItem("eg_all", "Mısır (Tüm Bölgeler)", null, "Mısır", "🇪🇬", DestinationLevel.COUNTRY, null, "Kızıldeniz & Nil Nehri Turları"),
-            DestinationItem("eg_ssh", "Şarm El-Şeyh (Naama / Nabq)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "SSH", "Dalış Merkezleri & Mercan Resifleri"),
-            DestinationItem("eg_hrg", "Hurgada (El Gouna / Makadi)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "HRG", "Kum Plajlar & Su Sporları"),
-
-            // TAYLAND
-            DestinationItem("th_all", "Tayland (Tüm Bölgeler)", null, "Tayland", "🇹🇭", DestinationLevel.COUNTRY, null, "Phuket, Pattaya, Bangkok, Koh Samui"),
-            DestinationItem("th_hkt", "Phuket (Patong, Karon, Kata)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "HKT", "Tropikal Ada & Plaj Kulüpleri"),
-            DestinationItem("th_utp", "Pattaya (Jomtien, Naklua)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "UTP", "Eğlence, Gece Hayatı & Su Sporları"),
-            DestinationItem("th_bkk", "Bangkok (Sukhumvit, Silom)", "Tayland", "Tayland", "🏙️", DestinationLevel.CITY, "BKK", "Tapınaklar & Alışveriş"),
-            DestinationItem("th_usm", "Koh Samui (Chaweng)", "Tayland", "Tayland", "🏝️", DestinationLevel.RESORT, "USM", "Palmiye Plajları & Lüks Villalar"),
-
-            // VİETNAM
-            DestinationItem("vn_all", "Vietnam (Tüm Bölgeler)", null, "Vietnam", "🇻🇳", DestinationLevel.COUNTRY, null, "Da Nang, Phu Quoc, Nha Trang"),
-            DestinationItem("vn_dad", "Da Nang / Hoi An", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "DAD", "Mermer Dağları & Altın Köprü"),
-            DestinationItem("vn_pqc", "Phu Quoc (Long Beach)", "Vietnam", "Vietnam", "🏝️", DestinationLevel.RESORT, "PQC", "Tropikal Ada & Gün Batımı Kasabası"),
-            DestinationItem("vn_cxr", "Nha Trang (Tran Phu)", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "CXR", "Akdeniz Havasında Asya Sahili"),
+            DestinationItem("eg_all", "Mısır (Tüm Bölgeler)", "Египет (Все курорты)", null, "Mısır", "🇪🇬", DestinationLevel.COUNTRY, null, "Kızıldeniz & Nil Nehri Turları"),
+            DestinationItem("eg_ssh", "Şarm El-Şeyh (Naama / Nabq)", "Шарм-эль-Шейх (Наама / Набк)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "SSH", "Dalış Merkezleri & Mercan Resifleri"),
+            DestinationItem("eg_hrg", "Hurgada (El Gouna / Makadi)", "Хургада (Эль-Гуна / Макади)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "HRG", "Kum Plajlar & Su Sporları"),
 
             // BAE
-            DestinationItem("ae_all", "Birleşik Arap Emirlikleri", null, "BAE", "🇦🇪", DestinationLevel.COUNTRY, null, "Dubai, Abu Dhabi, Sharjah"),
-            DestinationItem("ae_dxb", "Dubai (Marina, Palm, Downtown)", "BAE", "BAE", "🏙️", DestinationLevel.CITY, "DXB", "Lüks Oteller & Çöl Safarisi"),
-            DestinationItem("ae_auh", "Abu Dhabi (Saadiyat, Yas)", "BAE", "BAE", "🏖️", DestinationLevel.CITY, "AUH", "Louvre & Tema Parklar")
+            DestinationItem("ae_all", "Birleşik Arap Emirlikleri", "ОАЭ (Все эмираты)", null, "BAE", "🇦🇪", DestinationLevel.COUNTRY, null, "Dubai, Abu Dhabi, Sharjah"),
+            DestinationItem("ae_dxb", "Dubai (Marina, Palm, Downtown)", "Дубай (Марина, Пальм, Даунтаун)", "BAE", "BAE", "🏙️", DestinationLevel.CITY, "DXB", "Lüks Oteller & Çöl Safarisi"),
+            DestinationItem("ae_auh", "Abu Dhabi (Saadiyat, Yas)", "Абу-Даби (Саадият, Яс)", "BAE", "BAE", "🏖️", DestinationLevel.CITY, "AUH", "Louvre & Tema Parklar"),
+
+            // TAYLAND
+            DestinationItem("th_all", "Tayland (Tüm Bölgeler)", "Таиланд (Все курорты)", null, "Tayland", "🇹🇭", DestinationLevel.COUNTRY, null, "Phuket, Pattaya, Bangkok, Koh Samui"),
+            DestinationItem("th_hkt", "Phuket (Patong, Karon, Kata)", "Пхукет (Патонг, Карон, Ката)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "HKT", "Tropikal Ada & Plaj Kulüpleri"),
+            DestinationItem("th_utp", "Pattaya (Jomtien, Naklua)", "Паттайя (Джомтьен, Наклуа)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "UTP", "Eğlence, Gece Hayatı & Su Sporları"),
+            DestinationItem("th_bkk", "Bangkok (Sukhumvit, Silom)", "Бангкок", "Tayland", "Tayland", "🏙️", DestinationLevel.CITY, "BKK", "Tapınaklar & Alışveriş"),
+            DestinationItem("th_usm", "Koh Samui (Chaweng)", "Самуи (Чавенг)", "Tayland", "Tayland", "🏝️", DestinationLevel.RESORT, "USM", "Palmiye Plajları & Lüks Villalar"),
+
+            // VİETNAM
+            DestinationItem("vn_all", "Vietnam (Tüm Bölgeler)", "Вьетнам (Все курорты)", null, "Vietnam", "🇻🇳", DestinationLevel.COUNTRY, null, "Da Nang, Phu Quoc, Nha Trang"),
+            DestinationItem("vn_dad", "Da Nang / Hoi An", "Дананг / Хойан", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "DAD", "Mermer Dağları & Altın Köprü"),
+            DestinationItem("vn_pqc", "Phu Quoc (Long Beach)", "Фукуок (Лонг Бич)", "Vietnam", "Vietnam", "🏝️", DestinationLevel.RESORT, "PQC", "Tropikal Ada & Gün Batımı Kasabası"),
+            DestinationItem("vn_cxr", "Nha Trang (Tran Phu)", "Нячанг (Чан Фу)", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "CXR", "Akdeniz Havasında Asya Sahili")
         )
     }
 
-    val filteredDestinations = remember(searchQuery) {
-        if (searchQuery.isBlank()) allDestinations
-        else {
+    val filteredDestinations = remember(searchQuery, selectedCountryTab) {
+        val listByCountry = if (selectedCountryTab == "ALL") allDestinations else allDestinations.filter { it.countryName.equals(selectedCountryTab, ignoreCase = true) }
+        if (searchQuery.isBlank()) {
+            listByCountry
+        } else {
+            val q = searchQuery.trim().lowercase()
             allDestinations.filter {
-                it.name.contains(searchQuery, ignoreCase = true) ||
-                it.countryName.contains(searchQuery, ignoreCase = true) ||
-                (it.parentName?.contains(searchQuery, ignoreCase = true) == true) ||
-                (it.airportCode?.contains(searchQuery, ignoreCase = true) == true)
+                it.name.lowercase().contains(q) ||
+                it.nameRu.lowercase().contains(q) ||
+                it.countryName.lowercase().contains(q) ||
+                (it.parentName?.lowercase()?.contains(q) == true) ||
+                (it.airportCode?.lowercase()?.contains(q) == true)
             }
         }
     }
 
+    val countryTabs = listOf(
+        "ALL" to "🌍 Tüm Ülkeler / Все страны",
+        "Türkiye" to "🇹🇷 Türkiye / Турция",
+        "Mısır" to "🇪🇬 Mısır / Египет",
+        "BAE" to "🇦🇪 BAE / ОАЭ",
+        "Tayland" to "🇹🇭 Tayland / Таиланд",
+        "Vietnam" to "🇻🇳 Vietnam / Вьетнам"
+    )
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
-                .width(620.dp)
-                .height(640.dp)
+                .width(640.dp)
+                .height(650.dp)
                 .clip(RoundedCornerShape(24.dp)),
             color = Color.White,
             shadowElevation = 24.dp
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // Header
                 Row(
@@ -145,11 +155,11 @@ fun HierarchicalDestinationPickerDialog(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = AppLanguageManager.translate("DESTİNASYON SEÇİMİ"),
+                            text = "🌍 КУДА ВЫ ХОТИТЕ ПОЕХАТЬ? / DESTİNASYON SEÇİMİ",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         )
                         Text(
-                            text = AppLanguageManager.translate("Nereye Gitmek İstiyorsunuz?"),
+                            text = "1. Ülke → 2. Şehir → 3. Alt Belde / Resort Seçimi",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         )
                     }
@@ -166,11 +176,11 @@ fun HierarchicalDestinationPickerDialog(
                     }
                 }
 
-                // Canlı Arama Input'u
+                // Canlı Arama Input'u (Kiril & Latin)
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("🔍 Ülke, şehir, belde (ör. Antalya, Belek, Bodrum)...", fontSize = 13.sp, color = Color(0xFF94A3B8)) },
+                    placeholder = { Text("🔍 Поиск: Турция, Анталья, Белек, AYT, Bodrum...", fontSize = 13.sp, color = Color(0xFF94A3B8)) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -182,20 +192,45 @@ fun HierarchicalDestinationPickerDialog(
                     singleLine = true
                 )
 
+                // Ülke Sekmeleri (Aramaya Ülkeden Başlama)
+                if (searchQuery.isBlank()) {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(countryTabs) { (code, label) ->
+                            val isSelected = selectedCountryTab == code
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .border(1.dp, if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                                    .clickable { selectedCountryTab = code },
+                                color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFF8FAFC)
+                            ) {
+                                Text(
+                                    text = label,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    style = TourOSTypography.Caption.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) Color.White else Color(0xFF0F172A)
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
                 HorizontalDivider(color = Color(0xFFE2E8F0))
 
                 // Hiyerarşik Liste
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     items(filteredDestinations, key = { it.id }) { item ->
-                        val isSelected = currentSelection.contains(item.name, ignoreCase = true)
+                        val isSelected = currentSelection.contains(item.name, ignoreCase = true) || (item.nameRu.isNotBlank() && currentSelection.contains(item.nameRu, ignoreCase = true))
 
                         val indentPadding = when (item.level) {
                             DestinationLevel.COUNTRY -> 0.dp
-                            DestinationLevel.CITY -> 16.dp
-                            DestinationLevel.RESORT -> 32.dp
+                            DestinationLevel.CITY -> 14.dp
+                            DestinationLevel.RESORT -> 28.dp
                             else -> 0.dp
                         }
 
@@ -207,16 +242,16 @@ fun HierarchicalDestinationPickerDialog(
                         }
 
                         val badgeText = when (item.level) {
-                            DestinationLevel.COUNTRY -> "ÜLKE"
-                            DestinationLevel.CITY -> "ŞEHİR / BÖLGE"
-                            DestinationLevel.RESORT -> "BELDE / RESORT"
+                            DestinationLevel.COUNTRY -> "ÜLKE / СТРАНА"
+                            DestinationLevel.CITY -> "ŞEHİR / ГОРОД"
+                            DestinationLevel.RESORT -> "RESORT / КУРОРТ"
                             else -> ""
                         }
 
                         val badgeTextColor = if (item.level == DestinationLevel.RESORT) Color(0xFF334155) else Color.White
 
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(10.dp),
                             color = if (isSelected) Color(0xFFE6F4F1) else Color.White,
                             border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) Color(0xFF0F5A56) else Color(0xFFF1F5F9)),
                             modifier = Modifier
@@ -230,12 +265,12 @@ fun HierarchicalDestinationPickerDialog(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(item.flag, fontSize = 20.sp)
@@ -245,11 +280,11 @@ fun HierarchicalDestinationPickerDialog(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = item.name,
+                                                text = if (item.nameRu.isNotBlank()) "${item.name} · ${item.nameRu}" else item.name,
                                                 style = TourOSTypography.BodyMedium.copy(
                                                     fontWeight = if (item.level == DestinationLevel.COUNTRY || item.level == DestinationLevel.CITY) FontWeight.Bold else FontWeight.Medium,
                                                     color = Color(0xFF0F172A),
-                                                    fontSize = 14.sp
+                                                    fontSize = 13.sp
                                                 )
                                             )
                                             if (item.airportCode != null) {
@@ -275,13 +310,13 @@ fun HierarchicalDestinationPickerDialog(
                                 }
 
                                 Surface(
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(8.dp),
                                     color = badgeBg
                                 ) {
                                     Text(
                                         text = badgeText,
                                         style = TourOSTypography.Caption.copy(color = badgeTextColor, fontWeight = FontWeight.Bold, fontSize = 9.sp),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                                     )
                                 }
                             }
