@@ -52,18 +52,37 @@ class BookingRepositoryImpl(
 
     override suspend fun getBookingById(id: String): Result<Booking> {
         return runCatching {
-            val entityFromCache = localCache.find { it.id == id || it.bookingCode == id }
+            val cleanId = id.trim()
+            val entityFromCache = localCache.find { 
+                it.id == cleanId || it.bookingCode == cleanId || it.operatorPnrCode == cleanId 
+            }
             if (entityFromCache != null) {
                 return@runCatching mapEntityToDomain(entityFromCache)
             }
 
-            val entity = supabaseClient.postgrest.from("bookings")
-                .select { filter { eq("id", id) } }
-                .decodeSingle<BookingEntity>()
+            val entity = if (cleanId.isValidUuid()) {
+                supabaseClient.postgrest.from("bookings")
+                    .select { filter { eq("id", cleanId) } }
+                    .decodeSingle<BookingEntity>()
+            } else {
+                val list = supabaseClient.postgrest.from("bookings")
+                    .select {
+                        filter {
+                            or {
+                                eq("booking_code", cleanId)
+                                eq("operator_pnr_code", cleanId)
+                            }
+                        }
+                    }
+                    .decodeList<BookingEntity>()
+                list.firstOrNull() ?: throw NoSuchElementException("Rezervasyon bulunamadı: $cleanId")
+            }
+
+            val bookingRealId = entity.id
 
             val items = runCatching {
                 supabaseClient.postgrest.from("booking_items")
-                    .select { filter { eq("booking_id", id) } }
+                    .select { filter { eq("booking_id", bookingRealId) } }
                     .decodeList<BookingItemEntity>()
             }.getOrDefault(emptyList()).map {
                 BookingItem(
@@ -80,7 +99,7 @@ class BookingRepositoryImpl(
 
             val passengers = runCatching {
                 supabaseClient.postgrest.from("passengers")
-                    .select { filter { eq("booking_id", id) } }
+                    .select { filter { eq("booking_id", bookingRealId) } }
                     .decodeList<PassengerEntity>()
             }.getOrDefault(emptyList()).map {
                 Passenger(
@@ -125,7 +144,7 @@ class BookingRepositoryImpl(
                 totalPrice = booking.totalPrice,
                 currency = booking.currency,
                 paxCount = booking.paxCount,
-                status = booking.status.dbValue,
+                status = BookingStatus.ONAYLANDI.dbValue,
                 notes = booking.notes,
                 optionExpiration = booking.optionExpiration,
                 operatorName = booking.operatorName,
@@ -251,27 +270,12 @@ class BookingRepositoryImpl(
                 isMatch
             }
 
-            // 2. Supabase RPC Atomik Silme Fonksiyonunu Çağır
+            // 2. Supabase silme
             runCatching {
-                val params = kotlinx.serialization.json.buildJsonObject {
-                    put("p_booking_id", kotlinx.serialization.json.JsonPrimitive(target))
-                }
-                supabaseClient.postgrest.rpc("delete_booking_by_id", params)
-            }
-
-            // 3. Supabase Doğrudan DELETE Fallback (id ve booking_code)
-            runCatching {
-                supabaseClient.postgrest.from("bookings").delete {
-                    filter {
-                        eq("id", target)
-                    }
-                }
-            }
-            runCatching {
-                supabaseClient.postgrest.from("bookings").delete {
-                    filter {
-                        eq("booking_code", target)
-                    }
+                if (target.isValidUuid()) {
+                    supabaseClient.postgrest.from("bookings").delete { filter { eq("id", target) } }
+                } else {
+                    supabaseClient.postgrest.from("bookings").delete { filter { eq("booking_code", target) } }
                 }
             }
             Unit
@@ -281,7 +285,11 @@ class BookingRepositoryImpl(
     override suspend fun getBookingStatusLogs(bookingId: String): Result<List<com.mgacreative.touros.domain.model.BookingStatusLog>> {
         return runCatching {
             val entities = supabaseClient.postgrest.from("booking_status_logs")
-                .select { filter { eq("booking_id", bookingId) } }
+                .select {
+                    filter {
+                        eq("booking_id", bookingId)
+                    }
+                }
                 .decodeList<com.mgacreative.touros.data.database.entity.BookingStatusLogEntity>()
 
             entities.map { entity ->
@@ -340,46 +348,60 @@ class BookingRepositoryImpl(
 
     override suspend fun updateOperatorPnr(bookingId: String, pnrCode: String, operatorStatus: String): Result<Unit> {
         return runCatching {
-            val targetId = bookingId
+            val targetId = bookingId.trim()
             val cleanPnr = pnrCode.trim().uppercase()
-            val idx = localCache.indexOfFirst { it.id == targetId || it.bookingCode == targetId }
-            if (idx != -1) {
-                val old = localCache[idx]
-                localCache[idx] = old.copy(
-                    bookingCode = cleanPnr,
+
+            // 1. Önbellekteki kaydı bul ve güncelle
+            val cachedIdx = localCache.indexOfFirst { 
+                it.id == targetId || it.bookingCode == targetId || it.operatorPnrCode == targetId 
+            }
+            var foundRealId = if (targetId.isValidUuid()) targetId else ""
+
+            if (cachedIdx != -1) {
+                val old = localCache[cachedIdx]
+                if (old.id.isValidUuid()) foundRealId = old.id
+                localCache[cachedIdx] = old.copy(
                     operatorPnrCode = cleanPnr,
                     operatorStatus = operatorStatus,
-                    status = "ONAYLANDI"
+                    status = BookingStatus.ONAYLANDI.dbValue
                 )
             }
 
+            // 2. Supabase güncellemesi (UUID veya booking_code ile güvenli eşleşme)
             runCatching {
-                val currentBooking = supabaseClient.postgrest.from("bookings")
-                    .select { filter { eq("id", targetId) } }
-                    .decodeSingleOrNull<BookingEntity>()
+                if (foundRealId.isValidUuid()) {
+                    supabaseClient.postgrest.from("bookings")
+                        .update(mapOf(
+                            "operator_pnr_code" to cleanPnr,
+                            "operator_status" to operatorStatus,
+                            "status" to BookingStatus.ONAYLANDI.dbValue
+                        )) {
+                            filter { eq("id", foundRealId) }
+                        }
+                } else {
+                    supabaseClient.postgrest.from("bookings")
+                        .update(mapOf(
+                            "operator_pnr_code" to cleanPnr,
+                            "operator_status" to operatorStatus,
+                            "status" to BookingStatus.ONAYLANDI.dbValue
+                        )) {
+                            filter { eq("booking_code", targetId) }
+                        }
+                }
 
-                supabaseClient.postgrest.from("bookings")
-                    .update(mapOf(
-                        "booking_code" to cleanPnr,
-                        "operator_pnr_code" to cleanPnr,
-                        "operator_status" to operatorStatus,
-                        "status" to "ONAYLANDI"
-                    )) {
-                        filter { eq("id", targetId) }
-                    }
-
-                val netCost = currentBooking?.netCost ?: 0.0
+                val currentBooking = localCache.find { it.id == targetId || it.bookingCode == targetId || it.id == foundRealId }
+                val netCost = currentBooking?.totalPrice ?: 0.0
                 val operatorName = currentBooking?.operatorName ?: "Tur Operatörü"
                 val currency = currentBooking?.currency ?: "TRY"
                 val tenantId = currentBooking?.tenantId?.ifBlank { "00000000-0000-0000-0000-000000000001" } ?: "00000000-0000-0000-0000-000000000001"
 
                 val transactionEntity = mapOf(
-                    "booking_id" to targetId,
-                    "operator_pnr_code" to pnrCode,
+                    "booking_id" to (if (foundRealId.isValidUuid()) foundRealId else generateUuid()),
+                    "operator_pnr_code" to cleanPnr,
                     "transaction_type" to "CREDIT",
                     "amount" to netCost,
                     "currency" to currency,
-                    "description" to "TO PNR: $pnrCode - $operatorName Onaylı Tur Maliyeti",
+                    "description" to "TO PNR: $cleanPnr - $operatorName Onaylı Tur Maliyeti",
                     "tenant_id" to tenantId
                 )
                 runCatching {
