@@ -34,8 +34,12 @@ class CurrentAccountViewModel(
     private val _uiState = MutableStateFlow<CurrentAccountUiState>(CurrentAccountUiState.Loading)
     val uiState: StateFlow<CurrentAccountUiState> = _uiState.asStateFlow()
 
+    private var cachedAccounts: List<CurrentAccountItem> = emptyList()
+    private var currentFilter: String? = null
+    private var currentQuery: String = ""
+
     init {
-        loadData()
+        loadData(showLoading = true)
     }
 
     private fun resolveTenantId(userTenantId: String?): String {
@@ -43,50 +47,61 @@ class CurrentAccountViewModel(
         return if (!tid.isNullOrBlank() && tid != "tenant_id") tid else ""
     }
 
-    fun loadData(entityTypeFilter: String? = null, query: String = "") {
+    fun loadData(showLoading: Boolean = true) {
         viewModelScope.launch {
-            _uiState.value = CurrentAccountUiState.Loading
+            if (showLoading && _uiState.value !is CurrentAccountUiState.Success) {
+                _uiState.value = CurrentAccountUiState.Loading
+            }
             val user = getCurrentUserUseCase()
             val tenantId = resolveTenantId(user?.tenantId)
 
-            val res = getCurrentAccountsUseCase(tenantId, entityTypeFilter)
-            val items = res.getOrDefault(emptyList())
-
-            var filtered = items
-            if (entityTypeFilter != null) {
-                filtered = filtered.filter { it.entityType == entityTypeFilter }
-            }
-            if (query.isNotBlank()) {
-                filtered = filtered.filter { 
-                    it.entityName.contains(query, ignoreCase = true) ||
-                    it.accountCode.contains(query, ignoreCase = true) ||
-                    (it.taxNo?.contains(query, ignoreCase = true) == true)
-                }
-            }
-
-            val custReceivables = items.filter { it.entityType == "customer" }.sumOf { it.balance }
-            val suppPayables = items.filter { it.entityType == "supplier" }.sumOf { kotlin.math.abs(it.balance) }
-            val net = custReceivables - suppPayables
-
-            _uiState.value = CurrentAccountUiState.Success(
-                accounts = filtered,
-                selectedEntityType = entityTypeFilter,
-                searchQuery = query,
-                totalCustomerReceivables = custReceivables,
-                totalSupplierPayables = suppPayables,
-                netBalance = net
-            )
+            val res = getCurrentAccountsUseCase(tenantId, null)
+            cachedAccounts = res.getOrDefault(emptyList())
+            applyFilters()
         }
     }
 
+    private fun applyFilters() {
+        var filtered = cachedAccounts
+        if (currentFilter != null) {
+            filtered = filtered.filter { it.entityType == currentFilter }
+        }
+        if (currentQuery.isNotBlank()) {
+            val q = currentQuery.trim()
+            filtered = filtered.filter { 
+                it.entityName.contains(q, ignoreCase = true) ||
+                it.accountCode.contains(q, ignoreCase = true) ||
+                (it.taxNo?.contains(q, ignoreCase = true) == true) ||
+                (it.phone?.contains(q, ignoreCase = true) == true) ||
+                (it.email?.contains(q, ignoreCase = true) == true)
+            }
+        }
+
+        val custReceivables = cachedAccounts.filter { it.entityType == "customer" }.sumOf { it.balance }
+        val suppPayables = cachedAccounts.filter { it.entityType == "supplier" }.sumOf { kotlin.math.abs(it.balance) }
+        val net = custReceivables - suppPayables
+
+        val currentSuccess = _uiState.value as? CurrentAccountUiState.Success
+        _uiState.value = CurrentAccountUiState.Success(
+            accounts = filtered,
+            selectedEntityType = currentFilter,
+            searchQuery = currentQuery,
+            totalCustomerReceivables = custReceivables,
+            totalSupplierPayables = suppPayables,
+            netBalance = net,
+            selectedAccountForStatement = currentSuccess?.selectedAccountForStatement,
+            statementDetails = currentSuccess?.statementDetails ?: emptyList()
+        )
+    }
+
     fun setFilter(entityType: String?) {
-        val current = _uiState.value as? CurrentAccountUiState.Success
-        loadData(entityType, current?.searchQuery ?: "")
+        currentFilter = entityType
+        applyFilters()
     }
 
     fun onSearchQueryChanged(q: String) {
-        val current = _uiState.value as? CurrentAccountUiState.Success
-        loadData(current?.selectedEntityType, q)
+        currentQuery = q
+        applyFilters()
     }
 
     fun selectAccountForStatement(account: CurrentAccountItem?) {

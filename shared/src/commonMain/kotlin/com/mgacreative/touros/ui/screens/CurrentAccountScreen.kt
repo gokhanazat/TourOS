@@ -286,10 +286,18 @@ private fun SearchAndFilterBar(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
-            placeholder = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...), TO PNR veya VKN/TC ile ara..."), fontSize = 12.sp) },
-            leadingIcon = { Text("🔍", fontSize = 12.sp) },
+            placeholder = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...), TO PNR veya VKN/TC ile ara..."), fontSize = 12.sp, color = Color(0xFF94A3B8)) },
+            leadingIcon = { Text("🔍", fontSize = 14.sp) },
+            trailingIcon = if (searchQuery.isNotBlank()) {
+                {
+                    IconButton(onClick = { onSearchQueryChanged("") }) {
+                        Text("✕", fontSize = 12.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else null,
             singleLine = true,
-            modifier = Modifier.weight(1f).height(44.dp),
+            textStyle = TourOSTypography.BodyMedium.copy(color = Color(0xFF0F172A), fontSize = 13.sp),
+            modifier = Modifier.weight(1f),
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedContainerColor = Color.White,
