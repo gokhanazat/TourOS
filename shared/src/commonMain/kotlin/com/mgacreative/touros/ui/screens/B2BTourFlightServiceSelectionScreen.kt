@@ -65,16 +65,29 @@ fun B2BTourFlightServiceSelectionScreen(
         return
     }
 
-    val dynamicMultiplier = remember(adults, childrenAges) {
-        B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges)
+    val isFlightOnly = product.productType.equals("FLIGHT", ignoreCase = true) || product.flightNumber.isNotBlank() || product.tourName.contains("Uçuş", ignoreCase = true)
+    val dynamicMultiplier = remember(adults, childrenAges, isFlightOnly) {
+        B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges, isFlightOnly)
     }
     val basePrice = remember(product.price, dynamicMultiplier) { product.price * dynamicMultiplier }
     val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
-    val extrasTotalEur = remember(extraServices) {
-        extraServices.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
+
+    val currencyRateToProduct = remember(product.currency) {
+        when (product.currency.uppercase()) {
+            "RUB" -> 100.0
+            "TRY", "TL" -> 38.0
+            "USD" -> 1.08
+            else -> 1.0 // EUR
+        }
     }
-    val extrasTotalRub = remember(extrasTotalEur) { extrasTotalEur * 100.0 }
-    val grandTotalRub = basePrice + flightDelta + extrasTotalRub
+    val mandatoryExtrasInProductCurrency = remember(extraServices, currencyRateToProduct) {
+        extraServices.filter { it.isSelected && it.isMandatory }.sumOf { (it.unitPriceEur * currencyRateToProduct) * it.paxCount }
+    }
+    val optionalExtrasInProductCurrency = remember(extraServices, currencyRateToProduct) {
+        extraServices.filter { it.isSelected && !it.isMandatory }.sumOf { (it.unitPriceEur * currencyRateToProduct) * it.paxCount }
+    }
+    val extrasTotalInProductCurrency = mandatoryExtrasInProductCurrency + optionalExtrasInProductCurrency
+    val grandTotal = basePrice + flightDelta + extrasTotalInProductCurrency
 
     Scaffold(
         containerColor = TourOSColors.Surface,
@@ -228,6 +241,7 @@ fun B2BTourFlightServiceSelectionScreen(
                                 }
                                 CompactExtraServiceRow(
                                     service = srv,
+                                    currency = product.currency,
                                     onToggle = { viewModel.toggleExtraService(srv.id) }
                                 )
                             }
@@ -257,7 +271,7 @@ fun B2BTourFlightServiceSelectionScreen(
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                             )
                             Text(
-                                text = "68 666 RUB",
+                                text = "${mandatoryExtrasInProductCurrency.toInt()} ${product.currency}",
                                 style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                                 fontWeight = FontWeight.Bold
                             )
@@ -269,7 +283,7 @@ fun B2BTourFlightServiceSelectionScreen(
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                             )
                             Text(
-                                text = "${extrasTotalRub.toInt()} RUB",
+                                text = "${optionalExtrasInProductCurrency.toInt()} ${product.currency}",
                                 style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                                 fontWeight = FontWeight.Bold
                             )
@@ -282,7 +296,7 @@ fun B2BTourFlightServiceSelectionScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${grandTotalRub.toInt()} ${product.currency}",
+                                text = "${grandTotal.toInt()} ${product.currency}",
                                 style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
                                 fontWeight = FontWeight.Bold
                             )
@@ -485,8 +499,18 @@ private fun FlightOptionCardItem(
 @Composable
 private fun CompactExtraServiceRow(
     service: ExtraService,
+    currency: String = "EUR",
     onToggle: () -> Unit
 ) {
+    val conversionRate = when (currency.uppercase()) {
+        "RUB" -> 100.0
+        "TRY", "TL" -> 38.0
+        "USD" -> 1.08
+        else -> 1.0
+    }
+    val unitPriceInCurrency = service.unitPriceEur * conversionRate
+    val totalPriceInCurrency = unitPriceInCurrency * service.paxCount
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -537,14 +561,14 @@ private fun CompactExtraServiceRow(
                 }
 
                 Text(
-                    text = "Kişi Başı: ${service.unitPriceEur} EUR  ·  Toplam (${service.paxCount} Yolcu): ${(service.unitPriceEur * service.paxCount)} EUR",
+                    text = "Kişi Başı: ${unitPriceInCurrency.toInt()} $currency  ·  Toplam (${service.paxCount} Yolcu): ${totalPriceInCurrency.toInt()} $currency",
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 10.sp)
                 )
             }
         }
 
         Text(
-            text = "${(service.unitPriceEur * service.paxCount * 100).toInt()} RUB",
+            text = "${totalPriceInCurrency.toInt()} $currency",
             style = TourOSTypography.Label.copy(color = TourOSColors.Primary, fontSize = 13.sp),
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 12.dp)

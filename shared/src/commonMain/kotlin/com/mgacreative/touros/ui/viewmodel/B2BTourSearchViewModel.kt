@@ -102,7 +102,7 @@ class B2BTourSearchViewModel(
 ) : ViewModel() {
 
     companion object {
-        fun calculateMultiplier(adultsCount: Int, childAgesList: List<Int>): Double {
+        fun calculateMultiplier(adultsCount: Int, childAgesList: List<Int>, isFlight: Boolean = false): Double {
             val adultWeight = adultsCount.coerceAtLeast(1) * 1.0
             val childWeight = childAgesList.sumOf { age ->
                 when {
@@ -112,13 +112,12 @@ class B2BTourSearchViewModel(
                     else -> 1.00 // 13-17 Genç/Yetişkin (%100)
                 }
             }
-            // Standart 2 Yetişkin Baz Fiyatı üzerinden oran: (Kişi Başı Baz = basePrice / 2)
             val totalWeight = adultWeight + childWeight
-            return totalWeight / 2.0
+            return if (isFlight) totalWeight else (totalWeight / 2.0)
         }
 
-        fun calculateDynamicPrice(basePrice: Double, adultsCount: Int, childAgesList: List<Int>): Double {
-            return basePrice * calculateMultiplier(adultsCount, childAgesList)
+        fun calculateDynamicPrice(basePrice: Double, adultsCount: Int, childAgesList: List<Int>, isFlight: Boolean = false): Double {
+            return basePrice * calculateMultiplier(adultsCount, childAgesList, isFlight)
         }
     }
 
@@ -127,6 +126,7 @@ class B2BTourSearchViewModel(
     val searchFilterMetadata = MutableStateFlow<SearchFilterMetadataDto?>(null)
 
     // Arama Parametreleri State
+    var selectedCategory = MutableStateFlow("TOURS") // "TOURS", "HOTELS", "FLIGHTS", "LOCAL_TOURS", "LOCAL_HOTELS", "ALL"
     var departureCity = MutableStateFlow("")
     var destinationCountry = MutableStateFlow("")
     var selectedRegion = MutableStateFlow("")
@@ -638,8 +638,25 @@ data class QuotaCheckResultDto(
         val q = searchQuery.value.trim().lowercase()
         val stars = selectedStars.value
         val meals = selectedMealTypes.value
+        val cat = selectedCategory.value.uppercase()
 
         return list.filter { item ->
+            val pType = item.safeProductType.uppercase()
+            val isPureFlight = pType == "FLIGHT" || item.airlineName.isNotBlank() || item.flightNumber.startsWith("TK-") || item.flightNumber.startsWith("N4-") || item.flightNumber.startsWith("SU-") || item.flightNumber.startsWith("PC-") || item.tourName.startsWith("Uçuş:", ignoreCase = true) || item.hotelName.startsWith("Uçuş:", ignoreCase = true) || item.hotelName.startsWith("✈️", ignoreCase = true)
+            val isPureHotel = (pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.operatorName.contains("Yerel Otel", ignoreCase = true)) && !isPureFlight && item.flightNumber.isBlank()
+            val isPackageTour = (pType == "PACKAGE_TOUR" || pType == "LOCAL_TOUR" || pType == "TOUR" || item.hasTransfer) && !isPureFlight && !isPureHotel
+
+            val matchesCategory = when (cat) {
+                "TOURS", "PACKAGE_TOUR" -> isPackageTour
+                "HOTELS", "HOTEL" -> isPureHotel
+                "FLIGHTS", "FLIGHT" -> isPureFlight
+                "LOCAL_TOURS" -> pType == "LOCAL_TOUR" || item.id.startsWith("local-tour-")
+                "LOCAL_HOTELS" -> pType == "LOCAL_HOTEL" || item.id.startsWith("local-hotel-")
+                else -> true
+            }
+
+            if (!matchesCategory) return@filter false
+
             val matchesSearch = q.isBlank() ||
                     item.hotelName.lowercase().contains(q) ||
                     item.tourName.lowercase().contains(q) ||
@@ -654,7 +671,7 @@ data class QuotaCheckResultDto(
                 when (m.uppercase()) {
                     "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
                     "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
-                    "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный пансион")
+                    "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный pansiyon") || lower.contains("полный пансион")
                     "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
                     "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
                     else -> lower.contains(m.lowercase())
@@ -787,12 +804,22 @@ data class QuotaCheckResultDto(
 
         // Dinamik Ekstra Hizmetler (Yolcu Sayısına Bağlı)
         val infantCount = childrenAges.value.count { it <= 2 }
-        extraServices.value = listOf(
-            ExtraService("srv-1", "SOGLASIE Medikal Sigorta 50.000 EUR", "INSURANCE", 16.25, isMandatory = true, isSelected = true, paxCount = paxCount),
-            ExtraService("srv-2", "Seyahat İptal / Vize İptal Sigortası", "INSURANCE", 25.00, isMandatory = false, isSelected = true, paxCount = paxCount),
-            ExtraService("srv-3", "Elite VIP Özel Havalimanı Transferi", "TRANSFER", 0.00, isMandatory = false, isSelected = true, paxCount = paxCount),
-            ExtraService("srv-4", "Bebek Oto Koltuğu Ekstrası", "EXTRA", 15.00, isMandatory = false, isSelected = (infantCount > 0), paxCount = infantCount.coerceAtLeast(1))
-        )
+        val isFlightOnly = product.productType.equals("FLIGHT", ignoreCase = true) || product.flightNumber.isNotBlank() || product.tourName.contains("Uçuş", ignoreCase = true)
+
+        extraServices.value = if (isFlightOnly) {
+            listOf(
+                ExtraService("srv-1", "Uçuş & Bagaj Güvence Sigortası", "INSURANCE", 12.00, isMandatory = false, isSelected = false, paxCount = paxCount),
+                ExtraService("srv-2", "Uçuş İptal / Bilet Değişiklik Güvencesi", "INSURANCE", 18.00, isMandatory = false, isSelected = false, paxCount = paxCount),
+                ExtraService("srv-3", "Havalimanı Hızlı Geçiş (Fast Track & Lounge)", "EXTRA", 25.00, isMandatory = false, isSelected = false, paxCount = paxCount)
+            )
+        } else {
+            listOf(
+                ExtraService("srv-1", "SOGLASIE Medikal Sigorta 50.000 EUR", "INSURANCE", 16.25, isMandatory = true, isSelected = true, paxCount = paxCount),
+                ExtraService("srv-2", "Seyahat İptal / Vize İptal Sigortası", "INSURANCE", 25.00, isMandatory = false, isSelected = false, paxCount = paxCount),
+                ExtraService("srv-3", "Elite VIP Özel Havalimanı Transferi", "TRANSFER", 0.00, isMandatory = false, isSelected = true, paxCount = paxCount),
+                ExtraService("srv-4", "Bebek Oto Koltuğu Ekstrası", "EXTRA", 15.00, isMandatory = false, isSelected = (infantCount > 0), paxCount = infantCount.coerceAtLeast(1))
+            )
+        }
 
         // Dinamik Yolcu Formu (Yetişkinler + Çocuk Yaşları)
         val paxList = mutableListOf<PassengerInfo>()
@@ -959,10 +986,19 @@ data class QuotaCheckResultDto(
             val mainPayer = pList.firstOrNull { it.isPayer } ?: pList.firstOrNull()
             val payerName = "${mainPayer?.firstName ?: ""} ${mainPayer?.lastName ?: ""}".trim().ifBlank { "Müşteri Yolcu" }
 
-            val basePrice = prod.price
+            val isFlight = prod.productType.equals("FLIGHT", ignoreCase = true) || prod.flightNumber.isNotBlank() || prod.tourName.contains("Uçuş", ignoreCase = true)
+            val dynamicMultiplier = calculateMultiplier(adults.value, childrenAges.value, isFlight)
+            val basePrice = prod.price * dynamicMultiplier
             val flightDelta = fl?.priceDeltaRub ?: 0.0
-            val extrasEur = extraServices.value.filter { it.isSelected }.sumOf { it.unitPriceEur * it.paxCount }
-            val totalPriceRub = basePrice + flightDelta + (extrasEur * 100.0)
+
+            val conversionRate = when (prod.currency.uppercase()) {
+                "RUB" -> 100.0
+                "TRY", "TL" -> 38.0
+                "USD" -> 1.08
+                else -> 1.0 // EUR
+            }
+            val extrasInProductCurrency = extraServices.value.filter { it.isSelected }.sumOf { (it.unitPriceEur * conversionRate) * it.paxCount }
+            val totalPrice = basePrice + flightDelta + extrasInProductCurrency
 
             val bookingId = generateUuid()
 
@@ -990,66 +1026,69 @@ data class QuotaCheckResultDto(
                 )
             }
 
-            // 2. ZENGİN HİZMET & UÇUŞ KALEMLERİ OLUŞTURMA (Konaklama, Uçuş, Surcharges, Sigortalar)
+            // 2. ZENGİN HİZMET & UÇUŞ KALEMLERİ OLUŞTURMA
             val domainItems = mutableListOf<BookingItem>()
             
-            // Kalem 1: Otel Konaklama Paketi
-            domainItems.add(
-                BookingItem(
-                    id = generateUuid(),
-                    bookingId = bookingId,
-                    description = "🏨 ${prod.hotelName} (${prod.roomType.ifBlank { "FAMILY ROOM" }}) • ${prod.mealType.ifBlank { "Ultra All Inclusive" }}",
-                    quantity = pList.size,
-                    unitPrice = (basePrice / pList.size),
-                    totalPrice = basePrice,
-                    itemType = "HOTEL",
-                    notes = "Giriş: ${prod.departureDate ?: "2026-08-21"} (${prod.nights} Gece) • Destinasyon: ${prod.region}"
-                )
-            )
-
-            // Kalem 2: Uçuş Parkuru Detayı
-            if (fl != null) {
+            if (isFlight) {
+                // Kalem 1: Uçuş Bileti
                 domainItems.add(
                     BookingItem(
                         id = generateUuid(),
                         bookingId = bookingId,
-                        description = "🛫 UÇUŞ: Gidiş ${fl.outboundAirline} (${fl.outboundFlightNumber}) ${fl.outboundDeparturePort}->${fl.outboundArrivalPort} (02:05-06:45) | Dönüş ${fl.inboundAirline} (${fl.inboundFlightNumber}) ${fl.inboundDeparturePort}->${fl.inboundArrivalPort} (18:40-23:05)",
+                        description = "✈️ Uçuş Bileti: ${fl?.outboundAirline ?: prod.airlineName.ifBlank { "Havayolu" }} (${fl?.outboundFlightNumber ?: prod.flightNumber}) • ${prod.departureCity} ➔ ${prod.region}",
                         quantity = pList.size,
-                        unitPrice = 0.0,
-                        totalPrice = 0.0,
+                        unitPrice = if (pList.isNotEmpty()) (basePrice / pList.size) else basePrice,
+                        totalPrice = basePrice,
                         itemType = "FLIGHT",
-                        notes = "El Bagajı: ${fl.handBaggageKg}kg • Kayıtlı Bagaj: ${fl.baggageKg}kg"
+                        notes = "Kalkış: ${prod.departureDate ?: "2026-08-21"} • Bagaj: ${fl?.baggageKg ?: prod.baggageKg}kg"
                     )
                 )
+            } else {
+                // Kalem 1: Otel Konaklama Paketi
+                domainItems.add(
+                    BookingItem(
+                        id = generateUuid(),
+                        bookingId = bookingId,
+                        description = "🏨 ${prod.hotelName} (${prod.roomType.ifBlank { "FAMILY ROOM" }}) • ${prod.mealType.ifBlank { "Ultra All Inclusive" }}",
+                        quantity = pList.size,
+                        unitPrice = if (pList.isNotEmpty()) (basePrice / pList.size) else basePrice,
+                        totalPrice = basePrice,
+                        itemType = "HOTEL",
+                        notes = "Giriş: ${prod.departureDate ?: "2026-08-21"} (${prod.nights} Gece) • Destinasyon: ${prod.region}"
+                    )
+                )
+
+                // Kalem 2: Uçuş Parkuru Detayı
+                if (fl != null) {
+                    domainItems.add(
+                        BookingItem(
+                            id = generateUuid(),
+                            bookingId = bookingId,
+                            description = "🛫 UÇUŞ: Gidiş ${fl.outboundAirline} (${fl.outboundFlightNumber}) ${fl.outboundDeparturePort}->${fl.outboundArrivalPort} (02:05-06:45) | Dönüş ${fl.inboundAirline} (${fl.inboundFlightNumber}) ${fl.inboundDeparturePort}->${fl.inboundArrivalPort} (18:40-23:05)",
+                            quantity = pList.size,
+                            unitPrice = 0.0,
+                            totalPrice = 0.0,
+                            itemType = "FLIGHT",
+                            notes = "El Bagajı: ${fl.handBaggageKg}kg • Kayıtlı Bagaj: ${fl.baggageKg}kg"
+                        )
+                    )
+                }
             }
 
-            // Kalem 3: Uçuş Farkı ve Zorunlu Surcharges Dökümü (Screenshot_2544 Stili)
-            domainItems.add(
-                BookingItem(
-                    id = generateUuid(),
-                    bookingId = bookingId,
-                    description = "⚡ Zorunlu Uçuş Farkları & Surcharges (THY Uçuş Farkı + Sabah/Akşam Uçuş Ek Ücreti + Transfer)",
-                    quantity = 1,
-                    unitPrice = 66646.0,
-                    totalPrice = 66646.0,
-                    itemType = "SURCHARGE",
-                    notes = "Dönüş Uçuş Farkı (+34.333 RUB), Sabah Gidiş (+14.137 RUB), Akşam Dönüş (+18.176 RUB), Havalimanı Transferi (Dahil)"
-                )
-            )
-
-            // Kalem 4..N: Seçilen Ekstra Hizmet ve Sigortalar
+            // Kalem 3..N: Seçilen Ekstra Hizmet ve Sigortalar
             extraServices.value.filter { it.isSelected }.forEach { srv ->
-                val totalRub = srv.unitPriceEur * srv.paxCount * 100.0
+                val srvTotalPrice = srv.unitPriceEur * conversionRate * srv.paxCount
+                val srvUnitPrice = srv.unitPriceEur * conversionRate
                 domainItems.add(
                     BookingItem(
                         id = generateUuid(),
                         bookingId = bookingId,
                         description = "🛡️ ${srv.name}",
                         quantity = srv.paxCount,
-                        unitPrice = srv.unitPriceEur * 100.0,
-                        totalPrice = totalRub,
+                        unitPrice = srvUnitPrice,
+                        totalPrice = srvTotalPrice,
                         itemType = srv.category,
-                        notes = "Birim: ${srv.unitPriceEur} EUR/Pax (${srv.paxCount} Yolcu Dahil)"
+                        notes = "Birim: ${srvUnitPrice.toInt()} ${prod.currency}/Pax (${srv.paxCount} Yolcu Dahil)"
                     )
                 )
             }
@@ -1062,17 +1101,17 @@ data class QuotaCheckResultDto(
                 customerName = payerName,
                 customerEmail = mainPayer?.email?.ifBlank { "acente@touros.com" },
                 customerPhone = mainPayer?.phone?.ifBlank { "+90 500 000 0000" },
-                totalPrice = totalPriceRub,
-                currency = prod.currency.ifBlank { "RUB" },
+                totalPrice = totalPrice,
+                currency = prod.currency.ifBlank { "EUR" },
                 paxCount = pList.size,
                 status = BookingStatus.ONAYLANDI,
                 operatorName = operatorTitle,
-                productName = "${prod.tourName.ifBlank { prod.hotelName }} (${prod.hotelName})",
+                productName = if (isFlight) "${prod.hotelName} (${prod.flightNumber})" else "${prod.tourName.ifBlank { prod.hotelName }} (${prod.hotelName})",
                 departureDate = prod.departureDate ?: "2026-08-21",
                 nights = prod.nights,
-                bookingType = "PACKAGE_TOUR",
-                roomTypeName = prod.roomType.ifBlank { "DELUXE ROOM" },
-                notes = "🏢 Acente: Coral Travel B2B • Operatör: $operatorTitle • Uçuş: ${fl?.outboundAirline ?: "THY"} / ${fl?.inboundAirline ?: "Pegasus"}",
+                bookingType = if (isFlight) "FLIGHT" else "PACKAGE_TOUR",
+                roomTypeName = if (isFlight) "UÇUŞ BİLETİ" else prod.roomType.ifBlank { "DELUXE ROOM" },
+                notes = "🏢 Acente: Coral Travel B2B • Operatör: $operatorTitle • Uçuş: ${fl?.outboundAirline ?: prod.airlineName.ifBlank { "Charter" }}",
                 tenantId = "00000000-0000-0000-0000-000000000001",
                 items = domainItems,
                 passengers = domainPassengers

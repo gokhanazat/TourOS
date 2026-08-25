@@ -1,6 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import touros.shared.generated.resources.Res
@@ -79,6 +80,8 @@ import com.mgacreative.touros.ui.components.TourOSCard
 import com.mgacreative.touros.ui.components.TourOSStatusBadge
 import com.mgacreative.touros.ui.components.LanguageSelector
 import com.mgacreative.touros.ui.components.AppLanguage
+import com.mgacreative.touros.ui.components.UniversalTourSearchBar
+import com.mgacreative.touros.ui.components.SearchBarVariant
 import com.mgacreative.touros.ui.theme.TourOSColors
 
 import com.mgacreative.touros.ui.theme.TourOSSpacing
@@ -133,16 +136,93 @@ fun PublicHotelOffer.toUnifiedProductEntity(): com.mgacreative.touros.data.datab
     return com.mgacreative.touros.data.database.entity.UnifiedProductEntity(
         id = this.id,
         hotelName = this.hotelName,
+        tourName = if (this.category == "FLIGHT") "Uçuş: ${this.hotelName} (${this.flightCode})" else "${this.hotelName} Tur Paketi",
         region = this.location.removeSuffix(", Türkiye").removeSuffix(", Turkey").trim(),
+        country = this.countryCode.ifBlank { "Türkiye" },
+        countryCode = this.countryCode,
+        countryName = when (this.countryCode.uppercase()) {
+            "TR" -> "Türkiye"
+            "EG" -> "Mısır"
+            "TH" -> "Tayland"
+            "VN" -> "Vietnam"
+            "AE" -> "BAE"
+            "RU" -> "Rusya"
+            else -> "Türkiye"
+        },
         price = this.minPrice,
-        currency = this.currency,
+        currency = this.currency.ifBlank { "RUB" },
         nights = this.nights,
         mealType = this.mealType,
         roomType = this.roomType,
         flightNumber = this.flightCode,
         hotelCategory = this.stars,
         operatorName = this.operatorName,
-        pictureUrl = this.imageUrl
+        pictureUrl = this.imageUrl,
+        productType = this.category
+    )
+}
+
+fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHotelOffer(): PublicHotelOffer {
+    val baseP = this.safePrice.coerceAtLeast(100.0)
+    val opName = this.safeOperatorName.ifBlank { "Coral Travel" }
+    val rType = this.safeRoomType.ifBlank { "standard room, city view" }
+    val mType = this.safeMealType.ifBlank { "Bez pitaniya" }
+    val fCode = if (this.flightNumber.isNotBlank()) "${this.airlineName} (${this.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
+
+    val rawType = this.safeProductType.uppercase()
+    val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || this.airlineName.isNotBlank() || this.flightNumber.startsWith("TK-") || this.flightNumber.startsWith("N4-") || this.flightNumber.startsWith("SU-") || this.flightNumber.startsWith("PC-") || this.safeTourName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("✈️", ignoreCase = true)
+    val isHotelOnly = !isFlight && (rawType == "HOTEL" || rawType == "LOCAL_HOTEL" || this.safeOperatorName.contains("Yerel Otel", ignoreCase = true))
+    val isPromo = this.safeIsPromo || (this.customPriceOverride != null && this.customPriceOverride < baseP)
+
+    val mappedCat = when {
+        isFlight -> "FLIGHT"
+        isHotelOnly -> "HOTEL"
+        else -> "PACKAGE_TOUR"
+    }
+
+    val cCode = when {
+        this.safeCountryCode.isNotBlank() -> this.safeCountryCode.uppercase()
+        this.safeCountry.contains("Mısır", ignoreCase = true) || this.safeCountry.contains("Egypt", ignoreCase = true) -> "EG"
+        this.safeCountry.contains("Tayland", ignoreCase = true) || this.safeCountry.contains("Thailand", ignoreCase = true) -> "TH"
+        this.safeCountry.contains("Vietnam", ignoreCase = true) -> "VN"
+        this.safeCountry.contains("Dubai", ignoreCase = true) || this.safeCountry.contains("BAE", ignoreCase = true) || this.safeCountry.contains("UAE", ignoreCase = true) -> "AE"
+        this.safeCountry.contains("Rusya", ignoreCase = true) || this.safeCountry.contains("Russia", ignoreCase = true) -> "RU"
+        else -> "TR"
+    }
+
+    val cCountryName = when (cCode) {
+        "EG" -> "Mısır"
+        "TH" -> "Tayland"
+        "VN" -> "Vietnam"
+        "AE" -> "BAE (Dubai)"
+        "RU" -> "Rusya"
+        else -> "Türkiye"
+    }
+
+    return PublicHotelOffer(
+        id = this.id,
+        hotelName = this.safeHotelName.ifBlank { this.safeTourName.ifBlank { if (isFlight) "✈️ Charter Uçuş Seferi (${fCode})" else "Tur Operatörü Ürünü" } },
+        location = "${this.safeRegion.ifBlank { this.safeDepartureCity.ifBlank { "Antalya" } }}, $cCountryName",
+        stars = if (this.safeHotelCategory > 0) this.safeHotelCategory else 5,
+        description = (this.safeHotelName.ifBlank { this.safeTourName }) + " - Operatör: " + opName,
+        minPrice = baseP,
+        maxPrice = this.customPriceOverride ?: (baseP * 1.15),
+        imageUrl = this.safePictureUrl,
+        operatorName = opName,
+        roomType = rType,
+        mealType = mType,
+        flightCode = fCode,
+        nights = if (this.nights > 0) this.nights else 7,
+        currency = this.safeCurrency.ifBlank { "USD" },
+        category = mappedCat,
+        discountPercent = if (isPromo) 35 else null,
+        isLastMinute = isPromo,
+        countryCode = cCode,
+        agencyPrices = listOf(
+            AgencyPriceOption("AGN-ANEX", "Coral Travel B2B (MGA Partner)", opName, rType, mType, baseP, isBestDeal = true),
+            AgencyPriceOption("AGN-CORAL", "Coral Travel B2B", "Coral Travel", "Executive Suite", "Ultra Her Şey Dahil", baseP * 1.12),
+            AgencyPriceOption("AGN-PEGAS", "Pegas Touristik Agency", "Pegas Touristik", "Deluxe Double Room", "Oda Kahvaltı", baseP * 1.25)
+        )
     )
 }
 
@@ -549,6 +629,136 @@ fun getInitialDefaultOffers(): List<PublicHotelOffer> {
             ratingScore = 9.8,
             isLastMinute = false,
             countryCode = "RU"
+        ),
+
+        // ── 🏨 SADECE OTEL FIRSATLARI (HOTEL ONLY) ──
+        PublicHotelOffer(
+            id = "MOD-HOTEL-TR-01",
+            hotelName = "Akra Hotel Antalya",
+            location = "Muratpaşa, Antalya, Türkiye",
+            stars = 5,
+            description = "Akdeniz manzaralı sadece otel konaklaması (Uçak ve transfer hariçtir).",
+            minPrice = 140.0,
+            maxPrice = 190.0,
+            imageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+            operatorName = "Yerel Oteller",
+            roomType = "Deluxe City & Sea View",
+            mealType = "Oda & Kahvaltı (BB)",
+            flightCode = "",
+            nights = 1,
+            currency = "EUR",
+            category = "HOTEL",
+            discountPercent = 10,
+            ratingScore = 9.3,
+            isLastMinute = false,
+            countryCode = "TR"
+        ),
+        PublicHotelOffer(
+            id = "MOD-HOTEL-EG-01",
+            hotelName = "Four Seasons Resort Sharm El Sheikh",
+            location = "Şarm El-Şeyh, Mısır",
+            stars = 5,
+            description = "Kızıldeniz kıyısında sadece lüks otel konaklaması.",
+            minPrice = 280.0,
+            maxPrice = 360.0,
+            imageUrl = "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
+            operatorName = "Yerel Oteller",
+            roomType = "Premier Sea View Suite",
+            mealType = "Oda Kahvaltı (BB)",
+            flightCode = "",
+            nights = 1,
+            currency = "USD",
+            category = "HOTEL",
+            discountPercent = 15,
+            ratingScore = 9.7,
+            isLastMinute = false,
+            countryCode = "EG"
+        ),
+        PublicHotelOffer(
+            id = "MOD-HOTEL-AE-01",
+            hotelName = "Burj Al Arab Jumeirah",
+            location = "Dubai Marina, Dubai, BAE",
+            stars = 5,
+            description = "Dünyaca ünlü 7 yıldızlı ikonik sadece otel konaklaması.",
+            minPrice = 950.0,
+            maxPrice = 1250.0,
+            imageUrl = "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800",
+            operatorName = "Yerel Oteller",
+            roomType = "Deluxe One-Bedroom Suite",
+            mealType = "Oda & Kahvaltı (BB)",
+            flightCode = "",
+            nights = 1,
+            currency = "USD",
+            category = "HOTEL",
+            discountPercent = 10,
+            ratingScore = 9.9,
+            isLastMinute = false,
+            countryCode = "AE"
+        ),
+
+        // ── ✈️ SADECE UÇUŞ FIRSATLARI (FLIGHT ONLY) ──
+        PublicHotelOffer(
+            id = "MOD-FLIGHT-01",
+            hotelName = "Uçuş: Moskova (SVO) - Antalya (AYT)",
+            location = "Antalya, Türkiye",
+            stars = 0,
+            description = "Türk Hava Yolları direkt tarifeli charter uçuş bileti.",
+            minPrice = 220.0,
+            maxPrice = 260.0,
+            imageUrl = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800",
+            operatorName = "Turkish Airlines",
+            roomType = "Ekonomi Sınıfı (20kg Bagaj Dahil)",
+            mealType = "Uçak İçi İkram",
+            flightCode = "SVO - AYT (TK-3701 🟢)",
+            nights = 0,
+            currency = "EUR",
+            category = "FLIGHT",
+            discountPercent = null,
+            ratingScore = 9.1,
+            isLastMinute = false,
+            countryCode = "TR"
+        ),
+        PublicHotelOffer(
+            id = "MOD-FLIGHT-02",
+            hotelName = "Uçuş: Moskova (DME) - Şarm El-Şeyh (SSH)",
+            location = "Şarm El-Şeyh, Mısır",
+            stars = 0,
+            description = "Nordwind Airlines direkt charter uçuş bileti.",
+            minPrice = 290.0,
+            maxPrice = 330.0,
+            imageUrl = "https://images.unsplash.com/photo-1519074069444-1ba4eff56b61?w=800",
+            operatorName = "Nordwind Airlines",
+            roomType = "Ekonomi Sınıfı (20kg Bagaj)",
+            mealType = "Standart İkram",
+            flightCode = "DME - SSH (N4-5821 🟢)",
+            nights = 0,
+            currency = "EUR",
+            category = "FLIGHT",
+            discountPercent = null,
+            ratingScore = 8.8,
+            isLastMinute = false,
+            countryCode = "EG"
+        ),
+        PublicHotelOffer(
+            id = "MOD-FLIGHT-03",
+            hotelName = "Uçuş: İstanbul (IST) - Dubai (DXB)",
+            location = "Dubai, BAE",
+            stars = 0,
+            description = "Emirates Airlines direkt tarifeli uçuş bileti.",
+            minPrice = 340.0,
+            maxPrice = 410.0,
+            imageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800",
+            operatorName = "Emirates Airlines",
+            roomType = "Ekonomi Sınıfı (30kg Bagaj)",
+            mealType = "Sıcak Yemek & İçecek",
+            flightCode = "IST - DXB (EK-122 🟢)",
+            nights = 0,
+            currency = "USD",
+            category = "FLIGHT",
+            discountPercent = null,
+            ratingScore = 9.6,
+            isLastMinute = false,
+            countryCode = "AE"
         )
     )
 }
@@ -608,6 +818,22 @@ fun GlobalWebPublicScreen(
     var selectedAgencyForBooking by remember { mutableStateOf<AgencyPriceOption?>(null) }
     var isInlineSearchActive by remember { mutableStateOf(false) }
     var searchResultsList by remember { mutableStateOf<List<PublicHotelOffer>>(emptyList()) }
+
+    val b2bUiState by b2bTourSearchViewModel.uiState.collectAsState()
+    val b2bSearchResults = remember(b2bUiState) {
+        when (val state = b2bUiState) {
+            is com.mgacreative.touros.ui.viewmodel.B2BTourSearchUiState.Success -> state.filteredProducts.map { it.toPublicHotelOffer() }
+            else -> emptyList()
+        }
+    }
+
+    val handleDirectBooking: (PublicHotelOffer) -> Unit = { offer ->
+        val productEntity = offer.toUnifiedProductEntity()
+        b2bTourSearchViewModel.selectProductForBooking(productEntity)
+        selectedHotelForDetail = null
+        selectedAgencyForBooking = null
+        onNavigateToNewBooking(offer)
+    }
 
     // Hero Arama Barı Form State'leri
     var departureCity by remember { mutableStateOf("Москва (Все аэропорты)") }
@@ -862,14 +1088,13 @@ fun GlobalWebPublicScreen(
                 val fCode = if (p.flightNumber.isNotBlank()) "${p.airlineName} (${p.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
 
                 val rawType = p.safeProductType.uppercase()
-                val isFlight = rawType.contains("FLIGHT") || rawType.contains("CHARTER") || (p.flightNumber.isNotBlank() && p.hotelName.isBlank())
-                val isHotelOnly = rawType.contains("HOTEL") || (p.hotelName.isNotBlank() && p.flightNumber.isBlank())
+                val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || p.airlineName.isNotBlank() || p.flightNumber.startsWith("TK-") || p.flightNumber.startsWith("N4-") || p.flightNumber.startsWith("SU-") || p.flightNumber.startsWith("PC-") || p.safeTourName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("✈️", ignoreCase = true)
+                val isHotelOnly = !isFlight && (rawType == "HOTEL" || rawType == "LOCAL_HOTEL" || p.safeOperatorName.contains("Yerel Otel", ignoreCase = true))
                 val isPromo = p.safeIsPromo || (p.customPriceOverride != null && p.customPriceOverride < baseP)
 
                 val mappedCat = when {
                     isFlight -> "FLIGHT"
                     isHotelOnly -> "HOTEL"
-                    isPromo -> "LAST_MINUTE"
                     else -> "PACKAGE_TOUR"
                 }
 
@@ -1399,7 +1624,7 @@ fun GlobalWebPublicScreen(
                 }
             }
 
-            // ── 3. BOOKING.COM / SKYSCANNER TARZI GENİŞ YATAY ARAMA MOTORU PANALİ ──
+            // ── 3. BOOKING.COM / SKYSCANNER TARZI GENİŞ YATAY ARAMA MOTORU PANELİ (HERO İLE BÜTÜNLEŞİK) ──
             item {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -1409,529 +1634,152 @@ fun GlobalWebPublicScreen(
                         modifier = Modifier
                             .widthIn(max = 1320.dp)
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 12.dp),
+                            .padding(horizontal = 24.dp)
+                            .offset(y = (-36).dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // ── YATAY ARAMA MOTORU KARTI ──
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp)),
-                            color = Color(0xFF0A2540), // Kurumsal Derin Lacivert
-                            shadowElevation = 12.dp
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                // ── 1. SATIR: KATEGORİ SEKMELERİ (TABS) & UÇUŞ TİPİ ──
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(Color(0xFF061B2E))
-                                            .padding(3.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        listOf(
-                                            "PACKAGE_TOUR" to "🚌 " + AppLanguageManager.translate("Tur Paketi"),
-                                            "HOTEL" to "🏨 " + AppLanguageManager.translate("Oteller"),
-                                            "FLIGHT" to "✈️ " + AppLanguageManager.translate("Uçuşlar")
-                                        ).forEach { (tabKey, tabTitle) ->
-                                            val isSelected = selectedSearchCategoryTab == tabKey || (tabKey == "PACKAGE_TOUR" && selectedSearchCategoryTab == "ALL")
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (isSelected) Color(0xFF0284C7) else Color.Transparent)
-                                                    .clickable { selectedSearchCategoryTab = tabKey }
-                                                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = tabTitle,
-                                                    style = TourOSTypography.Caption.copy(
-                                                        color = Color.White,
-                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                        fontSize = 12.sp
-                                                    ),
-                                                    maxLines = 1
-                                                )
-                                            }
-                                        }
-                                    }
+                        // ── EVRENSEL ARAMA MOTORU KARTI (WEB HERO VARYANTI) ──
+                        val triggerHeroSearch: () -> Unit = {
+                            val tab = when (selectedSearchCategoryTab) {
+                                "FLIGHT", "FLIGHTS" -> "FLIGHTS"
+                                "HOTEL", "HOTELS" -> "HOTELS"
+                                else -> "TOURS"
+                            }
+                            b2bTourSearchViewModel.selectedCategory.value = tab
+                            b2bTourSearchViewModel.departureCity.value = departureCity
+                            b2bTourSearchViewModel.selectedRegion.value = destinationCity.substringBefore("(").trim()
+                            b2bTourSearchViewModel.adults.value = adultsCount
+                            b2bTourSearchViewModel.childs.value = childrenCount
+                            b2bTourSearchViewModel.childrenAges.value = childrenAges
+                            b2bTourSearchViewModel.searchQuery.value = searchQuery
+                            b2bTourSearchViewModel.performSearch()
+                            isInlineSearchActive = true
+                            coroutineScope.launch {
+                                runCatching { mainLazyListState.animateScrollToItem(3) }
+                            }
+                        }
 
-                                    // Uçuşlar sekmesindeyken Tek Yön / Gidiş-Dönüş seçimi
-                                    if (selectedSearchCategoryTab == "FLIGHT") {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                                modifier = Modifier.clickable { flightTripType = "ONE_WAY" }
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(18.dp)
-                                                        .clip(RoundedCornerShape(3.dp))
-                                                        .background(Color.White),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    if (flightTripType == "ONE_WAY") {
-                                                        Text("✓", color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
-                                                    }
-                                                }
-                                                Text(AppLanguageManager.translate("Tek Yön"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp))
-                                            }
-
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                                modifier = Modifier.clickable { flightTripType = "ROUND_TRIP" }
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(18.dp)
-                                                        .clip(RoundedCornerShape(3.dp))
-                                                        .background(Color.White),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    if (flightTripType == "ROUND_TRIP") {
-                                                        Text("✓", color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
-                                                    }
-                                                }
-                                                Text(AppLanguageManager.translate("Gidiş & Dönüş"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp))
-                                            }
-                                        }
-                                    }
+                        UniversalTourSearchBar(
+                            variant = SearchBarVariant.PUBLIC_WEB_HERO,
+                            activeTab = when (selectedSearchCategoryTab) {
+                                "FLIGHT" -> "FLIGHTS"
+                                "HOTEL" -> "HOTELS"
+                                else -> "TOURS"
+                            },
+                            onTabChange = { tab ->
+                                selectedSearchCategoryTab = when (tab) {
+                                    "FLIGHTS" -> "FLIGHT"
+                                    "HOTELS" -> "HOTEL"
+                                    else -> "PACKAGE_TOUR"
                                 }
-
-                                // ── 2. SATIR: GENİŞ YATAY ARAMA GİRİŞ ALANLARI (DESKTOP: YAN YANA 5 KUTU + ARA BUTONU) ──
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color.White)
-                                        .padding(6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    // 1. Nereye (Hedef Ülke & Destinasyon) - ÖNCE ÜLKEDEN BAŞLAMA
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1.3f)
-                                            .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                                            .clickable { showHierarchicalDestModal = true }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Column {
-                                            Text(AppLanguageManager.translate("1. Nereye (Ülke / Şehir)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text(destinationCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                            }
-                                        }
-                                    }
-
-                                    // 2. Nereden (Rusya Kalkış Noktası - Sadece Rusya)
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1.2f)
-                                            .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                                            .clickable { showRussianDepartureModal = true }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Column {
-                                            Text("2. " + AppLanguageManager.translate("Kalkış (Rusya)"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text(departureCity, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                            }
-                                        }
-                                    }
-
-                                    // 3. Tarih Aralığı
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1.3f)
-                                            .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                                            .clickable { showDepartureRangePicker = true }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Column {
-                                            Text(AppLanguageManager.translate("Gidiş - Dönüş Tarihi"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text("$startDateText — $endDateText", style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1)
-                                                Text("📅", fontSize = 11.sp)
-                                            }
-                                        }
-                                    }
-
-                                    // 4. Gece Sayısı
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                                            .clickable { showNightsDropdown = !showNightsDropdown }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Column {
-                                            Text(AppLanguageManager.translate("Gece Sayısı"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text(AppLanguageManager.translate(selectedNightsText), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1)
-                                                Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                            }
-                                        }
-                                        DropdownMenu(
-                                            expanded = showNightsDropdown,
-                                            onDismissRequest = { showNightsDropdown = false },
-                                            modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
-                                        ) {
-                                            listOf("1 - 4 Gece", "5 - 7 Gece", "7 - 10 Gece", "10 - 14 Gece", "14 - 21 Gece", "Tüm Geceler (1 - 30)").forEach { nightOpt ->
-                                                DropdownMenuItem(
-                                                    text = { Text(AppLanguageManager.translate(nightOpt), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
-                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                    modifier = Modifier.height(34.dp),
-                                                    onClick = { selectedNightsText = nightOpt; showNightsDropdown = false }
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // 5. Misafir & Oda Sayısı
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1.1f)
-                                            .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                                            .clickable { showGuestRoomModal = true }
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Column {
-                                            Text(AppLanguageManager.translate("Misafir & Oda"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-                                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                                                Text(selectedTouristsText, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                                Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
-                                            }
-                                        }
-                                    }
-
-                                    // 6. BÜYÜK ARAMA BUTONU (ARA)
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(0.9f)
-                                            .height(42.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(
-                                                Brush.horizontalGradient(
-                                                    colors = listOf(Color(0xFF0284C7), Color(0xFF0369A1))
-                                                )
-                                            )
-                                            .clickable {
-                                                val destClean = destinationCity.substringBefore("(").trim()
-                                                val (minNights, maxNights) = when {
-                                                    selectedNightsText.contains("1 - 4") -> 1 to 4
-                                                    selectedNightsText.contains("5 - 7") -> 5 to 7
-                                                    selectedNightsText.contains("7 - 10") -> 7 to 10
-                                                    selectedNightsText.contains("10 - 14") -> 10 to 14
-                                                    selectedNightsText.contains("14 - 21") -> 14 to 21
-                                                    selectedNightsText.contains("3") -> 3 to 3
-                                                    selectedNightsText.contains("5") -> 5 to 5
-                                                    selectedNightsText.contains("7") -> 7 to 7
-                                                    selectedNightsText.contains("10") -> 10 to 10
-                                                    selectedNightsText.contains("14") -> 14 to 14
-                                                    else -> 1 to 30
-                                                }
-
-                                                fun parseDateToInt(dStr: String?): Int {
-                                                    if (dStr.isNullOrBlank()) return 0
-                                                    val parts = if (dStr.contains(".")) dStr.split(".")
-                                                    else if (dStr.contains("-")) {
-                                                        val p = dStr.split("-")
-                                                        if (p.size == 3 && p[0].length == 4) listOf(p[2], p[1], p[0]) else p
-                                                    } else emptyList()
-                                                    val d = parts.getOrNull(0)?.toIntOrNull() ?: 1
-                                                    val m = parts.getOrNull(1)?.toIntOrNull() ?: 1
-                                                    val y = parts.getOrNull(2)?.toIntOrNull() ?: 2026
-                                                    return y * 10000 + m * 100 + d
-                                                }
-
-                                                val startInt = parseDateToInt(startDateText)
-                                                val endInt = parseDateToInt(endDateText)
-
-                                                fun getOfferDatePriorityScore(h: PublicHotelOffer): Int {
-                                                    var score = 0
-                                                    val depInt = parseDateToInt(h.departureDate)
-                                                    if (depInt in startInt..endInt && startInt > 0) {
-                                                        score += 10000
-                                                    } else if (depInt > 0 && startInt > 0) {
-                                                        val diff = kotlin.math.abs(depInt - startInt)
-                                                        if (diff <= 3) score += 5000
-                                                        else score += (2000 - diff * 10).coerceAtLeast(0)
-                                                    }
-                                                    if (selectedOperatorFilter != "Tüm Operatörler" && h.operatorName.equals(selectedOperatorFilter, ignoreCase = true)) {
-                                                        score += 500
-                                                    }
-                                                    if (selectedCountryFilter != "Tüm Ülkeler" && (h.location.contains(selectedCountryFilter, ignoreCase = true))) {
-                                                        score += 500
-                                                    }
-                                                    return score
-                                                }
-
-                                                var matches = dbProducts.filter { h ->
-                                                    val isPureFlight = h.category.uppercase() == "FLIGHT" || h.hotelName.startsWith("Uçuş:", ignoreCase = true) || h.hotelName.startsWith("✈️", ignoreCase = true)
-                                                    if (selectedSearchCategoryTab == "FLIGHT" && !isPureFlight) return@filter false
-                                                    if (selectedSearchCategoryTab != "FLIGHT" && isPureFlight) return@filter false
-
-                                                    val matchesDest = destClean.isBlank() || destClean.startsWith("Tüm", ignoreCase = true) || destClean.startsWith("Nereye", ignoreCase = true) ||
-                                                        h.location.contains(destClean, ignoreCase = true) ||
-                                                        h.hotelName.contains(destClean, ignoreCase = true)
-
-                                                    val matchesNights = (h.nights in minNights..maxNights || h.nights <= 0)
-                                                    if (selectedSearchCategoryTab == "FLIGHT") matchesDest else (matchesDest && matchesNights)
-                                                }
-
-                                                if (matches.isEmpty()) {
-                                                    matches = dbProducts.filter { h ->
-                                                        val isPureFlight = h.category.uppercase() == "FLIGHT" || h.hotelName.startsWith("Uçuş:", ignoreCase = true) || h.hotelName.startsWith("✈️", ignoreCase = true)
-                                                        if (selectedSearchCategoryTab == "FLIGHT" && !isPureFlight) return@filter false
-                                                        if (selectedSearchCategoryTab != "FLIGHT" && isPureFlight) return@filter false
-
-                                                        destClean.isBlank() || destClean.startsWith("Tüm", ignoreCase = true) || destClean.startsWith("Nereye", ignoreCase = true) ||
-                                                        h.location.contains(destClean, ignoreCase = true) ||
-                                                        h.hotelName.contains(destClean, ignoreCase = true)
-                                                    }
-                                                }
-
-                                                val pureFlightFallback = dbProducts.filter { h -> 
-                                                    h.category.uppercase() == "FLIGHT" || h.hotelName.startsWith("✈️", ignoreCase = true) || h.hotelName.startsWith("Uçuş:", ignoreCase = true)
-                                                }
-                                                val nonFlightFallback = dbProducts.filter { h -> 
-                                                    !(h.category.uppercase() == "FLIGHT" || h.hotelName.startsWith("✈️", ignoreCase = true) || h.hotelName.startsWith("Uçuş:", ignoreCase = true))
-                                                }
-
-                                                val sortedMatches = matches.sortedByDescending { getOfferDatePriorityScore(it) }
-                                                val sortedPureFlightFallback = pureFlightFallback.sortedByDescending { getOfferDatePriorityScore(it) }
-                                                val sortedNonFlightFallback = nonFlightFallback.sortedByDescending { getOfferDatePriorityScore(it) }
-
-                                                searchResultsList = sortedMatches.ifEmpty { if (selectedSearchCategoryTab == "FLIGHT") sortedPureFlightFallback else sortedNonFlightFallback }
-                                                isInlineSearchActive = true
-                                                coroutineScope.launch {
-                                                    runCatching { mainLazyListState.animateScrollToItem(3) }
-                                                }
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "🔍 " + AppLanguageManager.translate("ARA"),
-                                            style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
-                                        )
-                                    }
+                                b2bTourSearchViewModel.selectedCategory.value = tab
+                                b2bTourSearchViewModel.performSearch()
+                                if (isInlineSearchActive) {
+                                    triggerHeroSearch()
                                 }
-
-                                // ── 3. SATIR: İSTEĞE BAĞLI FİLTRELER (OPERATÖR & YILDIZ SEÇİMİ) ──
+                            },
+                            departureCity = departureCity,
+                            onDepartureCityChange = { departureCity = it },
+                            selectedRegion = destinationCity,
+                            onRegionChange = { destinationCity = it },
+                            startDateText = startDateText,
+                            endDateText = endDateText,
+                            onDateRangeChange = { start, end ->
+                                startDateText = start
+                                endDateText = end
+                            },
+                            nightsText = selectedNightsText,
+                            onNightsTextChange = { selectedNightsText = it },
+                            adults = adultsCount,
+                            onAdultsChange = {
+                                adultsCount = it
+                                selectedTouristsText = "$it Yetişkin · $roomsCount Oda"
+                            },
+                            childrenAges = childrenAges,
+                            onChildrenAgesChange = {
+                                childrenAges = it
+                                childrenCount = it.size
+                            },
+                            isRoundTrip = (flightTripType == "ROUND_TRIP"),
+                            onRoundTripChange = { flightTripType = if (it) "ROUND_TRIP" else "ONE_WAY" },
+                            onSearchClick = triggerHeroSearch,
+                            extraBottomContent = {
+                                // ── KART İÇİ ENTEGRE FİLTRELER (OPERATÖR & YILDIZ SEÇİMİ) ──
                                 var showOperatorDropdown by remember { mutableStateOf(false) }
                                 Row(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Filtreler:",
-                                        style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        text = "Filtrele:",
+                                        style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                                     )
 
-                                    // Operatör Seçimi
+                                    // Operatör Seçimi (Açık Kurumsal B2B Pill)
                                     Box {
                                         Surface(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .border(1.dp, Color(0xFF1E3A5F), RoundedCornerShape(6.dp))
-                                                .clickable { showOperatorDropdown = !showOperatorDropdown },
-                                            color = Color(0xFF0F2942)
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, if (selectedOperatorFilter != "Tüm Operatörler") Color(0xFF0284C7) else Color(0xFFE2E8F0)),
+                                            color = if (selectedOperatorFilter != "Tüm Operatörler") Color(0xFFF0F9FF) else Color(0xFFF8FAFC),
+                                            modifier = Modifier.clickable { showOperatorDropdown = !showOperatorDropdown }
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
                                                 Text(
                                                     text = "💼 " + AppLanguageManager.translate(selectedOperatorFilter),
-                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                                    style = TourOSTypography.Caption.copy(
+                                                        color = if (selectedOperatorFilter != "Tüm Operatörler") Color(0xFF0369A1) else Color(0xFF334155),
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
                                                 )
-                                                Text("▼", fontSize = 8.sp, color = Color(0xFF94A3B8))
+                                                Text("▼", fontSize = 9.sp, color = Color(0xFF94A3B8))
                                             }
                                         }
                                         DropdownMenu(
                                             expanded = showOperatorDropdown,
                                             onDismissRequest = { showOperatorDropdown = false },
-                                            modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp))
+                                            modifier = Modifier.background(Color.White, RoundedCornerShape(12.dp)).border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                                         ) {
                                             listOf("Tüm Operatörler", "Coral Travel", "Anex Tour", "Pegas Touristik", "Fun & Sun", "Jolly Tur", "Etstur").forEach { opName ->
                                                 DropdownMenuItem(
                                                     text = { Text(AppLanguageManager.translate(opName), style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Medium, fontSize = 12.sp)) },
                                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                    modifier = Modifier.height(34.dp),
+                                                    modifier = Modifier.height(36.dp),
                                                     onClick = { selectedOperatorFilter = opName; showOperatorDropdown = false }
                                                 )
                                             }
                                         }
                                     }
 
-                                    // Otel Yıldız Filtresi
+                                    // Otel Yıldız Filtresi (Açık Kurumsal B2B Pills)
                                     listOf(0 to "Tüm Yıldızlar", 5 to "5★ Deluxe", 4 to "4★+", 3 to "3★").forEach { (starVal, starLabel) ->
                                         val isSelected = selectedStarFilter == starVal
                                         Surface(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .border(1.dp, if (isSelected) Color(0xFF0284C7) else Color(0xFF1E3A5F), RoundedCornerShape(6.dp))
-                                                .clickable { selectedStarFilter = starVal },
-                                            color = if (isSelected) Color(0xFF0284C7) else Color(0xFF0F2942)
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF0284C7) else Color(0xFFE2E8F0)),
+                                            color = if (isSelected) Color(0xFF0284C7) else Color(0xFFF8FAFC),
+                                            modifier = Modifier.clickable { selectedStarFilter = starVal }
                                         ) {
                                             Text(
                                                 text = starLabel,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                                                 style = TourOSTypography.Caption.copy(
-                                                    color = Color.White,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                    color = if (isSelected) Color.White else Color(0xFF475569),
+                                                    fontSize = 12.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                                                 )
                                             )
                                         }
                                     }
                                 }
-                            }
-                        }
-
-                        // ── PROMOSYON & KAMPANYA VİTRİNİ SLIDER BANNERI (ARAMA BARININ HEMEN ALTINDA) ──
-                        val uriHandler = LocalUriHandler.current
-                        val activeSlide = promoBannersList.getOrNull(currentPromoSlideIndex % (promoBannersList.size.coerceAtLeast(1)))
-                        val rawUrl = activeSlide?.imageUrl?.trim().orEmpty()
-                        val slideImgUrl = when {
-                            rawUrl.startsWith("http://") || rawUrl.startsWith("https://") -> rawUrl
-                            rawUrl.startsWith("file://") -> rawUrl
-                            rawUrl.length >= 2 && rawUrl[1] == ':' -> "file:///" + rawUrl.replace("\\", "/")
-                            rawUrl.startsWith("/") -> "file://" + rawUrl
-                            else -> rawUrl
-                        }
-                        val slideTitleText = activeSlide?.title ?: ""
-                        val slideTargetLink = activeSlide?.targetUrl
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(220.dp)
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(Color(0xFF0F2942), Color(0xFF0A1C30))
-                                    )
-                                )
-                                .clickable(enabled = !slideTargetLink.isNullOrBlank()) {
-                                    slideTargetLink?.let { link ->
-                                        runCatching { uriHandler.openUri(link) }
-                                    }
-                                },
-                            contentAlignment = Alignment.BottomStart
-                        ) {
-                            key(currentPromoSlideIndex, slideImgUrl) {
-                                AsyncImage(
-                                    model = slideImgUrl,
-                                    contentDescription = slideTitleText,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f))
-                                        )
-                                    )
-                            )
-                            Column(
-                                modifier = Modifier.padding(24.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = slideTitleText,
-                                    style = TourOSTypography.TitleLarge.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 28.sp)
-                                )
-                                if (!slideTargetLink.isNullOrBlank()) {
-                                    Text(
-                                        text = "Fırsatı İncele ➔",
-                                        style = TourOSTypography.Caption.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    )
-                                }
-                            }
-
-                            // 🔘 Birden fazla slayt varsa Sol/Sağ Butonları ve Nokta İndikatörleri
-                            if (promoBannersList.size > 1) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .align(Alignment.Center)
-                                        .padding(horizontal = 14.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.Black.copy(alpha = 0.5f))
-                                            .clickable {
-                                                val safeSize = promoBannersList.size.coerceAtLeast(1)
-                                                currentPromoSlideIndex = (currentPromoSlideIndex - 1 + safeSize) % safeSize
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("❮", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.Black.copy(alpha = 0.5f))
-                                            .clickable {
-                                                val safeSize = promoBannersList.size.coerceAtLeast(1)
-                                                currentPromoSlideIndex = (currentPromoSlideIndex + 1) % safeSize
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text("❯", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    }
-                                }
-
-                                Row(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    promoBannersList.indices.forEach { idx ->
-                                        val safeSize = promoBannersList.size.coerceAtLeast(1)
-                                        val isSel = (idx == (currentPromoSlideIndex % safeSize))
-                                        Box(
-                                            modifier = Modifier
-                                                .height(6.dp)
-                                                .width(if (isSel) 20.dp else 6.dp)
-                                                .clip(RoundedCornerShape(3.dp))
-                                                .background(if (isSel) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.5f))
-                                                .clickable { currentPromoSlideIndex = idx }
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
@@ -2021,9 +1869,9 @@ fun GlobalWebPublicScreen(
                                 titleIcon = "✨",
                                 title = "Bulunan Arama Fırsatları",
                                 subtitle = "Kriterlerinize uyan en uygun fiyatlı canlı tur ve otel teklifleri",
-                                hotels = searchResultsList.ifEmpty { filteredHotels },
+                                hotels = b2bSearchResults.ifEmpty { searchResultsList.ifEmpty { filteredHotels } },
                                 onHotelClick = { selectedHotelForDetail = it },
-                                onSelectAndBook = { selectedHotelForDetail = it }
+                                onSelectAndBook = handleDirectBooking
                             )
                         }
                     }
@@ -2308,7 +2156,7 @@ fun GlobalWebPublicScreen(
                                     subtitle = "Tarih: 12 - 19 Eyl · 2 Kişi / 7 Gece · Direkt Uçuş & Transfer Dahil",
                                     hotels = dedicatedCountryOffers,
                                     onHotelClick = { selectedHotelForDetail = it },
-                                    onSelectAndBook = { selectedHotelForDetail = it }
+                                    onSelectAndBook = handleDirectBooking
                                 )
                             } else {
                                 // ── 1. Ülke Giriş Kartları Başlığı ──
@@ -2615,7 +2463,7 @@ fun GlobalWebPublicScreen(
                                                                 }
 
                                                                 Button(
-                                                                    onClick = { selectedHotelForDetail = dealHotel },
+                                                                    onClick = { handleDirectBooking(dealHotel) },
                                                                     shape = RoundedCornerShape(8.dp),
                                                                     colors = ButtonDefaults.buttonColors(
                                                                         containerColor = Color(0xFF0F5A56)
@@ -2640,9 +2488,11 @@ fun GlobalWebPublicScreen(
                                     }
                                 }
 
-                                // ── BLOK 1: 🏖️ PAKET TURLAR (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ─────
+                                // ── BLOK 1: 🏖️ PAKET TURLAR (UÇUŞLAR VE SAF OTELLER HARİÇ - ANA SAYFA SABİT BLOK) ─────
                                 val tourPackagesOnly = countryFilteredProducts.shuffled().filter { 
-                                    it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+                                    (it.category == "PACKAGE_TOUR" || it.category == "LOCAL_TOUR") &&
+                                    it.category != "FLIGHT" && it.category != "HOTEL" &&
+                                    !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
                                 }.take(20)
                                 if (tourPackagesOnly.isNotEmpty()) {
                                     HorizontalProductSection(
@@ -2651,29 +2501,31 @@ fun GlobalWebPublicScreen(
                                         subtitle = "Gezginler Tarafından Onaylanmış Her Şey Dahil Paket Turlar",
                                         hotels = tourPackagesOnly,
                                         onHotelClick = { selectedHotelForDetail = it },
-                                        onSelectAndBook = { selectedHotelForDetail = it }
+                                        onSelectAndBook = handleDirectBooking
                                     )
                                 }
 
-                                // ── BLOK 2: OTELLER (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ──────────
+                                // ── BLOK 2: OTELLER (UÇUŞLAR VE PAKET TURLAR HARİÇ - SADECE OTEL KONAKLAMASI) ──────────
                                 val hotelsOnly = countryFilteredProducts.shuffled().filter { 
-                                    it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true) && (it.category == "HOTEL" || it.stars >= 4)
-                                }.ifEmpty { tourPackagesOnly }.take(20)
+                                    (it.category == "HOTEL" || it.category == "LOCAL_HOTEL") &&
+                                    it.category != "FLIGHT" && it.category != "PACKAGE_TOUR" &&
+                                    !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+                                }.take(20)
                                 if (hotelsOnly.isNotEmpty()) {
                                     HorizontalProductSection(
                                         titleVectorIcon = Icons.Default.Hotel,
                                         title = if (selectedCountryTab == "ALL") "Oteller" else "${countryDiscoveryCards.firstOrNull { it.first.first == selectedCountryTab }?.first?.second ?: ""} Seçkin Otelleri",
-                                        subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller",
+                                        subtitle = "Ayrıcalıklı konaklama ve seçkin 5 yıldızlı oteller (Sadece Otel)",
                                         hotels = hotelsOnly,
                                         onHotelClick = { selectedHotelForDetail = it },
-                                        onSelectAndBook = { selectedHotelForDetail = it }
+                                        onSelectAndBook = handleDirectBooking
                                     )
                                 }
 
                                 // ── BLOK 3: SON DAKİKA (UÇUŞLAR HARİÇ - ANA SAYFA SABİT BLOK) ───────
                                 val lastMinuteOnly = countryFilteredProducts.filter { 
                                     it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true) && (it.isLastMinute || (it.discountPercent ?: 0) > 0)
-                                }.ifEmpty { tourPackagesOnly }.take(20)
+                                }.take(20)
                                 if (lastMinuteOnly.isNotEmpty()) {
                                     HorizontalProductSection(
                                         titleVectorIcon = Icons.Default.ElectricBolt,
@@ -2681,7 +2533,7 @@ fun GlobalWebPublicScreen(
                                         subtitle = "Acele edin ve %70'e varan muhteşem indirimlerden yararlanın!",
                                         hotels = lastMinuteOnly,
                                         onHotelClick = { selectedHotelForDetail = it },
-                                        onSelectAndBook = { selectedHotelForDetail = it }
+                                        onSelectAndBook = handleDirectBooking
                                     )
                                 }
 
@@ -2696,7 +2548,7 @@ fun GlobalWebPublicScreen(
                                         subtitle = "En uygun fiyatlı direkt charter uçuşlar ve özel havayolu biletleri",
                                         hotels = flightsOnly,
                                         onHotelClick = { selectedHotelForDetail = it },
-                                        onSelectAndBook = { selectedHotelForDetail = it }
+                                        onSelectAndBook = handleDirectBooking
                                     )
                                 }
                             }
@@ -3180,14 +3032,8 @@ fun GlobalWebPublicScreen(
 
                                                 Button(
                                                     onClick = {
-                                                        val selectedProductEntity = hotel.toUnifiedProductEntity().copy(
-                                                            operatorName = option.operatorName,
-                                                            price = option.price
-                                                        )
-                                                        b2bTourSearchViewModel.selectProductForBooking(selectedProductEntity)
-                                                        selectedHotelForDetail = null
-                                                        selectedAgencyForBooking = null
-                                                        onNavigateToNewBooking(hotel.copy(minPrice = option.price, operatorName = option.operatorName))
+                                                        val selectedOffer = hotel.copy(minPrice = option.price, operatorName = option.operatorName)
+                                                        handleDirectBooking(selectedOffer)
                                                     },
                                                     shape = RoundedCornerShape(6.dp),
                                                     colors = ButtonDefaults.buttonColors(
