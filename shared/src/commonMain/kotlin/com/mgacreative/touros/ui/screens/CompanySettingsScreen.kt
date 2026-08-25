@@ -73,7 +73,7 @@ enum class SettingsCategory(val title: String, val icon: ImageVector) {
     GENEL("Genel", Icons.Default.Business),
     MARKA("Marka", Icons.Default.Palette),
     ODEME_SISTEMLERI("Banka & PayPal", Icons.Default.CreditCard),
-    VERGI_SEZON("Sezon %", Icons.Default.ReceiptLong),
+    VERGI_SEZON("Vergi & KDV Oranı", Icons.Default.ReceiptLong),
     DIL_PARA_BIRIMI("Dil / Para Birimi", Icons.Default.Language)
 }
 
@@ -613,76 +613,42 @@ fun CompanySettingsScreen(
                                     }
 
                                     SettingsCategory.VERGI_SEZON -> {
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sezonlar / Komisyon Oranları"), style = TourOSTypography.TitleLarge)
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Komisyon oranları sezonlara göre değişkenlik gösterir."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
-
-                                        // Kilit Uyarısı
-                                        Surface(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = TourOSColors.Primary.copy(alpha = 0.08f)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.padding(14.dp),
-                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text("🔒", style = TourOSTypography.TitleMedium)
-                                                Text(
-                                                    text = "Bu sezonlar ve sezonsal komisyon oranları Sistem Yöneticisi (Admin) tarafından yönetilmektedir. Acenteler bu oranları manuel değiştiremez.",
-                                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.SemiBold)
-                                                )
-                                            }
-                                        }
-
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi & KDV Oranı"), style = TourOSTypography.TitleLarge)
+                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura, fiş ve voucher hesaplamalarında geçerli resmi KDV oranını belirleyin."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
                                         TourOSTextField(
                                             value = taxRateStr,
                                             onValueChange = { taxRateStr = it },
-                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Varsayılan KDV Oranı (%)"),
+                                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Varsayılan Fatura KDV Oranı (%)"),
+                                            placeholder = "20.0",
                                             modifier = Modifier.fillMaxWidth()
                                         )
 
                                         Spacer(modifier = Modifier.height(TourOSSpacing.large))
 
-                                        Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sistemde Aktif Sezonlar & Komisyon Oranları"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.small))
-
-                                        if (seasons.isEmpty()) {
-                                            Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz tanımlanmış bir sezon bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
-                                        } else {
-                                            seasons.forEach { season ->
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(bottom = TourOSSpacing.small)
-                                                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                                                        .background(TourOSColors.Surface)
-                                                        .border(TourOSSpacing.borderWidth, TourOSColors.Border, RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                                                        .padding(TourOSSpacing.medium)
-                                                ) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Column {
-                                                            Text(text = season.name, style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold))
-                                                            Text(text = "${season.startDate} - ${season.endDate}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
-                                                        }
-                                                        Surface(
-                                                            shape = RoundedCornerShape(8.dp),
-                                                            color = TourOSColors.Primary.copy(alpha = 0.12f)
-                                                        ) {
-                                                            Text(
-                                                                text = "% ${season.commissionRate} Komisyon",
-                                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
-                                                            )
-                                                        }
-                                                    }
+                                        // Operatör Komisyon Bilgilendirme Kartı
+                                        Surface(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = Color(0xFFF8FAFC),
+                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(16.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                verticalAlignment = Alignment.Top
+                                            ) {
+                                                Text("ℹ️", style = TourOSTypography.TitleMedium)
+                                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Text(
+                                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operatör Komisyonları Hakkında"),
+                                                        style = TourOSTypography.TitleSmall.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Bold)
+                                                    )
+                                                    Text(
+                                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur operatörleri bazlı komisyon ve net fiyat anlaşmaları, ana menüdeki 'Tur Operatörü > Operatör Bağlantıları' ekranından yönetilmektedir. Buradaki KDV oranı şirketinizin kestiği faturalar ve finansal hesaplamalar için baz alınır."),
+                                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
+                                                    )
                                                 }
                                             }
                                         }
