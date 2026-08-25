@@ -30,6 +30,7 @@ fun B2BPassengerCheckoutWizardScreen(
     onNavigateBack: () -> Unit = {},
     onBookingSuccess: () -> Unit = {}
 ) {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val passengers by viewModel.passengers.collectAsState()
     val selectedProduct by viewModel.selectedProduct.collectAsState()
 

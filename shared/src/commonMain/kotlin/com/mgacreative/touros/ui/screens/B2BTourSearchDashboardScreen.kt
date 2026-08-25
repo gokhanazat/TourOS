@@ -44,6 +44,7 @@ fun B2BTourSearchDashboardScreen(
     onSelectTourForBooking: (productId: String) -> Unit = {},
     onNavigateToBookings: () -> Unit = {}
 ) {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val selectedProduct by viewModel.selectedProduct.collectAsState()
     val availableFlightOptions by viewModel.availableFlightOptions.collectAsState()
@@ -536,7 +537,7 @@ fun B2BTourSearchDashboardScreen(
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         Text(
-                                            text = "${option.price.toInt()} ${if (prod.currency == "RUB") "RUB" else "₺"}",
+                                            text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} ${if (prod.currency == "RUB") "RUB" else "₺"}",
                                             style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                         )
 
@@ -1767,7 +1768,7 @@ fun B2BTourSearchDashboardScreen(
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "${grandTotal.toInt()} ${curProduct.currency}",
+                                            text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(grandTotal, decimals = false)} ${curProduct.currency}",
                                             style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
                                             fontWeight = FontWeight.Bold
                                         )
@@ -2177,7 +2178,7 @@ private fun TourResultMatrixCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "${product.price.toInt()} ${product.currency}",
+                        text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(product.price, decimals = false)} ${product.currency}",
                         style = TourOSTypography.Caption.copy(
                             color = TourOSColors.TextSecondary,
                             textDecoration = TextDecoration.LineThrough,
@@ -2192,7 +2193,7 @@ private fun TourResultMatrixCard(
                 }
 
                 Text(
-                    text = "${marginCalculatedPrice.toInt()} ${product.currency}",
+                    text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(marginCalculatedPrice, decimals = false)} ${product.currency}",
                     style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 )
 
@@ -2276,7 +2277,7 @@ private fun FlightOptionCardItem(
                 Column(horizontalAlignment = Alignment.End) {
                     if (option.priceDeltaRub > 0) {
                         Text(
-                            text = "+${option.priceDeltaRub.toInt()} RUB",
+                            text = "+${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.priceDeltaRub, decimals = false)} RUB",
                             style = TourOSTypography.Label.copy(color = TourOSColors.Warning),
                             fontWeight = FontWeight.Bold
                         )

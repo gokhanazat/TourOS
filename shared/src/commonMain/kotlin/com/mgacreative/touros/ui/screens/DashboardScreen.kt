@@ -49,6 +49,7 @@ fun DashboardScreen(
     onNavigateToReports: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel()
 ) {
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(

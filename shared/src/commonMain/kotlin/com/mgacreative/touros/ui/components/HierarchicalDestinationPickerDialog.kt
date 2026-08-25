@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSTypography
 
@@ -168,18 +169,21 @@ fun HierarchicalDestinationPickerDialog(
         allTabs.filter { it.first == "ALL" || availableCountries.any { c -> c.equals(it.first, ignoreCase = true) } }
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             modifier = Modifier
-                .widthIn(min = 360.dp, max = 940.dp)
+                .widthIn(min = 360.dp, max = 840.dp)
                 .fillMaxWidth(0.92f)
-                .heightIn(min = 520.dp, max = 720.dp)
+                .heightIn(min = 540.dp, max = 740.dp)
                 .clip(RoundedCornerShape(20.dp)),
             color = Color.White,
             shadowElevation = 24.dp
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(22.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // Header
@@ -227,24 +231,29 @@ fun HierarchicalDestinationPickerDialog(
                     singleLine = true
                 )
 
-                // Ülke Sekmeleri (Aramaya Ülkeden Başlama)
+                // Ülke Sekmeleri (Aramaya Ülkeden Başlama - Akıcı ve 2 Satırlı FlowRow)
                 if (searchQuery.isBlank()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(countryTabs) { (code, label) ->
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        countryTabs.forEach { (code, label) ->
                             val isSelected = selectedCountryTab == code
                             Surface(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .border(1.dp, if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0), RoundedCornerShape(14.dp))
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                                     .clickable { selectedCountryTab = code },
                                 color = if (isSelected) Color(0xFF0F5A56) else Color(0xFFF8FAFC)
                             ) {
                                 Text(
                                     text = label,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                                     style = TourOSTypography.Caption.copy(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else Color(0xFF0F172A)
+                                        color = if (isSelected) Color.White else Color(0xFF0F172A),
+                                        fontSize = 12.sp
                                     )
                                 )
                             }

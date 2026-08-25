@@ -13,7 +13,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.mgacreative.touros.ui.navigation.LocalNavController
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -30,11 +30,12 @@ fun TourOSTopBar(
     onNavigateBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
     val navController = LocalNavController.current
     val canPop = navController?.previousBackStackEntry != null
     val effectiveBackAction: (() -> Unit)? = onNavigateBack ?: (if (canPop) {
         {
-            navController?.popBackStack()
+            navController.popBackStack()
             Unit
         }
     } else null)
@@ -44,12 +45,12 @@ fun TourOSTopBar(
             title = {
                 Column {
                     Text(
-                        text = title,
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(title),
                         style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                     )
                     if (!subtitle.isNullOrBlank()) {
                         Text(
-                            text = subtitle,
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(subtitle),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                     }

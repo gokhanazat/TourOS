@@ -31,6 +31,7 @@ fun BookingDetailScreen(
     viewModel: BookingDetailViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     LaunchedEffect(bookingId) {
         viewModel.loadBooking(bookingId)
@@ -44,11 +45,11 @@ fun BookingDetailScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onNavigateBack) {
-                        Text("‹ Geri", fontWeight = FontWeight.Bold)
+                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("‹ Geri"), fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
-                        text = "Rezervasyon Detayı",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon Detayı"),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )

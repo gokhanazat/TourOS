@@ -54,6 +54,7 @@ fun UniversalTourSearchBar(
     extraBottomContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     var showDepartureDropdown by remember { mutableStateOf(false) }
     var showRussianDepartureModal by remember { mutableStateOf(false) }
     var showDestinationModal by remember { mutableStateOf(false) }

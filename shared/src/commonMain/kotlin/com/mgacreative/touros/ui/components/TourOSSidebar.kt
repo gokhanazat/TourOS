@@ -22,7 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +63,7 @@ fun TourOSSidebar(
     onLogoutClick: (() -> Unit)? = null,
     onNavigateToWeb: (() -> Unit)? = null
 ) {
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
     val expandedGroups = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
 
     Column(
@@ -171,7 +172,7 @@ fun TourOSSidebar(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = group.categoryTitle.uppercase(),
+                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(group.categoryTitle).uppercase(),
                                 style = TourOSTypography.TitleMedium.copy(
                                     color = if (hasActiveChild) TourOSColors.Primary else TourOSColors.TextPrimary,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
@@ -190,7 +191,7 @@ fun TourOSSidebar(
                         }
                     } else {
                         Text(
-                            text = group.categoryTitle.uppercase(),
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(group.categoryTitle).uppercase(),
                             style = TourOSTypography.TitleMedium.copy(
                                 color = TourOSColors.Primary,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
@@ -267,7 +268,7 @@ fun TourOSSidebar(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Çıkış",
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
                             style = TourOSTypography.Caption.copy(
                                 color = TourOSColors.Error,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -304,7 +305,7 @@ private fun RenderSidebarItem(
             Spacer(modifier = Modifier.width(6.dp))
         }
         Text(
-            text = item.title,
+            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.title),
             style = TourOSTypography.BodyMedium.copy(
                 color = contentColor,
                 fontSize = 12.sp,

@@ -1470,7 +1470,7 @@ fun GlobalWebPublicScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(5.dp)
                                             ) {
                                                 Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
-                                                Text(text = "Admin Paneli", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
+                                                Text(text = AppLanguageManager.translate("Yönetici Paneli"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp))
                                             }
                                         }
                                     }
@@ -1484,11 +1484,11 @@ fun GlobalWebPublicScreen(
                                             .padding(2.dp),
                                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                                     ) {
-                                        val guestLabel = "Misafir"
-                                        val agencyLabel = if (currentUser != null) "Acenta Paneli" else "Acenta"
+                                        val guestLabel = AppLanguageManager.translate("Misafir")
+                                        val agencyLabel = if (currentUser != null) AppLanguageManager.translate("Acente Paneli") else AppLanguageManager.translate("Acenteler")
 
                                         listOf(guestLabel, agencyLabel).forEach { modeLabel ->
-                                            val isGuest = modeLabel.contains("Misafir")
+                                            val isGuest = modeLabel == guestLabel
                                             val isSelectedMode = isGuest
                                             Box(
                                                 modifier = Modifier
@@ -3026,7 +3026,7 @@ fun GlobalWebPublicScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
                                                 Text(
-                                                    text = "${option.price.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}",
+                                                    text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} ${if (hotel.currency == "RUB") "RUB" else "₺"}",
                                                     style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                                 )
 
@@ -3113,7 +3113,7 @@ fun VerticalSearchResultsGridSection(
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
-                        text = "Uçuş + Transfer + Otel Dahil",
+                        text = AppLanguageManager.translate("Uçuş + Transfer + Otel Dahil"),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     )
@@ -3216,7 +3216,7 @@ fun VerticalSearchResultsGridSection(
                             ) {
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "2 Kişi Toplam",
+                                        text = AppLanguageManager.translate("2 Kişi Toplam"),
                                         style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp)
                                     )
                                     Text(
@@ -3238,7 +3238,7 @@ fun VerticalSearchResultsGridSection(
                                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
                                 ) {
                                     Text(
-                                        text = "Rezerve Et ➔",
+                                        text = AppLanguageManager.translate("Rezerve Et ➔"),
                                         color = Color.White,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold
@@ -3571,11 +3571,11 @@ fun HorizontalHotelCard(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${AppLanguageManager.translate("En Düşük Fiyat")} :", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold, fontSize = 10.sp))
-                            Text("${hotel.minPrice.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
+                            Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.minPrice, decimals = false)} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text("${AppLanguageManager.translate("En Yüksek Fiyat")}:", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 10.sp))
-                            Text("${hotel.maxPrice.toInt()} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
+                            Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.maxPrice, decimals = false)} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
                         }
                     }
 

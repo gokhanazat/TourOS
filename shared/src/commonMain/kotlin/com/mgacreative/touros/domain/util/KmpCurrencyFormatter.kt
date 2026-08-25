@@ -10,12 +10,12 @@ import kotlin.math.abs
 object KmpCurrencyFormatter {
 
     /**
-     * Sadece sayıyı binlik ayracı ile formatlar (Örn: 1037717.47 -> "1,037,717.47")
+     * Sadece sayıyı binlik ayracı ile formatlar (Örn: 12345 -> "12.345" | 1037717.47 -> "1.037.717,47")
      */
     fun formatAmount(
         amount: Double,
         decimals: Boolean = true,
-        useTurkishSeparators: Boolean = false
+        useTurkishSeparators: Boolean = true
     ): String {
         val isNegative = amount < 0
         val absAmount = abs(amount)
@@ -40,19 +40,45 @@ object KmpCurrencyFormatter {
         return "$sign$formattedWhole$decimalSep$formattedDec"
     }
 
+    fun formatAmount(
+        amount: Int,
+        decimals: Boolean = false,
+        useTurkishSeparators: Boolean = true
+    ): String = formatAmount(amount.toDouble(), decimals, useTurkishSeparators)
+
+    fun formatAmount(
+        amount: Long,
+        decimals: Boolean = false,
+        useTurkishSeparators: Boolean = true
+    ): String = formatAmount(amount.toDouble(), decimals, useTurkishSeparators)
+
     /**
-     * Para birimi sembolü ile birlikte formatlar (Örn: "₺ 1,037,717.47")
+     * Para birimi sembolü ile birlikte formatlar (Örn: "₺ 12.345" veya "12.345 ₺")
      */
     fun format(
         amount: Double,
         currencyCode: String = "TRY",
         decimals: Boolean = true,
-        useTurkishSeparators: Boolean = false
+        useTurkishSeparators: Boolean = true
     ): String {
         val symbol = getSymbol(currencyCode)
         val formatted = formatAmount(amount, decimals, useTurkishSeparators)
         return "$symbol $formatted"
     }
+
+    fun format(
+        amount: Int,
+        currencyCode: String = "TRY",
+        decimals: Boolean = false,
+        useTurkishSeparators: Boolean = true
+    ): String = format(amount.toDouble(), currencyCode, decimals, useTurkishSeparators)
+
+    fun format(
+        amount: Long,
+        currencyCode: String = "TRY",
+        decimals: Boolean = false,
+        useTurkishSeparators: Boolean = true
+    ): String = format(amount.toDouble(), currencyCode, decimals, useTurkishSeparators)
 
     fun getSymbol(currencyCode: String): String {
         return when (currencyCode.uppercase().trim()) {

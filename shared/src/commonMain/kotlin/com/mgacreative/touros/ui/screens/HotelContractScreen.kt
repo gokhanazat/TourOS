@@ -219,7 +219,7 @@ fun HotelContractScreen(
                                         },
                                         TourOSColumn<HotelContract>(title = "GECELİK FİYAT", weight = 1.2f) { c ->
                                             Text(
-                                                text = "${c.pricePerNight.toInt()} ${c.currency}",
+                                                text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(c.pricePerNight, decimals = false)} ${c.currency}",
                                                 style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
                                             )
                                         },
@@ -308,7 +308,7 @@ private fun ContractCompactCard(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("💰 Gecelik", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                Text("${contract.pricePerNight.toInt()} ${contract.currency}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(contract.pricePerNight, decimals = false)} ${contract.currency}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
             }
         }
 

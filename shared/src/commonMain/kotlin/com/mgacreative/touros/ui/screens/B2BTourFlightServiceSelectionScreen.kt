@@ -42,6 +42,7 @@ fun B2BTourFlightServiceSelectionScreen(
         }
     }
 
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val selectedProduct by viewModel.selectedProduct.collectAsState()
     val availableFlightOptions by viewModel.availableFlightOptions.collectAsState()
     val selectedFlightOption by viewModel.selectedFlightOption.collectAsState()
@@ -296,9 +297,8 @@ fun B2BTourFlightServiceSelectionScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${grandTotal.toInt()} ${product.currency}",
-                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
-                                fontWeight = FontWeight.Bold
+                                text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(grandTotal, decimals = false)} ${product.currency}",
+                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -418,7 +418,7 @@ private fun FlightOptionCardItem(
             Column(horizontalAlignment = Alignment.End) {
                 if (option.priceDeltaRub > 0) {
                     Text(
-                        text = "+${option.priceDeltaRub.toInt()} RUB",
+                        text = "+${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.priceDeltaRub, decimals = false)} RUB",
                         style = TourOSTypography.Label.copy(color = TourOSColors.Warning),
                         fontWeight = FontWeight.Bold
                     )
@@ -561,14 +561,14 @@ private fun CompactExtraServiceRow(
                 }
 
                 Text(
-                    text = "Kişi Başı: ${unitPriceInCurrency.toInt()} $currency  ·  Toplam (${service.paxCount} Yolcu): ${totalPriceInCurrency.toInt()} $currency",
+                    text = "${AppLanguageManager.translate("Kişi Başı")}: ${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(unitPriceInCurrency, decimals = false)} $currency  ·  ${AppLanguageManager.translate("Toplam")} (${service.paxCount} ${AppLanguageManager.translate("Yolcu")}): ${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(totalPriceInCurrency, decimals = false)} $currency",
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 10.sp)
                 )
             }
         }
 
         Text(
-            text = "${totalPriceInCurrency.toInt()} $currency",
+            text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(totalPriceInCurrency, decimals = false)} $currency",
             style = TourOSTypography.Label.copy(color = TourOSColors.Primary, fontSize = 13.sp),
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(start = 12.dp)
