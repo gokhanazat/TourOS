@@ -16,6 +16,10 @@ data class AnalyticsChartsUiState(
     val dailySales: List<DailySalesData> = emptyList(),
     val countrySales: List<CountrySalesData> = emptyList(),
     val channelSales: List<ChannelSalesData> = emptyList(),
+    val totalRevenue: Double = 0.0,
+    val totalBookingsCount: Int = 0,
+    val totalPaxOrNights: Int = 0,
+    val averageBookingValue: Double = 0.0,
     val selectedDays: Int = 7,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
@@ -45,6 +49,10 @@ class AnalyticsChartsViewModel(
                     dailySales = result.dailySales,
                     countrySales = result.countrySales,
                     channelSales = result.channelSales,
+                    totalRevenue = result.totalRevenue,
+                    totalBookingsCount = result.totalBookingsCount,
+                    totalPaxOrNights = result.totalPaxOrNights,
+                    averageBookingValue = result.averageBookingValue,
                     isLoading = false
                 )
             }.onFailure { err ->

@@ -2,10 +2,14 @@ package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -37,9 +42,9 @@ private val filterOptions = listOf(
 )
 
 /**
- * Analitik & Tahmin Grafikleri Paneli — TourOS Canlı Veri Sürümü
+ * Analitik & Satış Trendleri Paneli — TourOS Kurumsal İstatistik ve Performans Paneli
  *
- * Gerçekleşen rezervasyon ciro trendleri, canlı kanal dağılımı ve AI tahmin analizi.
+ * Gerçekleşen rezervasyon ciro trendleri, operasyonel kategori dağılımı ve kanal analitiği.
  */
 @Composable
 fun AnalyticsChartsScreen(
@@ -47,14 +52,13 @@ fun AnalyticsChartsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
-    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Analitik & Tahmin Grafikleri"),
-                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen satış trendleri ve AI gelecek tahmin analizi"),
+                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Analitik & Satış Trendleri"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen satış trendleri, operasyonel kategori ve kanal performans dökümü"),
                 onNavigateBack = onNavigateBack
             )
         }
@@ -63,36 +67,101 @@ fun AnalyticsChartsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(TourOSSpacing.large),
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.small),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
         ) {
             // ── 1. ZAMAN ARALIĞI FİLTRE ÇUBUĞU ────────────────────────────
-            Row(
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+                border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
             ) {
-                Text(
-                    "📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel & Tahmin Analitik Paneli")}",
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = TourOSSpacing.medium, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel Trend & İstatistik Paneli")}",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
+                    )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                    filterOptions.forEach { opt ->
-                        FilterChip(
-                            selected = state.selectedDays == opt.days,
-                            onClick = { viewModel.loadData(opt.days) },
-                            label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(opt.label), style = TourOSTypography.Caption) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = TourOSColors.PrimaryContainer,
-                                selectedLabelColor = TourOSColors.Primary
-                            )
+                    Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                        filterOptions.forEach { opt ->
+                            val isSelected = state.selectedDays == opt.days
+                            Surface(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .border(1.dp, if (isSelected) TourOSColors.Primary else TourOSColors.Border, RoundedCornerShape(14.dp))
+                                    .clickable { viewModel.loadData(opt.days) },
+                                color = if (isSelected) TourOSColors.Primary else TourOSColors.Surface
+                            ) {
+                                Text(
+                                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(opt.label),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    style = TourOSTypography.Caption,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) Color.White else TourOSColors.TextPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── 2. TEK SATIRLIK KPI FİNANSAL PERFORMANS ŞERİDİ ──────────────
+            val topCategory = state.countrySales.maxByOrNull { it.totalAmount }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.45f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.25f)),
+                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = TourOSSpacing.medium, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "💰 Toplam Ciro: ₺ ${formatAmount(state.totalRevenue)}",
+                            style = TourOSTypography.BodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TourOSColors.Primary
+                        )
+                        Text(
+                            text = "📋 Toplam Rezervasyon: ${state.totalBookingsCount} Adet (${state.totalPaxOrNights} Pax/Gece)",
+                            style = TourOSTypography.Caption,
+                            color = TourOSColors.TextPrimary
+                        )
+                        Text(
+                            text = "📈 Ort. Sepet: ₺ ${formatAmount(state.averageBookingValue)}",
+                            style = TourOSTypography.Caption,
+                            color = TourOSColors.TextSecondary
+                        )
+                    }
+
+                    if (topCategory != null && topCategory.totalAmount > 0) {
+                        Text(
+                            text = "🏆 Lider Operasyon: ${topCategory.countryName} (%${topCategory.percentage.toInt()})",
+                            style = TourOSTypography.Caption,
+                            fontWeight = FontWeight.Bold,
+                            color = TourOSColors.Primary
                         )
                     }
                 }
             }
 
+            // ── 3. GRAFİK GRID DÜZENİ ───────────────────────────────────────
             if (state.isLoading) {
                 Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = TourOSColors.Primary)
@@ -102,7 +171,6 @@ fun AnalyticsChartsScreen(
                     val isExpanded = maxWidth >= 768.dp
 
                     if (isExpanded) {
-                        // ── MASAÜSTÜ / TABLET: 2 KOLONLU GRID DÜZENİ ──────────────────
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
@@ -110,32 +178,31 @@ fun AnalyticsChartsScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             item {
-                                ForecastRevenueTrendChartCard(dailySales = state.dailySales)
+                                RevenueTrendChartCard(dailySales = state.dailySales)
                             }
                             item {
                                 DailySalesBarChartCard(dailySales = state.dailySales)
                             }
                             item {
-                                CountryMarketShareChartCard(countrySales = state.countrySales)
+                                OperationalCategoryDistributionCard(categorySales = state.countrySales)
                             }
                             item {
                                 ChannelOccupancyComparisonCard(channelSales = state.channelSales)
                             }
                         }
                     } else {
-                        // ── MOBİL: DİKEY KART AKIŞI ────────────────────────────────
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
                             modifier = Modifier.fillMaxSize()
                         ) {
                             item {
-                                ForecastRevenueTrendChartCard(dailySales = state.dailySales)
+                                RevenueTrendChartCard(dailySales = state.dailySales)
                             }
                             item {
                                 DailySalesBarChartCard(dailySales = state.dailySales)
                             }
                             item {
-                                CountryMarketShareChartCard(countrySales = state.countrySales)
+                                OperationalCategoryDistributionCard(categorySales = state.countrySales)
                             }
                             item {
                                 ChannelOccupancyComparisonCard(channelSales = state.channelSales)
@@ -148,32 +215,24 @@ fun AnalyticsChartsScreen(
     }
 }
 
-// ─── TAHMİN GRAFİĞİ: GERÇEKLEŞEN VE AI TAHMİNİ ─────────────────────────────────
+// ─── GRAFİK 1: CİRO VE DÖNEMSEL TREND ÇİZGİSİ ──────────────────────────────────
 
 @Composable
-private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
+private fun RevenueTrendChartCard(dailySales: List<DailySalesData>) {
     val realAmounts = if (dailySales.isNotEmpty()) {
         dailySales.map { it.totalAmount }
     } else {
         emptyList()
     }
 
-    val forecastAmounts = if (realAmounts.isNotEmpty()) {
-        val lastVal = realAmounts.last()
-        listOf(lastVal, lastVal * 1.12, lastVal * 1.25, lastVal * 1.35)
-    } else {
-        emptyList()
-    }
-
-    val allAmounts = realAmounts + forecastAmounts.drop(1)
-    val maxVal = (allAmounts.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
-    val minVal = (allAmounts.minOrNull() ?: 0.0)
+    val avgAmount = if (realAmounts.isNotEmpty()) realAmounts.average() else 0.0
+    val maxVal = (realAmounts.maxOrNull() ?: 1.0).coerceAtLeast(1.0)
+    val minVal = (realAmounts.minOrNull() ?: 0.0)
 
     val realColor = TourOSColors.Primary
-    val forecastColor = TourOSColors.Primary.copy(alpha = 0.45f)
-    val accentColor = TourOSColors.Secondary
+    val trendColor = Color(0xFFE5A93C)
 
-    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.medium) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -182,30 +241,30 @@ private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
             ) {
                 Column {
                     Text(
-                        "🔮 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("AI Ciro & Gelecek Tahmin Grafiği")}",
+                        "📈 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dönemsel Satış & Trend Çizgisi")}",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen satış trendleri ve AI gelecek tahmini"),
+                        com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen ciro ve dönemsel ortalama hareket trendi"),
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
 
                 TourOSStatusBadge(
-                    text = if (realAmounts.isNotEmpty()) "↗ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı Veri")}" else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Veri Bekleniyor"),
+                    text = if (realAmounts.isNotEmpty()) "● Canlı Trend" else "Veri Bekleniyor",
                     backgroundColor = TourOSColors.SuccessContainer,
                     textColor = TourOSColors.Success
                 )
             }
 
-            // GÖSTERGE (LEGEND) BAR
+            // GÖSTERGE (LEGEND)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                    .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
-                    .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
+                    .background(TourOSColors.PrimaryContainer.copy(alpha = 0.35f))
+                    .padding(horizontal = TourOSSpacing.medium, vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -213,7 +272,7 @@ private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.width(20.dp).height(3.dp).background(realColor))
+                    Box(modifier = Modifier.width(18.dp).height(3.dp).background(realColor))
                     Text("━ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen Ciro")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
                 }
 
@@ -221,14 +280,14 @@ private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.width(20.dp).height(3.dp).background(forecastColor))
-                    Text("╌╌╌ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("AI Gelecek Tahmini")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+                    Box(modifier = Modifier.width(18.dp).height(3.dp).background(trendColor))
+                    Text("╌╌ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dönem Ortalaması")}: ₺ ${formatAmount(avgAmount)}", style = TourOSTypography.Caption.copy(color = trendColor), fontWeight = FontWeight.Bold)
                 }
             }
 
-            HorizontalDivider(color = TourOSColors.Divider)
+            HorizontalDivider(color = TourOSColors.Border)
 
-            if (allAmounts.isEmpty()) {
+            if (realAmounts.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().height(150.dp),
                     contentAlignment = Alignment.Center
@@ -244,63 +303,56 @@ private fun ForecastRevenueTrendChartCard(dailySales: List<DailySalesData>) {
                 ) {
                     val width = size.width
                     val height = size.height
-                    val totalPoints = allAmounts.size
+                    val totalPoints = realAmounts.size
                     val stepX = if (totalPoints > 1) width / (totalPoints - 1) else width
 
-                    // 1. GERÇEKLEŞEN VERİ NOKTALARI
                     val realPoints = realAmounts.mapIndexed { index, value ->
-                        val normY = if (maxVal > minVal) ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.1f, 0.9f) else 0.5f
+                        val normY = if (maxVal > minVal) ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.15f, 0.85f) else 0.5f
                         Offset(index * stepX, height - (normY * height))
                     }
 
                     if (realPoints.isNotEmpty()) {
+                        // Alan Gölgelendirmesi (Area Gradient Fill)
+                        val areaPath = Path().apply {
+                            moveTo(realPoints.first().x, height)
+                            realPoints.forEach { lineTo(it.x, it.y) }
+                            lineTo(realPoints.last().x, height)
+                            close()
+                        }
+                        drawPath(
+                            path = areaPath,
+                            brush = Brush.verticalGradient(
+                                colors = listOf(realColor.copy(alpha = 0.25f), Color.Transparent)
+                            )
+                        )
+
+                        // Gerçekleşen Çizgi
                         val realPath = Path().apply {
                             moveTo(realPoints.first().x, realPoints.first().y)
                             for (i in 1 until realPoints.size) {
                                 lineTo(realPoints[i].x, realPoints[i].y)
                             }
                         }
-
                         drawPath(
                             path = realPath,
                             color = realColor,
-                            style = Stroke(width = 3.5.dp.toPx())
+                            style = Stroke(width = 3.dp.toPx())
+                        )
+
+                        // Ortalama Trend Çizgisi
+                        val normAvgY = if (maxVal > minVal) ((avgAmount - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.15f, 0.85f) else 0.5f
+                        val avgLineY = height - (normAvgY * height)
+                        drawLine(
+                            color = trendColor,
+                            start = Offset(0f, avgLineY),
+                            end = Offset(width, avgLineY),
+                            strokeWidth = 2.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f)
                         )
 
                         realPoints.forEach { point ->
-                            drawCircle(color = accentColor, radius = 5.dp.toPx(), center = point)
-                            drawCircle(color = Color.White, radius = 2.dp.toPx(), center = point)
-                        }
-                    }
-
-                    // 2. TAHMİNİ VERİ NOKTALARI (KESİKLİ ÇİZGİ)
-                    if (realAmounts.isNotEmpty() && forecastAmounts.size > 1) {
-                        val forecastStartIndex = realAmounts.size - 1
-                        val forecastPoints = allAmounts.subList(forecastStartIndex, allAmounts.size).mapIndexed { index, value ->
-                            val globalIdx = forecastStartIndex + index
-                            val normY = if (maxVal > minVal) ((value - minVal) / (maxVal - minVal)).toFloat().coerceIn(0.1f, 0.9f) else 0.5f
-                            Offset(globalIdx * stepX, height - (normY * height))
-                        }
-
-                        val forecastPath = Path().apply {
-                            moveTo(forecastPoints.first().x, forecastPoints.first().y)
-                            for (i in 1 until forecastPoints.size) {
-                                lineTo(forecastPoints[i].x, forecastPoints[i].y)
-                            }
-                        }
-
-                        drawPath(
-                            path = forecastPath,
-                            color = forecastColor,
-                            style = Stroke(
-                                width = 3.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)
-                            )
-                        )
-
-                        forecastPoints.drop(1).forEach { point ->
-                            drawCircle(color = forecastColor, radius = 4.dp.toPx(), center = point)
-                            drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = point)
+                            drawCircle(color = realColor, radius = 5.dp.toPx(), center = point)
+                            drawCircle(color = Color.White, radius = 2.5.dp.toPx(), center = point)
                         }
                     }
                 }
@@ -316,7 +368,7 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
     val maxAmount = (dailySales.maxOfOrNull { it.totalAmount } ?: 1.0).coerceAtLeast(1.0)
     val totalPeriodSales = dailySales.sumOf { it.totalAmount }
 
-    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.medium) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -330,7 +382,7 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Dönem İçi Toplam Gerçekleşen Ciro",
+                        "Dönem İçi Toplam Gerçekleşen Ciro Dağılımı",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
@@ -342,14 +394,14 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                         .padding(horizontal = TourOSSpacing.small, vertical = 4.dp)
                 ) {
                     Text(
-                        "₺ ${totalPeriodSales.toLong()}",
+                        "₺ ${formatAmount(totalPeriodSales)}",
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
 
-            HorizontalDivider(color = TourOSColors.Divider)
+            HorizontalDivider(color = TourOSColors.Border)
 
             if (dailySales.isEmpty()) {
                 Box(
@@ -368,7 +420,7 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                 ) {
                     dailySales.forEachIndexed { index, dayData ->
                         val ratio = (dayData.totalAmount / maxAmount).toFloat().coerceIn(0.1f, 1.0f)
-                        val barHeight = (110 * ratio).dp
+                        val barHeight = (105 * ratio).dp
                         val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
 
                         Column(
@@ -377,7 +429,7 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                             modifier = Modifier.weight(1f)
                         ) {
                             Text(
-                                text = "${dayData.totalAmount.toLong()} ₺",
+                                text = "₺${formatAmount(dayData.totalAmount)}",
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
                                 maxLines = 1
                             )
@@ -386,7 +438,7 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
 
                             Box(
                                 modifier = Modifier
-                                    .width(20.dp)
+                                    .width(22.dp)
                                     .height(barHeight)
                                     .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
                                     .background(barColor)
@@ -408,11 +460,11 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
     }
 }
 
-// ─── GRAFİK 3: ÜRÜN / KATEGORİ PAZAR DAĞILIMI ────────────────────────────────
+// ─── GRAFİK 3: 5 ANA OPERASYONEL KATEGORİ DAĞILIMI ───────────────────────────
 
 @Composable
-private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
-    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+private fun OperationalCategoryDistributionCard(categorySales: List<CountrySalesData>) {
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.medium) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Text(
                 "🌍 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kategori & Operasyon Dağılımı")}",
@@ -420,13 +472,13 @@ private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
                 fontWeight = FontWeight.Bold
             )
             Text(
-                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Satışların ürün ve hizmet kategorilerine göre oranı"),
+                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TO Paketleri, Otel, Yerel Tur, Uçuş ve Transfer kategorilerine göre satış oranı"),
                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
             )
 
-            HorizontalDivider(color = TourOSColors.Divider)
+            HorizontalDivider(color = TourOSColors.Border)
 
-            if (countrySales.isEmpty()) {
+            if (categorySales.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxWidth().height(120.dp),
                     contentAlignment = Alignment.Center
@@ -434,9 +486,24 @@ private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
                     Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kategori bazlı satış verisi bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                 }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                    countrySales.forEachIndexed { index, item ->
-                        val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    categorySales.forEach { item ->
+                        val icon = when (item.countryCode) {
+                            "HTL" -> "🏨"
+                            "TO_PKG" -> "💼"
+                            "LOCAL_TOUR" -> "🚌"
+                            "FLIGHT" -> "✈️"
+                            "TRANSFER" -> "🚐"
+                            else -> "📍"
+                        }
+                        val barColor = when (item.countryCode) {
+                            "HTL" -> TourOSColors.Primary
+                            "TO_PKG" -> Color(0xFFE5A93C)
+                            "LOCAL_TOUR" -> Color(0xFF2E7D32)
+                            "FLIGHT" -> Color(0xFF0288D1)
+                            "TRANSFER" -> Color(0xFF7B1FA2)
+                            else -> TourOSColors.Secondary
+                        }
 
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Row(
@@ -444,23 +511,29 @@ private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(icon, style = TourOSTypography.Caption)
+                                    Text(
+                                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.countryName)} (${item.bookingCount} Rezervasyon)",
+                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                                 Text(
-                                    "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.countryName)} (${item.bookingCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon")})",
-                                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "% ${item.percentage.toInt()}  ·  ₺ ${item.totalAmount.toLong()}",
-                                    style = TourOSTypography.Label.copy(color = barColor),
+                                    text = "% ${item.percentage.toInt()}  ·  ₺ ${formatAmount(item.totalAmount)}",
+                                    style = TourOSTypography.Label.copy(color = if (item.totalAmount > 0) barColor else TourOSColors.TextSecondary),
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
                             LinearProgressIndicator(
                                 progress = { (item.percentage / 100.0).toFloat().coerceIn(0f, 1f) },
-                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                 color = barColor,
-                                trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
+                                trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.35f)
                             )
                         }
                     }
@@ -470,11 +543,11 @@ private fun CountryMarketShareChartCard(countrySales: List<CountrySalesData>) {
     }
 }
 
-// ─── GRAFİK 4: KANAL BAZLI GERÇEK CANLI PERFORMANS DAĞILIMI ─────────────────
+// ─── GRAFİK 4: SATIŞ KANALI DAĞILIMI ─────────────────────────────────────────
 
 @Composable
 private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>) {
-    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.large) {
+    TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.medium) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Text(
                 "🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Satış Kanalı Bazlı Canlı Dağılım")}",
@@ -482,11 +555,11 @@ private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>)
                 fontWeight = FontWeight.Bold
             )
             Text(
-                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gerçekleşen rezervasyonların kanallara göre canlı oranı"),
+                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("B2C Web, B2B Acente Portalı ve Ofis/Çağrı Merkezi canlı satış payları"),
                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
             )
 
-            HorizontalDivider(color = TourOSColors.Divider)
+            HorizontalDivider(color = TourOSColors.Border)
 
             if (channelSales.isEmpty()) {
                 Box(
@@ -496,37 +569,64 @@ private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>)
                     Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz kanal bazlı rezervasyon verisi bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                 }
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                    channelSales.forEachIndexed { index, ch ->
-                        val barColor = if (index % 2 == 0) TourOSColors.Primary else TourOSColors.Secondary
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    channelSales.forEach { ch ->
+                        val icon = when {
+                            ch.channelName.contains("B2C", ignoreCase = true) -> "🌐"
+                            ch.channelName.contains("B2B", ignoreCase = true) -> "🏢"
+                            else -> "📞"
+                        }
+                        val barColor = when {
+                            ch.channelName.contains("B2C", ignoreCase = true) -> TourOSColors.Primary
+                            ch.channelName.contains("B2B", ignoreCase = true) -> Color(0xFF1E88E5)
+                            else -> Color(0xFF6D4C41)
+                        }
+
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(icon, style = TourOSTypography.Caption)
+                                    Text(
+                                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(ch.channelName)} (${ch.bookingCount} Rezervasyon)",
+                                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                                 Text(
-                                    "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(ch.channelName)} (${ch.bookingCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon")})",
-                                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    "% ${ch.percentage.toInt()}  ·  ₺ ${ch.totalSales.toLong()}",
-                                    style = TourOSTypography.Label.copy(color = barColor),
+                                    text = "% ${ch.percentage.toInt()}  ·  ₺ ${formatAmount(ch.totalSales)}",
+                                    style = TourOSTypography.Label.copy(color = if (ch.totalSales > 0) barColor else TourOSColors.TextSecondary),
                                     fontWeight = FontWeight.Bold
                                 )
                             }
 
                             LinearProgressIndicator(
                                 progress = { (ch.percentage / 100.0).toFloat().coerceIn(0f, 1f) },
-                                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
                                 color = barColor,
-                                trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)
+                                trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.35f)
                             )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+private fun formatAmount(value: Double): String {
+    val longVal = value.toLong()
+    return if (value % 1.0 == 0.0) {
+        longVal.toString()
+    } else {
+        val whole = (value.toInt()).toString()
+        val decimal = ((value - value.toInt()) * 100).toInt()
+        "$whole.${if (decimal < 10) "0$decimal" else decimal}"
     }
 }

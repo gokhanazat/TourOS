@@ -15,7 +15,11 @@ data class ChannelSalesData(
 data class AnalyticsChartsResult(
     val dailySales: List<DailySalesData>,
     val countrySales: List<CountrySalesData>,
-    val channelSales: List<ChannelSalesData>
+    val channelSales: List<ChannelSalesData>,
+    val totalRevenue: Double = 0.0,
+    val totalBookingsCount: Int = 0,
+    val totalPaxOrNights: Int = 0,
+    val averageBookingValue: Double = 0.0
 )
 
 /**
@@ -30,9 +34,13 @@ class GetAnalyticsChartsUseCase(
             val bookings = bookingRepository.getBookings(tenantId).getOrDefault(emptyList())
 
             if (bookings.isNotEmpty()) {
+                val totalRevenue = bookings.sumOf { it.totalPrice }
+                val totalPax = bookings.sumOf { if (it.nights > 0) it.nights else it.paxCount }
+                val avgValue = if (bookings.isNotEmpty()) totalRevenue / bookings.size else 0.0
+
                 // 1. Günlük Satış Analizi
                 val dailyMap = bookings.groupBy { b ->
-                    b.checkInDate ?: b.departureDate ?: b.createdAt?.take(10) ?: "Bugün"
+                    b.checkInDate ?: b.departureDate ?: b.createdAt.take(10).ifBlank { "Bugün" }
                 }
 
                 val dailySalesList = dailyMap.entries.map { (dateStr, bList) ->
@@ -45,27 +53,51 @@ class GetAnalyticsChartsUseCase(
                     )
                 }.sortedBy { it.saleDate }
 
-                // 2. Ürün / Kategori Bazlı Satış Dağılımı
-                val totalRevenue = bookings.sumOf { it.totalPrice }
-                val countryMap = bookings.groupBy { b ->
-                    if (b.bookingType == "HOTEL") "Otel Konaklama"
-                    else b.productName?.takeIf { it.isNotBlank() } ?: "Tur Operasyonu"
+                // 2. 5 Temel Operasyonel Kategori Dağılımı
+                val toBookings = bookings.filter {
+                    val isExternalOp = !it.operatorName.isNullOrBlank() && !it.operatorName.contains("MGA", ignoreCase = true)
+                    val hasOpPnr = !it.operatorPnrCode.isNullOrBlank()
+                    (isExternalOp || hasOpPnr) && it.bookingType != "HOTEL"
                 }
 
-                val countrySalesList = countryMap.entries.map { (categoryName, bList) ->
-                    val catRevenue = bList.sumOf { it.totalPrice }
-                    val count = bList.size
-                    val percentage = if (totalRevenue > 0) (catRevenue / totalRevenue) * 100 else 0.0
-                    val code = if (categoryName.contains("Otel")) "HTL" else "TUR"
+                val hotelBookings = bookings.filter {
+                    it.bookingType == "HOTEL" || !it.hotelId.isNullOrBlank()
+                }
 
-                    CountrySalesData(
+                val localTourBookings = bookings.filter {
+                    val isOwn = it.operatorName.isNullOrBlank() || it.operatorName.contains("MGA", ignoreCase = true)
+                    val noOpPnr = it.operatorPnrCode.isNullOrBlank()
+                    it.bookingType == "TOUR" && isOwn && noOpPnr
+                }
+
+                val flightBookings = bookings.filter {
+                    it.bookingType.equals("FLIGHT", ignoreCase = true)
+                }
+
+                val transferBookings = bookings.filter {
+                    it.bookingType.equals("TRANSFER", ignoreCase = true) || it.bookingType.equals("EXTRA", ignoreCase = true)
+                }
+
+                fun buildCategoryData(code: String, name: String, list: List<com.mgacreative.touros.domain.model.Booking>): CountrySalesData {
+                    val rev = list.sumOf { it.totalPrice }
+                    val count = list.size
+                    val pct = if (totalRevenue > 0) (rev / totalRevenue) * 100 else 0.0
+                    return CountrySalesData(
                         countryCode = code,
-                        countryName = categoryName,
-                        totalAmount = catRevenue,
+                        countryName = name,
+                        totalAmount = rev,
                         bookingCount = count,
-                        percentage = percentage
+                        percentage = pct
                     )
-                }.sortedByDescending { it.totalAmount }
+                }
+
+                val categorySalesList = listOf(
+                    buildCategoryData("HTL", "Otel & Konaklama", hotelBookings),
+                    buildCategoryData("TO_PKG", "TO Tur Paketleri", toBookings),
+                    buildCategoryData("LOCAL_TOUR", "Yerel Tur Paketlerimiz", localTourBookings),
+                    buildCategoryData("FLIGHT", "Uçak & Uçuş Operasyonları", flightBookings),
+                    buildCategoryData("TRANSFER", "Transfer & Ek Hizmetler", transferBookings)
+                ).sortedByDescending { it.totalAmount }
 
                 // 3. Kanal Bazlı Canlı Gerçek Satış Dağılımı (B2C, B2B, Mobil)
                 val totalCount = bookings.size
@@ -86,7 +118,7 @@ class GetAnalyticsChartsUseCase(
                         percentage = if (totalCount > 0) (b2bBookings.size.toDouble() / totalCount) * 100 else 0.0
                     ),
                     ChannelSalesData(
-                        channelName = "Mobil ve Çağrı Merkezi",
+                        channelName = "Ofis & Çağrı Merkezi",
                         bookingCount = 0,
                         totalSales = 0.0,
                         percentage = 0.0
@@ -95,21 +127,57 @@ class GetAnalyticsChartsUseCase(
 
                 AnalyticsChartsResult(
                     dailySales = dailySalesList,
-                    countrySales = countrySalesList,
-                    channelSales = channelSalesList
+                    countrySales = categorySalesList,
+                    channelSales = channelSalesList,
+                    totalRevenue = totalRevenue,
+                    totalBookingsCount = bookings.size,
+                    totalPaxOrNights = totalPax,
+                    averageBookingValue = avgValue
                 )
             } else {
+                val emptyCategories = listOf(
+                    CountrySalesData("HTL", "Otel & Konaklama", 0.0, 0, 0.0),
+                    CountrySalesData("TO_PKG", "TO Tur Paketleri", 0.0, 0, 0.0),
+                    CountrySalesData("LOCAL_TOUR", "Yerel Tur Paketlerimiz", 0.0, 0, 0.0),
+                    CountrySalesData("FLIGHT", "Uçak & Uçuş Operasyonları", 0.0, 0, 0.0),
+                    CountrySalesData("TRANSFER", "Transfer & Ek Hizmetler", 0.0, 0, 0.0)
+                )
+                val emptyChannels = listOf(
+                    ChannelSalesData("B2C Doğrudan Web Satışı", 0, 0.0, 0.0),
+                    ChannelSalesData("Acente & B2B Kanalı", 0, 0.0, 0.0),
+                    ChannelSalesData("Ofis & Çağrı Merkezi", 0, 0.0, 0.0)
+                )
                 AnalyticsChartsResult(
                     dailySales = emptyList(),
-                    countrySales = emptyList(),
-                    channelSales = emptyList()
+                    countrySales = emptyCategories,
+                    channelSales = emptyChannels,
+                    totalRevenue = 0.0,
+                    totalBookingsCount = 0,
+                    totalPaxOrNights = 0,
+                    averageBookingValue = 0.0
                 )
             }
         }.recover {
+            val emptyCategories = listOf(
+                CountrySalesData("HTL", "Otel & Konaklama", 0.0, 0, 0.0),
+                CountrySalesData("TO_PKG", "TO Tur Paketleri", 0.0, 0, 0.0),
+                CountrySalesData("LOCAL_TOUR", "Yerel Tur Paketlerimiz", 0.0, 0, 0.0),
+                CountrySalesData("FLIGHT", "Uçak & Uçuş Operasyonları", 0.0, 0, 0.0),
+                CountrySalesData("TRANSFER", "Transfer & Ek Hizmetler", 0.0, 0, 0.0)
+            )
+            val emptyChannels = listOf(
+                ChannelSalesData("B2C Doğrudan Web Satışı", 0, 0.0, 0.0),
+                ChannelSalesData("Acente & B2B Kanalı", 0, 0.0, 0.0),
+                ChannelSalesData("Ofis & Çağrı Merkezi", 0, 0.0, 0.0)
+            )
             AnalyticsChartsResult(
                 dailySales = emptyList(),
-                countrySales = emptyList(),
-                channelSales = emptyList()
+                countrySales = emptyCategories,
+                channelSales = emptyChannels,
+                totalRevenue = 0.0,
+                totalBookingsCount = 0,
+                totalPaxOrNights = 0,
+                averageBookingValue = 0.0
             )
         }
     }
