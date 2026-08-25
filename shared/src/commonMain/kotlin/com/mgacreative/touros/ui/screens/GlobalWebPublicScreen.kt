@@ -1573,23 +1573,22 @@ fun GlobalWebPublicScreen(
                                 contentAlignment = Alignment.BottomStart
                             ) {
                                 val rawHeader = companySettings?.headerImageUrl?.trim()
+                                val defaultHero = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1600&auto=format&fit=crop&q=80"
                                 val headerImg = when {
-                                    rawHeader.isNullOrBlank() -> null
+                                    rawHeader.isNullOrBlank() -> defaultHero
                                     rawHeader.contains("unsplash.com") && !rawHeader.contains("auto=format") -> {
                                         if (rawHeader.contains("?")) "$rawHeader&auto=format&fit=crop&q=80"
-                                        else "$rawHeader?auto=format&fit=crop&w=1200&q=80"
+                                        else "$rawHeader?auto=format&fit=crop&w=1600&q=80"
                                     }
                                     else -> rawHeader
                                 }
                                 
-                                if (!headerImg.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = headerImg,
-                                        contentDescription = "Header Hero Banner",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
+                                AsyncImage(
+                                    model = headerImg,
+                                    contentDescription = "Header Hero Banner",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
 
                                 // Overlay Karartma Gradient
                                 Box(
