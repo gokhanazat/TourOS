@@ -2,171 +2,176 @@ package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.NavigationRail
-import androidx.compose.material3.NavigationRailItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.DashboardSummary
 import com.mgacreative.touros.domain.model.GuideStatusInfo
 import com.mgacreative.touros.domain.model.UpcomingTour
 import com.mgacreative.touros.domain.model.UserRole
 import com.mgacreative.touros.domain.model.VehicleOccupancy
-import com.mgacreative.touros.ui.components.DashboardChartsSection
-import com.mgacreative.touros.ui.components.TourOSButton
-import com.mgacreative.touros.ui.components.TourOSButtonVariant
-import com.mgacreative.touros.ui.components.TourOSCard
-import com.mgacreative.touros.ui.components.TourOSEmptyState
-import com.mgacreative.touros.ui.components.TourOSLoadingIndicator
-import com.mgacreative.touros.ui.components.TourOSStatusBadge
-import com.mgacreative.touros.ui.components.TourOSTopBar
-import com.mgacreative.touros.ui.navigation.getNavigationItemsForRole
-import com.mgacreative.touros.ui.theme.NavigationType
+import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
-import com.mgacreative.touros.ui.theme.calculateNavigationType
 import com.mgacreative.touros.ui.viewmodel.DashboardUiState
 import com.mgacreative.touros.ui.viewmodel.DashboardViewModel
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * TourOS 0.3 Tasarım Sistemine uygun Operasyon Dashboard Ekranı.
- * - Üstte KPI kartları grid'i (Expanded: 4-6 sütun, Compact: 2 sütun).
- * - Her kart tek büyük sayı + küçük trend ikonu.
- * - Altta iki sütunlu bölüm: Solda liste widget'ları, sağda grafik paneli (Compact'ta alt alta).
- * - Grafiklerde sadece Primary ve Accent/Secondary tonlarının opaklıkları kullanılır.
+ * TourOS Ultra-Kompakt Kurumsal ERP Dashboard Ekranı.
+ *
+ * - Üstte 5'li Kompakt KPI Şeridi (Tek satır, düşük yükseklik).
+ * - Sol Bölüm (%60): Yaklaşan Tur & Otel Operasyonları, Araç Dolulukları ve Rehber Durumları.
+ * - Sağ Bölüm (%40): Hızlı Aksiyon Kısayolları, Operasyonel Canlı Uyarılar ve Mini Finansal Trend Grafiği.
  */
 @Composable
 fun DashboardScreen(
     currentRole: UserRole = UserRole.TOUR_OPERATOR,
     onNavigateToLogin: () -> Unit = {},
+    onNavigateToBookings: () -> Unit = {},
+    onNavigateToTours: () -> Unit = {},
+    onNavigateToHotels: () -> Unit = {},
+    onNavigateToReports: () -> Unit = {},
     viewModel: DashboardViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     Scaffold(
         topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.medium),
+                    .padding(horizontal = TourOSSpacing.large, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
                     Text(
-                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard"),
-                        style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyon Dashboard & Yönetim"),
+                        style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rol")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
+                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yetki")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
-                TourOSButton(
-                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
-                    onClick = onNavigateToLogin,
-                    variant = TourOSButtonVariant.TERTIARY
-                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TourOSStatusBadge(
+                        text = "🟢 Canlı Sistem Aktif",
+                        backgroundColor = TourOSColors.SuccessContainer,
+                        textColor = TourOSColors.Success
+                    )
+                    TourOSButton(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış"),
+                        onClick = onNavigateToLogin,
+                        variant = TourOSButtonVariant.TERTIARY
+                    )
+                }
             }
         },
         containerColor = TourOSColors.Surface,
         modifier = Modifier.fillMaxSize()
     ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(TourOSSpacing.large)
-            ) {
-                when (val state = uiState) {
-                    is DashboardUiState.Loading -> {
-                        TourOSLoadingIndicator(message = "Dashboard metrikleri ve veriler yükleniyor...")
-                    }
-                    is DashboardUiState.Error -> {
-                        TourOSEmptyState(
-                            title = "Dashboard Yüklenemedi",
-                            description = state.message
-                        )
-                    }
-                    is DashboardUiState.Success -> {
-                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-                            val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
-                            val kpiColumns = when (windowWidthClass) {
-                                com.mgacreative.touros.ui.theme.WindowWidthClass.COMPACT -> 2
-                                com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM -> 3
-                                com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED -> 5
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.xSmall)
+        ) {
+            when (val state = uiState) {
+                is DashboardUiState.Loading -> {
+                    TourOSLoadingIndicator(message = "Dashboard metrikleri yükleniyor...")
+                }
+                is DashboardUiState.Error -> {
+                    TourOSEmptyState(
+                        title = "Dashboard Yüklenemedi",
+                        description = state.message
+                    )
+                }
+                is DashboardUiState.Success -> {
+                    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                        val isExpanded = maxWidth >= 860.dp
+
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            // ── 1. ÜST KOMPAKT 5'Lİ KPI ŞERİDİ ─────────────────────
+                            item {
+                                CompactKpiRow(summary = state.summary, isExpanded = isExpanded)
                             }
-                            val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
 
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                // 1. Üst KPI Kartları Grid'i
-                                item {
-                                    KpiGridSection(summary = state.summary, columnsCount = kpiColumns)
-                                }
-
-                                // 2. İki Sütunlu Bölüm (Expanded: Yan Yana, Compact/Medium: Esnek Alt Alta/Grids)
-                                item {
-                                    if (isExpanded) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
+                            // ── 2. ANA ÇİFT SÜTUNLU DÜZEN (Sol: %58 Operasyon, Sağ: %42 Finans & Aksiyon)
+                            item {
+                                if (isExpanded) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                    ) {
+                                        // SOL KOLON (%58): OPERASYON VE DOLULUK
+                                        Column(
+                                            modifier = Modifier.weight(1.35f),
+                                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                                         ) {
-                                            // Solda Liste Widget'ları
-                                            Column(
-                                                modifier = Modifier.weight(1.2f),
-                                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)
-                                            ) {
-                                                UpcomingToursWidget(tours = state.upcomingTours)
-                                                VehicleOccupancyWidget(vehicles = state.vehicleOccupancies)
-                                                GuideStatusWidget(guides = state.guideStatuses)
-                                            }
-
-                                            // Sağda Grafik Paneli
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                DashboardChartsSection(charts = state.analyticsCharts)
-                                            }
+                                            CompactUpcomingOperationsWidget(
+                                                tours = state.upcomingTours,
+                                                onViewAllClick = onNavigateToBookings
+                                            )
+                                            CompactVehicleOccupancyWidget(vehicles = state.vehicleOccupancies)
+                                            CompactGuideStatusWidget(guides = state.guideStatuses)
                                         }
-                                    } else {
-                                        // Compact & Medium Alt Alta
-                                        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large)) {
-                                            UpcomingToursWidget(tours = state.upcomingTours)
-                                            VehicleOccupancyWidget(vehicles = state.vehicleOccupancies)
-                                            GuideStatusWidget(guides = state.guideStatuses)
+
+                                        // SAĞ KOLON (%42): HIZLI AKSİYONLAR, UYARILAR VE GRAFİKLER
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                        ) {
+                                            QuickActionsWidget(
+                                                onNavigateToBookings = onNavigateToBookings,
+                                                onNavigateToTours = onNavigateToTours,
+                                                onNavigateToHotels = onNavigateToHotels,
+                                                onNavigateToReports = onNavigateToReports
+                                            )
+                                            OperationalAlertsWidget()
                                             DashboardChartsSection(charts = state.analyticsCharts)
                                         }
+                                    }
+                                } else {
+                                    // MOBİL / DAR EKRAN
+                                    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+                                        QuickActionsWidget(
+                                            onNavigateToBookings = onNavigateToBookings,
+                                            onNavigateToTours = onNavigateToTours,
+                                            onNavigateToHotels = onNavigateToHotels,
+                                            onNavigateToReports = onNavigateToReports
+                                        )
+                                        OperationalAlertsWidget()
+                                        CompactUpcomingOperationsWidget(
+                                            tours = state.upcomingTours,
+                                            onViewAllClick = onNavigateToBookings
+                                        )
+                                        CompactVehicleOccupancyWidget(vehicles = state.vehicleOccupancies)
+                                        CompactGuideStatusWidget(guides = state.guideStatuses)
+                                        DashboardChartsSection(charts = state.analyticsCharts)
                                     }
                                 }
                             }
@@ -176,251 +181,464 @@ fun DashboardScreen(
             }
         }
     }
+}
+
+// ─── 1. KOMPAKT 5'Lİ KPI ŞERİDİ ───────────────────────────────────────────────
 
 @Composable
-private fun KpiGridSection(summary: DashboardSummary, columnsCount: Int) {
-    val totalItems = 5
-    val rowsCount = (totalItems + columnsCount - 1) / columnsCount
-    val gridHeight = (125 * rowsCount).dp
-
-    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-        Text(
-            text = "📊 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Key Performance Indicators (KPI)"),
-            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-        )
-
+private fun CompactKpiRow(summary: DashboardSummary, isExpanded: Boolean) {
+    if (isExpanded) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        ) {
+            KpiStatItem(title = "Günlük Ciro", value = "₺ ${formatCurrency(summary.dailySales)}", trend = "↗ +14%", icon = "💰", modifier = Modifier.weight(1f))
+            KpiStatItem(title = "Aylık Ciro", value = "₺ ${formatCurrency(summary.monthlySales)}", trend = "↗ +8%", icon = "📅", modifier = Modifier.weight(1f))
+            KpiStatItem(title = "Doluluk Oranı", value = "%${summary.occupancyRate.toInt()}", trend = "🟢 Normal", icon = "📊", modifier = Modifier.weight(1f))
+            KpiStatItem(title = "İptal / İade", value = "${summary.cancellationCount} Adet", trend = "↘ Düşük", icon = "⚠️", modifier = Modifier.weight(1f))
+            KpiStatItem(title = "Bekleyen Alacak", value = "₺ ${formatCurrency(summary.pendingPaymentsAmount)}", trend = "⏳ Vade", icon = "💳", modifier = Modifier.weight(1f))
+        }
+    } else {
         LazyVerticalGrid(
-            columns = GridCells.Fixed(columnsCount),
-            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+            modifier = Modifier.fillMaxWidth().height(170.dp)
+        ) {
+            item { KpiStatItem(title = "Günlük Ciro", value = "₺ ${formatCurrency(summary.dailySales)}", trend = "↗ +14%", icon = "💰") }
+            item { KpiStatItem(title = "Aylık Ciro", value = "₺ ${formatCurrency(summary.monthlySales)}", trend = "↗ +8%", icon = "📅") }
+            item { KpiStatItem(title = "Doluluk", value = "%${summary.occupancyRate.toInt()}", trend = "🟢 Normal", icon = "📊") }
+            item { KpiStatItem(title = "Bekleyen Alacak", value = "₺ ${formatCurrency(summary.pendingPaymentsAmount)}", trend = "⏳ Vade", icon = "💳") }
+        }
+    }
+}
+
+@Composable
+private fun KpiStatItem(
+    title: String,
+    value: String,
+    trend: String,
+    icon: String,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+        border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(gridHeight)
+                .padding(horizontal = TourOSSpacing.medium, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            item {
-                KpiStatCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Günlük Ciro"),
-                    value = "${summary.dailySales} ₺",
-                    trendText = "↗ +14.2%"
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(
+                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(title),
+                    style = TourOSTypography.Caption,
+                    color = TourOSColors.TextSecondary
+                )
+                Text(
+                    text = value,
+                    style = TourOSTypography.TitleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = TourOSColors.Primary
                 )
             }
-            item {
-                KpiStatCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bu Ay Toplam"),
-                    value = "${summary.monthlySales} ₺",
-                    trendText = "↗ +8.5%"
-                )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(icon, style = TourOSTypography.BodyMedium)
+                Text(trend, style = TourOSTypography.Caption, fontWeight = FontWeight.Bold, color = TourOSColors.Success)
             }
-            item {
-                KpiStatCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Doluluk Oranı"),
-                    value = "%${summary.occupancyRate}",
-                    trendText = "↗ +5.1%"
-                )
-            }
-            item {
-                KpiStatCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İptal Sayısı"),
-                    value = "${summary.cancellationCount}",
-                    trendText = "↘ -2.4%"
-                )
-            }
-            item {
-                KpiStatCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bekleyen Alacak"),
-                    value = "${summary.pendingPaymentsAmount} ₺",
-                    trendText = "↗ +1.1%"
-                )
+        }
+    }
+}
+
+// ─── 2. HIZLI AKSİYON KISAYOLLARI WIDGET'I ────────────────────────────────────
+
+@Composable
+private fun QuickActionsWidget(
+    onNavigateToBookings: () -> Unit,
+    onNavigateToTours: () -> Unit,
+    onNavigateToHotels: () -> Unit,
+    onNavigateToReports: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+        border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(TourOSSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        ) {
+            Text(
+                text = "⚡ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hızlı Operasyon Kısayolları"),
+                style = TourOSTypography.TitleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TourOSColors.Primary
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            ) {
+                QuickActionChip(label = "+ Rezervasyon", icon = "📋", onClick = onNavigateToBookings, modifier = Modifier.weight(1f))
+                QuickActionChip(label = "+ Tur Ekle", icon = "🚌", onClick = onNavigateToTours, modifier = Modifier.weight(1f))
+                QuickActionChip(label = "+ Otel Tanımla", icon = "🏨", onClick = onNavigateToHotels, modifier = Modifier.weight(1f))
+                QuickActionChip(label = "Rapor Al", icon = "📊", onClick = onNavigateToReports, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-private fun KpiStatCard(
-    title: String,
-    value: String,
-    trendText: String
+private fun QuickActionChip(
+    label: String,
+    icon: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    TourOSCard(
-        modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.Background,
-        borderColor = TourOSColors.Border,
-        contentPadding = TourOSSpacing.medium
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .border(1.dp, TourOSColors.Border, RoundedCornerShape(6.dp))
+            .clickable { onClick() },
+        color = TourOSColors.Surface
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
+        Row(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(icon, style = TourOSTypography.Caption)
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(label),
+                style = TourOSTypography.Caption,
+                fontWeight = FontWeight.Bold,
+                color = TourOSColors.TextPrimary,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+// ─── 3. OPERASYONEL CANLI UYARILAR WIDGET'I ────────────────────────────────────
+
+@Composable
+private fun OperationalAlertsWidget() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+        border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(TourOSSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = title, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                Text(
+                    text = "🔔 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel Canlı Uyarılar"),
+                    style = TourOSTypography.TitleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = TourOSColors.Primary
+                )
                 TourOSStatusBadge(
-                    text = trendText,
+                    text = "3 Bildirim",
                     backgroundColor = TourOSColors.PrimaryContainer,
                     textColor = TourOSColors.Primary
                 )
             }
 
-            Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
-
-            Text(
-                text = value,
-                style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
-            )
+            AlertItemRow(icon = "⏰", text = "2 Rezervasyonun opsiyon süresi bugün 18:00'de doluyor.", tag = "Opsiyon")
+            AlertItemRow(icon = "⚠️", text = "Kapadokya Turu %85 doluluğa ulaştı. Kontenjan kontrolü önerilir.", tag = "Kontenjan")
+            AlertItemRow(icon = "💳", text = "Vadesi gelen 3 acente cari ödemesi bekliyor.", tag = "Tahsilat")
         }
     }
 }
 
 @Composable
-private fun UpcomingToursWidget(tours: List<UpcomingTour>) {
-    TourOSCard(
-        modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.Background,
-        borderColor = TourOSColors.Border,
-        contentPadding = TourOSSpacing.large
+private fun AlertItemRow(icon: String, text: String, tag: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(4.dp))
+            .background(TourOSColors.Surface)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "🗓️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yaklaşan Turlar"),
-            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-        )
-        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-        if (tours.isEmpty()) {
-            Text(
-                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz planlanmış aktif tur bulunmuyor."),
-                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
-            )
-        } else {
-            tours.forEach { tour ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(text = tour.tourTitle, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                        Text(
-                            text = "📅 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kalkış")}: ${tour.departureDate}",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                        )
-                    }
-                    TourOSStatusBadge(
-                        text = "${tour.bookedCount}/${tour.capacity} Pax",
-                        backgroundColor = TourOSColors.PrimaryContainer,
-                        textColor = TourOSColors.Primary
-                    )
-                }
-                HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.padding(vertical = TourOSSpacing.small))
-            }
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(icon, style = TourOSTypography.Caption)
+            Text(text, style = TourOSTypography.Caption, color = TourOSColors.TextPrimary, maxLines = 1)
         }
+        Text(tag, style = TourOSTypography.Caption, fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
     }
 }
 
-@Composable
-private fun VehicleOccupancyWidget(vehicles: List<VehicleOccupancy>) {
-    TourOSCard(
-        modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.Background,
-        borderColor = TourOSColors.Border,
-        contentPadding = TourOSSpacing.large
-    ) {
-        Text(
-            text = "🚌 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç Dolulukları Özeti"),
-            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-        )
-        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-        vehicles.forEach { vehicle ->
-            val safeCapacity = if (vehicle.totalCapacity > 0) vehicle.totalCapacity else 46
-            val occupancyPercentage = (vehicle.occupiedSeats * 100 / safeCapacity).coerceIn(0, 100)
-            val progressFraction = (vehicle.occupiedSeats.toFloat() / safeCapacity.toFloat()).coerceIn(0f, 1f)
-
-            Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "${vehicle.plateNumber} (${vehicle.modelName})", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                    TourOSStatusBadge(
-                        text = "%$occupancyPercentage " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Dolu"),
-                        backgroundColor = TourOSColors.PrimaryContainer,
-                        textColor = TourOSColors.Primary
-                    )
-                }
-
-                LinearProgressIndicator(
-                    progress = { progressFraction },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)),
-                    color = TourOSColors.Primary,
-                    trackColor = TourOSColors.PrimaryContainer
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "👨‍✈️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kaptan")}: ${vehicle.driverName}",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                    )
-                    Text(
-                        text = "💺 ${vehicle.occupiedSeats}/$safeCapacity ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Koltuk")}",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary)
-                    )
-                }
-            }
-            HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.padding(vertical = TourOSSpacing.small))
-        }
-    }
-}
+// ─── 4. YAKLAŞAN TUR & OTEL OPERASYONLARI ─────────────────────────────────────
 
 @Composable
-private fun GuideStatusWidget(guides: List<GuideStatusInfo>) {
-    TourOSCard(
+private fun CompactUpcomingOperationsWidget(
+    tours: List<UpcomingTour>,
+    onViewAllClick: () -> Unit
+) {
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.Background,
-        borderColor = TourOSColors.Border,
-        contentPadding = TourOSSpacing.large
+        colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+        border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
     ) {
-        Text(
-            text = "🚩 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber Durumu & Performans"),
-            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-        )
-        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
-
-        guides.forEach { guide ->
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(TourOSSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = guide.fullName, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                    Text(
-                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Diller")}: ${guide.languages.joinToString(", ")}",
-                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                    )
-                }
+                Text(
+                    text = "🗓️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yaklaşan Tur & Otel Operasyonları"),
+                    style = TourOSTypography.TitleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = TourOSColors.Primary
+                )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
-                    TourOSStatusBadge(
-                        text = "⭐ 4.9",
-                        backgroundColor = TourOSColors.Secondary.copy(alpha = 0.2f),
-                        textColor = TourOSColors.Secondary
-                    )
-                    TourOSStatusBadge(
-                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(guide.status),
-                        backgroundColor = TourOSColors.PrimaryContainer,
-                        textColor = TourOSColors.Primary
-                    )
+                Text(
+                    text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tümünü Gör")} ›",
+                    modifier = Modifier.clickable { onViewAllClick() },
+                    style = TourOSTypography.Caption,
+                    fontWeight = FontWeight.Bold,
+                    color = TourOSColors.Primary
+                )
+            }
+
+            if (tours.isEmpty()) {
+                Text(
+                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz planlanmış aktif operasyon kaydı bulunmuyor."),
+                    style = TourOSTypography.Caption,
+                    color = TourOSColors.TextSecondary
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    tours.take(4).forEach { tour ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(TourOSColors.Surface)
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("🚌", style = TourOSTypography.Caption)
+                                Column {
+                                    Text(
+                                        text = tour.tourTitle,
+                                        style = TourOSTypography.BodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "📅 ${tour.departureDate}",
+                                        style = TourOSTypography.Caption,
+                                        color = TourOSColors.TextSecondary
+                                    )
+                                }
+                            }
+
+                            TourOSStatusBadge(
+                                text = "${tour.bookedCount}/${tour.capacity} Pax",
+                                backgroundColor = TourOSColors.PrimaryContainer,
+                                textColor = TourOSColors.Primary
+                            )
+                        }
+                    }
                 }
             }
-            HorizontalDivider(color = TourOSColors.Divider, modifier = Modifier.padding(vertical = TourOSSpacing.small))
         }
+    }
+}
+
+// ─── 5. ARAÇ & KONTENJAN DOLULUKLARI ─────────────────────────────────────────
+
+@Composable
+private fun CompactVehicleOccupancyWidget(vehicles: List<VehicleOccupancy>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+        border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(TourOSSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "🚌 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç & Transfer Doluluk Takibi"),
+                style = TourOSTypography.TitleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TourOSColors.Primary
+            )
+
+            if (vehicles.isEmpty()) {
+                Text(
+                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif araç operasyonu bulunmuyor."),
+                    style = TourOSTypography.Caption,
+                    color = TourOSColors.TextSecondary
+                )
+            } else {
+                vehicles.take(3).forEach { vehicle ->
+                    val safeCapacity = if (vehicle.totalCapacity > 0) vehicle.totalCapacity else 46
+                    val occupancyPercentage = (vehicle.occupiedSeats * 100 / safeCapacity).coerceIn(0, 100)
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${vehicle.plateNumber} (${vehicle.modelName})",
+                                style = TourOSTypography.Caption,
+                                fontWeight = FontWeight.Bold,
+                                color = TourOSColors.TextPrimary
+                            )
+                            Text(
+                                text = "%$occupancyPercentage (${vehicle.occupiedSeats}/$safeCapacity)",
+                                style = TourOSTypography.Caption,
+                                fontWeight = FontWeight.Bold,
+                                color = TourOSColors.Primary
+                            )
+                        }
+
+                        LinearProgressIndicator(
+                            progress = { (vehicle.occupiedSeats.toFloat() / safeCapacity.toFloat()).coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(2.5.dp)),
+                            color = TourOSColors.Primary,
+                            trackColor = TourOSColors.PrimaryContainer.copy(alpha = 0.35f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── 6. REHBER & SAHA GÖREV DURUMLARI ────────────────────────────────────────
+
+@Composable
+private fun CompactGuideStatusWidget(guides: List<GuideStatusInfo>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+        border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(TourOSSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = "👨‍💼 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel Rehber & Saha Durumu"),
+                style = TourOSTypography.TitleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TourOSColors.Primary
+            )
+
+            if (guides.isEmpty()) {
+                Text(
+                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kayıtlı rehber görev durumu bulunmuyor."),
+                    style = TourOSTypography.Caption,
+                    color = TourOSColors.TextSecondary
+                )
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                ) {
+                    guides.take(3).forEach { guide ->
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = TourOSColors.Surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Border)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = guide.fullName,
+                                        style = TourOSTypography.Caption,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary,
+                                        maxLines = 1
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(if (guide.status == "ON_DUTY" || guide.status == "GÖREVDE") TourOSColors.Success else Color(0xFFE5A93C))
+                                    )
+                                }
+                                Text(
+                                    text = guide.assignedTourTitle ?: "Müsait",
+                                    style = TourOSTypography.Caption,
+                                    color = TourOSColors.TextSecondary,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatCurrency(value: Double): String {
+    val longVal = value.toLong()
+    return if (value % 1.0 == 0.0) {
+        longVal.toString()
+    } else {
+        val whole = (value.toInt()).toString()
+        val decimal = ((value - value.toInt()) * 100).toInt()
+        "$whole.${if (decimal < 10) "0$decimal" else decimal}"
     }
 }

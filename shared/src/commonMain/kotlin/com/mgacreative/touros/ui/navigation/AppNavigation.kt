@@ -578,7 +578,11 @@ private fun AppNavHost(navController: NavHostController) {
             DashboardScreen(
                 onNavigateToLogin = {
                     navController.navigate(GlobalWebPublicRoute) { popUpTo(DashboardRoute) { inclusive = true } }
-                }
+                },
+                onNavigateToBookings = { navController.navigate(BookingsRoute) },
+                onNavigateToTours = { navController.navigate(ToursRoute) },
+                onNavigateToHotels = { navController.navigate(HotelListRoute) },
+                onNavigateToReports = { navController.navigate(ReportsRoute) }
             )
         }
 
