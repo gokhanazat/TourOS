@@ -1,6 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -15,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.FinancialReportSummary
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -193,6 +195,8 @@ fun FinancialReportsScreen(
     }
 }
 
+// ─── 1. Kompakt Tek Satır Finans Kontrol & Filtre Araç Çubuğu ────────────────
+
 @Composable
 private fun TopReportFilterBar(
     dateFilterOptions: List<ReportFilterOption>,
@@ -205,119 +209,353 @@ private fun TopReportFilterBar(
     selectedCurrency: String,
     onCurrencyChange: (String) -> Unit
 ) {
-    TourOSCard(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.PrimaryContainer,
-        contentPadding = TourOSSpacing.medium
+        shape = RoundedCornerShape(10.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Divider),
+        shadowElevation = 1.dp
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-            Text(
-                "⚙️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rapor Filtre Seçenekleri")}",
-                style = TourOSTypography.Label.copy(color = TourOSColors.Primary),
-                fontWeight = FontWeight.Bold
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Tarih Önayarları
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "📅",
+                    style = TourOSTypography.Caption.copy(fontSize = 12.sp)
+                )
+                dateFilterOptions.forEach { opt ->
+                    val isSelected = selectedDateFilter == opt.key
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) TourOSColors.Primary else Color(0xFFF1F5F9),
+                        modifier = Modifier.clickable { onDateFilterChange(opt.key) }
+                    ) {
+                        Text(
+                            text = opt.label.replace("📅 ", "").replace("🗓️ ", "").replace("📊 ", ""),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isSelected) Color.White else Color(0xFF334155),
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+            }
 
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                items(dateFilterOptions) { opt ->
-                    FilterChip(
-                        selected = selectedDateFilter == opt.key,
-                        onClick = { onDateFilterChange(opt.key) },
-                        label = { Text(opt.label, style = TourOSTypography.Caption) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TourOSColors.Primary,
-                            selectedLabelColor = TourOSColors.OnPrimary
+            // 2. Şirket / Şube Seçimi
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "🏢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Şube:"),
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                )
+                companyOptions.forEach { comp ->
+                    val isSelected = selectedCompany == comp
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) Color(0xFF0F172A) else Color(0xFFF8FAFC),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) Color(0xFF0F172A) else Color(0xFFE2E8F0)),
+                        modifier = Modifier.clickable { onCompanyChange(comp) }
+                    ) {
+                        Text(
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(comp),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isSelected) Color.White else Color(0xFF475569),
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+            }
+
+            // 3. Para Birimi
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "💱",
+                    style = TourOSTypography.Caption.copy(fontSize = 12.sp)
+                )
+                currencyOptions.forEach { curr ->
+                    val isSelected = selectedCurrency == curr
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSelected) Color(0xFF0284C7) else Color(0xFFF1F5F9),
+                        modifier = Modifier.clickable { onCurrencyChange(curr) }
+                    ) {
+                        Text(
+                            text = curr,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isSelected) Color.White else Color(0xFF334155),
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 11.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── 2. KDV Raporu 3'lü Kompakt KPI Kart Şeridi ──────────────────────────────
+
+@Composable
+private fun VatReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
+    val isNetPayable = summary.vatPayable >= 0
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        // 1. Hesaplanan KDV (Satış)
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFF0FDF4),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBBF7D0))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    "📈 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hesaplanan KDV (Satış)"),
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF166534), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    formatConvertedMoney(summary.vatCollected, symbol, rate),
+                    style = TourOSTypography.TitleMedium.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                )
+            }
+        }
+
+        // 2. İndirilecek KDV (Gider)
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFFFF1F2),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECDD3))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    "📉 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İndirilecek KDV (Gider)"),
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF9F1239), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    formatConvertedMoney(summary.vatPaid, symbol, rate),
+                    style = TourOSTypography.TitleMedium.copy(color = Color(0xFFBE123C), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                )
+            }
+        }
+
+        // 3. Net Ödenecek / Devreden KDV
+        Surface(
+            modifier = Modifier.weight(1.2f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF0A2540), // Koyu Lacivert Kurumsal Vurgu
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "⚖️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("NET ÖDENECEK KDV"),
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        formatConvertedMoney(summary.vatPayable, symbol, rate),
+                        style = TourOSTypography.TitleMedium.copy(
+                            color = if (isNetPayable) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp
+                        )
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1E3A5F)
+                ) {
+                    Text(
+                        if (isNetPayable) "Ödenecek" else "Devreden",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = TourOSTypography.Caption.copy(
+                            color = if (isNetPayable) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
                         )
                     )
                 }
             }
-
-            HorizontalDivider(color = TourOSColors.Divider)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Firma / Şube:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(companyOptions) { comp ->
-                            FilterChip(
-                                selected = selectedCompany == comp,
-                                onClick = { onCompanyChange(comp) },
-                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(comp), style = TourOSTypography.Caption) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = TourOSColors.PrimaryContainer,
-                                    selectedLabelColor = TourOSColors.Primary
-                                )
-                            )
-                        }
-                    }
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Para Birimi:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        items(currencyOptions) { curr ->
-                            FilterChip(
-                                selected = selectedCurrency == curr,
-                                onClick = { onCurrencyChange(curr) },
-                                label = { Text(curr, style = TourOSTypography.Caption) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = TourOSColors.SecondaryContainer,
-                                    selectedLabelColor = TourOSColors.Secondary
-                                )
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
-@Composable
-private fun VatReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
-    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-            SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hesaplanan KDV (Satış)"), formatConvertedMoney(summary.vatCollected, symbol, rate), TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
-            SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İndirilecek KDV (Gider)"), formatConvertedMoney(summary.vatPaid, symbol, rate), TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
-        }
-
-        TourOSCard(
-            modifier = Modifier.fillMaxWidth(),
-            backgroundColor = TourOSColors.SecondaryContainer,
-            contentPadding = TourOSSpacing.medium
-        ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("📌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Ödenecek / Devreden KDV:")}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
-                Text(formatConvertedMoney(summary.vatPayable, symbol, rate), style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Secondary), fontWeight = FontWeight.Bold)
-            }
-        }
-    }
-}
+// ─── 3. Gelir / Gider 3'lü Kompakt KPI Kart Şeridi ───────────────────────────
 
 @Composable
 private fun RevenueExpenseReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-        SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Gelir"), formatConvertedMoney(summary.totalRevenue, symbol, rate), TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
-        SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Gider"), formatConvertedMoney(summary.totalExpenses, symbol, rate), TourOSColors.Surface, TourOSColors.TextPrimary, Modifier.weight(1f))
-        SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Faaliyet Kârı"), formatConvertedMoney(summary.netProfit, symbol, rate), TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
+    val isProfit = summary.netProfit >= 0
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        // Toplam Gelir
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFF0FDF4),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBBF7D0))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    "📈 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Gelir"),
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF166534), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    formatConvertedMoney(summary.totalRevenue, symbol, rate),
+                    style = TourOSTypography.TitleMedium.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                )
+            }
+        }
+
+        // Toplam Gider
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFFFF1F2),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECDD3))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                Text(
+                    "📉 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Gider"),
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF9F1239), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                )
+                Text(
+                    formatConvertedMoney(summary.totalExpenses, symbol, rate),
+                    style = TourOSTypography.TitleMedium.copy(color = Color(0xFFBE123C), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                )
+            }
+        }
+
+        // Net Faaliyet Kârı
+        Surface(
+            modifier = Modifier.weight(1.2f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF0A2540),
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "💰 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("NET FAALİYET KÂRI"),
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        formatConvertedMoney(summary.netProfit, symbol, rate),
+                        style = TourOSTypography.TitleMedium.copy(
+                            color = if (isProfit) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp
+                        )
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1E3A5F)
+                ) {
+                    Text(
+                        if (isProfit) "Net Kâr" else "Net Zarar",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = TourOSTypography.Caption.copy(
+                            color = if (isProfit) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
+                        )
+                    )
+                }
+            }
+        }
     }
 }
+
+// ─── 4. Nakit & Banka 4'lü Kompakt KPI Kart Şeridi ───────────────────────────
 
 @Composable
 private fun CashBankReportSection(summary: FinancialReportSummary, symbol: String, rate: Double) {
     val totalLiquid = summary.cashBalance + summary.bankBalance + summary.posBalance
-    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-            SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Nakit Kasası"), formatConvertedMoney(summary.cashBalance, symbol, rate), TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
-            SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Banka Hesapları"), formatConvertedMoney(summary.bankBalance, symbol, rate), TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
-            SummaryKpiCard(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sanal POS Bekleyen"), formatConvertedMoney(summary.posBalance, symbol, rate), TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+    ) {
+        // Nakit Kasa
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFF8FAFC),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text("💵 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Nakit Kasası"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                Text(formatConvertedMoney(summary.cashBalance, symbol, rate), style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp))
+            }
         }
-        TourOSCard(modifier = Modifier.fillMaxWidth(), backgroundColor = TourOSColors.PrimaryContainer, contentPadding = TourOSSpacing.medium) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("💰 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Likit Varlıklar:")}", style = TourOSTypography.Label.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
-                Text(formatConvertedMoney(totalLiquid, symbol, rate), style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+
+        // Banka
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFF8FAFC),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text("🏦 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Banka Hesapları"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                Text(formatConvertedMoney(summary.bankBalance, symbol, rate), style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp))
+            }
+        }
+
+        // Sanal POS
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFF8FAFC),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text("💳 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sanal POS"), style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                Text(formatConvertedMoney(summary.posBalance, symbol, rate), style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp))
+            }
+        }
+
+        // Toplam Likit
+        Surface(
+            modifier = Modifier.weight(1.2f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF0A2540),
+            shadowElevation = 2.dp
+        ) {
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Text("💰 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TOPLAM LİKİT"), style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                Text(formatConvertedMoney(totalLiquid, symbol, rate), style = TourOSTypography.TitleMedium.copy(color = Color(0xFF34D399), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp))
             }
         }
     }
@@ -325,18 +563,27 @@ private fun CashBankReportSection(summary: FinancialReportSummary, symbol: Strin
 
 @Composable
 private fun ProfitabilityReportSection(summary: FinancialReportSummary) {
-    TourOSCard(modifier = Modifier.fillMaxWidth(), backgroundColor = TourOSColors.SecondaryContainer, contentPadding = TourOSSpacing.large) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Divider),
+        shadowElevation = 1.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(TourOSSpacing.medium),
+            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("🎯 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ortalama Kâr Marjı:")}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
-                Text("% ${summary.profitMarginPercentage}", style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Secondary), fontWeight = FontWeight.Bold)
+                Text("🎯 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ortalama Kâr Marjı:")}", style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A)), fontWeight = FontWeight.Bold)
+                Text("% ${summary.profitMarginPercentage}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontSize = 18.sp), fontWeight = FontWeight.Bold)
             }
 
             LinearProgressIndicator(
                 progress = { (summary.profitMarginPercentage / 100.0).toFloat().coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                color = TourOSColors.Secondary,
-                trackColor = TourOSColors.PrimaryContainer
+                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                color = TourOSColors.Primary,
+                trackColor = Color(0xFFF1F5F9)
             )
         }
     }
