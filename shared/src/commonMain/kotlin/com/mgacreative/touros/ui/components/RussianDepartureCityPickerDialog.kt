@@ -59,21 +59,46 @@ private val defaultRussianDepartureCities = listOf(
 
 /**
  * Rusya Kalkış Şehirleri Seçim Modalı (Kiril ve Latin Harf Duyarlı Canlı Arama).
+ * Uçuşlar sekmesi için veritabanında sadece aktif uçuşu olan kalkış noktalarını filtreleme desteği.
  */
 @Composable
 fun RussianDepartureCityPickerDialog(
     currentSelection: String = "",
+    allowedAirportCodes: Set<String>? = null,
+    allowedCityNames: Set<String>? = null,
+    customTitle: String? = null,
     onCitySelected: (RussianDepartureCity) -> Unit,
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    val filteredCities = remember(searchQuery) {
-        if (searchQuery.isBlank()) {
+    val baseCities = remember(allowedAirportCodes, allowedCityNames) {
+        if (allowedAirportCodes == null && allowedCityNames == null) {
             defaultRussianDepartureCities
         } else {
+            val codes = allowedAirportCodes?.map { it.uppercase() }?.toSet() ?: emptySet()
+            val names = allowedCityNames?.map { it.lowercase() }?.toSet() ?: emptySet()
+
+            defaultRussianDepartureCities.filter { city ->
+                val matchCode = codes.contains(city.airportCode.uppercase()) || 
+                    (city.airportCode == "MOW" && (codes.contains("SVO") || codes.contains("VKO") || codes.contains("DME") || codes.contains("MOW")))
+                val matchName = names.any { n -> 
+                    city.nameRu.lowercase().contains(n) || 
+                    city.nameTr.lowercase().contains(n) || 
+                    city.nameEn.lowercase().contains(n) ||
+                    city.airportNameRu.lowercase().contains(n)
+                }
+                matchCode || matchName
+            }
+        }
+    }
+
+    val filteredCities = remember(searchQuery, baseCities) {
+        if (searchQuery.isBlank()) {
+            baseCities
+        } else {
             val q = searchQuery.trim().lowercase()
-            defaultRussianDepartureCities.filter {
+            baseCities.filter {
                 it.nameRu.lowercase().contains(q) ||
                 it.nameTr.lowercase().contains(q) ||
                 it.nameEn.lowercase().contains(q) ||
@@ -105,11 +130,11 @@ fun RussianDepartureCityPickerDialog(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "🇷🇺 ГОРОД ВЫЛЕТА / KALKIŞ ŞEHRİ",
+                            text = customTitle ?: "🇷🇺 ГОРОД ВЫЛЕТА / KALKIŞ ŞEHRİ",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         )
                         Text(
-                            text = "Откуда вы летите? (Rusya Kalkış Noktası)",
+                            text = if (allowedAirportCodes != null) "Sadece Aktif Uçuş Olan Kalkış Noktaları" else "Откуда вы летите? (Rusya Kalkış Noktası)",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         )
                     }

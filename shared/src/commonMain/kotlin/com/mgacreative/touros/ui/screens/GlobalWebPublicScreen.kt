@@ -645,9 +645,90 @@ fun GlobalWebPublicScreen(
     var showRussianDepartureModal by remember { mutableStateOf(false) }
     var bookingSuccessMessage by remember { mutableStateOf<String?>(null) }
 
+    val supabaseClient: io.github.jan.supabase.SupabaseClient = koinInject()
+
+    // Dynamic Database Products State (Varsayılan içerikle anında başlatılır)
+    var dbProducts by remember { mutableStateOf<List<PublicHotelOffer>>(getInitialDefaultOffers()) }
+    var isLoadingProducts by remember { mutableStateOf(true) }
+
+    val isFlightTab = selectedSearchCategoryTab == "FLIGHT"
+
+    // Veritabanındaki Uçuş Envanterinden Dinamik Kalkış ve Varış Noktaları Çıkarımı
+    val flightInventoryOffers = remember(dbProducts) {
+        dbProducts.filter { 
+            it.category.uppercase() == "FLIGHT" || 
+            it.hotelName.startsWith("✈️", ignoreCase = true) || 
+            it.hotelName.startsWith("Uçuş:", ignoreCase = true) ||
+            it.flightCode.isNotBlank()
+        }
+    }
+
+    val (flightOriginCodes, flightOriginNames, flightDestCodes, flightDestNames) = remember(flightInventoryOffers) {
+        val originCodes = mutableSetOf<String>()
+        val originNames = mutableSetOf<String>()
+        val destCodes = mutableSetOf<String>()
+        val destNames = mutableSetOf<String>()
+
+        flightInventoryOffers.forEach { offer ->
+            val fCode = offer.flightCode.substringBefore("(").trim()
+            if (fCode.contains("-")) {
+                val parts = fCode.split("-").map { it.trim().uppercase() }
+                if (parts.size >= 2) {
+                    originCodes.add(parts[0])
+                    destCodes.add(parts[1])
+                }
+            }
+            val loc = offer.location.lowercase()
+            val hName = offer.hotelName.lowercase()
+            val combined = "$loc $hName ${offer.description.lowercase()}"
+
+            if (combined.contains("antalya") || combined.contains("belek") || combined.contains("kemer") || combined.contains("side") || combined.contains("lara")) {
+                destCodes.add("AYT"); destNames.add("Antalya")
+            }
+            if (combined.contains("alanya")) { destCodes.add("GZP"); destNames.add("Alanya") }
+            if (combined.contains("bodrum")) { destCodes.add("BJV"); destNames.add("Bodrum") }
+            if (combined.contains("marmaris") || combined.contains("fethiye") || combined.contains("dalaman")) { destCodes.add("DLM"); destNames.add("Muğla") }
+            if (combined.contains("izmir") || combined.contains("çeşme")) { destCodes.add("ADB"); destNames.add("İzmir") }
+            if (combined.contains("istanbul")) { destCodes.add("IST"); destCodes.add("SAW"); destNames.add("İstanbul") }
+            if (combined.contains("dubai")) { destCodes.add("DXB"); destNames.add("Dubai") }
+            if (combined.contains("abu dhabi")) { destCodes.add("AUH"); destNames.add("Abu Dhabi") }
+            if (combined.contains("hurgada") || combined.contains("hurghada")) { destCodes.add("HRG"); destNames.add("Hurgada") }
+            if (combined.contains("şarm") || combined.contains("sharm")) { destCodes.add("SSH"); destNames.add("Şarm") }
+            if (combined.contains("phuket")) { destCodes.add("HKT"); destNames.add("Phuket") }
+            if (combined.contains("bangkok")) { destCodes.add("BKK"); destNames.add("Bangkok") }
+            if (combined.contains("da nang") || combined.contains("danang")) { destCodes.add("DAD"); destNames.add("Da Nang") }
+            if (combined.contains("phu quoc")) { destCodes.add("PQC"); destNames.add("Phu Quoc") }
+            if (combined.contains("sochi") || combined.contains("adler")) { destCodes.add("AER"); destNames.add("Sochi") }
+            if (combined.contains("moskova") || combined.contains("moscow") || combined.contains("vko") || combined.contains("svo") || combined.contains("dme")) {
+                originCodes.add("MOW"); originCodes.add("VKO"); originCodes.add("SVO"); originCodes.add("DME"); originNames.add("Moskova"); originNames.add("Москва")
+            }
+            if (combined.contains("saint petersburg") || combined.contains("st. petersburg") || combined.contains("led") || combined.contains("санкт-петербург")) {
+                originCodes.add("LED"); originNames.add("St. Petersburg"); originNames.add("Санкт-Петербург")
+            }
+            if (combined.contains("kazan") || combined.contains("казань") || combined.contains("kzn")) {
+                originCodes.add("KZN"); originNames.add("Kazan"); originNames.add("Казань")
+            }
+            if (combined.contains("yekaterinburg") || combined.contains("екатеринбург") || combined.contains("svx")) {
+                originCodes.add("SVX"); originNames.add("Yekaterinburg"); originNames.add("Екатеринбург")
+            }
+        }
+
+        if (originCodes.isEmpty()) {
+            originCodes.addAll(listOf("MOW", "VKO", "SVO", "DME", "LED", "KZN", "SVX", "IST"))
+        }
+        if (destCodes.isEmpty()) {
+            destCodes.addAll(listOf("AYT", "BJV", "DLM", "DXB", "SSH", "HRG", "HKT"))
+        }
+
+        listOf(originCodes, originNames, destCodes, destNames)
+    }
+
     if (showRussianDepartureModal) {
         com.mgacreative.touros.ui.components.RussianDepartureCityPickerDialog(
             currentSelection = departureCity,
+            allowedAirportCodes = if (isFlightTab) flightOriginCodes else null,
+            allowedCityNames = if (isFlightTab) flightOriginNames else null,
+            customTitle = if (isFlightTab) "✈️ UÇUŞ KALKIŞ NOKTASI / ГОРОД ВЫЛЕТА" else null,
             onCitySelected = { city ->
                 departureCity = "${city.nameRu} (${city.airportCode})"
             },
@@ -658,6 +739,9 @@ fun GlobalWebPublicScreen(
     if (showHierarchicalDestModal) {
         com.mgacreative.touros.ui.components.HierarchicalDestinationPickerDialog(
             currentSelection = destinationCity,
+            allowedAirportCodes = if (isFlightTab) flightDestCodes else null,
+            allowedDestinationNames = if (isFlightTab) flightDestNames else null,
+            customTitle = if (isFlightTab) "✈️ UÇUŞ VARIŞ DESTİNASYONU / ПУНКТ НАЗНАЧЕНИЯ" else null,
             onDestinationSelected = { destItem ->
                 destinationCity = if (destItem.nameRu.isNotBlank()) "${destItem.name} (${destItem.nameRu})" else destItem.name
                 selectedDestinationFilter = destItem.name
@@ -753,12 +837,6 @@ fun GlobalWebPublicScreen(
     var agencyPasswordInput by remember { mutableStateOf("") }
     var agencyCodeInput by remember { mutableStateOf(referralCode ?: "AGN-MASTER-8492") }
     var agencyLoginError by remember { mutableStateOf<String?>(null) }
-
-    val supabaseClient: io.github.jan.supabase.SupabaseClient = koinInject()
-
-    // Dynamic Database Products State (Varsayılan içerikle anında başlatılır)
-    var dbProducts by remember { mutableStateOf<List<PublicHotelOffer>>(getInitialDefaultOffers()) }
-    var isLoadingProducts by remember { mutableStateOf(true) }
 
     // SADECE "Toplu Veri Yükle" ile yüklenen Tur Operatörü ürünlerini (marketplace_products) çek
     LaunchedEffect(Unit) {

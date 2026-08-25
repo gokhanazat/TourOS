@@ -44,10 +44,14 @@ data class DestinationItem(
 /**
  * TourOS Hiyerarşik Destinasyon Seçici (Ülke -> Şehir/Hub -> Belde/Resort).
  * Çift Dilli (Türkçe & Kiril Rusça) ve Kademeli Ülke Filtreli.
+ * Uçuşlar sekmesi için sadece veritabanında uçuşu olan destinasyonları dinamik filtreleme desteği.
  */
 @Composable
 fun HierarchicalDestinationPickerDialog(
     currentSelection: String = "",
+    allowedAirportCodes: Set<String>? = null,
+    allowedDestinationNames: Set<String>? = null,
+    customTitle: String? = null,
     onDestinationSelected: (DestinationItem) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -109,13 +113,39 @@ fun HierarchicalDestinationPickerDialog(
         )
     }
 
-    val filteredDestinations = remember(searchQuery, selectedCountryTab) {
-        val listByCountry = if (selectedCountryTab == "ALL") allDestinations else allDestinations.filter { it.countryName.equals(selectedCountryTab, ignoreCase = true) }
+    // Veritabanı Uçuş Filtresi (Sadece veritabanında olan destinasyonlar)
+    val baseDestinations = remember(allDestinations, allowedAirportCodes, allowedDestinationNames) {
+        if (allowedAirportCodes == null && allowedDestinationNames == null) {
+            allDestinations
+        } else {
+            val codes = allowedAirportCodes?.map { it.uppercase() }?.toSet() ?: emptySet()
+            val names = allowedDestinationNames?.map { it.lowercase() }?.toSet() ?: emptySet()
+
+            allDestinations.filter { item ->
+                val hasCodeMatch = item.airportCode != null && codes.contains(item.airportCode.uppercase())
+                val hasNameMatch = names.any { n -> item.name.lowercase().contains(n) || item.nameRu.lowercase().contains(n) || (item.parentName?.lowercase()?.contains(n) == true) }
+
+                val isCountryWithMatchingChild = item.level == DestinationLevel.COUNTRY && allDestinations.any { child ->
+                    child.countryName.equals(item.name.substringBefore(" ("), ignoreCase = true) && 
+                    ((child.airportCode != null && codes.contains(child.airportCode.uppercase())) || names.any { n -> child.name.lowercase().contains(n) || child.nameRu.lowercase().contains(n) })
+                }
+                val isCityWithMatchingChild = item.level == DestinationLevel.CITY && allDestinations.any { child ->
+                    child.parentName?.equals(item.name.substringBefore(" ("), ignoreCase = true) == true &&
+                    ((child.airportCode != null && codes.contains(child.airportCode.uppercase())) || names.any { n -> child.name.lowercase().contains(n) || child.nameRu.lowercase().contains(n) })
+                }
+
+                hasCodeMatch || hasNameMatch || isCountryWithMatchingChild || isCityWithMatchingChild
+            }
+        }
+    }
+
+    val filteredDestinations = remember(searchQuery, selectedCountryTab, baseDestinations) {
+        val listByCountry = if (selectedCountryTab == "ALL") baseDestinations else baseDestinations.filter { it.countryName.equals(selectedCountryTab, ignoreCase = true) }
         if (searchQuery.isBlank()) {
             listByCountry
         } else {
             val q = searchQuery.trim().lowercase()
-            allDestinations.filter {
+            baseDestinations.filter {
                 it.name.lowercase().contains(q) ||
                 it.nameRu.lowercase().contains(q) ||
                 it.countryName.lowercase().contains(q) ||
@@ -125,14 +155,18 @@ fun HierarchicalDestinationPickerDialog(
         }
     }
 
-    val countryTabs = listOf(
-        "ALL" to "🌍 Tüm Ülkeler / Все страны",
-        "Türkiye" to "🇹🇷 Türkiye / Турция",
-        "Mısır" to "🇪🇬 Mısır / Египет",
-        "BAE" to "🇦🇪 BAE / ОАЭ",
-        "Tayland" to "🇹🇭 Tayland / Таиланд",
-        "Vietnam" to "🇻🇳 Vietnam / Вьетнам"
-    )
+    val countryTabs = remember(baseDestinations) {
+        val availableCountries = baseDestinations.map { it.countryName }.distinct()
+        val allTabs = listOf(
+            "ALL" to "🌍 Tüm Ülkeler / Все страны",
+            "Türkiye" to "🇹🇷 Türkiye / Турция",
+            "Mısır" to "🇪🇬 Mısır / Египет",
+            "BAE" to "🇦🇪 BAE / ОАЭ",
+            "Tayland" to "🇹🇭 Tayland / Таиланд",
+            "Vietnam" to "🇻🇳 Vietnam / Вьетнам"
+        )
+        allTabs.filter { it.first == "ALL" || availableCountries.any { c -> c.equals(it.first, ignoreCase = true) } }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -156,11 +190,11 @@ fun HierarchicalDestinationPickerDialog(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = "🌍 КУДА ВЫ ХОТИТЕ ПОЕХАТЬ? / DESTİNASYON SEÇİMİ",
+                            text = customTitle ?: "🌍 КУДА ВЫ ХОТИТЕ ПОЕХАТЬ? / DESTİNASYON SEÇİMİ",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         )
                         Text(
-                            text = "1. Ülke → 2. Şehir → 3. Alt Belde / Resort Seçimi",
+                            text = if (allowedAirportCodes != null) "Sadece Aktif Uçuş Destinasyonları Gösteriliyor" else "1. Ülke → 2. Şehir → 3. Alt Belde / Resort Seçimi",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         )
                     }
