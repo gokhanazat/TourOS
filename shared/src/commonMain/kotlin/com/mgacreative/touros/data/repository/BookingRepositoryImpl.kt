@@ -262,7 +262,7 @@ class BookingRepositoryImpl(
             // 1. Karalisteye ekle ve önbellekten çıkar
             deletedIdsBlacklist.add(target)
             localCache.removeAll { entity ->
-                val isMatch = entity.id == target || entity.bookingCode == target || (entity.id.isBlank() && entity.bookingCode == target)
+                val isMatch = entity.id == target || entity.bookingCode == target || (entity.id.isNotBlank() && target == entity.id) || (entity.bookingCode.isNotBlank() && target == entity.bookingCode)
                 if (isMatch) {
                     if (entity.id.isNotBlank()) deletedIdsBlacklist.add(entity.id)
                     if (entity.bookingCode.isNotBlank()) deletedIdsBlacklist.add(entity.bookingCode)
@@ -270,11 +270,23 @@ class BookingRepositoryImpl(
                 isMatch
             }
 
-            // 2. Supabase silme
+            // 2. Supabase silme - Önce bağlı alt kayıtları temizle (Foreign key hatasını önle)
             runCatching {
                 if (target.isValidUuid()) {
+                    supabaseClient.postgrest.from("booking_items").delete { filter { eq("booking_id", target) } }
+                    supabaseClient.postgrest.from("passengers").delete { filter { eq("booking_id", target) } }
+                    supabaseClient.postgrest.from("booking_status_logs").delete { filter { eq("booking_id", target) } }
                     supabaseClient.postgrest.from("bookings").delete { filter { eq("id", target) } }
                 } else {
+                    val matching = supabaseClient.postgrest.from("bookings").select { filter { eq("booking_code", target) } }.decodeList<BookingEntity>()
+                    matching.forEach { b ->
+                        deletedIdsBlacklist.add(b.id)
+                        deletedIdsBlacklist.add(b.bookingCode)
+                        supabaseClient.postgrest.from("booking_items").delete { filter { eq("booking_id", b.id) } }
+                        supabaseClient.postgrest.from("passengers").delete { filter { eq("booking_id", b.id) } }
+                        supabaseClient.postgrest.from("booking_status_logs").delete { filter { eq("booking_id", b.id) } }
+                        supabaseClient.postgrest.from("bookings").delete { filter { eq("id", b.id) } }
+                    }
                     supabaseClient.postgrest.from("bookings").delete { filter { eq("booking_code", target) } }
                 }
             }

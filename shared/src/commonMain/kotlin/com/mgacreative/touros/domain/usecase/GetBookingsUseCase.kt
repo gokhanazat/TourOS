@@ -17,7 +17,13 @@ class GetBookingsUseCase(
     ): Result<List<Booking>> {
         return bookingRepository.getBookings(tenantId).map { list ->
             list.filter { booking ->
-                val matchesStatus = statusFilter == null || booking.status == statusFilter
+                // Özel olarak "İptal" filtresi seçilmedikçe iptal edilen rezervasyonları listede gösterme
+                val matchesStatus = if (statusFilter != null) {
+                    booking.status == statusFilter
+                } else {
+                    booking.status != BookingStatus.IPTAL
+                }
+
                 val matchesTour = tourIdFilter.isNullOrBlank() || booking.departureId == tourIdFilter
                 val matchesSearch = searchQuery.isBlank() ||
                         booking.bookingCode.contains(searchQuery, ignoreCase = true) ||

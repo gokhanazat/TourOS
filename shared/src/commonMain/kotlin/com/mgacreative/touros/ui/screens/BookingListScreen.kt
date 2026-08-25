@@ -63,6 +63,10 @@ fun BookingListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.loadData()
+    }
+
     Scaffold(
         topBar = {
             TourOSTopBar(
