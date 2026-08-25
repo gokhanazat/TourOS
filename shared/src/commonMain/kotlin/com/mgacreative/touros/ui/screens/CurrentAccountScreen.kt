@@ -1,6 +1,7 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,9 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.AccountTransactionDetail
 import com.mgacreative.touros.domain.model.CurrentAccountItem
 import com.mgacreative.touros.ui.components.*
@@ -83,49 +87,58 @@ fun CurrentAccountScreen(
                             .padding(TourOSSpacing.large),
                         verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                     ) {
-                        // ── 1. Üst Bakiye Özeti Kartı ─────────────────────────
+                        // ── 1. Üst Bakiye Özeti Şeridi (3 Kompakt KPI Kartı) ──
                         TopBalanceSummarySection(
                             totalCustomerReceivables = state.totalCustomerReceivables,
                             totalSupplierPayables = state.totalSupplierPayables,
                             netBalance = state.netBalance
                         )
 
-                        // ── 2. Arama & Filtre Çubuğu ─────────────────────────
+                        // ── 2. Kompakt Arama & Filtre Araç Çubuğu (Tek Satır) ──
                         SearchAndFilterBar(
                             searchQuery = state.searchQuery,
                             onSearchQueryChanged = { viewModel.onSearchQueryChanged(it) },
                             selectedEntityType = state.selectedEntityType,
-                            onEntityTypeSelected = { viewModel.setFilter(it) }
+                            onEntityTypeSelected = { viewModel.setFilter(it) },
+                            totalCount = state.accounts.size
                         )
 
-                        // ── 3. Cari Hesap Listesi ──────────────────────────────
-                        Text(
-                            "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Hesap Listesi")} (${state.accounts.size})",
-                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                            fontWeight = FontWeight.Bold
-                        )
-
+                        // ── 3. Cari Hesap ERP Veri Tablosu ──
                         if (state.accounts.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxWidth().height(160.dp),
-                                contentAlignment = Alignment.Center
+                            TourOSCard(
+                                modifier = Modifier.fillMaxWidth().height(140.dp),
+                                contentPadding = TourOSSpacing.large
                             ) {
-                                Text(
-                                    com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtreye uygun veya veritabanında kaydedilmiş cari hesap bulunamadı."),
-                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
-                                    textAlign = TextAlign.Center
-                                )
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtreye uygun veya kayıtlı cari hesap bulunamadı."),
+                                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         } else {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize(),
-                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                            ) {
-                                items(state.accounts) { account ->
-                                    CurrentAccountCard(
-                                        account = account,
-                                        onStatementClick = { viewModel.selectAccountForStatement(account) }
-                                    )
+                            if (isExpanded) {
+                                // 🖥️ Desktop / Web ERP Veri Tablosu
+                                CurrentAccountsDataTable(
+                                    accounts = state.accounts,
+                                    onStatementClick = { viewModel.selectAccountForStatement(it) }
+                                )
+                            } else {
+                                // 📱 Mobil Kompakt Satır Listesi
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(state.accounts) { account ->
+                                        CurrentAccountMobileCard(
+                                            account = account,
+                                            onStatementClick = { viewModel.selectAccountForStatement(account) }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -146,7 +159,7 @@ fun CurrentAccountScreen(
     }
 }
 
-// ─── Üst Bakiye Özeti Kartı ───────────────────────────────────────────────────
+// ─── 1. Üst Bakiye Özeti (3 Kompakt Yan Yana KPI Kartı) ─────────────────────────
 
 @Composable
 private fun TopBalanceSummarySection(
@@ -154,49 +167,99 @@ private fun TopBalanceSummarySection(
     totalSupplierPayables: Double,
     netBalance: Double
 ) {
-    TourOSCard(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        backgroundColor = TourOSColors.PrimaryContainer,
-        contentPadding = TourOSSpacing.large
+        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+        // 1. Müşteri Alacakları
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFF0FDF4), // Hafif Yeşil
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBBF7D0))
         ) {
-            Text(
-                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("NET GENEL BAKİYE"),
-                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary),
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "₺ ${formatMoney(netBalance)}",
-                style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary),
-                fontWeight = FontWeight.Bold
-            )
-
-            HorizontalDivider(color = TourOSColors.Divider)
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📈 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Alacakları")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+                Column {
+                    Text(
+                        "📈 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri Alacakları"),
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF166534), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    )
                     Text(
                         "₺ ${formatMoney(totalCustomerReceivables)}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                        fontWeight = FontWeight.Bold
+                        style = TourOSTypography.TitleMedium.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 17.sp)
                     )
                 }
+            }
+        }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📉 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Borçları")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary), fontWeight = FontWeight.Bold)
+        // 2. Tedarikçi Borçları
+        Surface(
+            modifier = Modifier.weight(1f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFFFFF1F2), // Hafif Kırmızı
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFECDD3))
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "📉 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi Borçları"),
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF9F1239), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    )
                     Text(
                         "₺ ${formatMoney(totalSupplierPayables)}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.Bold
+                        style = TourOSTypography.TitleMedium.copy(color = Color(0xFFBE123C), fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                    )
+                }
+            }
+        }
+
+        // 3. Net Genel Bakiye
+        val isNetPositive = netBalance >= 0
+        Surface(
+            modifier = Modifier.weight(1.15f),
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF0A2540), // Kurumsal Lacivert Vurgu
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "⚖️ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("NET GENEL BAKİYE"),
+                        style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        "₺ ${formatMoney(netBalance)}",
+                        style = TourOSTypography.TitleMedium.copy(
+                            color = if (isNetPositive) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 18.sp
+                        )
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF1E3A5F)
+                ) {
+                    Text(
+                        if (isNetPositive) "Alacaklı" else "Borçlu",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                        style = TourOSTypography.Caption.copy(
+                            color = if (isNetPositive) Color(0xFF34D399) else Color(0xFFF87171),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 10.sp
+                        )
                     )
                 }
             }
@@ -204,157 +267,284 @@ private fun TopBalanceSummarySection(
     }
 }
 
-// ─── Arama & Filtre Çubuğu ────────────────────────────────────────────────────
+// ─── 2. Kompakt Tek Satır Arama & Filtre Çubuğu ───────────────────────────────
 
 @Composable
 private fun SearchAndFilterBar(
     searchQuery: String,
     onSearchQueryChanged: (String) -> Unit,
     selectedEntityType: String?,
-    onEntityTypeSelected: (String?) -> Unit
+    onEntityTypeSelected: (String?) -> Unit,
+    totalCount: Int
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-        TourOSTextField(
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Hızlı Arama Kutusu
+        OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChanged,
-            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Arama"),
-            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...), TO PNR (PEGAS-...) veya Vergi/TC No ile ara..."),
-            modifier = Modifier.fillMaxWidth()
+            placeholder = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Adı, Cari Kodu (CAR-...), TO PNR veya VKN/TC ile ara..."), fontSize = 12.sp) },
+            leadingIcon = { Text("🔍", fontSize = 12.sp) },
+            singleLine = true,
+            modifier = Modifier.weight(1f).height(44.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = Color.White,
+                focusedContainerColor = Color.White,
+                unfocusedBorderColor = TourOSColors.Divider,
+                focusedBorderColor = TourOSColors.Primary
+            )
         )
 
+        // Filtre Çipleri
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            FilterChip(
-                selected = selectedEntityType == null,
-                onClick = { onEntityTypeSelected(null) },
-                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm Cariler"), style = TourOSTypography.Caption) }
-            )
-            FilterChip(
-                selected = selectedEntityType == "customer",
-                onClick = { onEntityTypeSelected("customer") },
-                label = { Text("👤 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteriler")}", style = TourOSTypography.Caption) }
-            )
-            FilterChip(
-                selected = selectedEntityType == "agency",
-                onClick = { onEntityTypeSelected("agency") },
-                label = { Text("🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acenteler")}", style = TourOSTypography.Caption) }
-            )
-            FilterChip(
-                selected = selectedEntityType == "supplier",
-                onClick = { onEntityTypeSelected("supplier") },
-                label = { Text("🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçiler")}", style = TourOSTypography.Caption) }
-            )
+            listOf(
+                null to com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tümü"),
+                "customer" to "👤 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteriler"),
+                "agency" to "🏢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acenteler"),
+                "supplier" to "🏨 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçiler")
+            ).forEach { (typeKey, typeLabel) ->
+                val isSelected = selectedEntityType == typeKey
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) TourOSColors.Primary else Color.White,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (isSelected) TourOSColors.Primary else TourOSColors.Divider),
+                    modifier = Modifier.clickable { onEntityTypeSelected(typeKey) }
+                ) {
+                    Text(
+                        text = typeLabel,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = TourOSTypography.Caption.copy(
+                            color = if (isSelected) Color.White else TourOSColors.TextPrimary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 11.sp
+                        )
+                    )
+                }
+            }
+
+            // Sayı Rozeti
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = Color(0xFFF1F5F9)
+            ) {
+                Text(
+                    text = "Toplam: $totalCount",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                    style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                )
+            }
         }
     }
 }
 
-// ─── Cari Hesap Kartı (Cari Kodu & Vergi No Rozet Destekli) ───────────────────
+// ─── 3. Desktop / Web Yüksek Yoğunluklu ERP Veri Tablosu ──────────────────────
 
 @Composable
-private fun CurrentAccountCard(
+private fun CurrentAccountsDataTable(
+    accounts: List<CurrentAccountItem>,
+    onStatementClick: (CurrentAccountItem) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Divider),
+        shadowElevation = 1.dp
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // ── TABLO BAŞLIK SATIRI ──
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF0F172A))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Kodu & Türü"), modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Ünvanı / İletişim"), modifier = Modifier.weight(2.0f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text("VKN / TC", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Borç"), modifier = Modifier.weight(1.1f), textAlign = TextAlign.End, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Alacak"), modifier = Modifier.weight(1.1f), textAlign = TextAlign.End, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Bakiye"), modifier = Modifier.weight(1.3f), textAlign = TextAlign.End, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Son İşlem"), modifier = Modifier.weight(1.0f), textAlign = TextAlign.Center, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İşlem"), modifier = Modifier.weight(0.9f), textAlign = TextAlign.Center, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+            }
+
+            // ── TABLO VERİ SATIRLARI ──
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(accounts) { account ->
+                    val isDebit = account.balance > 0
+                    val typeTitle = when (account.entityType) {
+                        "customer" -> "👤 Müşteri"
+                        "agency" -> "🏢 Acente"
+                        "supplier" -> "🏨 Tedarikçi"
+                        else -> "📌 Cari"
+                    }
+                    val codeText = account.accountCode.ifBlank { "CAR-${account.entityId.take(6).uppercase()}" }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onStatementClick(account) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 1. Cari Kodu & Türü
+                        Row(
+                            modifier = Modifier.weight(1.3f),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFFF1F5F9)
+                            ) {
+                                Text(
+                                    text = codeText,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                    style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                )
+                            }
+                            Text(typeTitle, style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp))
+                        }
+
+                        // 2. Cari Ünvanı / İletişim
+                        Column(modifier = Modifier.weight(2.0f)) {
+                            Text(
+                                text = account.entityName,
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (!account.phone.isNullOrBlank() || !account.email.isNullOrBlank()) {
+                                Text(
+                                    text = "${account.phone ?: ""} ${if (!account.phone.isNullOrBlank() && !account.email.isNullOrBlank()) "·" else ""} ${account.email ?: ""}",
+                                    style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 10.sp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+
+                        // 3. VKN / TC
+                        Text(
+                            text = (account.taxNo ?: "").ifBlank { "—" },
+                            modifier = Modifier.weight(1.1f),
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontSize = 11.sp)
+                        )
+
+                        // 4. Toplam Borç
+                        Text(
+                            text = "₺ ${formatMoney(account.totalDebit)}",
+                            modifier = Modifier.weight(1.1f),
+                            textAlign = TextAlign.End,
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontSize = 11.sp)
+                        )
+
+                        // 5. Toplam Alacak
+                        Text(
+                            text = "₺ ${formatMoney(account.totalCredit)}",
+                            modifier = Modifier.weight(1.1f),
+                            textAlign = TextAlign.End,
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
+                        )
+
+                        // 6. Net Bakiye
+                        Text(
+                            text = (if (isDebit) "+ " else "") + "₺ ${formatMoney(account.balance)} ${account.currency}",
+                            modifier = Modifier.weight(1.3f),
+                            textAlign = TextAlign.End,
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isDebit) Color(0xFF16A34A) else if (account.balance < 0) Color(0xFFDC2626) else Color(0xFF64748B),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        )
+
+                        // 7. Son İşlem
+                        Text(
+                            text = account.lastTransactionDate.ifBlank { "—" },
+                            modifier = Modifier.weight(1.0f),
+                            textAlign = TextAlign.Center,
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp)
+                        )
+
+                        // 8. İşlem (Ekstre Butonu)
+                        Box(
+                            modifier = Modifier.weight(0.9f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF0284C7),
+                                modifier = Modifier.clickable { onStatementClick(account) }
+                            ) {
+                                Text(
+                                    text = "📄 Ekstre",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+                }
+            }
+        }
+    }
+}
+
+// ─── 4. Mobil Kompakt Mini Kart ───────────────────────────────────────────────
+
+@Composable
+private fun CurrentAccountMobileCard(
     account: CurrentAccountItem,
     onStatementClick: () -> Unit
 ) {
-    val typeTitle = when (account.entityType) {
-        "customer" -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri")
-        "agency" -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente")
-        "supplier" -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi")
-        else -> com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari")
-    }
-
-    val typeIcon = when (account.entityType) {
-        "customer" -> "👤"
-        "agency" -> "🏢"
-        "supplier" -> "🏨"
-        else -> "📌"
-    }
-
+    val isDebit = account.balance > 0
     val codeText = account.accountCode.ifBlank { "CAR-${account.entityId.take(6).uppercase()}" }
 
-    TourOSCard(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = TourOSSpacing.medium
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { onStatementClick() },
+        shape = RoundedCornerShape(8.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Divider)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
-                            .background(TourOSColors.PrimaryContainer)
-                            .padding(horizontal = TourOSSpacing.small, vertical = 2.dp)
-                    ) {
-                        Text(
-                            "$typeIcon $typeTitle • $codeText",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    if (!account.taxNo.isNullOrBlank()) {
-                        Text(
-                            "VKN/TC: ${account.taxNo}",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                        )
-                    }
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(codeText, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                    Text(account.entityName, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1)
                 }
+                Text("Borç/Alacak: ₺ ${formatMoney(account.totalDebit)} / ₺ ${formatMoney(account.totalCredit)}", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp))
+            }
 
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Son İşlem")}: ${account.lastTransactionDate.ifBlank { "—" }}",
-                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    text = "₺ ${formatMoney(account.balance)} ${account.currency}",
+                    style = TourOSTypography.Caption.copy(color = if (isDebit) Color(0xFF16A34A) else Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 )
-            }
-
-            Text(
-                account.entityName,
-                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                fontWeight = FontWeight.Bold
-            )
-
-            if (!account.phone.isNullOrBlank() || !account.email.isNullOrBlank()) {
-                Text(
-                    "📞 ${account.phone ?: "—"}  ·  ✉️ ${account.email ?: "—"}",
-                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                )
-            }
-
-            HorizontalDivider(color = TourOSColors.Divider)
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Borç Toplamı / Alacak Toplamı"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(
-                        "₺ ${formatMoney(account.totalDebit)} / ₺ ${formatMoney(account.totalCredit)}",
-                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Bakiye"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(
-                        "₺ ${formatMoney(account.balance)} ${account.currency}",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                        fontWeight = FontWeight.Bold
-                    )
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = Color(0xFF0284C7),
+                    modifier = Modifier.clickable { onStatementClick() }
+                ) {
+                    Text("📄 Ekstre", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = TourOSTypography.Caption.copy(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold))
                 }
             }
-
-            TourOSButton(
-                text = "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hareket Dökümü & Ekstreyi Aç")}",
-                onClick = onStatementClick,
-                variant = TourOSButtonVariant.SECONDARY,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }
