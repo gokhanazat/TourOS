@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
@@ -105,13 +106,20 @@ fun <T> TourOSDataTable(
                 }
             }
 
-            HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
+            HorizontalDivider(color = Color(0xFFCBD5E1), thickness = 1.dp)
 
             // Data Rows
             LazyColumn {
-                items(items) { item ->
+                items(items.size) { index ->
+                    val item = items[index]
                     val isSelected = selectedItem == item
-                    val rowBg = if (isSelected) TourOSColors.PrimaryContainer else TourOSColors.Background
+                    val rowBg = if (isSelected) {
+                        TourOSColors.PrimaryContainer
+                    } else if (dense && index % 2 == 1) {
+                        Color(0xFFF8FAFC)
+                    } else {
+                        TourOSColors.Background
+                    }
 
                     Row(
                         modifier = Modifier
@@ -129,7 +137,7 @@ fun <T> TourOSDataTable(
                             }
                         }
                     }
-                    HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.6f), thickness = 0.5.dp)
+                    HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp)
                 }
             }
         }
