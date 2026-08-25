@@ -16,8 +16,7 @@ enum class ReportType(val label: String, val icon: String) {
     TOUR("Tur & Operasyon", "🚌"),
     HOTEL("Otel & Konaklama", "🏨"),
     OPERATOR("Tur Operatörü Satışları", "💼"),
-    FINANCIAL("Finans & Satış", "💳"),
-    CRM("Müşteri & CRM", "👥")
+    FINANCIAL("Finans & Satış", "💳")
 }
 
 enum class DatePreset(val label: String) {
@@ -26,8 +25,25 @@ enum class DatePreset(val label: String) {
     THIS_MONTH("Bu Ay"),
     THIS_YEAR("Bu Yıl"),
     ALL_TIME("Tüm Zamanlar"),
-    CUSTOM("Özel Tarih Aralığı")
+    CUSTOM("Özel Tarih")
 }
+
+private val DEFAULT_OPERATOR_LIST = listOf(
+    "Tümü",
+    "Kendi Ürünlerimiz",
+    "Coral Travel",
+    "Jolly Tur",
+    "Etstur",
+    "Setur",
+    "TatilBudur",
+    "Pegas Touristik",
+    "Anex Tour",
+    "Touristica",
+    "Paximum",
+    "Odeon Tour",
+    "Hotelbeds",
+    "Booking.com"
+)
 
 data class ReportsUiState(
     val isLoading: Boolean = false,
@@ -38,7 +54,7 @@ data class ReportsUiState(
     val selectedOperator: String = "Tümü",
     val selectedStatus: String = "Tümü",
     val searchQuery: String = "",
-    val availableOperators: List<String> = listOf("Tümü", "Jolly Tur", "Etstur", "Setur", "TatilBudur", "Kendi Ürünlerimiz"),
+    val availableOperators: List<String> = DEFAULT_OPERATOR_LIST,
     val availableStatuses: List<String> = listOf("Tümü", "Bekliyor", "Onaylandı", "Tamamlandı", "İptal"),
     val bookings: List<Booking> = emptyList(),
     val filteredBookings: List<Booking> = emptyList(),
@@ -72,7 +88,7 @@ class ReportsViewModel(
                 val operatorsFromData = list.mapNotNull { it.operatorName?.trim() }
                     .filter { it.isNotBlank() && !it.contains("MGA", ignoreCase = true) }
                     .distinct()
-                val allOperators = (listOf("Tümü", "Kendi Ürünlerimiz") + operatorsFromData).distinct()
+                val allOperators = (DEFAULT_OPERATOR_LIST + operatorsFromData).distinct()
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -139,7 +155,6 @@ class ReportsViewModel(
                 ReportType.HOTEL -> b.bookingType == "HOTEL" || b.hotelId != null
                 ReportType.OPERATOR -> !isOwnProduct
                 ReportType.FINANCIAL -> true
-                ReportType.CRM -> true
             }
 
             // 2. Tur Operatörü filtresi

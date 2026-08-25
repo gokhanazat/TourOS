@@ -1,15 +1,18 @@
 package com.mgacreative.touros.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.Booking
@@ -22,11 +25,11 @@ import com.mgacreative.touros.ui.viewmodel.ReportType
 import com.mgacreative.touros.ui.viewmodel.ReportsViewModel
 
 /**
- * 📊 RAPORLAR & ANALİTİK MERKEZİ — TourOS
+ * 📊 RAPORLAR & ANALİTİK MERKEZİ — TourOS (Ultra-Kompakt ERP Sürümü)
  *
- * Gelişmiş Filtre Header'ı (Tarih, Rapor Tipi, Tur Operatörü, Durum, Arama).
- * Dışa Aktarma Aksiyonları (CSV, PDF, Yazdır - Print).
- * Web/Desktop/Android/iOS platformlarında 100% aynı premium tasarım dili.
+ * - 2 Satırlık İnce Filtre ve Toolbar Alanı (Rapor Türü Çipleri + Dışa Aktarma + Tarih/Operatör/Durum/Arama).
+ * - Tek Satırlık İnce KPI Özet Şeridi.
+ * - TourOSDataTable(dense = true) ile satır araları daraltılmış 18-20 kayıt kapasiteli veri tablosu.
  */
 @Composable
 fun ReportsScreen(
@@ -34,387 +37,446 @@ fun ReportsScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val state by viewModel.uiState.collectAsState()
-    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
                 title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel & Finansal Raporlar"),
-                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ciro, kârlılık, doluluk ve operasyonel performans grafikleri"),
+                subtitle = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ciro, kârlılık, doluluk ve tur operatörü performans dökümleri"),
                 onNavigateBack = onNavigateBack
             )
         }
     ) { padding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(TourOSSpacing.medium)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
-            // ── BİLDİRİM BANNERİ ──────────────────────────────────────────────
-            if (state.notificationMessage != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(TourOSColors.PrimaryContainer)
-                        .padding(TourOSSpacing.medium)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = state.notificationMessage!!,
-                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary),
-                            fontWeight = FontWeight.Bold
-                        )
-                        IconButton(onClick = { viewModel.clearNotification() }) {
-                            Text("✕", style = TourOSTypography.Label.copy(color = TourOSColors.Primary))
-                        }
-                    }
-                }
-            }
+            val isCompact = maxWidth < 768.dp
 
-            // ── GELİŞMİŞ FİLTRE HEADER'I VE DIŞA AKTARMA AKSİYONLARI ─────────
-            TourOSCard(
-                modifier = Modifier.fillMaxWidth(),
-                backgroundColor = TourOSColors.Background,
-                borderColor = TourOSColors.Primary.copy(alpha = 0.3f),
-                contentPadding = TourOSSpacing.large
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = TourOSSpacing.large, vertical = TourOSSpacing.small),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    // Header Başlık & Aktarım Butonları
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                // ── BİLDİRİM BANNERİ ──────────────────────────────────────────────
+                if (state.notificationMessage != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(TourOSColors.PrimaryContainer)
+                            .padding(horizontal = TourOSSpacing.medium, vertical = 6.dp)
                     ) {
-                        Column {
-                            Text(
-                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("⚡ Gelişmiş Rapor Filtreleme Header'ı"),
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İstediğiniz tarih, ürün, tur operatörü veya duruma göre anlık rapor oluşturun"),
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                            )
-                        }
-
-                        // Dışa Aktar Buton Grubu
-                        Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                            TourOSButton(
-                                text = "📄 CSV",
-                                onClick = { viewModel.exportToCsv() },
-                                variant = TourOSButtonVariant.SECONDARY
-                            )
-                            TourOSButton(
-                                text = "📑 PDF",
-                                onClick = { viewModel.generatePdfReport() },
-                                variant = TourOSButtonVariant.SECONDARY
-                            )
-                            TourOSButton(
-                                text = "🖨️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yazdır")}",
-                                onClick = { viewModel.triggerPrint() },
-                                variant = TourOSButtonVariant.PRIMARY
-                            )
-                        }
-                    }
-
-                    HorizontalDivider(color = TourOSColors.Border)
-
-                    // 1. RAPOR TİPİ SEÇİMİ (Kategoriler)
-                    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rapor Türü Seçimi:"), style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            ReportType.entries.forEach { type ->
-                                val isSelected = state.reportType == type
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.setReportType(type) },
-                                    label = { Text("${type.icon} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(type.label)}", style = TourOSTypography.BodyMedium) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = TourOSColors.PrimaryContainer,
-                                        selectedLabelColor = TourOSColors.Primary
-                                    )
-                                )
+                            Text(
+                                text = state.notificationMessage!!,
+                                style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
+                                fontWeight = FontWeight.Bold
+                            )
+                            IconButton(
+                                onClick = { viewModel.clearNotification() },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Text("✕", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
                             }
                         }
                     }
+                }
 
-                    // 2. TARİH HIZLI SEÇENEKLERİ & BAŞLANGIÇ/BİTİŞ
-                    Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-                        Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih Aralığı Filtresi:"), style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                // ── 1. KOMPAKT 2 SATIRLI FİLTRE VE AKSİYON TOOLBAR'I ─────────────
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = TourOSColors.Background),
+                    border = androidx.compose.foundation.BorderStroke(TourOSSpacing.borderWidth, TourOSColors.Border),
+                    shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = TourOSSpacing.medium, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        // SATIR 1: Rapor Türü Çipleri + Dışa Aktarma Butonları
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Rapor Türü Çipleri
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ReportType.entries.forEach { type ->
+                                    val isSelected = state.reportType == type
+                                    val chipBg = if (isSelected) TourOSColors.Primary else TourOSColors.Surface
+                                    val chipText = if (isSelected) Color.White else TourOSColors.TextPrimary
+                                    val chipBorder = if (isSelected) TourOSColors.Primary else TourOSColors.Border
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .border(1.dp, chipBorder, RoundedCornerShape(14.dp))
+                                            .clickable { viewModel.setReportType(type) },
+                                        color = chipBg
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(type.icon, style = TourOSTypography.Caption)
+                                            Text(
+                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(type.label),
+                                                style = TourOSTypography.Caption,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = chipText
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Dışa Aktarma Butonları
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { viewModel.exportToCsv() },
+                                    color = TourOSColors.Surface,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Border)
+                                ) {
+                                    Text(
+                                        text = "📄 CSV",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = TourOSTypography.Caption,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                }
+
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { viewModel.generatePdfReport() },
+                                    color = TourOSColors.Surface,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Border)
+                                ) {
+                                    Text(
+                                        text = "📑 PDF",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = TourOSTypography.Caption,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                }
+
+                                Surface(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .clickable { viewModel.triggerPrint() },
+                                    color = TourOSColors.PrimaryContainer
+                                ) {
+                                    Text(
+                                        text = "🖨️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yazdır")}",
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        style = TourOSTypography.Caption,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.Primary
+                                    )
+                                }
+                            }
+                        }
+
+                        // SATIR 2: Tarih Presetleri, Tur Operatörü, Durum ve Arama
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            DatePreset.entries.forEach { preset ->
-                                val isSelected = state.datePreset == preset
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.setDatePreset(preset) },
-                                    label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate(preset.label), style = TourOSTypography.Label) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = TourOSColors.PrimaryContainer,
-                                        selectedLabelColor = TourOSColors.Primary
+                            // Tarih Presetleri
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                DatePreset.entries.forEach { preset ->
+                                    val isSelected = state.datePreset == preset
+                                    Surface(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .clickable { viewModel.setDatePreset(preset) },
+                                        color = if (isSelected) TourOSColors.PrimaryContainer else Color.Transparent
+                                    ) {
+                                        Text(
+                                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(preset.label),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                            style = TourOSTypography.Caption,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Operatör Seçimi
+                            TourOSDropdown(
+                                items = state.availableOperators,
+                                selectedItem = state.selectedOperator,
+                                onItemSelected = { viewModel.setOperatorFilter(it) },
+                                itemLabel = { "💼 $it" },
+                                modifier = Modifier.width(180.dp)
+                            )
+
+                            // Durum Seçimi
+                            TourOSDropdown(
+                                items = state.availableStatuses,
+                                selectedItem = state.selectedStatus,
+                                onItemSelected = { viewModel.setStatusFilter(it) },
+                                itemLabel = { "📌 $it" },
+                                modifier = Modifier.width(130.dp)
+                            )
+
+                            // Anlık Arama
+                            TourOSTextField(
+                                value = state.searchQuery,
+                                onValueChange = { viewModel.setSearchQuery(it) },
+                                placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("🔍 Müşteri, PNR, ürün ara..."),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // ── 2. TEK SATIRLIK İNCE ÖZET ŞERİDİ (KPI STRIP) ─────────────────
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.4f)),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.25f)),
+                    shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = TourOSSpacing.medium, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon")}: ${state.totalBookingCount} Adet",
+                                style = TourOSTypography.Caption,
+                                fontWeight = FontWeight.Bold,
+                                color = TourOSColors.TextPrimary
+                            )
+                            Text(
+                                text = "📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hacim")}: ${state.totalQuantityCount} Pax/Gece",
+                                style = TourOSTypography.Caption,
+                                color = TourOSColors.TextSecondary
+                            )
+                            Text(
+                                text = "📈 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ort. Tutar")}: ₺ ${formatCurrency(state.averageRevenue)}",
+                                style = TourOSTypography.Caption,
+                                color = TourOSColors.TextSecondary
+                            )
+                        }
+
+                        Text(
+                            text = "💰 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Ciro")}: ₺ ${formatCurrency(state.totalRevenue)}",
+                            style = TourOSTypography.BodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TourOSColors.Primary
+                        )
+                    }
+                }
+
+                // ── 3. ULTRA-KOMPAKT RAPOR ERP TABLOSU ──────────────────────────
+                if (state.isLoading) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = TourOSColors.Primary)
+                    }
+                } else {
+                    val reportColumns = listOf(
+                        TourOSColumn<Booking>(
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kod / TO PNR"),
+                            weight = 1.6f,
+                            cellContent = { booking ->
+                                val hasPnr = !booking.operatorPnrCode.isNullOrBlank()
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                    Text(
+                                        text = booking.bookingCode,
+                                        style = TourOSTypography.BodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.Primary
                                     )
+                                    if (hasPnr) {
+                                        Text(
+                                            text = "✈️ ${booking.operatorPnrCode}",
+                                            style = TourOSTypography.Caption,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TourOSColors.Success
+                                        )
+                                    }
+                                }
+                            }
+                        ),
+                        TourOSColumn<Booking>(
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tür / Ürün / Operatör"),
+                            weight = 2.4f,
+                            cellContent = { booking ->
+                                val isHotel = booking.bookingType == "HOTEL"
+                                val icon = if (isHotel) "🏨" else "🚌"
+                                val isOwnProduct = booking.operatorName.isNullOrBlank() || booking.operatorName.contains("MGA", ignoreCase = true)
+                                val operatorStr = if (isOwnProduct) "Kendi Ürünümüz" else booking.operatorName
+
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                    Text(
+                                        text = "$icon ${booking.productName.takeIf { it.isNotBlank() } ?: (if (isHotel) "Otel" else "Tur")}",
+                                        style = TourOSTypography.BodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "💼 $operatorStr",
+                                        style = TourOSTypography.Caption,
+                                        color = TourOSColors.TextSecondary,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        ),
+                        TourOSColumn<Booking>(
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri"),
+                            weight = 2.0f,
+                            cellContent = { booking ->
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                    Text(
+                                        text = booking.customerName.takeIf { it.isNotBlank() } ?: "Müşteri",
+                                        style = TourOSTypography.BodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TourOSColors.TextPrimary,
+                                        maxLines = 1
+                                    )
+                                    if (!booking.customerPhone.isNullOrBlank()) {
+                                        Text(
+                                            text = "📞 ${booking.customerPhone}",
+                                            style = TourOSTypography.Caption,
+                                            color = TourOSColors.TextSecondary,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        ),
+                        TourOSColumn<Booking>(
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih / Süre"),
+                            weight = 1.4f,
+                            cellContent = { booking ->
+                                val isHotel = booking.bookingType == "HOTEL"
+                                val dateStr = booking.checkInDate ?: booking.departureDate ?: "-"
+                                val durationStr = if (isHotel) "${booking.nights} Gece" else "${booking.paxCount} Pax"
+
+                                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                    Text(
+                                        text = dateStr,
+                                        style = TourOSTypography.BodyMedium,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                    Text(
+                                        text = durationStr,
+                                        style = TourOSTypography.Caption,
+                                        color = TourOSColors.TextSecondary
+                                    )
+                                }
+                            }
+                        ),
+                        TourOSColumn<Booking>(
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tutar"),
+                            weight = 1.3f,
+                            cellContent = { booking ->
+                                Text(
+                                    text = "₺ ${formatCurrency(booking.totalPrice)}",
+                                    style = TourOSTypography.BodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TourOSColors.Primary
+                                )
+                            }
+                        ),
+                        TourOSColumn<Booking>(
+                            title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Durum"),
+                            weight = 1.2f,
+                            cellContent = { booking ->
+                                TourOSStatusBadge(
+                                    text = booking.status.displayName,
+                                    backgroundColor = if (booking.status.name == "CONFIRMED" || booking.status.name == "ONAYLANDI") TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer,
+                                    textColor = if (booking.status.name == "CONFIRMED" || booking.status.name == "ONAYLANDI") TourOSColors.Success else TourOSColors.Primary
+                                )
+                            }
+                        )
+                    )
+
+                    TourOSDataTable(
+                        items = state.filteredBookings,
+                        columns = reportColumns,
+                        isCompact = isCompact,
+                        dense = true,
+                        modifier = Modifier.fillMaxSize(),
+                        compactCardContent = { booking ->
+                            val isHotel = booking.bookingType == "HOTEL"
+                            val icon = if (isHotel) "🏨" else "🚌"
+                            val hasPnr = !booking.operatorPnrCode.isNullOrBlank()
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(TourOSSpacing.small),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text = if (hasPnr) "✈️ ${booking.operatorPnrCode}" else booking.bookingCode,
+                                            style = TourOSTypography.BodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TourOSColors.Primary
+                                        )
+                                        TourOSStatusBadge(text = booking.status.displayName)
+                                    }
+                                    Text(
+                                        text = "$icon ${booking.productName} · ${booking.customerName}",
+                                        style = TourOSTypography.Caption,
+                                        color = TourOSColors.TextPrimary
+                                    )
+                                }
+                                Text(
+                                    text = "₺ ${formatCurrency(booking.totalPrice)}",
+                                    style = TourOSTypography.BodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TourOSColors.Primary
                                 )
                             }
                         }
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                        ) {
-                            TourOSTextField(
-                                value = state.startDate,
-                                onValueChange = { viewModel.setCustomDates(it, state.endDate) },
-                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Başlangıç Tarihi"),
-                                placeholder = "YYYY-MM-DD",
-                                modifier = Modifier.weight(1f)
-                            )
-                            TourOSTextField(
-                                value = state.endDate,
-                                onValueChange = { viewModel.setCustomDates(state.startDate, it) },
-                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bitiş Tarihi"),
-                                placeholder = "YYYY-MM-DD",
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                    }
-
-                    // 3. TUR OPERATÖRÜ, REZERVASYON DURUMU & ANLIK ARAMA
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                    ) {
-                        TourOSDropdown(
-                            items = state.availableOperators,
-                            selectedItem = state.selectedOperator,
-                            onItemSelected = { viewModel.setOperatorFilter(it) },
-                            itemLabel = { "💼 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(it)}" },
-                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Operatörü"),
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        TourOSDropdown(
-                            items = state.availableStatuses,
-                            selectedItem = state.selectedStatus,
-                            onItemSelected = { viewModel.setStatusFilter(it) },
-                            itemLabel = { "📌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(it)}" },
-                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon Durumu"),
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        TourOSTextField(
-                            value = state.searchQuery,
-                            onValueChange = { viewModel.setSearchQuery(it) },
-                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Anlık Arama"),
-                            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri, kod, ürün..."),
-                            modifier = Modifier.weight(1.2f)
-                        )
-                    }
-                }
-            }
-
-            // ── ÖZET METRİK KARTLARI (SUMMARY KPI) ──────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-            ) {
-                MetricSummaryCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Rezervasyon"),
-                    value = "${state.totalBookingCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Adet")}",
-                    icon = "📋",
-                    modifier = Modifier.weight(1f)
-                )
-                MetricSummaryCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hacim / Gece / Pax"),
-                    value = "${state.totalQuantityCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Birim")}",
-                    icon = "📊",
-                    modifier = Modifier.weight(1f)
-                )
-                MetricSummaryCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Ciro"),
-                    value = "${formatCurrency(state.totalRevenue)} ₺",
-                    icon = "💰",
-                    highlight = true,
-                    modifier = Modifier.weight(1f)
-                )
-                MetricSummaryCard(
-                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ort. Rezervasyon Tutarı"),
-                    value = "${formatCurrency(state.averageRevenue)} ₺",
-                    icon = "📈",
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // ── CANLI RAPOR VERİ TABLOSU ────────────────────────────────────
-            TourOSCard(
-                modifier = Modifier.fillMaxWidth(),
-                backgroundColor = TourOSColors.Background,
-                borderColor = TourOSColors.Border,
-                contentPadding = TourOSSpacing.large
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                    Text(
-                        text = "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtrelenmiş Rapor Veri Listesi")} (${state.filteredBookings.size} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kayıt")})",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                        fontWeight = FontWeight.Bold
                     )
-
-                    if (state.isLoading) {
-                        Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = TourOSColors.Primary)
-                        }
-                    } else if (state.filteredBookings.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().height(100.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Seçilen filtrelere uygun rapor kaydı bulunamadı."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
-                        }
-                    } else {
-                        // Rapor Başlık Kolonları
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = TourOSSpacing.medium, vertical = TourOSSpacing.small),
-                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
-                        ) {
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kod"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TO PNR"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tür / Operatör"), modifier = Modifier.weight(1.4f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri"), modifier = Modifier.weight(1.4f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih / Gece"), modifier = Modifier.weight(1.1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tutar"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Durum"), modifier = Modifier.weight(1f), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-                        }
-
-                        HorizontalDivider(color = TourOSColors.Border)
-
-                        state.filteredBookings.forEach { booking ->
-                            ReportDataRowItem(booking = booking)
-                            HorizontalDivider(color = TourOSColors.Border.copy(alpha = 0.5f))
-                        }
-                    }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun MetricSummaryCard(
-    title: String,
-    value: String,
-    icon: String,
-    highlight: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    TourOSCard(
-        modifier = modifier,
-        backgroundColor = if (highlight) TourOSColors.PrimaryContainer else TourOSColors.Surface,
-        borderColor = if (highlight) TourOSColors.Primary else TourOSColors.Border,
-        contentPadding = TourOSSpacing.medium
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xSmall)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(title, style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
-                Text(icon, style = TourOSTypography.TitleMedium)
-            }
-            Text(
-                text = value,
-                style = TourOSTypography.TitleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (highlight) TourOSColors.Primary else TourOSColors.TextPrimary
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReportDataRowItem(booking: Booking) {
-    val isHotel = booking.bookingType == "HOTEL"
-    val icon = if (isHotel) "🏨" else "🚌"
-    val typeName = if (isHotel) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur")
-    val isOwnProduct = booking.operatorName.isNullOrBlank() || booking.operatorName?.contains("MGA", ignoreCase = true) == true
-    val rawOp = booking.operatorName
-    val operatorStr = if (isOwnProduct) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kendi Ürünümüz") else (if (rawOp != null) com.mgacreative.touros.ui.localization.AppLanguageManager.translate(rawOp) else "-")
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = TourOSSpacing.small),
-        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Kod
-        Text(
-            text = booking.bookingCode,
-            modifier = Modifier.weight(1f),
-            style = TourOSTypography.Label,
-            fontWeight = FontWeight.Bold,
-            color = TourOSColors.Primary
-        )
-
-        // TO PNR Kodu
-        Box(modifier = Modifier.weight(1f)) {
-            val pnrText = booking.operatorPnrCode?.takeIf { it.isNotBlank() } ?: "-"
-            Text(
-                text = pnrText,
-                style = TourOSTypography.Label.copy(
-                    color = if (pnrText != "-") TourOSColors.Success else TourOSColors.TextSecondary,
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        }
-
-        // Tür / Operatör
-        Column(modifier = Modifier.weight(1.4f)) {
-            Text("$icon $typeName", style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-            Text("💼 $operatorStr", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
-        }
-
-        // Müşteri
-        Column(modifier = Modifier.weight(1.4f)) {
-            Text(booking.customerName.takeIf { it.isNotBlank() } ?: com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri"), style = TourOSTypography.Label, fontWeight = FontWeight.Bold)
-            Text(booking.customerPhone?.takeIf { it.isNotBlank() } ?: "-", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
-        }
-
-        // Tarih / Gece
-        Column(modifier = Modifier.weight(1.1f)) {
-            Text(booking.checkInDate ?: booking.departureDate ?: "-", style = TourOSTypography.Label)
-            Text(if (isHotel) "${booking.nights} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gece")}" else "${booking.paxCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kişi")}", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
-        }
-
-        // Tutar
-        Text(
-            text = "${formatCurrency(booking.totalPrice)} ₺",
-            modifier = Modifier.weight(1f),
-            style = TourOSTypography.Label,
-            fontWeight = FontWeight.Bold,
-            color = TourOSColors.Primary
-        )
-
-        // Durum
-        Box(modifier = Modifier.weight(1f)) {
-            TourOSStatusBadge(text = booking.status.displayName)
         }
     }
 }
