@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -24,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.Booking
 import com.mgacreative.touros.domain.model.BookingStatus
@@ -166,9 +170,31 @@ fun BookingListScreen(
                         } else {
                             val bookingColumns = listOf(
                                 TourOSColumn<Booking>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("REZERVASYON KODU & MÜŞTERİ"), weight = 2.2f) { booking ->
-                                    Column {
-                                        Text(text = booking.bookingCode, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
-                                        Text(text = booking.customerName, style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
+                                    val hasPnr = !booking.operatorPnrCode.isNullOrBlank()
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(
+                                                text = if (hasPnr) "✈️ ${booking.operatorPnrCode}" else booking.bookingCode, 
+                                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                            )
+                                            if (hasPnr) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = Color(0xFFECFDF5),
+                                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981))
+                                                ) {
+                                                    Text(
+                                                        text = "✓ PNR Kilitli",
+                                                        style = TourOSTypography.Caption.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold),
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        if (hasPnr && booking.bookingCode != booking.operatorPnrCode) {
+                                            Text(text = "Dahili Ref: #${booking.bookingCode}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        }
+                                        Text(text = booking.customerName, style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.SemiBold))
                                         Text(text = "📞 ${booking.customerPhone ?: '-'} • ✉️ ${booking.customerEmail ?: '-'}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 },
@@ -224,6 +250,7 @@ fun BookingListScreen(
                                     val targetId = booking.id.ifBlank { booking.bookingCode }
                                     val isHotel = booking.bookingType == "HOTEL" || !booking.hotelId.isNullOrBlank()
                                     val icon = if (isHotel) "🏨" else "📍"
+                                    val hasPnr = !booking.operatorPnrCode.isNullOrBlank()
                                     val dateText = if (isHotel && !booking.checkInDate.isNullOrBlank()) {
                                         "📅 Giriş: ${booking.checkInDate} (${booking.nights} Gece)"
                                     } else {
@@ -238,7 +265,28 @@ fun BookingListScreen(
                                             verticalAlignment = Alignment.Top
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(text = booking.bookingCode, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Text(
+                                                        text = if (hasPnr) "✈️ ${booking.operatorPnrCode}" else booking.bookingCode, 
+                                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                                    )
+                                                    if (hasPnr) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(4.dp),
+                                                            color = Color(0xFFECFDF5),
+                                                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981))
+                                                        ) {
+                                                            Text(
+                                                                text = "✓ Kilitli",
+                                                                style = TourOSTypography.Caption.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold),
+                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                if (hasPnr && booking.bookingCode != booking.operatorPnrCode) {
+                                                    Text(text = "Ref: #${booking.bookingCode}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                                }
                                                 Text(text = booking.customerName, style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary))
                                             }
 

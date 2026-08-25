@@ -21,6 +21,7 @@ class GetBookingsUseCase(
                 val matchesTour = tourIdFilter.isNullOrBlank() || booking.departureId == tourIdFilter
                 val matchesSearch = searchQuery.isBlank() ||
                         booking.bookingCode.contains(searchQuery, ignoreCase = true) ||
+                        (booking.operatorPnrCode?.contains(searchQuery, ignoreCase = true) == true) ||
                         booking.customerName.contains(searchQuery, ignoreCase = true) ||
                         (booking.customerPhone?.contains(searchQuery, ignoreCase = true) == true) ||
                         (booking.customerEmail?.contains(searchQuery, ignoreCase = true) == true)
