@@ -25,15 +25,11 @@ class BookingRepositoryImpl(
 
     override suspend fun getBookings(tenantId: String): Result<List<Booking>> {
         return runCatching {
-            if (tenantId != "ALL" && !tenantId.isValidUuid()) {
-                return@runCatching emptyList()
-            }
-            
             val remoteEntities = runCatching {
                 supabaseClient.postgrest.from("bookings")
                     .select {
                         filter {
-                            if (tenantId.isValidUuid()) {
+                            if (tenantId.isValidUuid() && tenantId != "ALL") {
                                 eq("tenant_id", tenantId)
                             }
                         }
@@ -41,7 +37,16 @@ class BookingRepositoryImpl(
                     .decodeList<BookingEntity>()
             }.getOrDefault(emptyList())
 
-            remoteEntities.map { mapEntityToDomain(it) }
+            val remoteDomain = remoteEntities.map { mapEntityToDomain(it) }
+            val cachedDomain = localCache.map { mapEntityToDomain(it) }
+
+            // Deduplicate: Yerel önbellekteki yeni kayıtları remote kayıtlarla harmanla
+            val combined = (cachedDomain + remoteDomain)
+                .filter { it.id !in deletedIdsBlacklist && it.bookingCode !in deletedIdsBlacklist }
+                .distinctBy { if (it.id.isNotBlank()) it.id else it.bookingCode }
+                .sortedByDescending { it.createdAt }
+
+            combined
         }
     }
 
@@ -103,6 +108,10 @@ class BookingRepositoryImpl(
             val validDepartureId = booking.departureId?.takeIf { it.isValidUuid() }
             val validTenantId = if (booking.tenantId.isValidUuid()) booking.tenantId else "00000000-0000-0000-0000-000000000001"
             val code = booking.bookingCode.ifBlank { if (booking.bookingType == "HOTEL") "HTL-${(100000..999999).random()}" else "REZ-2026-${(1000..9999).random()}" }
+            val nowIso = com.mgacreative.touros.getTodayTriple().let { (d, m, y) ->
+                "${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}T12:00:00Z"
+            }
+            val validCreatedAt = booking.createdAt.ifBlank { nowIso }
 
             val entity = BookingEntity(
                 id = validId,
@@ -129,16 +138,60 @@ class BookingRepositoryImpl(
                 nights = booking.nights,
                 bookingType = booking.bookingType,
                 paymentMethod = booking.paymentMethod,
-                tenantId = validTenantId
+                operatorPnrCode = booking.operatorPnrCode ?: code,
+                operatorStatus = booking.operatorStatus ?: "ONAYLANDI",
+                tenantId = validTenantId,
+                createdAt = validCreatedAt
             )
 
             // 1. Yerel Önbelleğe Ekle (Rezervasyon Yönetiminde Anında Görünmesi İçin)
             localCache.removeAll { it.id == validId || it.bookingCode == code }
             localCache.add(0, entity)
 
-            // 2. Supabase Veritabanına Ekle (Fail-Safe)
+            // 2. Supabase bookings Tablosuna Ekle (Fail-Safe)
             runCatching {
                 supabaseClient.postgrest.from("bookings").insert(entity)
+            }
+
+            // 3. Supabase booking_items Tablosuna Ekle
+            if (booking.items.isNotEmpty()) {
+                runCatching {
+                    val itemEntities = booking.items.map { itm ->
+                        BookingItemEntity(
+                            id = if (itm.id.isValidUuid()) itm.id else generateUuid(),
+                            bookingId = validId,
+                            description = itm.description,
+                            quantity = itm.quantity,
+                            unitPrice = itm.unitPrice,
+                            totalPrice = itm.totalPrice,
+                            itemType = itm.itemType,
+                            notes = itm.notes
+                        )
+                    }
+                    supabaseClient.postgrest.from("booking_items").insert(itemEntities)
+                }
+            }
+
+            // 4. Supabase passengers Tablosuna Ekle
+            if (booking.passengers.isNotEmpty()) {
+                runCatching {
+                    val paxEntities = booking.passengers.map { p ->
+                        PassengerEntity(
+                            id = if (p.id.isValidUuid()) p.id else generateUuid(),
+                            bookingId = validId,
+                            fullName = p.fullName,
+                            tcNo = p.tcNo,
+                            passportNo = p.passportNo,
+                            birthDate = p.birthDate,
+                            gender = p.gender,
+                            phone = p.phone,
+                            email = p.email,
+                            isLead = p.isLead,
+                            notes = p.notes
+                        )
+                    }
+                    supabaseClient.postgrest.from("passengers").insert(paxEntities)
+                }
             }
 
             mapEntityToDomain(entity).copy(
