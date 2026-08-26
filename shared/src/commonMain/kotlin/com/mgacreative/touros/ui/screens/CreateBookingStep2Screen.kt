@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mgacreative.touros.domain.model.BookingStatus
 import com.mgacreative.touros.ui.components.TourOSButton
@@ -114,6 +115,32 @@ fun CreateBookingStep2Screen(
                     else -> PassengersStepContent(uiState = uiState, viewModel = viewModel)
                 }
             }
+        }
+
+        if (uiState.error != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { viewModel.clearError() },
+                title = {
+                    Text(
+                        text = "❌ Rezervasyon Kayıt Hatası",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Error),
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Text(
+                        text = uiState.error.orEmpty(),
+                        style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                    )
+                },
+                confirmButton = {
+                    TourOSButton(
+                        text = "Tamam",
+                        onClick = { viewModel.clearError() },
+                        variant = TourOSButtonVariant.PRIMARY
+                    )
+                }
+            )
         }
     }
 }

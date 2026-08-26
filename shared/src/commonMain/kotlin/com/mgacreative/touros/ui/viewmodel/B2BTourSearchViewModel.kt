@@ -150,6 +150,7 @@ class B2BTourSearchViewModel(
     val passengers = MutableStateFlow<List<PassengerInfo>>(emptyList())
 
     val isSavingBooking = MutableStateFlow(false)
+    val bookingErrorMessage = MutableStateFlow<String?>(null)
     val createdPnrCode = MutableStateFlow("")
 
     // ─── Acente Sorgu Kotası State (Quota Guard - Günlük & Aylık) ───────────
@@ -1127,12 +1128,14 @@ data class QuotaCheckResultDto(
             bookingRepository.createBooking(domainBooking)
                 .onSuccess {
                     println("✅ Rezervasyon BookingRepository ile önbellek ve Supabase'e başarıyla kaydedildi: PNR $pnr")
+                    bookingErrorMessage.value = null
+                    isSavingBooking.value = false
+                    onComplete(pnr)
                 }.onFailure { err ->
-                    println("⚠️ BookingRepository kayıt uyarısı: ${err.message}")
+                    println("❌ BookingRepository kayıt hatası: ${err.message}")
+                    isSavingBooking.value = false
+                    bookingErrorMessage.value = "Supabase Rezervasyon Kayıt Hatası:\n${err.message ?: err.toString()}"
                 }
-
-            isSavingBooking.value = false
-            onComplete(pnr)
         }
     }
 

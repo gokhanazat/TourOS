@@ -7,6 +7,9 @@ import androidx.compose.foundation.border
 import touros.shared.generated.resources.Res
 import touros.shared.generated.resources.axileto_logo_white
 import com.mgacreative.touros.domain.model.PromoBannerItem
+import com.mgacreative.touros.domain.model.BookingItem
+import com.mgacreative.touros.domain.model.Passenger
+import com.mgacreative.touros.data.util.isValidUuid
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -831,8 +834,16 @@ fun GlobalWebPublicScreen(
     val handleDirectBooking: (PublicHotelOffer) -> Unit = { offer ->
         val productEntity = offer.toUnifiedProductEntity()
         b2bTourSearchViewModel.selectProductForBooking(productEntity)
-        selectedHotelForDetail = null
-        selectedAgencyForBooking = null
+        selectedHotelForDetail = offer
+        selectedAgencyForBooking = offer.agencyPrices.firstOrNull() ?: AgencyPriceOption(
+            agencyId = "00000000-0000-0000-0000-000000000001",
+            agencyName = "${offer.operatorName.ifBlank { "TourOS Partner" }} Acente",
+            operatorName = offer.operatorName.ifBlank { "MGA Creative" },
+            roomType = offer.roomType,
+            boardType = offer.mealType,
+            price = offer.minPrice,
+            isBestDeal = true
+        )
         onNavigateToNewBooking(offer)
     }
 
@@ -2867,25 +2878,60 @@ fun GlobalWebPublicScreen(
                                                 "00000000-0000-0000-0000-000000000001" // TourOS HQ Master Agency Tenant ID
                                             }
                                             val isFlightBooking = hotel.category == "FLIGHT"
+                                            val validBookingId = com.mgacreative.touros.data.util.generateUuid()
+                                            val pnrCode = (if (isFlightBooking) "PNR-" else "WEB-") + (10000..99999).random()
+                                            val safeTenantId = if (targetAgencyId.isValidUuid()) targetAgencyId else "00000000-0000-0000-0000-000000000001"
+                                            val safeHotelId = hotel.id.takeIf { it.isValidUuid() }
+
                                             val newBooking = Booking(
-                                                id = "BK-WEB-" + (1000..9999).random(),
-                                                bookingCode = (if (isFlightBooking) "PNR-" else "WEB-") + (10000..99999).random(),
-                                                customerName = guestName,
-                                                customerPhone = guestPhone,
-                                                productName = if (isFlightBooking) "✈️ Charter Uçuş Bileti: ${hotel.hotelName} (${hotel.flightCode})" else hotel.hotelName,
-                                                hotelId = hotel.id,
+                                                id = validBookingId,
+                                                bookingCode = pnrCode,
+                                                customerName = guestName.ifBlank { "Web Misafir" },
+                                                customerPhone = guestPhone.ifBlank { "+90 500 000 0000" },
+                                                customerEmail = currentUser?.email ?: "web-rezervasyon@touros.com",
+                                                productName = if (isFlightBooking) "✈️ Charter Uçuş Bileti: ${hotel.hotelName} (${hotel.flightCode})" else "${hotel.hotelName} (${option.roomType})",
+                                                hotelId = safeHotelId,
                                                 bookingType = if (isFlightBooking) "FLIGHT" else "HOTEL",
-                                                operatorName = option.agencyName,
+                                                roomTypeName = option.roomType,
+                                                operatorName = option.operatorName.ifBlank { option.agencyName },
+                                                departureDate = hotel.departureDate ?: "2026-08-21",
+                                                nights = hotel.nights,
                                                 totalPrice = option.price,
                                                 currency = hotel.currency.ifBlank { "TRY" },
                                                 status = BookingStatus.ONAYLANDI,
-                                                tenantId = targetAgencyId
+                                                tenantId = safeTenantId,
+                                                items = listOf(
+                                                    BookingItem(
+                                                        id = com.mgacreative.touros.data.util.generateUuid(),
+                                                        bookingId = validBookingId,
+                                                        description = "${hotel.hotelName} - ${option.roomType} (${option.boardType})",
+                                                        quantity = 1,
+                                                        unitPrice = option.price,
+                                                        totalPrice = option.price,
+                                                        itemType = if (isFlightBooking) "FLIGHT" else "HOTEL"
+                                                    )
+                                                ),
+                                                passengers = listOf(
+                                                    Passenger(
+                                                        id = com.mgacreative.touros.data.util.generateUuid(),
+                                                        bookingId = validBookingId,
+                                                        fullName = guestName.ifBlank { "Web Misafir" },
+                                                        phone = guestPhone.ifBlank { "+90 500 000 0000" },
+                                                        passportNo = passportNo.ifBlank { "TR-8492019" },
+                                                        isLead = true
+                                                    )
+                                                )
                                             )
-                                            runCatching {
-                                                bookingRepository.createBooking(newBooking)
-                                            }
+                                            bookingRepository.createBooking(newBooking)
+                                                .onSuccess {
+                                                    println("✅ Web rezervasyonu Supabase ve yerel önbelleğe kaydedildi: ${newBooking.bookingCode}")
+                                                }
+                                                .onFailure { err ->
+                                                    println("⚠️ Web rezervasyonu kayıt uyarısı: ${err.message}")
+                                                }
+
                                             bookingSuccessMessage = if (isReferralAgency) {
-                                                "✅ Rezervasyon/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Acente (${targetAgencyId}) Paneline Aktarıldı."
+                                                "✅ Rezervasyon/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Acente (${safeTenantId}) Paneline Aktarıldı."
                                             } else {
                                                 "✅ Bilet/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Ana Acente HQ (AGN-MASTER-8492) Paneline Aktarıldı."
                                             }
@@ -3045,8 +3091,7 @@ fun GlobalWebPublicScreen(
 
                                                 Button(
                                                     onClick = {
-                                                        val selectedOffer = hotel.copy(minPrice = option.price, operatorName = option.operatorName)
-                                                        handleDirectBooking(selectedOffer)
+                                                        selectedAgencyForBooking = option
                                                     },
                                                     shape = RoundedCornerShape(6.dp),
                                                     colors = ButtonDefaults.buttonColors(

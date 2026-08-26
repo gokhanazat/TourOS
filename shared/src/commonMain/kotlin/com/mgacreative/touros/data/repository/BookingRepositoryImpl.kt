@@ -22,6 +22,21 @@ class BookingRepositoryImpl(
     companion object {
         private val localCache = mutableListOf<BookingEntity>()
         private val deletedIdsBlacklist = mutableSetOf<String>()
+
+        private fun formatToSqlDate(input: String?): String? {
+            if (input.isNullOrBlank()) return null
+            val trimmed = input.trim()
+            if (trimmed.matches(Regex("""^\d{4}-\d{2}-\d{2}$"""))) return trimmed
+            val partsDot = trimmed.split(".")
+            if (partsDot.size == 3 && partsDot[2].length == 4) {
+                return "${partsDot[2]}-${partsDot[1].padStart(2, '0')}-${partsDot[0].padStart(2, '0')}"
+            }
+            val partsSlash = trimmed.split("/")
+            if (partsSlash.size == 3 && partsSlash[2].length == 4) {
+                return "${partsSlash[2]}-${partsSlash[1].padStart(2, '0')}-${partsSlash[0].padStart(2, '0')}"
+            }
+            return null
+        }
     }
 
     override suspend fun getBookings(tenantId: String): Result<List<Booking>> {
@@ -31,25 +46,36 @@ class BookingRepositoryImpl(
                     .select {
                         filter {
                             if (tenantId.isValidUuid() && tenantId != "ALL" && tenantId != "00000000-0000-0000-0000-000000000001") {
-                                eq("tenant_id", tenantId)
+                                or {
+                                    eq("tenant_id", tenantId)
+                                    eq("tenant_id", "00000000-0000-0000-0000-000000000001")
+                                }
                             }
                         }
                     }
                     .decodeList<BookingEntity>()
             }.onFailure { err ->
                 println("⚠️ Supabase getBookings hatası: ${err.message}")
+                err.printStackTrace()
             }.getOrDefault(emptyList())
 
-            val remoteDomain = remoteEntities.map { mapEntityToDomain(it) }
-            val cachedDomain = localCache.map { mapEntityToDomain(it) }
+            if (remoteEntities.isNotEmpty()) {
+                localCache.clear()
+                localCache.addAll(remoteEntities)
+            }
 
-            // Deduplicate: Yerel önbellekteki yeni kayıtları remote kayıtlarla harmanla
-            val combined = (cachedDomain + remoteDomain)
+            val listToDisplay = if (remoteEntities.isNotEmpty()) {
+                remoteEntities.map { mapEntityToDomain(it) }
+            } else {
+                localCache.map { mapEntityToDomain(it) }
+            }
+
+            val filtered = listToDisplay
                 .filter { it.id !in deletedIdsBlacklist && it.bookingCode !in deletedIdsBlacklist }
                 .distinctBy { if (it.id.isNotBlank()) it.id else it.bookingCode }
                 .sortedByDescending { it.createdAt }
 
-            combined
+            filtered
         }
     }
 
@@ -73,6 +99,7 @@ class BookingRepositoryImpl(
                         filter {
                             or {
                                 eq("booking_code", cleanId)
+                                eq("booking_number", cleanId)
                                 eq("operator_pnr_code", cleanId)
                             }
                         }
@@ -91,11 +118,11 @@ class BookingRepositoryImpl(
                 BookingItem(
                     id = it.id ?: generateUuid(),
                     bookingId = it.bookingId ?: bookingRealId,
-                    description = it.description ?: "Hizmet",
-                    quantity = it.quantity ?: 1,
-                    unitPrice = it.unitPrice ?: 0.0,
-                    totalPrice = it.totalPrice ?: 0.0,
-                    itemType = it.itemType ?: "TOUR",
+                    description = it.safeDescription,
+                    quantity = it.safeQuantity,
+                    unitPrice = it.safeUnitPrice,
+                    totalPrice = it.safeTotalPrice,
+                    itemType = it.safeItemType,
                     notes = it.notes
                 )
             }
@@ -108,9 +135,9 @@ class BookingRepositoryImpl(
                 Passenger(
                     id = it.id ?: generateUuid(),
                     bookingId = it.bookingId ?: bookingRealId,
-                    fullName = it.fullName ?: "Yolcu",
-                    tcNo = it.tcNo,
-                    passportNo = it.passportNo,
+                    fullName = it.safeFullName,
+                    tcNo = it.safeTcNo,
+                    passportNo = it.safePassportNo,
                     birthDate = it.birthDate,
                     gender = it.gender,
                     phone = it.phone,
@@ -142,83 +169,84 @@ class BookingRepositoryImpl(
                 departureId = validDepartureId,
                 customerId = booking.customerId?.takeIf { it.isValidUuid() },
                 agencyId = booking.agencyId?.takeIf { it.isValidUuid() },
-                customerName = booking.customerName,
+                customerName = booking.customerName.ifBlank { "Misafir" },
                 customerEmail = booking.customerEmail,
                 customerPhone = booking.customerPhone,
                 totalPrice = booking.totalPrice,
                 totalAmount = booking.totalPrice,
-                currency = booking.currency,
+                currency = booking.currency.ifBlank { "TRY" },
                 paxCount = booking.paxCount,
                 status = booking.status.dbValue,
                 notes = booking.notes,
                 optionExpiration = booking.optionExpiration,
-                operatorName = booking.operatorName,
-                productName = booking.productName,
-                departureDate = booking.departureDate,
+                operatorName = booking.operatorName ?: "MGA Creative",
+                productName = booking.productName ?: "Tur Rezervasyonu",
+                departureDate = booking.departureDate ?: "2026-09-01",
                 hotelId = booking.hotelId?.takeIf { it.isValidUuid() },
                 checkInDate = booking.checkInDate,
                 checkOutDate = booking.checkOutDate,
                 roomTypeName = booking.roomTypeName,
                 nights = booking.nights,
-                bookingType = booking.bookingType,
-                paymentMethod = booking.paymentMethod,
+                bookingType = booking.bookingType ?: "TOUR",
+                paymentMethod = booking.paymentMethod ?: "CREDIT_CARD",
                 operatorPnrCode = booking.operatorPnrCode?.takeIf { it.isNotBlank() },
                 operatorStatus = booking.operatorStatus ?: "BEKLİYOR",
                 tenantId = validTenantId,
-                createdAt = validCreatedAt
+                createdAt = validCreatedAt,
+                updatedAt = validCreatedAt
             )
 
-            // 1. Yerel Önbelleğe Ekle (Rezervasyon Yönetiminde Anında Görünmesi İçin)
-            localCache.removeAll { it.id == validId || it.bookingCode == code }
-            localCache.add(0, entity)
+            // 2. Supabase bookings — Orijinal Tablo Şemasıyla %100 Uyumlu Güvenli Insert
+            // Ekstra ürün ve operatör detayları notes alanı içerisinde zenginleştirilerek saklanır
+            val richNotes = buildString {
+                booking.productName?.takeIf { it.isNotBlank() }?.let { append("Ürün: $it • ") }
+                booking.operatorName?.takeIf { it.isNotBlank() }?.let { append("Operatör: $it • ") }
+                booking.departureDate?.takeIf { it.isNotBlank() }?.let { append("Tarih: $it • ") }
+                booking.roomTypeName?.takeIf { it.isNotBlank() }?.let { append("Oda: $it • ") }
+                if (booking.nights > 0) append("Gece: ${booking.nights} • ")
+                booking.notes?.takeIf { it.isNotBlank() }?.let { append(it) }
+            }.trim().removeSuffix("•").trim()
 
-            // 2. Supabase bookings Tablosuna Temiz Payload İle Ekle (Kalıcı Saklama)
-            runCatching {
-                val bookingPayload = buildJsonObject {
-                    put("id", validId)
-                    put("booking_code", code)
-                    put("booking_number", code)
-                    if (validDepartureId != null) put("departure_id", validDepartureId)
-                    if (booking.customerId?.isValidUuid() == true) put("customer_id", booking.customerId)
-                    if (booking.agencyId?.isValidUuid() == true) put("agency_id", booking.agencyId)
-                    put("customer_name", booking.customerName)
-                    if (!booking.customerEmail.isNullOrBlank()) put("customer_email", booking.customerEmail)
-                    if (!booking.customerPhone.isNullOrBlank()) put("customer_phone", booking.customerPhone)
-                    put("total_price", booking.totalPrice)
-                    put("total_amount", booking.totalPrice)
-                    put("currency", booking.currency)
-                    put("pax_count", booking.paxCount)
-                    put("status", booking.status.dbValue)
-                    if (!booking.notes.isNullOrBlank()) put("notes", booking.notes)
-                    if (!booking.optionExpiration.isNullOrBlank()) put("option_expiration", booking.optionExpiration)
-                    put("operator_name", booking.operatorName ?: "MGA Creative")
-                    put("product_name", booking.productName ?: "Tur Rezervasyonu")
-                    put("departure_date", booking.departureDate ?: "2026-09-01")
-                    if (booking.hotelId?.isValidUuid() == true) put("hotel_id", booking.hotelId)
-                    if (!booking.checkInDate.isNullOrBlank()) put("check_in_date", booking.checkInDate)
-                    if (!booking.checkOutDate.isNullOrBlank()) put("check_out_date", booking.checkOutDate)
-                    if (!booking.roomTypeName.isNullOrBlank()) put("room_type_name", booking.roomTypeName)
-                    put("nights", booking.nights)
-                    put("booking_type", booking.bookingType ?: "TOUR")
-                    put("payment_method", booking.paymentMethod ?: "CREDIT_CARD")
-                    if (!booking.operatorPnrCode.isNullOrBlank()) put("operator_pnr_code", booking.operatorPnrCode)
-                    put("operator_status", booking.operatorStatus ?: "BEKLİYOR")
-                    put("tenant_id", validTenantId)
-                }
-                supabaseClient.postgrest.from("bookings").insert(bookingPayload)
-                println("✅ Supabase bookings kaydı başarıyla oluşturuldu: ID=$validId, Kod=$code")
-            }.onFailure { err ->
-                println("❌ Supabase bookings insert hatası: ${err.message}")
+            val bookingJson = buildJsonObject {
+                put("id", validId)
+                put("booking_code", code)
+                if (validDepartureId != null) put("departure_id", validDepartureId)
+                booking.customerId?.takeIf { it.isValidUuid() }?.let { put("customer_id", it) }
+                booking.agencyId?.takeIf { it.isValidUuid() }?.let { put("agency_id", it) }
+                put("customer_name", booking.customerName.ifBlank { "Misafir" })
+                booking.customerEmail?.takeIf { it.isNotBlank() }?.let { put("customer_email", it) }
+                booking.customerPhone?.takeIf { it.isNotBlank() }?.let { put("customer_phone", it) }
+                put("total_price", booking.totalPrice)
+                put("currency", booking.currency.ifBlank { "TRY" })
+                put("pax_count", booking.paxCount)
+                put("status", booking.status.dbValue)
+                if (richNotes.isNotBlank()) put("notes", richNotes)
+                put("tenant_id", validTenantId)
+            }
+
+            try {
+                supabaseClient.postgrest
+                    .from("bookings")
+                    .insert(bookingJson)
+                println("✅ [BookingRepository] Supabase bookings kaydı başarıyla oluşturuldu: ID=$validId, Kod=$code")
+                // Yalnızca Supabase'e başarılı yazıldıktan sonra yerel listeye ekle
+                localCache.removeAll { it.id == validId || it.bookingCode == code || it.bookingNumber == code }
+                localCache.add(0, entity)
+            } catch (e: Exception) {
+                println("❌ [BookingRepository] Supabase bookings insert HATASI: ${e.message}")
+                e.printStackTrace()
+                throw e
             }
 
             // 3. Supabase booking_items Tablosuna Ekle
             if (booking.items.isNotEmpty()) {
-                runCatching {
-                    booking.items.forEach { itm ->
-                        val itemPayload = buildJsonObject {
+                try {
+                    val itemJsons = booking.items.map { itm ->
+                        buildJsonObject {
                             put("id", if (itm.id.isValidUuid()) itm.id else generateUuid())
                             put("booking_id", validId)
-                            put("description", itm.description)
+                            put("title", itm.description.ifBlank { "Hizmet" })
+                            put("description", itm.description.ifBlank { "Hizmet" })
                             put("quantity", itm.quantity)
                             put("unit_price", itm.unitPrice)
                             put("total_price", itm.totalPrice)
@@ -226,35 +254,47 @@ class BookingRepositoryImpl(
                             if (!itm.notes.isNullOrBlank()) put("notes", itm.notes)
                             put("tenant_id", validTenantId)
                         }
-                        supabaseClient.postgrest.from("booking_items").insert(itemPayload)
                     }
-                }.onFailure { err ->
-                    println("❌ Supabase booking_items insert hatası: ${err.message}")
+                    supabaseClient.postgrest.from("booking_items").insert(itemJsons)
+                    println("✅ [BookingRepository] Supabase booking_items (${booking.items.size} adet) başarıyla eklendi.")
+                } catch (err: Exception) {
+                    println("❌ [BookingRepository] Supabase booking_items insert hatası: ${err.message}")
+                    err.printStackTrace()
                 }
             }
 
             // 4. Supabase passengers Tablosuna Ekle
             if (booking.passengers.isNotEmpty()) {
-                runCatching {
-                    booking.passengers.forEach { p ->
-                        val paxPayload = buildJsonObject {
+                try {
+                    val paxJsons = booking.passengers.map { p ->
+                        val nameParts = p.fullName.trim().split(" ")
+                        val fName = nameParts.firstOrNull() ?: "Misafir"
+                        val lName = if (nameParts.size > 1) nameParts.drop(1).joinToString(" ") else "Yolcu"
+                        buildJsonObject {
                             put("id", if (p.id.isValidUuid()) p.id else generateUuid())
                             put("booking_id", validId)
                             put("full_name", p.fullName)
-                            if (!p.tcNo.isNullOrBlank()) put("tc_no", p.tcNo)
-                            if (!p.passportNo.isNullOrBlank()) put("passport_no", p.passportNo)
-                            if (!p.birthDate.isNullOrBlank()) put("birth_date", p.birthDate)
-                            if (!p.gender.isNullOrBlank()) put("gender", p.gender)
-                            if (!p.phone.isNullOrBlank()) put("phone", p.phone)
-                            if (!p.email.isNullOrBlank()) put("email", p.email)
+                            put("first_name", fName)
+                            put("last_name", lName)
+                            p.tcNo?.takeIf { it.isNotBlank() }?.let { put("tc_no", it) }
+                            p.passportNo?.takeIf { it.isNotBlank() }?.let { put("passport_no", it) }
+                            val idNum = p.passportNo?.takeIf { it.isNotBlank() } ?: p.tcNo?.takeIf { it.isNotBlank() }
+                            idNum?.let { put("id_number", it) }
+                            formatToSqlDate(p.birthDate)?.let { put("birth_date", it) }
+                            p.gender?.let { put("gender", it) }
+                            put("passenger_type", if (p.isLead) "LEAD" else "ADULT")
+                            p.phone?.takeIf { it.isNotBlank() }?.let { put("phone", it) }
+                            p.email?.takeIf { it.isNotBlank() }?.let { put("email", it) }
                             put("is_lead", p.isLead)
-                            if (!p.notes.isNullOrBlank()) put("notes", p.notes)
+                            p.notes?.takeIf { it.isNotBlank() }?.let { put("notes", it) }
                             put("tenant_id", validTenantId)
                         }
-                        supabaseClient.postgrest.from("passengers").insert(paxPayload)
                     }
-                }.onFailure { err ->
-                    println("❌ Supabase passengers insert hatası: ${err.message}")
+                    supabaseClient.postgrest.from("passengers").insert(paxJsons)
+                    println("✅ [BookingRepository] Supabase passengers (${booking.passengers.size} adet) başarıyla eklendi.")
+                } catch (err: Exception) {
+                    println("❌ [BookingRepository] Supabase passengers insert hatası: ${err.message}")
+                    err.printStackTrace()
                 }
             }
 
@@ -268,7 +308,7 @@ class BookingRepositoryImpl(
     override suspend fun updateBookingStatus(bookingId: String, status: String): Result<Unit> {
         return runCatching {
             // Local cache güncelleme
-            val idx = localCache.indexOfFirst { it.id == bookingId || it.bookingCode == bookingId }
+            val idx = localCache.indexOfFirst { it.id == bookingId || it.bookingCode == bookingId || it.bookingNumber == bookingId }
             if (idx != -1) {
                 val old = localCache[idx]
                 localCache[idx] = old.copy(status = status)
@@ -288,9 +328,9 @@ class BookingRepositoryImpl(
                 if (currentBooking != null) {
                     val logEntity = com.mgacreative.touros.data.database.entity.BookingStatusLogEntity(
                         bookingId = bookingId,
-                        fromStatus = currentBooking.status ?: "Bekliyor",
+                        fromStatus = currentBooking.safeStatus,
                         toStatus = status,
-                        tenantId = currentBooking.tenantId ?: "00000000-0000-0000-0000-000000000001",
+                        tenantId = currentBooking.safeTenantId,
                         notes = "Durum $status olarak güncellendi"
                     )
                     supabaseClient.postgrest.from("booking_status_logs").insert(logEntity)
@@ -307,10 +347,11 @@ class BookingRepositoryImpl(
             // 1. Karalisteye ekle ve önbellekten çıkar
             deletedIdsBlacklist.add(target)
             localCache.removeAll { entity ->
-                val isMatch = entity.id == target || entity.bookingCode == target || (entity.id != null && target == entity.id) || (entity.bookingCode != null && target == entity.bookingCode)
+                val isMatch = entity.id == target || entity.bookingCode == target || entity.bookingNumber == target
                 if (isMatch) {
                     if (!entity.id.isNullOrBlank()) deletedIdsBlacklist.add(entity.id)
                     if (!entity.bookingCode.isNullOrBlank()) deletedIdsBlacklist.add(entity.bookingCode)
+                    if (!entity.bookingNumber.isNullOrBlank()) deletedIdsBlacklist.add(entity.bookingNumber)
                 }
                 isMatch
             }
@@ -323,10 +364,18 @@ class BookingRepositoryImpl(
                     supabaseClient.postgrest.from("booking_status_logs").delete { filter { eq("booking_id", target) } }
                     supabaseClient.postgrest.from("bookings").delete { filter { eq("id", target) } }
                 } else {
-                    val matching = supabaseClient.postgrest.from("bookings").select { filter { eq("booking_code", target) } }.decodeList<BookingEntity>()
+                    val matching = supabaseClient.postgrest.from("bookings").select { 
+                        filter { 
+                            or {
+                                eq("booking_code", target)
+                                eq("booking_number", target)
+                            }
+                        } 
+                    }.decodeList<BookingEntity>()
                     matching.forEach { b ->
                         if (!b.id.isNullOrBlank()) deletedIdsBlacklist.add(b.id)
                         if (!b.bookingCode.isNullOrBlank()) deletedIdsBlacklist.add(b.bookingCode)
+                        if (!b.bookingNumber.isNullOrBlank()) deletedIdsBlacklist.add(b.bookingNumber)
                         val bId = b.id
                         if (!bId.isNullOrBlank()) {
                             supabaseClient.postgrest.from("booking_items").delete { filter { eq("booking_id", bId) } }
@@ -336,6 +385,7 @@ class BookingRepositoryImpl(
                         }
                     }
                     supabaseClient.postgrest.from("bookings").delete { filter { eq("booking_code", target) } }
+                    supabaseClient.postgrest.from("bookings").delete { filter { eq("booking_number", target) } }
                 }
             }
             Unit
@@ -367,46 +417,68 @@ class BookingRepositoryImpl(
     }
 
     private fun mapEntityToDomain(entity: BookingEntity): Booking {
-        val code = entity.bookingCode.ifBlank {
-            entity.bookingNumber?.takeIf { it.isNotBlank() } ?: "REZ-${entity.id.take(8)}"
-        }
-        val price = if (entity.totalPrice > 0.0) entity.totalPrice else (entity.totalAmount ?: 0.0)
+        val code = entity.safeCode
+        val price = entity.safeTotalPrice
         val isHotel = entity.bookingType == "HOTEL" || !entity.hotelId.isNullOrBlank()
-        val defaultProductName = if (isHotel) "Otel Konaklama" else "Kapadokya Turu"
-        val defaultDate = if (isHotel) (entity.checkInDate ?: "2026-09-01") else (entity.departureDate ?: "2026-09-01")
+
+        val parsedProductName = when {
+            !entity.productName.isNullOrBlank() -> entity.productName
+            entity.notes?.contains("Ürün: ") == true -> entity.notes.substringAfter("Ürün: ").substringBefore(" •").substringBefore("\n").trim()
+            else -> if (isHotel) "Otel Konaklama" else "Tur Rezervasyonu"
+        }
+
+        val parsedOperatorName = when {
+            !entity.operatorName.isNullOrBlank() -> entity.operatorName
+            entity.notes?.contains("Operatör: ") == true -> entity.notes.substringAfter("Operatör: ").substringBefore(" •").substringBefore("\n").trim()
+            else -> "MGA Creative"
+        }
+
+        val parsedDepartureDate = when {
+            !entity.departureDate.isNullOrBlank() -> entity.departureDate
+            entity.notes?.contains("Tarih: ") == true -> entity.notes.substringAfter("Tarih: ").substringBefore(" •").substringBefore("\n").trim()
+            entity.notes?.contains("Kalkış: ") == true -> entity.notes.substringAfter("Kalkış: ").substringBefore(" •").substringBefore("\n").trim()
+            entity.notes?.contains("Giriş: ") == true -> entity.notes.substringAfter("Giriş: ").substringBefore(" •").substringBefore("\n").trim()
+            else -> if (isHotel) (entity.checkInDate ?: "2026-09-01") else "2026-09-01"
+        }
+
+        val parsedRoomTypeName = when {
+            !entity.roomTypeName.isNullOrBlank() -> entity.roomTypeName
+            entity.notes?.contains("Oda: ") == true -> entity.notes.substringAfter("Oda: ").substringBefore(" •").substringBefore("\n").trim()
+            else -> null
+        }
 
         return Booking(
-            id = entity.id,
+            id = entity.id.orEmpty(),
             bookingCode = code,
             departureId = entity.departureId,
             customerId = entity.customerId,
             agencyId = entity.agencyId,
-            customerName = entity.customerName.ifBlank { "Misafir" },
+            customerName = entity.safeCustomerName,
             customerEmail = entity.customerEmail,
             customerPhone = entity.customerPhone,
             totalPrice = price,
-            currency = entity.currency,
-            paxCount = entity.paxCount,
-            status = BookingStatus.fromDbValue(entity.status),
+            currency = entity.currency ?: "TRY",
+            paxCount = entity.paxCount ?: 1,
+            status = BookingStatus.fromDbValue(entity.safeStatus),
             notes = entity.notes,
             optionExpiration = entity.optionExpiration,
             confirmedAt = entity.confirmedAt,
             cancelledAt = entity.cancelledAt,
-            operatorName = entity.operatorName ?: "MGA Creative",
-            productName = entity.productName ?: defaultProductName,
-            departureDate = entity.departureDate ?: defaultDate,
+            operatorName = parsedOperatorName,
+            productName = parsedProductName,
+            departureDate = parsedDepartureDate,
             hotelId = entity.hotelId,
             checkInDate = entity.checkInDate,
             checkOutDate = entity.checkOutDate,
-            roomTypeName = entity.roomTypeName,
-            nights = entity.nights,
+            roomTypeName = parsedRoomTypeName,
+            nights = entity.nights ?: 1,
             bookingType = entity.bookingType ?: (if (isHotel) "HOTEL" else "TOUR"),
             operatorPnrCode = entity.operatorPnrCode,
-            operatorStatus = entity.operatorStatus,
-            paymentMethod = entity.paymentMethod,
-            tenantId = entity.tenantId,
-            createdAt = entity.createdAt,
-            updatedAt = entity.updatedAt
+            operatorStatus = entity.operatorStatus ?: "BEKLİYOR",
+            paymentMethod = entity.paymentMethod ?: "CREDIT_CARD",
+            tenantId = entity.safeTenantId,
+            createdAt = entity.createdAt.orEmpty(),
+            updatedAt = entity.updatedAt.orEmpty()
         )
     }
 
@@ -417,13 +489,13 @@ class BookingRepositoryImpl(
 
             // 1. Önbellekteki kaydı bul ve güncelle
             val cachedIdx = localCache.indexOfFirst { 
-                it.id == targetId || it.bookingCode == targetId || it.operatorPnrCode == targetId 
+                it.id == targetId || it.bookingCode == targetId || it.bookingNumber == targetId || it.operatorPnrCode == targetId 
             }
             var foundRealId = if (targetId.isValidUuid()) targetId else ""
 
             if (cachedIdx != -1) {
                 val old = localCache[cachedIdx]
-                if (old.id.isValidUuid()) foundRealId = old.id
+                if (old.id.isValidUuid()) foundRealId = old.id.orEmpty()
                 localCache[cachedIdx] = old.copy(
                     operatorPnrCode = cleanPnr,
                     operatorStatus = operatorStatus,
@@ -449,15 +521,20 @@ class BookingRepositoryImpl(
                             "operator_status" to operatorStatus,
                             "status" to BookingStatus.ONAYLANDI.dbValue
                         )) {
-                            filter { eq("booking_code", targetId) }
+                            filter { 
+                                or {
+                                    eq("booking_code", targetId)
+                                    eq("booking_number", targetId)
+                                }
+                            }
                         }
                 }
 
                 val currentBooking = localCache.find { it.id == targetId || it.bookingCode == targetId || it.id == foundRealId }
-                val netCost = currentBooking?.totalPrice ?: 0.0
+                val netCost = currentBooking?.safeTotalPrice ?: 0.0
                 val operatorName = currentBooking?.operatorName ?: "Tur Operatörü"
                 val currency = currentBooking?.currency ?: "TRY"
-                val tenantId = currentBooking?.tenantId?.ifBlank { "00000000-0000-0000-0000-000000000001" } ?: "00000000-0000-0000-0000-000000000001"
+                val tenantId = currentBooking?.safeTenantId ?: "00000000-0000-0000-0000-000000000001"
 
                 val transactionEntity = mapOf(
                     "booking_id" to (if (foundRealId.isValidUuid()) foundRealId else generateUuid()),

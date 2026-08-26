@@ -1782,7 +1782,11 @@ fun B2BTourSearchDashboardScreen(
                                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                                         TourOSButton(
                                             text = AppLanguageManager.translate("Taslak Kaydet"),
-                                            onClick = { showSuccessModal = true },
+                                            onClick = {
+                                                viewModel.confirmBookingAndSaveToSupabase { pnrCode ->
+                                                    showSuccessModal = true
+                                                }
+                                            },
                                             variant = TourOSButtonVariant.SECONDARY
                                         )
                                         TourOSButton(

@@ -78,12 +78,12 @@ class DashboardRepositoryImpl(
                         .decodeList<DepartureEntity>()
                 }.getOrDefault(emptyList())
 
-                val activeBookings = bookings.filter { it.status != "İptal" && it.status != "Cancelled" }
-                val cancelBookings = bookings.filter { it.status == "İptal" || it.status == "Cancelled" }
-                val pendingBookings = bookings.filter { it.status == "Bekliyor" || it.status == "Opsiyon" || it.status == "Pending" }
+                val activeBookings = bookings.filter { it.safeStatus != "İptal" && it.safeStatus != "Cancelled" }
+                val cancelBookings = bookings.filter { it.safeStatus == "İptal" || it.safeStatus == "Cancelled" }
+                val pendingBookings = bookings.filter { it.safeStatus == "Bekliyor" || it.safeStatus == "Opsiyon" || it.safeStatus == "Pending" }
 
-                val monthlyTotal = activeBookings.sumOf { it.totalPrice }
-                val pendingTotal = pendingBookings.sumOf { it.totalPrice }
+                val monthlyTotal = activeBookings.sumOf { it.safeTotalPrice }
+                val pendingTotal = pendingBookings.sumOf { it.safeTotalPrice }
 
                 val totalCap = departures.sumOf { it.capacity ?: 0 }
                 val totalBooked = departures.sumOf { it.bookedCount }
@@ -275,23 +275,23 @@ class DashboardRepositoryImpl(
             }.getOrDefault(emptyList())
 
             if (bookings.isNotEmpty()) {
-                val totalRevenue = bookings.sumOf { it.totalPrice }.coerceAtLeast(1.0)
+                val totalRevenue = bookings.sumOf { it.safeTotalPrice }.coerceAtLeast(1.0)
 
                 val countryGroup = tours.groupBy { it.country.ifBlank { "Türkiye" } }
                 val countryItems = countryGroup.map { (country, tourList) ->
-                    val rev = tourList.sumOf { t -> bookings.filter { b -> b.productName == t.title }.sumOf { it.totalPrice } }
+                    val rev = tourList.sumOf { t -> bookings.filter { b -> b.productName == t.title }.sumOf { it.safeTotalPrice } }
                     val pct = (rev * 100 / totalRevenue).toFloat()
                     CountrySalesItem(countryName = country, revenue = rev, percentage = pct)
                 }.sortedByDescending { it.revenue }
 
                 val tourItems = tours.map { tour ->
-                    val rev = bookings.filter { it.productName == tour.title }.sumOf { it.totalPrice }
+                    val rev = bookings.filter { it.productName == tour.title }.sumOf { it.safeTotalPrice }
                     TourRevenueItem(tourTitle = tour.title, revenue = rev)
                 }.sortedByDescending { it.revenue }.take(4)
 
                 val channelGroup = bookings.groupBy { it.operatorName ?: "B2C Web Mobil" }
                 val channelItems = channelGroup.map { (channel, bList) ->
-                    val amount = bList.sumOf { it.totalPrice }
+                    val amount = bList.sumOf { it.safeTotalPrice }
                     val pct = (amount * 100 / totalRevenue).toFloat()
                     ChannelSalesItem(channelName = channel, amount = amount, percentage = pct)
                 }

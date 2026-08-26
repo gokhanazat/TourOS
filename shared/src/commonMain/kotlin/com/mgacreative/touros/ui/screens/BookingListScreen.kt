@@ -156,11 +156,16 @@ fun BookingListScreen(
                         BookingStatus.entries.forEach { status ->
                             val isSelected = selectedStatus == status
                             val (badgeBg, badgeText) = getStatusColors(status)
+                            val chipTitle = if (status == BookingStatus.TAMAMLANDI) {
+                                "📦 " + AppLanguageManager.translate("Arşiv (Tamamlandı)")
+                            } else {
+                                AppLanguageManager.translate(status.displayName)
+                            }
 
                             FilterChip(
                                 selected = isSelected,
                                 onClick = { viewModel.onStatusFilterSelected(status) },
-                                label = { Text(AppLanguageManager.translate(status.displayName), style = TourOSTypography.Caption) },
+                                label = { Text(chipTitle, style = TourOSTypography.Caption) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = badgeBg,
                                     selectedLabelColor = badgeText
@@ -365,6 +370,35 @@ fun BookingListScreen(
                                                 )
                                             }
                                         }
+
+                                        // 4. Arşivle / Aktifleştir Mini Butonu
+                                        val isArchived = booking.status == BookingStatus.TAMAMLANDI
+                                        Surface(
+                                            onClick = {
+                                                val targetId = booking.id.ifBlank { booking.bookingCode }
+                                                val nextStatus = if (isArchived) BookingStatus.ONAYLANDI else BookingStatus.TAMAMLANDI
+                                                viewModel.updateBookingStatus(targetId, booking.status, nextStatus)
+                                            },
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = if (isArchived) Color(0xFFF0FDF4) else Color(0xFFFFFBEB),
+                                            border = BorderStroke(0.5.dp, if (isArchived) Color(0xFF22C55E) else Color(0xFFF59E0B))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                Text(text = if (isArchived) "↩️" else "📦", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                                Text(
+                                                    text = AppLanguageManager.translate(if (isArchived) "Aktif Et" else "Arşivle"),
+                                                    style = TourOSTypography.Caption.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isArchived) Color(0xFF15803D) else Color(0xFFB45309),
+                                                        fontSize = 10.sp
+                                                    )
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             )
@@ -514,6 +548,33 @@ fun BookingListScreen(
                                                             style = TourOSTypography.Caption.copy(
                                                                 fontWeight = FontWeight.Bold,
                                                                 color = Color(0xFF1E293B),
+                                                                fontSize = 10.sp
+                                                            )
+                                                        )
+                                                    }
+                                                }
+
+                                                val isArchived = booking.status == BookingStatus.TAMAMLANDI
+                                                Surface(
+                                                    onClick = {
+                                                        val nextStatus = if (isArchived) BookingStatus.ONAYLANDI else BookingStatus.TAMAMLANDI
+                                                        viewModel.updateBookingStatus(targetId, booking.status, nextStatus)
+                                                    },
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = if (isArchived) Color(0xFFF0FDF4) else Color(0xFFFFFBEB),
+                                                    border = BorderStroke(0.5.dp, if (isArchived) Color(0xFF22C55E) else Color(0xFFF59E0B))
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                    ) {
+                                                        Text(text = if (isArchived) "↩️" else "📦", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                                        Text(
+                                                            text = AppLanguageManager.translate(if (isArchived) "Aktif Et" else "Arşivle"),
+                                                            style = TourOSTypography.Caption.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isArchived) Color(0xFF15803D) else Color(0xFFB45309),
                                                                 fontSize = 10.sp
                                                             )
                                                         )

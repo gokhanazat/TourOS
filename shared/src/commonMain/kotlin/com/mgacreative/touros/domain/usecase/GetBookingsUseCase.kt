@@ -17,23 +17,31 @@ class GetBookingsUseCase(
     ): Result<List<Booking>> {
         return bookingRepository.getBookings(tenantId).map { list ->
             list.filter { booking ->
-                // Özel olarak "İptal" filtresi seçilmedikçe iptal edilen rezervasyonları listede gösterme
+                // Özel olarak "İptal" veya "Tamamlandı (Arşiv)" filtresi seçilmedikçe ana listede gösterme
                 val matchesStatus = if (statusFilter != null) {
                     booking.status == statusFilter
                 } else {
-                    booking.status != BookingStatus.IPTAL
+                    booking.status != BookingStatus.IPTAL && booking.status != BookingStatus.TAMAMLANDI
                 }
 
-                val matchesTour = tourIdFilter.isNullOrBlank() || booking.departureId == tourIdFilter
+                val matchesTour = tourIdFilter.isNullOrBlank() || 
+                        booking.departureId == tourIdFilter || 
+                        booking.hotelId == tourIdFilter
+
                 val matchesSearch = searchQuery.isBlank() ||
                         booking.bookingCode.contains(searchQuery, ignoreCase = true) ||
                         (booking.operatorPnrCode?.contains(searchQuery, ignoreCase = true) == true) ||
                         booking.customerName.contains(searchQuery, ignoreCase = true) ||
                         (booking.customerPhone?.contains(searchQuery, ignoreCase = true) == true) ||
-                        (booking.customerEmail?.contains(searchQuery, ignoreCase = true) == true)
+                        (booking.customerEmail?.contains(searchQuery, ignoreCase = true) == true) ||
+                        booking.productName.contains(searchQuery, ignoreCase = true)
 
-                val matchesStartDate = startDate.isNullOrBlank() || booking.createdAt.isBlank() || booking.createdAt >= startDate
-                val matchesEndDate = endDate.isNullOrBlank() || booking.createdAt.isBlank() || booking.createdAt <= endDate
+                val bookingDate = booking.createdAt.take(10).trim()
+                val cleanStart = startDate?.take(10)?.trim()
+                val cleanEnd = endDate?.take(10)?.trim()
+
+                val matchesStartDate = cleanStart.isNullOrBlank() || bookingDate.isBlank() || bookingDate >= cleanStart
+                val matchesEndDate = cleanEnd.isNullOrBlank() || bookingDate.isBlank() || bookingDate <= cleanEnd
 
                 matchesStatus && matchesTour && matchesSearch && matchesStartDate && matchesEndDate
             }

@@ -10,19 +10,27 @@ object BookingStateMachine {
         BookingStatus.BEKLIYOR to setOf(
             BookingStatus.OPSIYON,
             BookingStatus.ONAYLANDI,
-            BookingStatus.IPTAL
+            BookingStatus.IPTAL,
+            BookingStatus.TAMAMLANDI
         ),
         BookingStatus.OPSIYON to setOf(
             BookingStatus.ONAYLANDI,
             BookingStatus.IPTAL,
-            BookingStatus.BEKLIYOR
+            BookingStatus.BEKLIYOR,
+            BookingStatus.TAMAMLANDI
         ),
         BookingStatus.ONAYLANDI to setOf(
             BookingStatus.TAMAMLANDI,
-            BookingStatus.IPTAL
+            BookingStatus.IPTAL,
+            BookingStatus.BEKLIYOR
         ),
-        BookingStatus.IPTAL to emptySet(),
-        BookingStatus.TAMAMLANDI to emptySet()
+        BookingStatus.IPTAL to setOf(
+            BookingStatus.BEKLIYOR
+        ),
+        BookingStatus.TAMAMLANDI to setOf(
+            BookingStatus.ONAYLANDI,
+            BookingStatus.BEKLIYOR
+        )
     )
 
     /**

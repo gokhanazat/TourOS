@@ -35,6 +35,8 @@ fun B2BPassengerCheckoutWizardScreen(
     val selectedProduct by viewModel.selectedProduct.collectAsState()
 
     var showSuccessModal by remember { mutableStateOf(false) }
+    var createdPnrCode by remember { mutableStateOf("") }
+    val isSaving by viewModel.isSavingBooking.collectAsState()
 
     Scaffold(
         containerColor = TourOSColors.Surface,
@@ -101,18 +103,59 @@ fun B2BPassengerCheckoutWizardScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                         TourOSButton(
                             text = AppLanguageManager.translate("Taslak Olarak Kaydet"),
-                            onClick = { showSuccessModal = true },
+                            onClick = {
+                                viewModel.confirmBookingAndSaveToSupabase { pnr ->
+                                    createdPnrCode = pnr
+                                    showSuccessModal = true
+                                }
+                            },
                             variant = TourOSButtonVariant.SECONDARY
                         )
                         TourOSButton(
-                            text = "🚀 ${AppLanguageManager.translate("Rezervasyonu Tamamla & Onayla")}",
-                            onClick = { showSuccessModal = true },
+                            text = if (isSaving) "⏳ ${AppLanguageManager.translate("Kaydediliyor...")}" else "🚀 ${AppLanguageManager.translate("Rezervasyonu Tamamla & Onayla")}",
+                            onClick = {
+                                if (!isSaving) {
+                                    viewModel.confirmBookingAndSaveToSupabase { pnr ->
+                                        createdPnrCode = pnr
+                                        showSuccessModal = true
+                                    }
+                                }
+                            },
                             variant = TourOSButtonVariant.PRIMARY
                         )
                     }
                 }
             }
         }
+    }
+
+    val bookingErrorMessage by viewModel.bookingErrorMessage.collectAsState()
+
+    // REZERVASYON HATA MODALI
+    if (bookingErrorMessage != null) {
+        AlertDialog(
+            onDismissRequest = { viewModel.bookingErrorMessage.value = null },
+            title = {
+                Text(
+                    text = "❌ Rezervasyon Kaydedilemedi",
+                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Error),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = bookingErrorMessage.orEmpty(),
+                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                )
+            },
+            confirmButton = {
+                TourOSButton(
+                    text = "Kapat",
+                    onClick = { viewModel.bookingErrorMessage.value = null },
+                    variant = TourOSButtonVariant.PRIMARY
+                )
+            }
+        )
     }
 
     // REZERVASYON BAŞARILI MODALI
@@ -129,7 +172,7 @@ fun B2BPassengerCheckoutWizardScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
                     Text(
-                        text = "${AppLanguageManager.translate("PNR / Rezervasyon Kodu")}: B2B-PNR-${(100000..999999).random()}",
+                        text = "${AppLanguageManager.translate("PNR / Rezervasyon Kodu")}: ${createdPnrCode.ifBlank { "B2B-PNR-100001" }}",
                         style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                         fontWeight = FontWeight.Bold
                     )

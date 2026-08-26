@@ -425,9 +425,13 @@ class CreateBookingWizardViewModel(
                 .onFailure { err ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = err.message ?: "Rezervasyon kaydedilemedi"
+                        error = "Supabase Kayıt Hatası: ${err.message ?: err.toString()}"
                     )
                 }
         }
+    }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
     }
 }
