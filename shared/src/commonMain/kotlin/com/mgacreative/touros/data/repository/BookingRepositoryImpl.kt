@@ -30,7 +30,7 @@ class BookingRepositoryImpl(
                 supabaseClient.postgrest.from("bookings")
                     .select {
                         filter {
-                            if (tenantId.isValidUuid() && tenantId != "ALL") {
+                            if (tenantId.isValidUuid() && tenantId != "ALL" && tenantId != "00000000-0000-0000-0000-000000000001") {
                                 eq("tenant_id", tenantId)
                             }
                         }
@@ -81,7 +81,7 @@ class BookingRepositoryImpl(
                 list.firstOrNull() ?: throw NoSuchElementException("Rezervasyon bulunamadı: $cleanId")
             }
 
-            val bookingRealId = entity.id
+            val bookingRealId = entity.id ?: cleanId
 
             val items = runCatching {
                 supabaseClient.postgrest.from("booking_items")
@@ -89,13 +89,13 @@ class BookingRepositoryImpl(
                     .decodeList<BookingItemEntity>()
             }.getOrDefault(emptyList()).map {
                 BookingItem(
-                    id = it.id,
-                    bookingId = it.bookingId,
-                    description = it.description,
-                    quantity = it.quantity,
-                    unitPrice = it.unitPrice,
-                    totalPrice = it.totalPrice,
-                    itemType = it.itemType,
+                    id = it.id ?: generateUuid(),
+                    bookingId = it.bookingId ?: bookingRealId,
+                    description = it.description ?: "Hizmet",
+                    quantity = it.quantity ?: 1,
+                    unitPrice = it.unitPrice ?: 0.0,
+                    totalPrice = it.totalPrice ?: 0.0,
+                    itemType = it.itemType ?: "TOUR",
                     notes = it.notes
                 )
             }
@@ -106,16 +106,16 @@ class BookingRepositoryImpl(
                     .decodeList<PassengerEntity>()
             }.getOrDefault(emptyList()).map {
                 Passenger(
-                    id = it.id,
-                    bookingId = it.bookingId,
-                    fullName = it.fullName,
+                    id = it.id ?: generateUuid(),
+                    bookingId = it.bookingId ?: bookingRealId,
+                    fullName = it.fullName ?: "Yolcu",
                     tcNo = it.tcNo,
                     passportNo = it.passportNo,
                     birthDate = it.birthDate,
                     gender = it.gender,
                     phone = it.phone,
                     email = it.email,
-                    isLead = it.isLead,
+                    isLead = it.isLead ?: false,
                     notes = it.notes
                 )
             }
@@ -138,6 +138,7 @@ class BookingRepositoryImpl(
             val entity = BookingEntity(
                 id = validId,
                 bookingCode = code,
+                bookingNumber = code,
                 departureId = validDepartureId,
                 customerId = booking.customerId?.takeIf { it.isValidUuid() },
                 agencyId = booking.agencyId?.takeIf { it.isValidUuid() },
@@ -145,6 +146,7 @@ class BookingRepositoryImpl(
                 customerEmail = booking.customerEmail,
                 customerPhone = booking.customerPhone,
                 totalPrice = booking.totalPrice,
+                totalAmount = booking.totalPrice,
                 currency = booking.currency,
                 paxCount = booking.paxCount,
                 status = booking.status.dbValue,
@@ -175,6 +177,7 @@ class BookingRepositoryImpl(
                 val bookingPayload = buildJsonObject {
                     put("id", validId)
                     put("booking_code", code)
+                    put("booking_number", code)
                     if (validDepartureId != null) put("departure_id", validDepartureId)
                     if (booking.customerId?.isValidUuid() == true) put("customer_id", booking.customerId)
                     if (booking.agencyId?.isValidUuid() == true) put("agency_id", booking.agencyId)
@@ -182,6 +185,7 @@ class BookingRepositoryImpl(
                     if (!booking.customerEmail.isNullOrBlank()) put("customer_email", booking.customerEmail)
                     if (!booking.customerPhone.isNullOrBlank()) put("customer_phone", booking.customerPhone)
                     put("total_price", booking.totalPrice)
+                    put("total_amount", booking.totalPrice)
                     put("currency", booking.currency)
                     put("pax_count", booking.paxCount)
                     put("status", booking.status.dbValue)
@@ -284,9 +288,9 @@ class BookingRepositoryImpl(
                 if (currentBooking != null) {
                     val logEntity = com.mgacreative.touros.data.database.entity.BookingStatusLogEntity(
                         bookingId = bookingId,
-                        fromStatus = currentBooking.status,
+                        fromStatus = currentBooking.status ?: "Bekliyor",
                         toStatus = status,
-                        tenantId = currentBooking.tenantId,
+                        tenantId = currentBooking.tenantId ?: "00000000-0000-0000-0000-000000000001",
                         notes = "Durum $status olarak güncellendi"
                     )
                     supabaseClient.postgrest.from("booking_status_logs").insert(logEntity)
@@ -303,10 +307,10 @@ class BookingRepositoryImpl(
             // 1. Karalisteye ekle ve önbellekten çıkar
             deletedIdsBlacklist.add(target)
             localCache.removeAll { entity ->
-                val isMatch = entity.id == target || entity.bookingCode == target || (entity.id.isNotBlank() && target == entity.id) || (entity.bookingCode.isNotBlank() && target == entity.bookingCode)
+                val isMatch = entity.id == target || entity.bookingCode == target || (entity.id != null && target == entity.id) || (entity.bookingCode != null && target == entity.bookingCode)
                 if (isMatch) {
-                    if (entity.id.isNotBlank()) deletedIdsBlacklist.add(entity.id)
-                    if (entity.bookingCode.isNotBlank()) deletedIdsBlacklist.add(entity.bookingCode)
+                    if (!entity.id.isNullOrBlank()) deletedIdsBlacklist.add(entity.id)
+                    if (!entity.bookingCode.isNullOrBlank()) deletedIdsBlacklist.add(entity.bookingCode)
                 }
                 isMatch
             }
@@ -321,12 +325,15 @@ class BookingRepositoryImpl(
                 } else {
                     val matching = supabaseClient.postgrest.from("bookings").select { filter { eq("booking_code", target) } }.decodeList<BookingEntity>()
                     matching.forEach { b ->
-                        deletedIdsBlacklist.add(b.id)
-                        deletedIdsBlacklist.add(b.bookingCode)
-                        supabaseClient.postgrest.from("booking_items").delete { filter { eq("booking_id", b.id) } }
-                        supabaseClient.postgrest.from("passengers").delete { filter { eq("booking_id", b.id) } }
-                        supabaseClient.postgrest.from("booking_status_logs").delete { filter { eq("booking_id", b.id) } }
-                        supabaseClient.postgrest.from("bookings").delete { filter { eq("id", b.id) } }
+                        if (!b.id.isNullOrBlank()) deletedIdsBlacklist.add(b.id)
+                        if (!b.bookingCode.isNullOrBlank()) deletedIdsBlacklist.add(b.bookingCode)
+                        val bId = b.id
+                        if (!bId.isNullOrBlank()) {
+                            supabaseClient.postgrest.from("booking_items").delete { filter { eq("booking_id", bId) } }
+                            supabaseClient.postgrest.from("passengers").delete { filter { eq("booking_id", bId) } }
+                            supabaseClient.postgrest.from("booking_status_logs").delete { filter { eq("booking_id", bId) } }
+                            supabaseClient.postgrest.from("bookings").delete { filter { eq("id", bId) } }
+                        }
                     }
                     supabaseClient.postgrest.from("bookings").delete { filter { eq("booking_code", target) } }
                 }
@@ -360,20 +367,24 @@ class BookingRepositoryImpl(
     }
 
     private fun mapEntityToDomain(entity: BookingEntity): Booking {
+        val code = entity.bookingCode.ifBlank {
+            entity.bookingNumber?.takeIf { it.isNotBlank() } ?: "REZ-${entity.id.take(8)}"
+        }
+        val price = if (entity.totalPrice > 0.0) entity.totalPrice else (entity.totalAmount ?: 0.0)
         val isHotel = entity.bookingType == "HOTEL" || !entity.hotelId.isNullOrBlank()
         val defaultProductName = if (isHotel) "Otel Konaklama" else "Kapadokya Turu"
-        val defaultDate = if (isHotel) (entity.checkInDate ?: "2026-09-01") else "2026-09-01"
+        val defaultDate = if (isHotel) (entity.checkInDate ?: "2026-09-01") else (entity.departureDate ?: "2026-09-01")
 
         return Booking(
             id = entity.id,
-            bookingCode = entity.bookingCode,
+            bookingCode = code,
             departureId = entity.departureId,
             customerId = entity.customerId,
             agencyId = entity.agencyId,
-            customerName = entity.customerName,
+            customerName = entity.customerName.ifBlank { "Misafir" },
             customerEmail = entity.customerEmail,
             customerPhone = entity.customerPhone,
-            totalPrice = entity.totalPrice,
+            totalPrice = price,
             currency = entity.currency,
             paxCount = entity.paxCount,
             status = BookingStatus.fromDbValue(entity.status),

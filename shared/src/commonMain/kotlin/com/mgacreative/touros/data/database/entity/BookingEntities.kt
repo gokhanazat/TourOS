@@ -10,6 +10,7 @@ import kotlinx.serialization.Serializable
 data class BookingEntity(
     val id: String = "",
     @SerialName("booking_code") val bookingCode: String = "",
+    @SerialName("booking_number") val bookingNumber: String? = null,
     @SerialName("departure_id") val departureId: String? = null,
     @SerialName("customer_id") val customerId: String? = null,
     @SerialName("agency_id") val agencyId: String? = null,
@@ -17,6 +18,7 @@ data class BookingEntity(
     @SerialName("customer_email") val customerEmail: String? = null,
     @SerialName("customer_phone") val customerPhone: String? = null,
     @SerialName("total_price") val totalPrice: Double = 0.0,
+    @SerialName("total_amount") val totalAmount: Double? = null,
     val currency: String = "TRY",
     @SerialName("pax_count") val paxCount: Int = 1,
     val status: String = "Bekliyor",
