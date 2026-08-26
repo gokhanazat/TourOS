@@ -295,20 +295,20 @@ fun BookingListScreen(
                                                 previewDocType = "contract"
                                             },
                                             shape = RoundedCornerShape(4.dp),
-                                            color = TourOSColors.PrimaryContainer,
-                                            border = BorderStroke(0.5.dp, TourOSColors.Primary.copy(alpha = 0.5f))
+                                            color = Color(0xFFEFF6FF),
+                                            border = BorderStroke(0.5.dp, Color(0xFF3B82F6))
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                                             ) {
                                                 Text(text = "📄", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
                                                 Text(
                                                     text = AppLanguageManager.translate("Sözleşme"),
                                                     style = TourOSTypography.Caption.copy(
                                                         fontWeight = FontWeight.Bold,
-                                                        color = TourOSColors.Primary,
+                                                        color = Color(0xFF1D4ED8),
                                                         fontSize = 10.sp
                                                     )
                                                 )
@@ -323,12 +323,12 @@ fun BookingListScreen(
                                             },
                                             shape = RoundedCornerShape(4.dp),
                                             color = Color(0xFFF3F4F6),
-                                            border = BorderStroke(0.5.dp, Color(0xFF9CA3AF))
+                                            border = BorderStroke(0.5.dp, Color(0xFF6B7280))
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                                             ) {
                                                 Text(text = "🏢", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
                                                 Text(
@@ -342,23 +342,24 @@ fun BookingListScreen(
                                             }
                                         }
 
-                                        // 3. Detay Mini Butonu (Diğer butonlarla birebir aynı görsel dilde)
+                                        // 3. Detay Mini Butonu (Birebir aynı buton görünümü)
                                         Surface(
                                             onClick = { onNavigateToBookingDetail(booking.id.ifBlank { booking.bookingCode }) },
                                             shape = RoundedCornerShape(4.dp),
-                                            color = Color(0xFFFFFFFF),
-                                            border = BorderStroke(0.5.dp, Color(0xFFD1D5DB))
+                                            color = Color(0xFFF8FAFC),
+                                            border = BorderStroke(0.5.dp, Color(0xFF64748B))
                                         ) {
                                             Row(
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                                             ) {
+                                                Text(text = "🔍", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
                                                 Text(
-                                                    text = AppLanguageManager.translate("Detay") + " ›",
+                                                    text = AppLanguageManager.translate("Detay"),
                                                     style = TourOSTypography.Caption.copy(
                                                         fontWeight = FontWeight.Bold,
-                                                        color = TourOSColors.TextPrimary,
+                                                        color = Color(0xFF1E293B),
                                                         fontSize = 10.sp
                                                     )
                                                 )
@@ -452,14 +453,24 @@ fun BookingListScreen(
                                                         previewDocType = "contract"
                                                     },
                                                     shape = RoundedCornerShape(4.dp),
-                                                    color = TourOSColors.PrimaryContainer,
-                                                    border = BorderStroke(0.5.dp, TourOSColors.Primary)
+                                                    color = Color(0xFFEFF6FF),
+                                                    border = BorderStroke(0.5.dp, Color(0xFF3B82F6))
                                                 ) {
-                                                    Text(
-                                                        text = "📄 Sözleşme",
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                                        style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
-                                                    )
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                    ) {
+                                                        Text(text = "📄", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                                        Text(
+                                                            text = AppLanguageManager.translate("Sözleşme"),
+                                                            style = TourOSTypography.Caption.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF1D4ED8),
+                                                                fontSize = 10.sp
+                                                            )
+                                                        )
+                                                    }
                                                 }
                                                 Surface(
                                                     onClick = {
@@ -468,25 +479,45 @@ fun BookingListScreen(
                                                     },
                                                     shape = RoundedCornerShape(4.dp),
                                                     color = Color(0xFFF3F4F6),
-                                                    border = BorderStroke(0.5.dp, Color(0xFF9CA3AF))
+                                                    border = BorderStroke(0.5.dp, Color(0xFF6B7280))
                                                 ) {
-                                                    Text(
-                                                        text = "🏢 TO",
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                                        style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = Color(0xFF374151))
-                                                    )
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                    ) {
+                                                        Text(text = "🏢", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                                        Text(
+                                                            text = AppLanguageManager.translate("TO Talep"),
+                                                            style = TourOSTypography.Caption.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF374151),
+                                                                fontSize = 10.sp
+                                                            )
+                                                        )
+                                                    }
                                                 }
                                                 Surface(
                                                     onClick = { onNavigateToBookingDetail(targetId) },
                                                     shape = RoundedCornerShape(4.dp),
-                                                    color = Color(0xFFFFFFFF),
-                                                    border = BorderStroke(0.5.dp, Color(0xFFD1D5DB))
+                                                    color = Color(0xFFF8FAFC),
+                                                    border = BorderStroke(0.5.dp, Color(0xFF64748B))
                                                 ) {
-                                                    Text(
-                                                        text = AppLanguageManager.translate("Detay") + " ›",
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                                        style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
-                                                    )
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.5.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                                    ) {
+                                                        Text(text = "🔍", style = TourOSTypography.Caption.copy(fontSize = 11.sp))
+                                                        Text(
+                                                            text = AppLanguageManager.translate("Detay"),
+                                                            style = TourOSTypography.Caption.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFF1E293B),
+                                                                fontSize = 10.sp
+                                                            )
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
