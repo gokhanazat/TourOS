@@ -251,7 +251,7 @@ object AppLanguageManager {
             "Seçilen Dosya:" to "Seçilen Dosya:",
             "Ana Kurumsal Rengi" to "Ana Kurumsal Rengi",
             "Hex Renk Kodu (örn. #1F4E5F)" to "Hex Renk Kodu (örn. #1F4E5F)",
-            "Acente Web Sayfası Ayarları (Sletat.ru Mimarisi)" to "Acente Web Sayfası Ayarları (Sletat.ru Mimarisi)",
+            "Acente Web Sayfası Ayarları" to "Acente Web Sayfası Ayarları",
             "Acente web sitenizin logosunu, header resmini, başlığını, sloganını ve iletişim detaylarını buradan güncelleyin." to "Acente web sitenizin logosunu, header resmini, başlığını, sloganını ve iletişim detaylarını buradan güncelleyin.",
             "1. Özel Logo Görseli (Sol Üst Header Logosu)" to "1. Özel Logo Görseli (Sol Üst Header Logosu)",
             "Logo Dosya Yolu veya Resim URL (Max 1MB)" to "Logo Dosya Yolu veya Resim URL (Max 1MB)",

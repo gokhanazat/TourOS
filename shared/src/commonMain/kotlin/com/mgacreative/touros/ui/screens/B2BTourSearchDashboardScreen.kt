@@ -1812,7 +1812,7 @@ fun B2BTourSearchDashboardScreen(
             topBar = {
                 TourOSTopBar(
                     title = AppLanguageManager.translate("Gelişmiş Tur & Otel Arama ve Rezervasyon Paneli"),
-                    subtitle = AppLanguageManager.translate("Sletat / Coral B2B Standartlarında Canlı Arama, Uçuş, Ekstra Hizmetler ve Yolcu Kaydı"),
+                    subtitle = AppLanguageManager.translate("B2B Standartlarında Canlı Arama, Uçuş, Ekstra Hizmetler ve Yolcu Kaydı"),
                     onNavigateBack = onNavigateBack
                 )
             }

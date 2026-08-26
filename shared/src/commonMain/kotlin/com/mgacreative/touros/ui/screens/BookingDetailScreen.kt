@@ -48,12 +48,32 @@ fun BookingDetailScreen(
                         Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("‹ Geri"), fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    Text(
-                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon Detayı"),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
+                    val success = uiState as? BookingDetailUiState.Success
+                    if (success != null) {
+                        val templateEngine = remember { com.mgacreative.touros.domain.engine.VoucherContractTemplateEngine() }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Button(
+                                onClick = {
+                                    val html = templateEngine.buildRussianContractDocument(success.booking, success.booking.passengers)
+                                    com.mgacreative.touros.utils.DocumentPrinter.printOrSaveHtml(html, "Contract_${success.booking.bookingCode}")
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text("📄 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sözleşme (Договор)"))
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    val html = templateEngine.buildRussianOperatorRequestDocument(success.booking, success.booking.passengers)
+                                    com.mgacreative.touros.utils.DocumentPrinter.printOrSaveHtml(html, "Operator_${success.booking.bookingCode}")
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text("🏢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TO Talep Formu"))
+                            }
+                        }
+                    }
                 }
             }
         }
