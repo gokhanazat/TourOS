@@ -12,6 +12,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import com.mgacreative.touros.data.util.isValidUuid
 import com.mgacreative.touros.data.util.generateUuid
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 class BookingRepositoryImpl(
@@ -35,6 +36,8 @@ class BookingRepositoryImpl(
                         }
                     }
                     .decodeList<BookingEntity>()
+            }.onFailure { err ->
+                println("⚠️ Supabase getBookings hatası: ${err.message}")
             }.getOrDefault(emptyList())
 
             val remoteDomain = remoteEntities.map { mapEntityToDomain(it) }
@@ -167,49 +170,87 @@ class BookingRepositoryImpl(
             localCache.removeAll { it.id == validId || it.bookingCode == code }
             localCache.add(0, entity)
 
-            // 2. Supabase bookings Tablosuna Ekle (Fail-Safe)
+            // 2. Supabase bookings Tablosuna Temiz Payload İle Ekle (Kalıcı Saklama)
             runCatching {
-                supabaseClient.postgrest.from("bookings").insert(entity)
+                val bookingPayload = buildJsonObject {
+                    put("id", validId)
+                    put("booking_code", code)
+                    if (validDepartureId != null) put("departure_id", validDepartureId)
+                    if (booking.customerId?.isValidUuid() == true) put("customer_id", booking.customerId)
+                    if (booking.agencyId?.isValidUuid() == true) put("agency_id", booking.agencyId)
+                    put("customer_name", booking.customerName)
+                    if (!booking.customerEmail.isNullOrBlank()) put("customer_email", booking.customerEmail)
+                    if (!booking.customerPhone.isNullOrBlank()) put("customer_phone", booking.customerPhone)
+                    put("total_price", booking.totalPrice)
+                    put("currency", booking.currency)
+                    put("pax_count", booking.paxCount)
+                    put("status", booking.status.dbValue)
+                    if (!booking.notes.isNullOrBlank()) put("notes", booking.notes)
+                    if (!booking.optionExpiration.isNullOrBlank()) put("option_expiration", booking.optionExpiration)
+                    put("operator_name", booking.operatorName ?: "MGA Creative")
+                    put("product_name", booking.productName ?: "Tur Rezervasyonu")
+                    put("departure_date", booking.departureDate ?: "2026-09-01")
+                    if (booking.hotelId?.isValidUuid() == true) put("hotel_id", booking.hotelId)
+                    if (!booking.checkInDate.isNullOrBlank()) put("check_in_date", booking.checkInDate)
+                    if (!booking.checkOutDate.isNullOrBlank()) put("check_out_date", booking.checkOutDate)
+                    if (!booking.roomTypeName.isNullOrBlank()) put("room_type_name", booking.roomTypeName)
+                    put("nights", booking.nights)
+                    put("booking_type", booking.bookingType ?: "TOUR")
+                    put("payment_method", booking.paymentMethod ?: "CREDIT_CARD")
+                    if (!booking.operatorPnrCode.isNullOrBlank()) put("operator_pnr_code", booking.operatorPnrCode)
+                    put("operator_status", booking.operatorStatus ?: "BEKLİYOR")
+                    put("tenant_id", validTenantId)
+                }
+                supabaseClient.postgrest.from("bookings").insert(bookingPayload)
+                println("✅ Supabase bookings kaydı başarıyla oluşturuldu: ID=$validId, Kod=$code")
+            }.onFailure { err ->
+                println("❌ Supabase bookings insert hatası: ${err.message}")
             }
 
             // 3. Supabase booking_items Tablosuna Ekle
             if (booking.items.isNotEmpty()) {
                 runCatching {
-                    val itemEntities = booking.items.map { itm ->
-                        BookingItemEntity(
-                            id = if (itm.id.isValidUuid()) itm.id else generateUuid(),
-                            bookingId = validId,
-                            description = itm.description,
-                            quantity = itm.quantity,
-                            unitPrice = itm.unitPrice,
-                            totalPrice = itm.totalPrice,
-                            itemType = itm.itemType,
-                            notes = itm.notes
-                        )
+                    booking.items.forEach { itm ->
+                        val itemPayload = buildJsonObject {
+                            put("id", if (itm.id.isValidUuid()) itm.id else generateUuid())
+                            put("booking_id", validId)
+                            put("description", itm.description)
+                            put("quantity", itm.quantity)
+                            put("unit_price", itm.unitPrice)
+                            put("total_price", itm.totalPrice)
+                            put("item_type", itm.itemType)
+                            if (!itm.notes.isNullOrBlank()) put("notes", itm.notes)
+                            put("tenant_id", validTenantId)
+                        }
+                        supabaseClient.postgrest.from("booking_items").insert(itemPayload)
                     }
-                    supabaseClient.postgrest.from("booking_items").insert(itemEntities)
+                }.onFailure { err ->
+                    println("❌ Supabase booking_items insert hatası: ${err.message}")
                 }
             }
 
             // 4. Supabase passengers Tablosuna Ekle
             if (booking.passengers.isNotEmpty()) {
                 runCatching {
-                    val paxEntities = booking.passengers.map { p ->
-                        PassengerEntity(
-                            id = if (p.id.isValidUuid()) p.id else generateUuid(),
-                            bookingId = validId,
-                            fullName = p.fullName,
-                            tcNo = p.tcNo,
-                            passportNo = p.passportNo,
-                            birthDate = p.birthDate,
-                            gender = p.gender,
-                            phone = p.phone,
-                            email = p.email,
-                            isLead = p.isLead,
-                            notes = p.notes
-                        )
+                    booking.passengers.forEach { p ->
+                        val paxPayload = buildJsonObject {
+                            put("id", if (p.id.isValidUuid()) p.id else generateUuid())
+                            put("booking_id", validId)
+                            put("full_name", p.fullName)
+                            if (!p.tcNo.isNullOrBlank()) put("tc_no", p.tcNo)
+                            if (!p.passportNo.isNullOrBlank()) put("passport_no", p.passportNo)
+                            if (!p.birthDate.isNullOrBlank()) put("birth_date", p.birthDate)
+                            if (!p.gender.isNullOrBlank()) put("gender", p.gender)
+                            if (!p.phone.isNullOrBlank()) put("phone", p.phone)
+                            if (!p.email.isNullOrBlank()) put("email", p.email)
+                            put("is_lead", p.isLead)
+                            if (!p.notes.isNullOrBlank()) put("notes", p.notes)
+                            put("tenant_id", validTenantId)
+                        }
+                        supabaseClient.postgrest.from("passengers").insert(paxPayload)
                     }
-                    supabaseClient.postgrest.from("passengers").insert(paxEntities)
+                }.onFailure { err ->
+                    println("❌ Supabase passengers insert hatası: ${err.message}")
                 }
             }
 
