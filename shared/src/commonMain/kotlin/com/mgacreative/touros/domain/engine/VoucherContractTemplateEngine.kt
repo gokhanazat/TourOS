@@ -60,6 +60,7 @@ class VoucherContractTemplateEngine {
         val checkIn = booking.checkInDate ?: booking.departureDate.ifBlank { "31.08.2026" }
         val checkOut = booking.checkOutDate ?: "06.09.2026"
         val durationText = "${booking.nights + 1} дней / ${booking.nights} ночей"
+        val currencySymbol = if (booking.currency.equals("RUB", ignoreCase = true) || booking.currency.equals("RUBLE", ignoreCase = true)) "RUB" else booking.currency
         val priceFormatted = "${booking.totalPrice} $currencySymbol"
 
         val passengerRows = effectivePassengers.mapIndexed { index, p ->
@@ -330,6 +331,7 @@ class VoucherContractTemplateEngine {
         val checkIn = booking.checkInDate ?: booking.departureDate.ifBlank { "31.08.2026" }
         val checkOut = booking.checkOutDate ?: "06.09.2026"
         val durationText = "${booking.nights + 1} дней / ${booking.nights} ночей"
+        val currencySymbol = if (booking.currency.equals("RUB", ignoreCase = true) || booking.currency.equals("RUBLE", ignoreCase = true)) "RUB" else booking.currency
         val priceFormatted = "${booking.totalPrice} $currencySymbol"
 
         val passengerRows = effectivePassengers.mapIndexed { index, p ->
