@@ -98,7 +98,8 @@ class B2BTourSearchViewModel(
     private val supabaseClient: SupabaseClient,
     private val bookingRepository: BookingRepository,
     private val hotelRepository: com.mgacreative.touros.domain.repository.HotelRepository? = null,
-    private val tourRepository: com.mgacreative.touros.domain.repository.TourRepository? = null
+    private val tourRepository: com.mgacreative.touros.domain.repository.TourRepository? = null,
+    private val getCurrentUserUseCase: com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase? = null
 ) : ViewModel() {
 
     companion object {
@@ -1095,6 +1096,9 @@ data class QuotaCheckResultDto(
 
             val operatorTitle = prod.operatorName.ifBlank { "Coral Travel / Anex Tour B2B" }
 
+            val currentUser = runCatching { getCurrentUserUseCase?.invoke() }.getOrNull()
+            val effectiveTenantId = currentUser?.tenantId?.takeIf { it.isNotBlank() } ?: "00000000-0000-0000-0000-000000000001"
+
             val domainBooking = Booking(
                 id = bookingId,
                 bookingCode = pnr,
@@ -1114,7 +1118,7 @@ data class QuotaCheckResultDto(
                 operatorPnrCode = null,
                 operatorStatus = "BEKLİYOR",
                 notes = "🏢 Acente Rezervasyon Talebi • Operatör: $operatorTitle • Uçuş: ${fl?.outboundAirline ?: prod.airlineName.ifBlank { "Charter" }}",
-                tenantId = "00000000-0000-0000-0000-000000000001",
+                tenantId = effectiveTenantId,
                 items = domainItems,
                 passengers = domainPassengers
             )
