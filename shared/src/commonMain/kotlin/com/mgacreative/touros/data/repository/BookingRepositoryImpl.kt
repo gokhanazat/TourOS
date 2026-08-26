@@ -144,7 +144,7 @@ class BookingRepositoryImpl(
                 totalPrice = booking.totalPrice,
                 currency = booking.currency,
                 paxCount = booking.paxCount,
-                status = BookingStatus.ONAYLANDI.dbValue,
+                status = booking.status.dbValue,
                 notes = booking.notes,
                 optionExpiration = booking.optionExpiration,
                 operatorName = booking.operatorName,
@@ -157,8 +157,8 @@ class BookingRepositoryImpl(
                 nights = booking.nights,
                 bookingType = booking.bookingType,
                 paymentMethod = booking.paymentMethod,
-                operatorPnrCode = booking.operatorPnrCode ?: code,
-                operatorStatus = booking.operatorStatus ?: "ONAYLANDI",
+                operatorPnrCode = booking.operatorPnrCode?.takeIf { it.isNotBlank() },
+                operatorStatus = booking.operatorStatus ?: "BEKLİYOR",
                 tenantId = validTenantId,
                 createdAt = validCreatedAt
             )
