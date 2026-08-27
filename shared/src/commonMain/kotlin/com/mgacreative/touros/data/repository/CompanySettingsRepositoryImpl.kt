@@ -9,6 +9,9 @@ import com.mgacreative.touros.domain.repository.CompanySettingsRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.add
@@ -20,8 +23,17 @@ class CompanySettingsRepositoryImpl(
     private val supabaseClient: SupabaseClient
 ) : CompanySettingsRepository {
 
-    private val json = Json { ignoreUnknownKeys = true }
+    private val _settingsStateFlow = MutableStateFlow<CompanySettings?>(null)
+    override val settingsStateFlow: StateFlow<CompanySettings?> = _settingsStateFlow.asStateFlow()
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true
+        isLenient = true
+        encodeDefaults = true
+    }
     private var cachedSettings: CompanySettings? = null
+
 
     override suspend fun getCompanySettings(companyId: String): Result<CompanySettings> {
         return runCatching {
@@ -105,17 +117,31 @@ class CompanySettingsRepositoryImpl(
                     defaultMasterAgencyCode = entity.defaultMasterAgencyCode ?: cachedSettings?.defaultMasterAgencyCode ?: "AGN-MASTER"
                 )
                 cachedSettings = loaded
+                _settingsStateFlow.value = loaded
                 loaded
             } else {
-                cachedSettings ?: CompanySettings(
+                val fallbackSettings = cachedSettings ?: CompanySettings(
                     id = targetId,
-                    name = "",
+                    name = branding?.heroTitle?.ifBlank { "Axileto" } ?: "Axileto",
+                    logoUrl = branding?.customLogoUrl,
+                    headerImageUrl = branding?.headerImageUrl,
+                    heroSubtitle = branding?.heroSubtitle ?: "",
+                    footerText = branding?.footerText ?: "",
+                    webEmail = branding?.contactEmail ?: "",
+                    webPhone = branding?.contactPhone ?: "",
+                    webWhatsapp = branding?.whatsappNumber ?: "",
+                    webAddress = branding?.contactAddress ?: "",
+                    promoBanners = branding?.promoBanners ?: emptyList(),
+                    serviceCards = branding?.serviceCards ?: emptyList(),
                     taxRate = 20.0,
                     supportedCurrencies = listOf("TRY", "EUR", "USD"),
                     supportedLanguages = listOf("tr", "en"),
                     defaultMasterAgencyId = "00000000-0000-0000-0000-000000000001",
                     defaultMasterAgencyCode = "AGN-MASTER"
                 )
+                cachedSettings = fallbackSettings
+                _settingsStateFlow.value = fallbackSettings
+                fallbackSettings
             }
         }
     }
@@ -123,6 +149,7 @@ class CompanySettingsRepositoryImpl(
     override suspend fun updateCompanySettings(settings: CompanySettings): Result<CompanySettings> {
         return runCatching {
             cachedSettings = settings
+            _settingsStateFlow.value = settings
             val targetId = if (settings.id.isValidUuid()) settings.id else "00000000-0000-0000-0000-000000000001"
 
             val slugValue = settings.name.lowercase()
@@ -297,7 +324,16 @@ class CompanySettingsRepositoryImpl(
                     .upsert(brandingPayload)
             }
 
-            cachedSettings = cachedSettings?.copy(logoUrl = publicUrl)
+            runCatching {
+                supabaseClient.postgrest.from("companies")
+                    .update(buildJsonObject { put("logo_url", publicUrl) }) {
+                        filter { eq("id", targetId) }
+                    }
+            }
+
+            val updated = cachedSettings?.copy(logoUrl = publicUrl)
+            cachedSettings = updated
+            _settingsStateFlow.value = updated
             publicUrl
         }
     }
@@ -355,7 +391,16 @@ class CompanySettingsRepositoryImpl(
                     .upsert(headerPayload)
             }
 
-            cachedSettings = cachedSettings?.copy(headerImageUrl = publicUrl)
+            runCatching {
+                supabaseClient.postgrest.from("companies")
+                    .update(buildJsonObject { put("header_image_url", publicUrl) }) {
+                        filter { eq("id", targetId) }
+                    }
+            }
+
+            val updated = cachedSettings?.copy(headerImageUrl = publicUrl)
+            cachedSettings = updated
+            _settingsStateFlow.value = updated
             publicUrl
         }
     }

@@ -613,7 +613,7 @@ private fun SinglePageOperatorFormView(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = TourOSColors.Divider)
 
                 Text(
-                    text = AppLanguageManager.translate("📅 Operatör Sezon Periyotları & Özel Komisyon / Pax Oranları"),
+                    text = "📅 " + AppLanguageManager.translate("Operatör Sezon Periyotları & Özel Komisyon / Pax Oranları"),
                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                 )
 
@@ -639,7 +639,7 @@ private fun SinglePageOperatorFormView(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Periyot ${sIdx + 1}: ${seasonItem.name.ifBlank { "Sezon" }}",
+                                text = "${AppLanguageManager.translate("Periyot")} ${sIdx + 1}: ${seasonItem.name.ifBlank { AppLanguageManager.translate("Sezon") }}",
                                 style = TourOSTypography.TitleSmall.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary)
                             )
                             IconButton(
@@ -723,7 +723,7 @@ private fun SinglePageOperatorFormView(
                 }
 
                 TourOSButton(
-                    text = "➕ Yeni Sezon / Periyot Ekle",
+                    text = "➕ " + AppLanguageManager.translate("Yeni Sezon / Periyot Ekle"),
                     onClick = {
                         val mutable = operatorSeasons.toMutableList()
                         mutable.add(

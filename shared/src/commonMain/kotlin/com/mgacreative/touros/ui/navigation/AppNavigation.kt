@@ -53,7 +53,7 @@ val LocalNavController = androidx.compose.runtime.staticCompositionLocalOf<NavHo
 private val publicAndAuthRoutePatterns = listOf(
     "SplashRoute", "LoginRoute", "RegisterRoute",
     "ForgotPasswordRoute", "OnboardingRoute", "EmailVerificationRoute",
-    "GlobalWebPublicRoute"
+    "GlobalWebPublicRoute", "B2BTourFlightServiceSelectionRoute", "B2BPassengerCheckoutWizardRoute"
 )
 
 private val adminRoutePatterns = listOf(
@@ -307,10 +307,12 @@ fun AppNavigation() {
     val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
 
     val isAuthOrPublicRoute = backStackEntry?.destination.isAuthOrPublicRoute()
-    // Yan sol gezinti menüsü iç acente sayfalarında ve admin panellerinde HER ZAMAN SABİT VE AKTİF (Sadece Public landing ve auth sayfalarında gizlenir)
-    val showShell = !isAuthOrPublicRoute
-    // Sayfa Rehberi SADECE iç sayfalarda gösterilir (Ana web sayfası ve Admin sayfaları hariç)
-    val showHelpAssistant = !currentRoute.isAdminOrPublicRoute()
+    val isGuest = currentUser == null
+    // Yan sol gezinti menüsü (Sidebar) ve alt menü SADECE giriş yapmış acente / admin kullanıcılarında ve iç yönetim sayfalarında gösterilir.
+    // Misafir (giriş yapmamış kullanıcı) veya Auth/Public/Rezervasyon rotalarında acente yan menüsü KESİNLİKLE GİZLENİR!
+    val showShell = !isGuest && !isAuthOrPublicRoute
+    // Sayfa Rehberi SADECE giriş yapmış kullanıcılarda ve iç sayfalarda gösterilir
+    val showHelpAssistant = !isGuest && !currentRoute.isAdminOrPublicRoute()
     var isHelpDrawerOpen by remember { mutableStateOf(false) }
 
     fun navigate(route: Any) {
@@ -982,8 +984,14 @@ private fun AppNavHost(navController: NavHostController) {
                 viewModel = koinViewModel(),
                 onNavigateBack = { navController.popBackStack() },
                 onBookingSuccess = {
-                    navController.navigate(DashboardRoute) {
-                        popUpTo(DashboardRoute) { inclusive = true }
+                    if (currentUser != null) {
+                        navController.navigate(DashboardRoute) {
+                            popUpTo(DashboardRoute) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(GlobalWebPublicRoute) {
+                            popUpTo(GlobalWebPublicRoute) { inclusive = true }
+                        }
                     }
                 }
             )

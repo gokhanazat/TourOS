@@ -260,7 +260,7 @@ private fun InvoiceFormPanel(
                                 value = invoiceNo,
                                 onValueChange = onInvoiceNoChange,
                                 label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Seri / No"),
-                                placeholder = "Örn: INV-202608-001",
+                                placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: INV-202608-001"),
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -274,7 +274,7 @@ private fun InvoiceFormPanel(
                                 value = customerName,
                                 onValueChange = onCustomerNameChange,
                                 label = if (invoiceType == "purchase") com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi / Satıcı Ünvanı") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri / Cari Adı"),
-                                placeholder = if (invoiceType == "purchase") "Travego Turizm A.Ş." else "Ahmet Yılmaz",
+                                placeholder = if (invoiceType == "purchase") com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Travego Turizm A.Ş.") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ahmet Yılmaz"),
                                 modifier = Modifier.weight(1.3f)
                             )
                             TourOSTextField(
@@ -354,7 +354,7 @@ private fun InvoiceFormPanel(
                                     color = Color(0xFF1E293B)
                                 ) {
                                     Text(
-                                        "🟢 GİB e-Arşiv",
+                                        com.mgacreative.touros.ui.localization.AppLanguageManager.translate("🟢 GİB e-Arşiv"),
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                         style = TourOSTypography.Caption.copy(color = Color(0xFF34D399), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                                     )
@@ -377,7 +377,7 @@ private fun InvoiceFormPanel(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hesaplanan KDV (%$taxRateStr):"), style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 12.sp))
+                                Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hesaplanan KDV")} (%$taxRateStr):", style = TourOSTypography.Caption.copy(color = Color(0xFF94A3B8), fontSize = 12.sp))
                                 Text("₺ ${formatMoney(taxAmount)}", style = TourOSTypography.BodyMedium.copy(color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold))
                             }
 
@@ -428,17 +428,17 @@ private fun InvoiceFormPanel(
                     modifier = Modifier.padding(TourOSSpacing.medium),
                     verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
                 ) {
-                    TourOSTextField(value = invoiceNo, onValueChange = onInvoiceNoChange, label = "Fatura Seri / No", placeholder = "INV-202608-001", modifier = Modifier.fillMaxWidth())
-                    TourOSTextField(value = customerName, onValueChange = onCustomerNameChange, label = "Müşteri / Cari Adı", placeholder = "Ahmet Yılmaz", modifier = Modifier.fillMaxWidth())
-                    TourOSTextField(value = customerTaxNo, onValueChange = onCustomerTaxNoChange, label = "Vergi / TC No", placeholder = "12345678901", modifier = Modifier.fillMaxWidth())
-                    TourOSTextField(value = serviceDescription, onValueChange = onServiceDescriptionChange, label = "Hizmet Açıklaması", placeholder = "Tur Hizmet Bedeli", modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = invoiceNo, onValueChange = onInvoiceNoChange, label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura Seri / No"), placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: INV-202608-001"), modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = customerName, onValueChange = onCustomerNameChange, label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri / Cari Adı"), placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ahmet Yılmaz"), modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = customerTaxNo, onValueChange = onCustomerTaxNoChange, label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Vergi / TC Kimlik No"), placeholder = "12345678901", modifier = Modifier.fillMaxWidth())
+                    TourOSTextField(value = serviceDescription, onValueChange = onServiceDescriptionChange, label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hizmet / Kalem Açıklaması"), placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Kapadokya VIP Tur Paket Hizmeti Bedeli"), modifier = Modifier.fillMaxWidth())
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TourOSTextField(value = subtotalStr, onValueChange = onSubtotalChange, label = "Matrah (₺)", placeholder = "15000", modifier = Modifier.weight(1f))
-                        TourOSTextField(value = taxRateStr, onValueChange = onTaxRateChange, label = "KDV (%)", placeholder = "20", modifier = Modifier.weight(1f))
+                        TourOSTextField(value = subtotalStr, onValueChange = onSubtotalChange, label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Matrah (KDV Hariç ₺)"), placeholder = "15000", modifier = Modifier.weight(1f))
+                        TourOSTextField(value = taxRateStr, onValueChange = onTaxRateChange, label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("KDV Oranı (%)"), placeholder = "20", modifier = Modifier.weight(1f))
                     }
-                    Text("Genel Toplam: ₺ ${formatMoney(totalAmount)}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold))
+                    Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("GENEL TOPLAM")}: ₺ ${formatMoney(totalAmount)}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold))
                     TourOSButton(
-                        text = if (isSaving) "Kaydediliyor..." else "💾 Faturayı Kaydet",
+                        text = if (isSaving) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kaydediliyor...") else "💾 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Faturayı Kaydet")}",
                         onClick = onSaveInvoice,
                         variant = TourOSButtonVariant.PRIMARY,
                         enabled = customerName.isNotBlank() && subtotalStr.toDoubleOrNull() != null && !isSaving,

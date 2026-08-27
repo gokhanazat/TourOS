@@ -13,6 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Text
@@ -43,10 +50,21 @@ fun DashboardChartsSection(
         verticalArrangement = Arrangement.spacedBy(TourOSSpacing.large),
         modifier = modifier.fillMaxWidth()
     ) {
-        Text(
-            text = "📈 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel Analytics & Trend Analizi"),
-            style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.TrendingUp,
+                contentDescription = null,
+                tint = TourOSColors.Primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Operasyonel Analytics & Trend Analizi"),
+                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary)
+            )
+        }
 
         // Row 1: Aylık Satış Trendi & Ülkelere Göre Satış
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
@@ -56,10 +74,21 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(
-                    text = "📉 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aylık Satış Trendi (Ciro)"),
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.BarChart,
+                        contentDescription = null,
+                        tint = TourOSColors.Primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aylık Satış Trendi (Ciro)"),
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+                }
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 MonthlySalesTrendChart(items = charts.monthlyTrends)
             }
@@ -70,10 +99,21 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(
-                    text = "🌍 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ülkelere Göre Satış Dağılımı"),
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Public,
+                        contentDescription = null,
+                        tint = TourOSColors.Primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ülkelere Göre Satış Dağılımı"),
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+                }
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 SalesByCountryChart(items = charts.countrySales)
             }
@@ -87,10 +127,21 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(
-                    text = "🏆 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Bazlı Gelir Sıralaması"),
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Leaderboard,
+                        contentDescription = null,
+                        tint = TourOSColors.Primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Bazlı Gelir Sıralaması"),
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+                }
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 TourRevenueChart(items = charts.tourRevenues)
             }
@@ -101,10 +152,21 @@ fun DashboardChartsSection(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(
-                    text = "📢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kanal Bazlı Satış Dağılımı"),
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PieChart,
+                        contentDescription = null,
+                        tint = TourOSColors.Primary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kanal Bazlı Satış Dağılımı"),
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary)
+                    )
+                }
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
                 SalesByChannelChart(items = charts.channelSales)
             }

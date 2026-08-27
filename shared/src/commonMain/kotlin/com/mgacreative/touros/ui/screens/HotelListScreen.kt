@@ -105,7 +105,7 @@ fun HotelListScreen(
                     TourOSTextField(
                         value = successState?.searchQuery ?: "",
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
-                        placeholder = "🔍 Otel adı, şehir, adres veya telefon ile ara...",
+                        placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("🔍 Otel adı, şehir, adres veya telefon ile ara..."),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -125,7 +125,7 @@ fun HotelListScreen(
                             FilterChip(
                                 selected = selectedStar == null,
                                 onClick = { viewModel.onStarFilterSelected(null) },
-                                label = { Text("Tüm Yıldızlar", style = TourOSTypography.BodyMedium) },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tüm Yıldızlar"), style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.PrimaryContainer,
                                     selectedLabelColor = TourOSColors.Primary
@@ -137,7 +137,7 @@ fun HotelListScreen(
                                 FilterChip(
                                     selected = isSelected,
                                     onClick = { viewModel.onStarFilterSelected(star) },
-                                    label = { Text("$star ⭐ Otel", style = TourOSTypography.BodyMedium) },
+                                    label = { Text("$star ⭐ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel")}", style = TourOSTypography.BodyMedium) },
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = TourOSColors.PrimaryContainer,
                                         selectedLabelColor = TourOSColors.Primary
@@ -154,7 +154,7 @@ fun HotelListScreen(
                             FilterChip(
                                 selected = selectedStatus == null,
                                 onClick = { viewModel.onStatusFilterSelected(null) },
-                                label = { Text("Tümü", style = TourOSTypography.BodyMedium) },
+                                label = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tümü"), style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.PrimaryContainer,
                                     selectedLabelColor = TourOSColors.Primary
@@ -163,7 +163,7 @@ fun HotelListScreen(
                             FilterChip(
                                 selected = selectedStatus == true,
                                 onClick = { viewModel.onStatusFilterSelected(true) },
-                                label = { Text("🟢 Aktif", style = TourOSTypography.BodyMedium) },
+                                label = { Text("🟢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif")}", style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.SuccessContainer,
                                     selectedLabelColor = TourOSColors.Success
@@ -172,7 +172,7 @@ fun HotelListScreen(
                             FilterChip(
                                 selected = selectedStatus == false,
                                 onClick = { viewModel.onStatusFilterSelected(false) },
-                                label = { Text("⚪ Pasif", style = TourOSTypography.BodyMedium) },
+                                label = { Text("⚪ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Pasif")}", style = TourOSTypography.BodyMedium) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = TourOSColors.SecondaryContainer,
                                     selectedLabelColor = TourOSColors.Secondary
@@ -213,28 +213,28 @@ fun HotelListScreen(
                             )
                         } else {
                             val hotelColumns = listOf(
-                                TourOSColumn<Hotel>(title = "OTEL ADI & KONUM", weight = 2.5f) { hotel ->
+                                TourOSColumn<Hotel>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("OTEL ADI & KONUM"), weight = 2.5f) { hotel ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         HotelThumbnail(imageUrl = hotel.coverImageUrl, name = hotel.name)
                                         Spacer(modifier = Modifier.width(TourOSSpacing.medium))
                                         Column {
                                             Text(text = hotel.name, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                                             Text(
-                                                text = "📍 ${hotel.city ?: "Şehir Belirtilmedi"}, ${hotel.country}",
+                                                text = "📍 ${hotel.city ?: com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Şehir Belirtilmedi")}, ${hotel.country}",
                                                 style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary)
                                             )
                                         }
                                     }
                                 },
-                                TourOSColumn<Hotel>(title = "DERECE", weight = 1.3f) { hotel ->
+                                TourOSColumn<Hotel>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("DERECE"), weight = 1.3f) { hotel ->
                                     val stars = "⭐".repeat(hotel.starRating ?: 4)
                                     TourOSStatusBadge(
-                                        text = "$stars ${hotel.starRating ?: 4} Yıldız",
+                                        text = "$stars ${hotel.starRating ?: 4} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yıldız")}",
                                         backgroundColor = TourOSColors.SecondaryContainer,
                                         textColor = TourOSColors.Secondary
                                     )
                                 },
-                                TourOSColumn<Hotel>(title = "İLETİŞİM", weight = 1.8f) { hotel ->
+                                TourOSColumn<Hotel>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İLETİŞİM"), weight = 1.8f) { hotel ->
                                     Column {
                                         Text(text = "📞 ${hotel.phone ?: "-"}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
                                         if (!hotel.email.isNullOrBlank()) {
@@ -242,7 +242,7 @@ fun HotelListScreen(
                                         }
                                     }
                                 },
-                                TourOSColumn<Hotel>(title = "DURUM", weight = 1.2f) { hotel ->
+                                TourOSColumn<Hotel>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("DURUM"), weight = 1.2f) { hotel ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Switch(
                                             checked = hotel.isActive,
@@ -254,16 +254,16 @@ fun HotelListScreen(
                                         )
                                         Spacer(modifier = Modifier.width(TourOSSpacing.small))
                                         Text(
-                                            text = if (hotel.isActive) "Aktif" else "Pasif",
+                                            text = if (hotel.isActive) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Aktif") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Pasif"),
                                             style = TourOSTypography.BodyMedium.copy(
                                                 color = if (hotel.isActive) TourOSColors.Success else TourOSColors.TextDisabled
                                             )
                                         )
                                     }
                                 },
-                                TourOSColumn<Hotel>(title = "İŞLEM", weight = 1f) { hotel ->
+                                TourOSColumn<Hotel>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İŞLEM"), weight = 1f) { hotel ->
                                     TourOSButton(
-                                        text = "Düzenle ›",
+                                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Düzenle ›"),
                                         onClick = { onEditHotelClick(hotel.id) },
                                         variant = TourOSButtonVariant.TERTIARY
                                     )
@@ -335,7 +335,7 @@ fun HotelListScreen(
                                                 )
                                                 Spacer(modifier = Modifier.width(TourOSSpacing.medium))
                                                 TourOSButton(
-                                                    text = "Düzenle",
+                                                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Düzenle"),
                                                     onClick = { onEditHotelClick(hotel.id) },
                                                     variant = TourOSButtonVariant.SECONDARY
                                                 )

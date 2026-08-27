@@ -1,0 +1,179 @@
+=== d:\AndroidStudioProjects\TourOS\shared\src\commonMain\kotlin\com\mgacreative\touros\ui\screens\GlobalWebPublicScreen.kt ===
+196:     val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || this.airlineName.isNotBlank() || this.flightNumber.startsWith("TK-") || this.flightNumber.startsWith("N4-") || this.flightNumber.startsWith("SU-") || this.flightNumber.startsWith("PC-") || this.safeTourName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("✈️", ignoreCase = true)
+918:             it.hotelName.startsWith("✈️", ignoreCase = true) || 
+1123:                 val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || p.airlineName.isNotBlank() || p.flightNumber.startsWith("TK-") || p.flightNumber.startsWith("N4-") || p.flightNumber.startsWith("SU-") || p.flightNumber.startsWith("PC-") || p.safeTourName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("✈️", ignoreCase = true)
+1250:                            h.hotelName.startsWith("✈️", ignoreCase = true)
+1362:                                         val agencyLabel = if (currentUser != null) "${AppLanguageManager.translate("Acenta")} ›" else AppLanguageManager.translate("Acenta")
+1921:                                         Text("🔍", fontSize = 20.sp)
+1929:                                             text = "🗓️ Tarih: $startDateText — $endDateText  |  📍 Destinasyon: $destinationCity  |  🌙 Gece: $selectedNightsText",
+1950:                                 titleIcon = "✨",
+2071:                                                 Text("← Tüm Ülkelere & Ana Sayfaya Dön", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+2085:                                                         text = "📍 $cSubInfo",
+2125:                                                 Text("🎯", fontSize = 16.sp)
+2137:                                                 Text("↺ Filtreleri Sıfırla", fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+2149:                                                 Text("📍 $cName Beldeleri", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp))
+2205:                                                             text = "$starCount⭐",
+2385:                                                                         text = "✓",
+2448:                                     it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+2541:                                                                     Text("⭐".repeat(dealHotel.stars.coerceIn(1, 5)), fontSize = 10.sp)
+2549:                                                                         text = "📍 ${dealHotel.location}",
+2554:                                                                         text = "✈️ 12 - 19 Eyl (7 Gece)",
+2558:                                                                         text = "🍴 Her Şey Dahil",
+2592:                                                                         text = AppLanguageManager.translate("Rezerve Et ➔"),
+2613:                                     !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+2630:                                     !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+2645:                                     it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true) && (it.isLastMinute || (it.discountPercent ?: 0) > 0)
+2660:                                     it.category == "FLIGHT" || it.hotelName.startsWith("Uçuş:", ignoreCase = true) || it.hotelName.startsWith("✈️", ignoreCase = true)
+2789:                                 Text("❌", fontSize = 16.sp)
+2917:                                 Text("📝 Rezervasyon ve Ödeme Sihirbazı", style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold))
+2919:                                     text = "✖",
+3021:                                                     println("✅ Web rezervasyonu Supabase ve yerel önbelleğe kaydedildi: ${newBooking.bookingCode}")
+3024:                                                     println("⚠️ Web rezervasyonu kayıt uyarısı: ${err.message}")
+3028:                                                 "✅ Rezervasyon/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Acente (${safeTenantId}) Paneline Aktarıldı."
+3030:                                                 "✅ Bilet/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Ana Acente HQ (AGN-MASTER-8492) Paneline Aktarıldı."
+3078:                                         text = "📍 ${hotel.location} • ID: ${hotel.id}",
+3093:                                     Text("✕", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+3197:                                                         text = AppLanguageManager.translate("Rezerve Et ➔"),
+3218:     titleIcon: String = "✨",
+3328:                                     Text("⭐".repeat(hotel.stars.coerceIn(1, 5)), fontSize = 10.sp)
+3349:                                         text = "📍 ${hotel.location}",
+3355:                                         text = "✈️ ${hotel.flightCode}",
+3359:                                         text = "🍴 ${hotel.mealType}",
+3394:                                         text = AppLanguageManager.translate("Rezerve Et ➔"),
+4318:                                             text = if (booking.bookingType == "FLIGHT" || booking.bookingCode.startsWith("PNR")) "✈️" else "🏨",
+4340:                                             text = "👤 ${booking.customerName} • 📞 ${booking.customerPhone}",
+4345:                                             text = "📦 Ürün: ${booking.productName} • Operatör: ${booking.operatorName}",
+4468:                         text = "📅 ${monthNames[currentMonth - 1]} $currentYear",
+4487:                             Text("◀", fontSize = 12.sp, color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold)
+4504:                             Text("▶", fontSize = 12.sp, color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold)
+4713:                                             Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))
+=== d:\AndroidStudioProjects\TourOS\shared\src\commonMain\kotlin\com\mgacreative\touros\ui\screens\B2BTourSearchDashboardScreen.kt ===
+184:             Triple("ALL", "Tüm Ülkeler", "🌍"),
+185:             Triple("TR", "Türkiye", "🇹🇷"),
+186:             Triple("EG", "Mısır", "🇪🇬"),
+187:             Triple("TH", "Tayland", "🇹🇭"),
+188:             Triple("VN", "Vietnam", "🇻🇳"),
+189:             Triple("AE", "BAE (Dubai)", "🇦🇪"),
+190:             Triple("RU", "Rusya", "🇷🇺")
+451:                                 text = "📍 ${prod.region}, ${prod.country} • ID: ${prod.id}",
+463:                             Text("✕", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+475:                             text = "🏬 " + AppLanguageManager.translate("Hangi Acente / Operatör Kaç Satıyor?"),
+512:                                                 text = "🏢 ${option.agencyName}",
+522:                                                     Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp))
+565:                                                     text = AppLanguageManager.translate("Rezerve Et ➔"),
+601:                         text = "← ${AppLanguageManager.translate("Önceki Adıma Dön")}",
+684:                                         "📅 ${AppLanguageManager.translate("Bugün")}: $todayQueries/$dailyQuota",
+689:                                         "🗓️ ${AppLanguageManager.translate("Bu Ay")}: $currentQueries/${if (monthlyQuota > 0) monthlyQuota else "∞"}",
+708:                                     Text("⛔", fontSize = 22.sp)
+738:                                     !h.contains("➔")
+875:                                                     text = "📍 Beldeler:",
+920:                                                 text = "🔍 ${AppLanguageManager.translate("Detaylı Filtreler (Sahil, Beslenme, Yıldız, Puan, Otel & Donanım)")}",
+924:                                                 text = if (isDetailFilterExpanded) "▲ (${AppLanguageManager.translate("Gizle")})" else "▼ (${AppLanguageManager.translate("Göster")})",
+934:                                                 Text("↺ ${AppLanguageManager.translate("Filtreleri Sıfırla")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+955:                                                             Text("🏖️ Sahil Şeridi (Denize Mesafe):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+974:                                                             Text("🍴 Beslenme / Konsept:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1000:                                                             Text("⭐ Otel Kategorisi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1009:                                                                         label = { Text("$star★", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+1021:                                                             Text("🏆 Otel Puanı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1047:                                                             Text("🏖️ ${AppLanguageManager.translate("Sahil Şeridi (Denize Mesafe)")}:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1070:                                                             Text("🍴 ${AppLanguageManager.translate("Beslenme / Konsept")}:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1091:                                                             Text("⭐ ${AppLanguageManager.translate("Otel Kategorisi")}:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1100:                                                                         label = { Text("$star★", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+1112:                                                             Text("🏆 ${AppLanguageManager.translate("Otel Puanı")}:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1144:                                                     value = if (selectedHotels.isEmpty()) "${AppLanguageManager.translate("Tüm Paket Tur Otelleri")} (${dbProductHotels.size}) ▼" else "${selectedHotels.size} ${AppLanguageManager.translate("Otel Seçili")} ▼",
+1147:                                                     label = "🏨 ${AppLanguageManager.translate("Paket Tur Otelleri Seçin (Tümü)")}",
+1164:                                                             text = { Text("✓ ${AppLanguageManager.translate("Tüm Paket Tur Otelleri")}", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary, fontSize = 12.sp)) },
+1198:                                                                             Text("✓", style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp))
+1212:                                                 Text("✨ ${AppLanguageManager.translate("Donanım & Özellikler")}:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.Bold))
+1257:                                                     text = "⚡ ${AppLanguageManager.translate("Anında Onaylı Turlar")}",
+1274:                                                         text = "✈️ ${AppLanguageManager.translate("Aktarmasız / Direkt Uçuş")}",
+1291:                                                     text = "🚐 ${AppLanguageManager.translate("Transfer Dahil")}",
+1316:                                 Text("⛔ AYLIK ARAMA & SORGU KOTANIZ DOLMUŞTUR", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Secondary, fontWeight = FontWeight.Bold))
+1363:                                     val isPureFlight = pType == "FLIGHT" || item.airlineName.isNotBlank() || item.flightNumber.startsWith("TK-") || item.flightNumber.startsWith("N4-") || item.flightNumber.startsWith("SU-") || item.flightNumber.startsWith("PC-") || item.tourName.startsWith("Uçuş:", ignoreCase = true) || item.hotelName.startsWith("Uçuş:", ignoreCase = true) || item.hotelName.startsWith("✈️", ignoreCase = true)
+1479:                                             Text("🏝️", fontSize = 32.sp)
+1542:                                         text = "← ${AppLanguageManager.translate("Adım 1: Tur Aramaya Dön")}",
+1567:                                     text = "← ${AppLanguageManager.translate("Arama Sonuçlarına Dön")}",
+1591:                                             text = "🏢 ${AppLanguageManager.translate("Operatör")}: ${curProduct.safeOperatorName}  ·  ${curProduct.roomType.ifBlank { "FAMILY ROOM" }}  ·  ${curProduct.mealType.ifBlank { "Ultra All Inclusive" }}",
+1679:                                         text = "← ${AppLanguageManager.translate("Adım 1: Tur Aramaya Dön")}",
+1715:                                         text = "← ${AppLanguageManager.translate("Geri: Uçuş/Hizmet Seçimi")}",
+1723:                                         Text("+ 👤 ${AppLanguageManager.translate("Yetişkin")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+1729:                                         Text("+ 👶 ${AppLanguageManager.translate("Çocuk")}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary), fontWeight = FontWeight.Bold)
+1954:                         text = if (isFlightCard) "✈️ Uçuş" else "⭐ ${product.hotelCategory.coerceAtMost(5)}★",
+2006:                                 text = "🏆 ${product.hotelRating}",
+2019:                         reg.contains("Kemer", ignoreCase = true) || hName.contains("kemer") -> "🇹🇷 Türkiye · Antalya · Kemer"
+2020:                         reg.contains("Belek", ignoreCase = true) || hName.contains("belek") -> "🇹🇷 Türkiye · Antalya · Belek"
+2021:                         reg.contains("Lara", ignoreCase = true) || reg.contains("Kundu", ignoreCase = true) || hName.contains("lara") || hName.contains("kundu") -> "🇹🇷 Türkiye · Antalya · Lara"
+2022:                         reg.contains("Alanya", ignoreCase = true) || hName.contains("alanya") -> "🇹🇷 Türkiye · Antalya · Alanya"
+2023:                         reg.contains("Side", ignoreCase = true) || reg.contains("Manavgat", ignoreCase = true) || hName.contains("side") -> "🇹🇷 Türkiye · Antalya · Side"
+2024:                         reg.contains("Bodrum", ignoreCase = true) || hName.contains("bodrum") -> "🇹🇷 Türkiye · Muğla · Bodrum"
+2025:                         reg.contains("Marmaris", ignoreCase = true) || hName.contains("marmaris") -> "🇹🇷 Türkiye · Muğla · Marmaris"
+2026:                         reg.contains("Fethiye", ignoreCase = true) || hName.contains("fethiye") -> "🇹🇷 Türkiye · Muğla · Fethiye"
+2027:                         reg.contains("Moskova", ignoreCase = true) || ctry.contains("Rusya", ignoreCase = true) -> "🇷🇺 Rusya · Moskova"
+2028:                         reg.contains("Dubai", ignoreCase = true) || ctry.contains("BAE", ignoreCase = true) -> "🇦🇪 BAE · Dubai"
+2029:                         reg.contains("Şarm", ignoreCase = true) || reg.contains("Hurgada", ignoreCase = true) || ctry.contains("Mısır", ignoreCase = true) -> "🇪🇬 Mısır · Şarm El-Şeyh"
+2030:                         ctry.isNotBlank() && reg.isNotBlank() -> "🇹🇷 $ctry · $reg"
+2031:                         reg.isNotBlank() -> "🇹🇷 Türkiye · $reg"
+2032:                         else -> "🇹🇷 Türkiye · Antalya"
+2050:                             text = "🏢 $opName",
+2082:                                 text = "✈️ AYT (Antalya)",
+2095:                                 text = "✈️ BJV (Bodrum)",
+2117:                                 text = "📅 ${product.departureDate} (${product.nights} Gece)",
+2145:                                 text = "🏖️ " + (if (product.beachLine == 1) "< 100m" else if (product.beachLine == 2) "< 500m" else "< 2km"),
+2159:                                 text = "🚐 Transfer",
+2169:                         text = if (isFlightCard) "✈️ PNR / Sefer: ${product.flightNumber.ifBlank { "VKO - AYT Charter" }}" else "🏨 ${product.roomType}",
+2194:                         text = "⚡ Anında Onay",
+2205:                     isSelected -> AppLanguageManager.translate("Seçildi ✓")
+2206:                     else -> AppLanguageManager.translate("Rezerve Et ➔")
+2261:                             text = "GİDİŞ: ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
+2269:                             text = "DÖNÜŞ: ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
+2324:                         text = "⚡ ${AppLanguageManager.translate("Zorunlu Uçuş Farkları ve Ek Ücret Dökümü (Mandatory Surcharges)")}",
+2523:                         "INFANT" -> "🍼 Bebek (${passenger.childAge ?: 1} Yaş)"
+2524:                         "CHILD" -> "👶 Çocuk (${passenger.childAge ?: 5} Yaş)"
+2525:                         else -> "👤 Yetişkin"
+2547:                                     text = "$typeBadgeText ▼",
+2559:                                 text = { Text("👤 Yetişkin (18+ Yaş)", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)) },
+2568:                                     age == 0 -> "🍼 0 Yaş (Bebek < 1 yaş - %90 İndirim)"
+2569:                                     age <= 2 -> "🍼 $age Yaş (Bebek - %90 İndirim)"
+2570:                                     age <= 6 -> "👶 $age Yaş (Küçük Çocuk - %50 İndirim)"
+2571:                                     age <= 12 -> "🧒 $age Yaş (Büyük Çocuk - %30 İndirim)"
+2572:                                     else -> "🧑 $age Yaş (Genç - Standart)"
+2593:                             Text("🗑️", fontSize = 11.sp)
+2664:                             text = AppLanguageManager.translate("👶 Çocuk Yaşı"),
+2684:                                     Text("▼", fontSize = 10.sp, color = Color(0xFF0284C7))
+2695:                                         age == 0 -> "🍼 0 Yaş (Bebek < 1 yaş - %90 İndirim)"
+2696:                                         age <= 2 -> "🍼 $age Yaş (Bebek - %90 İndirim)"
+2697:                                         age <= 6 -> "👶 $age Yaş (Küçük Çocuk - %50 İndirim)"
+2698:                                         age <= 12 -> "🧒 $age Yaş (Büyük Çocuk - %30 İndirim)"
+2699:                                         else -> "🧑 $age Yaş (Genç - Standart)"
+2760:                         Text("📞", fontSize = 12.sp)
+2780:                         Text("✉️", fontSize = 12.sp)
+2822:                             text = "👨‍👦 ${AppLanguageManager.translate("Sorumlu Yetişkin:")} Turist 1 (Lead)",
+2839:                                         text = "👶 Yaş: $cAge ($discountLabel) ▼",
+2852:                                         age == 0 -> "🍼 0 Yaş (Bebek < 1 yaş - %90 İndirim)"
+2853:                                         age <= 2 -> "🍼 $age Yaş (Bebek - %90 İndirim)"
+2854:                                         age <= 6 -> "👶 $age Yaş (Küçük Çocuk - %50 İndirim)"
+2855:                                         age <= 12 -> "🧒 $age Yaş (Büyük Çocuk - %30 İndirim)"
+2856:                                         else -> "🧑 $age Yaş (Genç - Standart)"
+2897:     title: String = "🗓️ Gidiş Tarih Aralığı Seçin",
+3065:                         text = "📅 ${monthNames[viewMonth - 1]} $viewYear",
+3287:                         text = "📅 ${monthNames[currentMonth - 1]} $currentYear",
+3408:                         text = "👥 Yolcu & Turist Sayısı",
+3412:                         Text("✕", fontSize = 14.sp, color = TourOSColors.TextSecondary)
+3499:                             text = "👶 Çocuk Yaşları & İndirim Oranları:",
+3529:                                             text = "$age Yaş ▼",
+=== d:\AndroidStudioProjects\TourOS\shared\src\commonMain\kotlin\com\mgacreative\touros\ui\screens\TourDetailScreen.kt ===
+82:                         text = "← Geri",
+89:                         text = "🖼️ Galeri",
+95:                         text = "✏️ Düzenle",
+117:                         actionButtonText = "← Geri Dön",
+185:                             Text(text = "🏔️", style = TourOSTypography.DisplaySmall)
+229:                     Text(text = "📍 ${tour.city}, ${tour.country}", style = TourOSTypography.BodyLarge.copy(color = TourOSColors.TextSecondary))
+230:                     Text(text = "⏱️ ${tour.durationDays} Gün", style = TourOSTypography.BodyLarge.copy(color = TourOSColors.TextSecondary))
+231:                     Text(text = "👥 Kapasite: ${tour.capacity} Kişi", style = TourOSTypography.BodyLarge.copy(color = TourOSColors.TextSecondary))
+413:                     Text(text = "📍 ${item.location}", style = TourOSTypography.Caption.copy(color = TourOSColors.Primary))
+442:                 text = "➕ Yeni Kalkış Tarihi Ekle",
+452:                 actionButtonText = "➕ Kalkış Tarihi Ekle",
+474:                                     text = "📅 Kalkış: ${dep.departureDate} ${dep.returnDate?.let { "- Dönüş: $it" } ?: ""}",
+479:                                     text = "👥 Doluluk: ${dep.bookedCount} / ${dep.capacity ?: "Sınırsız"} Kişi",
+494:                                     text = "✏️ Düzenle",
+499:                                     text = "🗑️ Sil",

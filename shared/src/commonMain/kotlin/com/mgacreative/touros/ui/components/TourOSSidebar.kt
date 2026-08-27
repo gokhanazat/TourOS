@@ -22,6 +22,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -180,13 +183,11 @@ fun TourOSSidebar(
                                     letterSpacing = 0.6.sp
                                 )
                             )
-                            Text(
-                                text = if (isExpanded) "▾" else "▸",
-                                style = TourOSTypography.TitleMedium.copy(
-                                    color = if (hasActiveChild) TourOSColors.Primary else TourOSColors.TextSecondary,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
+                            androidx.compose.material3.Icon(
+                                imageVector = if (isExpanded) androidx.compose.material.icons.Icons.Default.ArrowDropDown else androidx.compose.material.icons.Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = if (hasActiveChild) TourOSColors.Primary else TourOSColors.TextSecondary,
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     } else {

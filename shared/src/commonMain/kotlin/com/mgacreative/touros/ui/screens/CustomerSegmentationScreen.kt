@@ -381,7 +381,7 @@ fun CustomerSegmentationScreen(
                                         color = TourOSColors.PrimaryContainer
                                     ) {
                                         Text(
-                                            text = "📞 Ara",
+                                            text = "📞 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ara")}",
                                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                             style = TourOSTypography.Caption,
                                             fontWeight = FontWeight.Bold,
@@ -398,7 +398,7 @@ fun CustomerSegmentationScreen(
                                         color = TourOSColors.Surface
                                     ) {
                                         Text(
-                                            text = "Detay ›",
+                                            text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Detay")} ›",
                                             modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
                                             style = TourOSTypography.Caption,
                                             fontWeight = FontWeight.Bold,
@@ -434,7 +434,7 @@ fun CustomerSegmentationScreen(
                                         color = TourOSColors.TextPrimary
                                     )
                                     Text(
-                                        text = "📞 ${customer.phone}  ·  ${customer.totalBookings} Rezervasyon",
+                                        text = "📞 ${customer.phone}  ·  ${customer.totalBookings} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon")}",
                                         style = TourOSTypography.Caption,
                                         color = TourOSColors.TextSecondary
                                     )
@@ -558,7 +558,7 @@ private fun CustomerDetailHistoryDialog(
                     )
                     SummaryMetricCard(
                         title = "Rezervasyon Sayısı",
-                        value = "${customer.totalBookings} Adet",
+                        value = "${customer.totalBookings} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Adet")}",
                         modifier = Modifier.weight(1f),
                         color = TourOSColors.TextPrimary
                     )
@@ -637,7 +637,7 @@ private fun CustomerDetailHistoryDialog(
                             variant = TourOSButtonVariant.SECONDARY
                         )
                         TourOSButton(
-                            text = "📞 Ara",
+                            text = "📞 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ara")}",
                             onClick = {
                                 if (digitsPhone.isNotBlank()) {
                                     runCatching { uriHandler.openUri("tel:$telPhone") }
@@ -648,7 +648,7 @@ private fun CustomerDetailHistoryDialog(
                     }
 
                     TourOSButton(
-                        text = "Kapat",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kapat"),
                         onClick = onDismiss,
                         variant = TourOSButtonVariant.TERTIARY
                     )
@@ -702,13 +702,13 @@ private fun BookingHistoryCard(booking: Booking) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     Text(
-                        text = if (booking.bookingType == "HOTEL") "🏨 Otel" else "✈️ Tur",
+                        text = if (booking.bookingType == "HOTEL") "🏨 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel")}" else "✈️ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur")}",
                         style = TourOSTypography.Caption,
                         fontWeight = FontWeight.Bold,
                         color = TourOSColors.Primary
                     )
                     Text(
-                        text = if (!booking.operatorPnrCode.isNullOrBlank()) "PNR: ${booking.operatorPnrCode}" else "Kod: ${booking.bookingCode}",
+                        text = if (!booking.operatorPnrCode.isNullOrBlank()) "PNR: ${booking.operatorPnrCode}" else "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kod")}: ${booking.bookingCode}",
                         style = TourOSTypography.BodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = TourOSColors.TextPrimary
@@ -722,7 +722,7 @@ private fun BookingHistoryCard(booking: Booking) {
 
                 val dateStr = booking.departureDate ?: booking.checkInDate ?: "-"
                 Text(
-                    text = "Tarih: $dateStr  ·  Kişi: ${booking.paxCount} Pax",
+                    text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tarih")}: $dateStr  ·  ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kişi")}: ${booking.paxCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kişi")}",
                     style = TourOSTypography.Caption,
                     color = TourOSColors.TextSecondary
                 )

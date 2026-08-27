@@ -240,7 +240,7 @@ private fun TopReportFilterBar(
                         modifier = Modifier.clickable { onDateFilterChange(opt.key) }
                     ) {
                         Text(
-                            text = opt.label.replace("📅 ", "").replace("🗓️ ", "").replace("📊 ", ""),
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(opt.label.replace("📅 ", "").replace("🗓️ ", "").replace("📊 ", "")),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                             style = TourOSTypography.Caption.copy(
                                 color = if (isSelected) Color.White else Color(0xFF334155),
@@ -392,7 +392,7 @@ private fun VatReportSection(summary: FinancialReportSummary, symbol: String, ra
                     color = Color(0xFF1E3A5F)
                 ) {
                     Text(
-                        if (isNetPayable) "Ödenecek" else "Devreden",
+                        if (isNetPayable) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ödenecek") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Devreden"),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         style = TourOSTypography.Caption.copy(
                             color = if (isNetPayable) Color(0xFF34D399) else Color(0xFFF87171),
@@ -484,7 +484,7 @@ private fun RevenueExpenseReportSection(summary: FinancialReportSummary, symbol:
                     color = Color(0xFF1E3A5F)
                 ) {
                     Text(
-                        if (isProfit) "Net Kâr" else "Net Zarar",
+                        if (isProfit) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Kâr") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Zarar"),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         style = TourOSTypography.Caption.copy(
                             color = if (isProfit) Color(0xFF34D399) else Color(0xFFF87171),

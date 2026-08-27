@@ -28,6 +28,7 @@ import com.mgacreative.touros.domain.model.CountrySalesData
 import com.mgacreative.touros.domain.model.DailySalesData
 import com.mgacreative.touros.domain.usecase.ChannelSalesData
 import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
@@ -51,6 +52,7 @@ fun AnalyticsChartsScreen(
     viewModel: AnalyticsChartsViewModel,
     onNavigateBack: () -> Unit = {}
 ) {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val state by viewModel.uiState.collectAsState()
 
     Scaffold(
@@ -133,18 +135,18 @@ fun AnalyticsChartsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "💰 Toplam Ciro: ₺ ${formatAmount(state.totalRevenue)}",
+                            text = "💰 ${AppLanguageManager.translate("Toplam Ciro")}: ₺ ${formatAmount(state.totalRevenue)}",
                             style = TourOSTypography.BodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = TourOSColors.Primary
                         )
                         Text(
-                            text = "📋 Toplam Rezervasyon: ${state.totalBookingsCount} Adet (${state.totalPaxOrNights} Pax/Gece)",
+                            text = "📋 ${AppLanguageManager.translate("Toplam Rezervasyon")}: ${state.totalBookingsCount} ${AppLanguageManager.translate("Adet")} (${state.totalPaxOrNights} Pax/${AppLanguageManager.translate("Gece")})",
                             style = TourOSTypography.Caption,
                             color = TourOSColors.TextPrimary
                         )
                         Text(
-                            text = "📈 Ort. Sepet: ₺ ${formatAmount(state.averageBookingValue)}",
+                            text = "📈 ${AppLanguageManager.translate("Ort. Sepet")}: ₺ ${formatAmount(state.averageBookingValue)}",
                             style = TourOSTypography.Caption,
                             color = TourOSColors.TextSecondary
                         )
@@ -152,7 +154,7 @@ fun AnalyticsChartsScreen(
 
                     if (topCategory != null && topCategory.totalAmount > 0) {
                         Text(
-                            text = "🏆 Lider Operasyon: ${topCategory.countryName} (%${topCategory.percentage.toInt()})",
+                            text = "🏆 ${AppLanguageManager.translate("Lider Operasyon")}: ${AppLanguageManager.translate(topCategory.countryName)} (%${topCategory.percentage.toInt()})",
                             style = TourOSTypography.Caption,
                             fontWeight = FontWeight.Bold,
                             color = TourOSColors.Primary
@@ -252,7 +254,7 @@ private fun RevenueTrendChartCard(dailySales: List<DailySalesData>) {
                 }
 
                 TourOSStatusBadge(
-                    text = if (realAmounts.isNotEmpty()) "● Canlı Trend" else "Veri Bekleniyor",
+                    text = if (realAmounts.isNotEmpty()) "● " + AppLanguageManager.translate("Canlı Trend") else AppLanguageManager.translate("Veri Bekleniyor"),
                     backgroundColor = TourOSColors.SuccessContainer,
                     textColor = TourOSColors.Success
                 )
@@ -377,12 +379,12 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
             ) {
                 Column {
                     Text(
-                        "📊 Günlük Satış Hacmi",
+                        "📊 " + AppLanguageManager.translate("Günlük Satış Hacmi"),
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        "Dönem İçi Toplam Gerçekleşen Ciro Dağılımı",
+                        AppLanguageManager.translate("Dönem İçi Toplam Gerçekleşen Ciro Dağılımı"),
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
@@ -408,7 +410,7 @@ private fun DailySalesBarChartCard(dailySales: List<DailySalesData>) {
                     modifier = Modifier.fillMaxWidth().height(150.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Henüz günlük satış verisi bulunmamaktadır.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                    Text(AppLanguageManager.translate("Henüz günlük satış verisi bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                 }
             } else {
                 Row(
@@ -517,7 +519,7 @@ private fun OperationalCategoryDistributionCard(categorySales: List<CountrySales
                                 ) {
                                     Text(icon, style = TourOSTypography.Caption)
                                     Text(
-                                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.countryName)} (${item.bookingCount} Rezervasyon)",
+                                        text = "${AppLanguageManager.translate(item.countryName)} (${item.bookingCount} ${AppLanguageManager.translate("Rezervasyon")})",
                                         style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                                         fontWeight = FontWeight.Bold
                                     )
@@ -550,12 +552,12 @@ private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>)
     TourOSCard(modifier = Modifier.fillMaxWidth(), contentPadding = TourOSSpacing.medium) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
             Text(
-                "🏢 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Satış Kanalı Bazlı Canlı Dağılım")}",
+                "🏢 ${AppLanguageManager.translate("Satış Kanalı Bazlı Canlı Dağılım")}",
                 style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                 fontWeight = FontWeight.Bold
             )
             Text(
-                com.mgacreative.touros.ui.localization.AppLanguageManager.translate("B2C Web, B2B Acente Portalı ve Ofis/Çağrı Merkezi canlı satış payları"),
+                AppLanguageManager.translate("B2C Web, B2B Acente Portalı ve Ofis/Çağrı Merkezi canlı satış payları"),
                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
             )
 
@@ -566,7 +568,7 @@ private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>)
                     modifier = Modifier.fillMaxWidth().height(120.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Henüz kanal bazlı rezervasyon verisi bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                    Text(AppLanguageManager.translate("Henüz kanal bazlı rezervasyon verisi bulunmamaktadır."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                 }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -594,7 +596,7 @@ private fun ChannelOccupancyComparisonCard(channelSales: List<ChannelSalesData>)
                                 ) {
                                     Text(icon, style = TourOSTypography.Caption)
                                     Text(
-                                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(ch.channelName)} (${ch.bookingCount} Rezervasyon)",
+                                        text = "${AppLanguageManager.translate(ch.channelName)} (${ch.bookingCount} ${AppLanguageManager.translate("Rezervasyon")})",
                                         style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                                         fontWeight = FontWeight.Bold
                                     )

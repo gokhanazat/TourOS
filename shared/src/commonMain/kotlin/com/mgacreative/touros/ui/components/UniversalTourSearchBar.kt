@@ -18,6 +18,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Flight
+import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.Luggage
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
@@ -143,10 +151,10 @@ fun UniversalTourSearchBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             listOf(
-                "TOURS" to "🏝️ ${AppLanguageManager.translate("Turlar & Paketler")}",
-                "FLIGHTS" to "✈️ ${AppLanguageManager.translate("Uçak Bileti")}",
-                "HOTELS" to "🏨 ${AppLanguageManager.translate("Sadece Otel")}"
-            ).forEach { (tabKey, tabLabel) ->
+                Triple("TOURS", AppLanguageManager.translate("Turlar & Paketler"), Icons.Default.Luggage),
+                Triple("FLIGHTS", AppLanguageManager.translate("Uçak Bileti"), Icons.Default.Flight),
+                Triple("HOTELS", AppLanguageManager.translate("Sadece Otel"), Icons.Default.Hotel)
+            ).forEach { (tabKey, tabLabel, tabIcon) ->
                 val isSelected = activeTab.uppercase() == tabKey || (tabKey == "FLIGHTS" && activeTab.uppercase() == "FLIGHT")
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -156,15 +164,26 @@ fun UniversalTourSearchBar(
                     },
                     modifier = Modifier.clickable { onTabChange(tabKey) }
                 ) {
-                    Text(
-                        text = tabLabel,
-                        style = TourOSTypography.Caption.copy(
-                            color = if (isSelected) Color.White else if (isHero) Color(0xFF475569) else TourOSColors.TextPrimary,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        ),
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = tabIcon,
+                            contentDescription = null,
+                            tint = if (isSelected) Color.White else if (isHero) Color(0xFF475569) else TourOSColors.TextPrimary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = tabLabel,
+                            style = TourOSTypography.Caption.copy(
+                                color = if (isSelected) Color.White else if (isHero) Color(0xFF475569) else TourOSColors.TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -338,10 +357,18 @@ private fun RowScope.TourSearchFields(
     // 3. GİDİŞ TARİH ARALIĞI
     Box(modifier = Modifier.weight(1.3f)) {
         TourOSTextField(
-            value = "$startDateText — $endDateText 📅",
+            value = "$startDateText — $endDateText",
             onValueChange = {},
             readOnly = true,
             label = AppLanguageManager.translate("Tarih Aralığı"),
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    tint = TourOSColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onDateRangeClick() })
@@ -350,10 +377,18 @@ private fun RowScope.TourSearchFields(
     // 4. GECE SAYISI
     Box(modifier = Modifier.weight(0.9f)) {
         TourOSTextField(
-            value = "$nightsText ▼",
+            value = AppLanguageManager.translate(nightsText.removeSuffix(" ▼")),
             onValueChange = {},
             readOnly = true,
             label = AppLanguageManager.translate("Gece Sayısı"),
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.ArrowDropDown,
+                    contentDescription = null,
+                    tint = TourOSColors.TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onNightsClick() })
@@ -375,21 +410,48 @@ private fun RowScope.TourSearchFields(
     // 5. TURİST SAYISI
     Box(modifier = Modifier.weight(1.1f)) {
         TourOSTextField(
-            value = "$touristSummary ▼",
+            value = touristSummary,
             onValueChange = {},
             readOnly = true,
             label = AppLanguageManager.translate("Turist"),
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = TourOSColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onTouristClick() })
     }
 
     // 6. ARAMA BUTONU
-    TourOSButton(
-        text = "🔍 ${AppLanguageManager.translate("TURLARI BUL")}",
+    Button(
         onClick = onSearchClick,
-        modifier = Modifier.height(50.dp)
-    )
+        modifier = Modifier.height(50.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = if (isHero) Color(0xFF0F5A56) else TourOSColors.Primary)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = AppLanguageManager.translate("TURLARI BUL"),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
+        }
+    }
 }
 
 // ─── DİKEY MOBİL TUR ALANLARI ──────────────────────────────────────────────────
@@ -445,10 +507,18 @@ private fun ColumnScope.TourSearchFields(
 
     Box(modifier = Modifier.fillMaxWidth()) {
         TourOSTextField(
-            value = "$startDateText — $endDateText 📅",
+            value = "$startDateText — $endDateText",
             onValueChange = {},
             readOnly = true,
             label = AppLanguageManager.translate("Tarih Aralığı"),
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    tint = TourOSColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onDateRangeClick() })
@@ -460,10 +530,18 @@ private fun ColumnScope.TourSearchFields(
     ) {
         Box(modifier = Modifier.weight(1f)) {
             TourOSTextField(
-                value = "$nightsText ▼",
+                value = AppLanguageManager.translate(nightsText.removeSuffix(" ▼")),
                 onValueChange = {},
                 readOnly = true,
                 label = AppLanguageManager.translate("Gece Sayısı"),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.ArrowDropDown,
+                        contentDescription = null,
+                        tint = TourOSColors.TextSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Box(modifier = Modifier.matchParentSize().clickable { onNightsClick() })
@@ -484,21 +562,48 @@ private fun ColumnScope.TourSearchFields(
 
         Box(modifier = Modifier.weight(1f)) {
             TourOSTextField(
-                value = "$touristSummary ▼",
+                value = touristSummary,
                 onValueChange = {},
                 readOnly = true,
                 label = AppLanguageManager.translate("Turist"),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = TourOSColors.TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Box(modifier = Modifier.matchParentSize().clickable { onTouristClick() })
         }
     }
 
-    TourOSButton(
-        text = "🔍 ${AppLanguageManager.translate("TURLARI BUL")}",
+    Button(
         onClick = onSearchClick,
-        modifier = Modifier.fillMaxWidth().height(48.dp)
-    )
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = if (isHero) Color(0xFF0F5A56) else TourOSColors.Primary)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = AppLanguageManager.translate("TURLARI BUL"),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
+        }
+    }
 }
 
 // ─── UÇUŞ ARAMA ALANLARI COMPOSABLE ───────────────────────────────────────────
@@ -521,14 +626,14 @@ private fun RowScope.FlightSearchFields(
     onSearchClick: () -> Unit,
     isCompact: Boolean
 ) {
-    val touristSummary = if (childrenAges.isEmpty()) "$adults ${AppLanguageManager.translate("Yolcu")}" else "$adults Yetişkin, ${childrenAges.size} Çoc"
+    val touristSummary = if (childrenAges.isEmpty()) "$adults ${AppLanguageManager.translate("Yolcu")}" else "$adults ${AppLanguageManager.translate("Yet")}, ${childrenAges.size} ${AppLanguageManager.translate("Çoc")}"
 
     Box(modifier = Modifier.weight(1.2f)) {
         TourOSTextField(
-            value = departureCity.ifBlank { "Tüm Kalkış Noktaları" },
+            value = departureCity.ifBlank { AppLanguageManager.translate("Tüm Kalkış Noktaları") },
             onValueChange = {},
             readOnly = true,
-            label = "Nereden",
+            label = AppLanguageManager.translate("Nereden"),
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onDepartureCityClick() })
@@ -536,10 +641,10 @@ private fun RowScope.FlightSearchFields(
 
     Box(modifier = Modifier.weight(1.3f)) {
         TourOSTextField(
-            value = selectedRegion.ifBlank { "Tüm Varış Noktaları" },
+            value = selectedRegion.ifBlank { AppLanguageManager.translate("Tüm Varış Noktaları") },
             onValueChange = {},
             readOnly = true,
-            label = "Nereye",
+            label = AppLanguageManager.translate("Nereye"),
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onRegionClick() })
@@ -547,10 +652,18 @@ private fun RowScope.FlightSearchFields(
 
     Box(modifier = Modifier.weight(1.1f)) {
         TourOSTextField(
-            value = "$startDateText 📅",
+            value = startDateText,
             onValueChange = {},
             readOnly = true,
-            label = "Gidiş",
+            label = AppLanguageManager.translate("Gidiş"),
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    tint = TourOSColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onStartDateClick() })
@@ -558,11 +671,21 @@ private fun RowScope.FlightSearchFields(
 
     Box(modifier = Modifier.weight(1.1f)) {
         TourOSTextField(
-            value = if (isRoundTrip) "$endDateText 📅" else "Tek Yön",
+            value = if (isRoundTrip) endDateText else AppLanguageManager.translate("Tek Yön"),
             onValueChange = {},
             readOnly = true,
             enabled = isRoundTrip,
-            label = "Dönüş",
+            label = AppLanguageManager.translate("Dönüş"),
+            trailingIcon = if (isRoundTrip) {
+                {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        tint = TourOSColors.TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            } else null,
             modifier = Modifier.fillMaxWidth()
         )
         if (isRoundTrip) {
@@ -579,7 +702,7 @@ private fun RowScope.FlightSearchFields(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(2.dp))
-            Text("Tek Yön", style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
+            Text(AppLanguageManager.translate("Tek Yön"), style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onRoundTripChange(true) }) {
             RadioButton(
@@ -589,26 +712,53 @@ private fun RowScope.FlightSearchFields(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(2.dp))
-            Text("Gidiş-Dönüş", style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
+            Text(AppLanguageManager.translate("Gidiş & Dönüş"), style = TourOSTypography.Caption.copy(fontSize = 11.sp, fontWeight = FontWeight.Bold))
         }
     }
 
     Box(modifier = Modifier.weight(1.0f)) {
         TourOSTextField(
-            value = "$touristSummary ▼",
+            value = touristSummary,
             onValueChange = {},
             readOnly = true,
-            label = "Yolcu",
+            label = AppLanguageManager.translate("Yolcu"),
+            trailingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = null,
+                    tint = TourOSColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onTouristClick() })
     }
 
-    TourOSButton(
-        text = "✈️ UÇUŞ BUL",
+    Button(
         onClick = onSearchClick,
-        modifier = Modifier.height(50.dp)
-    )
+        modifier = Modifier.height(50.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Flight,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = AppLanguageManager.translate("UÇUŞLARI BUL"),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
+        }
+    }
 }
 
 // ─── DİKEY MOBİL UÇUŞ ALANLARI ────────────────────────────────────────────────
@@ -631,15 +781,15 @@ private fun ColumnScope.FlightSearchFields(
     onSearchClick: () -> Unit,
     isCompact: Boolean
 ) {
-    val touristSummary = if (childrenAges.isEmpty()) "$adults ${AppLanguageManager.translate("Yolcu")}" else "$adults Yetişkin, ${childrenAges.size} Çoc"
+    val touristSummary = if (childrenAges.isEmpty()) "$adults ${AppLanguageManager.translate("Yolcu")}" else "$adults ${AppLanguageManager.translate("Yet")}, ${childrenAges.size} ${AppLanguageManager.translate("Çoc")}"
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(modifier = Modifier.weight(1f)) {
             TourOSTextField(
-                value = departureCity.ifBlank { "Tüm Kalkış Noktaları" },
+                value = departureCity.ifBlank { AppLanguageManager.translate("Tüm Kalkış Noktaları") },
                 onValueChange = {},
                 readOnly = true,
-                label = "Nereden",
+                label = AppLanguageManager.translate("Nereden"),
                 modifier = Modifier.fillMaxWidth()
             )
             Box(modifier = Modifier.matchParentSize().clickable { onDepartureCityClick() })
@@ -647,10 +797,10 @@ private fun ColumnScope.FlightSearchFields(
 
         Box(modifier = Modifier.weight(1f)) {
             TourOSTextField(
-                value = selectedRegion.ifBlank { "Tüm Varış Noktaları" },
+                value = selectedRegion.ifBlank { AppLanguageManager.translate("Tüm Varış Noktaları") },
                 onValueChange = {},
                 readOnly = true,
-                label = "Nereye",
+                label = AppLanguageManager.translate("Nereye"),
                 modifier = Modifier.fillMaxWidth()
             )
             Box(modifier = Modifier.matchParentSize().clickable { onRegionClick() })
@@ -660,10 +810,18 @@ private fun ColumnScope.FlightSearchFields(
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(modifier = Modifier.weight(1f)) {
             TourOSTextField(
-                value = "$startDateText 📅",
+                value = startDateText,
                 onValueChange = {},
                 readOnly = true,
-                label = "Gidiş",
+                label = AppLanguageManager.translate("Gidiş"),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.DateRange,
+                        contentDescription = null,
+                        tint = TourOSColors.TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Box(modifier = Modifier.matchParentSize().clickable { onStartDateClick() })
@@ -671,11 +829,21 @@ private fun ColumnScope.FlightSearchFields(
 
         Box(modifier = Modifier.weight(1f)) {
             TourOSTextField(
-                value = if (isRoundTrip) "$endDateText 📅" else "Tek Yön",
+                value = if (isRoundTrip) endDateText else AppLanguageManager.translate("Tek Yön"),
                 onValueChange = {},
                 readOnly = true,
                 enabled = isRoundTrip,
-                label = "Dönüş",
+                label = AppLanguageManager.translate("Dönüş"),
+                trailingIcon = if (isRoundTrip) {
+                    {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = null,
+                            tint = TourOSColors.TextSecondary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                } else null,
                 modifier = Modifier.fillMaxWidth()
             )
             if (isRoundTrip) {
@@ -698,7 +866,7 @@ private fun ColumnScope.FlightSearchFields(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Tek Yön", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold))
+                Text(AppLanguageManager.translate("Tek Yön"), style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold))
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { onRoundTripChange(true) }) {
                 RadioButton(
@@ -708,27 +876,54 @@ private fun ColumnScope.FlightSearchFields(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Gidiş-Dönüş", style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold))
+                Text(AppLanguageManager.translate("Gidiş & Dönüş"), style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold))
             }
         }
 
         Box(modifier = Modifier.widthIn(min = 140.dp)) {
             TourOSTextField(
-                value = "$touristSummary ▼",
+                value = touristSummary,
                 onValueChange = {},
                 readOnly = true,
-                label = "Yolcu",
+                label = AppLanguageManager.translate("Yolcu"),
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = TourOSColors.TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
                 modifier = Modifier.fillMaxWidth()
             )
             Box(modifier = Modifier.matchParentSize().clickable { onTouristClick() })
         }
     }
 
-    TourOSButton(
-        text = "✈️ UÇUŞ BUL",
+    Button(
         onClick = onSearchClick,
-        modifier = Modifier.fillMaxWidth().height(48.dp)
-    )
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = TourOSColors.Primary)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Flight,
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = AppLanguageManager.translate("UÇUŞLARI BUL"),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp
+            )
+        }
+    }
 }
 
 // ─── EVRENSEL YOLCU & ÇOCUK YAŞI SEÇİCİ MODALI ────────────────────────────────

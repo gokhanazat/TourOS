@@ -348,7 +348,7 @@ fun WizardStepHeaderBar(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "${if (isCompleted) "✓ " else ""}$label",
+                    text = "${if (isCompleted) "✓ " else ""}${AppLanguageManager.translate(label)}",
                     style = TourOSTypography.Caption.copy(
                         color = when {
                             isCompleted -> TourOSColors.Success

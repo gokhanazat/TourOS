@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.domain.model.ota.OTAAccount
 import com.mgacreative.touros.ui.components.*
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
@@ -38,23 +39,24 @@ fun OTADashboardScreen(
     tenantId: String = "tenant-001",
     onNavigateToLogs: (String) -> Unit = {}
 ) {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "OTA & Kanal Yöneticisi (Channel Manager)",
-                subtitle = "Viator, GetYourGuide, Booking.com, Airbnb entegrasyonu ve ürün dağıtımı",
+                title = AppLanguageManager.translate("OTA & Kanal Yöneticisi (Channel Manager)"),
+                subtitle = AppLanguageManager.translate("Viator, GetYourGuide, Booking.com, Airbnb entegrasyonu ve ürün dağıtımı"),
                 actions = {
                     TourOSButton(
-                        text = "📋 Senkronizasyon Logları",
+                        text = "📋 " + AppLanguageManager.translate("Senkronizasyon Logları"),
                         onClick = { onNavigateToLogs("ALL") },
                         variant = TourOSButtonVariant.SECONDARY,
                         modifier = Modifier.padding(end = TourOSSpacing.small)
                     )
                     TourOSButton(
-                        text = "🔄 Canlı Yenile",
+                        text = "🔄 " + AppLanguageManager.translate("Canlı Yenile"),
                         onClick = { viewModel.loadInitialData() },
                         variant = TourOSButtonVariant.PRIMARY
                     )
@@ -109,7 +111,10 @@ fun OTADashboardScreen(
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                listOf("🔗 OTA Kanalları & API Kimlikleri", "📦 Kanal Ürün Dağıtımı (Hangi Ürün Nerede Satılacak?)").forEachIndexed { index, title ->
+                listOf(
+                    "🔗 " + AppLanguageManager.translate("OTA Kanalları & API Kimlikleri"),
+                    "📦 " + AppLanguageManager.translate("Kanal Ürün Dağıtımı (Hangi Ürün Nerede Satılacak?)")
+                ).forEachIndexed { index, title ->
                     val isSelected = uiState.activeTab == index
                     OutlinedButton(
                         onClick = { viewModel.setTab(index) },
@@ -191,8 +196,8 @@ private fun OTADynamicMetricsOverviewBar(
             contentPadding = TourOSSpacing.medium
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Kanal Durumu", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                Text("$activeChannels / $totalChannels AKTİF", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
+                Text(AppLanguageManager.translate("Kanal Durumu"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                Text("$activeChannels / $totalChannels ${AppLanguageManager.translate("AKTİF")}", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary))
             }
         }
 
@@ -202,8 +207,8 @@ private fun OTADynamicMetricsOverviewBar(
             contentPadding = TourOSSpacing.medium
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("OTA'da Yayında Olan Ürün", style = TourOSTypography.Caption.copy(color = TourOSColors.Success))
-                Text("$totalPublishedProducts EŞLEŞME", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Success))
+                Text(AppLanguageManager.translate("OTA'da Yayında Olan Ürün"), style = TourOSTypography.Caption.copy(color = TourOSColors.Success))
+                Text("$totalPublishedProducts ${AppLanguageManager.translate("EŞLEŞME")}", style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Success))
             }
         }
 
@@ -213,8 +218,8 @@ private fun OTADynamicMetricsOverviewBar(
             contentPadding = TourOSSpacing.medium
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Hatalı Kanal", style = TourOSTypography.Caption.copy(color = if (errorChannels > 0) TourOSColors.Secondary else TourOSColors.TextSecondary))
-                Text(if (errorChannels > 0) "$errorChannels HATA" else "SORUNSUZ", style = TourOSTypography.TitleLarge.copy(color = if (errorChannels > 0) TourOSColors.Secondary else TourOSColors.TextPrimary))
+                Text(AppLanguageManager.translate("Hatalı Kanal"), style = TourOSTypography.Caption.copy(color = if (errorChannels > 0) TourOSColors.Secondary else TourOSColors.TextSecondary))
+                Text(if (errorChannels > 0) "$errorChannels ${AppLanguageManager.translate("HATA")}" else AppLanguageManager.translate("SORUNSUZ"), style = TourOSTypography.TitleLarge.copy(color = if (errorChannels > 0) TourOSColors.Secondary else TourOSColors.TextPrimary))
             }
         }
     }
@@ -248,14 +253,14 @@ private fun OTADynamicChannelCard(
                     Column {
                         Text(account.accountName, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
                         Text(
-                            if (account.supplierId.isNotBlank()) "ID: ${account.supplierId}" else "API Key Tanımlanmadı",
+                            if (account.supplierId.isNotBlank()) "ID: ${account.supplierId}" else AppLanguageManager.translate("API Key Tanımlanmadı"),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                     }
                 }
 
                 TourOSStatusBadge(
-                    text = if (account.hasError) "❌ HATA" else if (account.isConnected) "✅ BAĞLI" else "○ PASİF",
+                    text = if (account.hasError) "❌ " + AppLanguageManager.translate("HATA") else if (account.isConnected) "✅ " + AppLanguageManager.translate("BAĞLI") else "○ " + AppLanguageManager.translate("PASİF"),
                     backgroundColor = if (account.hasError) TourOSColors.SecondaryContainer else if (account.isConnected) TourOSColors.SuccessContainer else TourOSColors.Surface,
                     textColor = if (account.hasError) TourOSColors.Secondary else if (account.isConnected) TourOSColors.Success else TourOSColors.TextSecondary
                 )
@@ -264,17 +269,18 @@ private fun OTADynamicChannelCard(
             HorizontalDivider(color = TourOSColors.Divider)
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Son Senkronizasyon:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                Text(account.lastSyncedAt, style = TourOSTypography.Label.copy(color = TourOSColors.Primary))
+                Text(AppLanguageManager.translate("Son Senkronizasyon:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                val syncDisplay = if (account.lastSyncedAt == "Bağlantı Kurulmadı") AppLanguageManager.translate("Bağlantı Kurulmadı") else account.lastSyncedAt
+                Text(syncDisplay, style = TourOSTypography.Label.copy(color = TourOSColors.Primary))
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Yayındaki Ürün Sayısı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                Text("$activeProductCount Ürün Satışta", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                Text(AppLanguageManager.translate("Yayındaki Ürün Sayısı:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                Text("$activeProductCount ${AppLanguageManager.translate("Ürün Satışta")}", style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Fiyat Marjı (Surge):", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                Text(AppLanguageManager.translate("Fiyat Marjı (Surge):"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                 Text("+%${account.rateMarginPercent}", style = TourOSTypography.Label.copy(color = TourOSColors.Success))
             }
 
@@ -285,13 +291,13 @@ private fun OTADynamicChannelCard(
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
             ) {
                 TourOSButton(
-                    text = "⚙️ API Ayarla",
+                    text = "⚙️ " + AppLanguageManager.translate("API Ayarla"),
                     onClick = onManage,
                     variant = TourOSButtonVariant.SECONDARY,
                     modifier = Modifier.weight(1f)
                 )
                 TourOSButton(
-                    text = "⚡ Senkronize Et",
+                    text = "⚡ " + AppLanguageManager.translate("Senkronize"),
                     onClick = onSync,
                     variant = TourOSButtonVariant.PRIMARY,
                     modifier = Modifier.weight(1f)

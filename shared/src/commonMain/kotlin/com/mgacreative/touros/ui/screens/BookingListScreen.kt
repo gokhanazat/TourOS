@@ -275,7 +275,7 @@ fun BookingListScreen(
                                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                                         )
                                         Text(
-                                            text = "👥 ${booking.paxCount} Kişi", 
+                                            text = "👥 ${booking.paxCount} ${AppLanguageManager.translate("Kişi")}", 
                                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                         )
                                     }

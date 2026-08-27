@@ -215,7 +215,7 @@ fun TourListScreen(
                                         Spacer(modifier = Modifier.width(TourOSSpacing.medium))
                                         Column {
                                             Text(text = tour.title, style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary))
-                                            Text(text = "Kod: ${tour.code}", style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary))
+                                            Text(text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kod")}: ${tour.code}", style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary))
                                         }
                                     }
                                 },
@@ -229,7 +229,7 @@ fun TourListScreen(
                                 TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("LOKASYON & SÜRE"), weight = 1.8f) { tour ->
                                     Column {
                                         Text(text = "${tour.city}, ${tour.country}", style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary))
-                                        Text(text = "${tour.durationDays} Gün • Kapasite: ${tour.capacity}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        Text(text = "${tour.durationDays} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gün")} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kapasite")}: ${tour.capacity}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                                     }
                                 },
                                 TourOSColumn<Tour>(title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("DURUM"), weight = 1.2f) { tour ->
@@ -305,7 +305,7 @@ fun TourListScreen(
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(text = tour.title, style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary))
                                                 Text(
-                                                    text = "📍 ${tour.city}, ${tour.country} • ⏱️ ${tour.durationDays} Gün",
+                                                    text = "📍 ${tour.city}, ${tour.country} • ⏱️ ${tour.durationDays} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gün")}",
                                                     style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                                                 )
                                             }

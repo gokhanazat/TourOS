@@ -1237,11 +1237,27 @@ fun GlobalWebPublicScreen(
             else -> !isPureFlight
         }
 
+        val destinationToMatch = if (selectedDestinationFilter != "Tüm Destinasyonlar" && selectedDestinationFilter.isNotBlank()) {
+            selectedDestinationFilter
+        } else if (destinationCity.isNotBlank() && !destinationCity.contains("Tüm Destinasyonlar", ignoreCase = true)) {
+            destinationCity
+        } else {
+            ""
+        }
+
+        val destMatch = destinationToMatch.isBlank() || com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isDestinationMatchingText(
+            targetText = "${h.location} ${h.hotelName} ${h.description} ${h.countryCode}",
+            selectedDest = destinationToMatch
+        )
+
+        val depMatch = departureCity.isBlank() || departureCity.contains("Tüm", ignoreCase = true) || com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isDepartureMatchingText(
+            targetDeparture = h.flightCode + " " + h.location,
+            selectedDeparture = departureCity
+        )
+
         categoryMatch &&
-        (selectedDestinationFilter == "Tüm Destinasyonlar" || 
-            h.location.contains(selectedDestinationFilter.substringBefore(" "), ignoreCase = true) || 
-            h.hotelName.contains(selectedDestinationFilter.substringBefore(" "), ignoreCase = true) ||
-            h.description.contains(selectedDestinationFilter.substringBefore(" "), ignoreCase = true)) &&
+        destMatch &&
+        depMatch &&
         (searchQuery.isBlank() || 
             h.hotelName.contains(searchQuery, ignoreCase = true) || 
             h.location.contains(searchQuery, ignoreCase = true) || 
@@ -1658,13 +1674,13 @@ fun GlobalWebPublicScreen(
                             }
                             b2bTourSearchViewModel.selectedCategory.value = tab
                             b2bTourSearchViewModel.departureCity.value = departureCity
-                            b2bTourSearchViewModel.selectedRegion.value = destinationCity.substringBefore("(").trim()
+                            b2bTourSearchViewModel.selectedRegion.value = destinationCity
                             b2bTourSearchViewModel.adults.value = adultsCount
                             b2bTourSearchViewModel.childs.value = childrenCount
                             b2bTourSearchViewModel.childrenAges.value = childrenAges
                             b2bTourSearchViewModel.searchQuery.value = searchQuery
                             b2bTourSearchViewModel.performSearch()
-                            onNavigateToB2BSearch()
+                            isInlineSearchActive = true
                         }
 
                         UniversalTourSearchBar(
@@ -1849,7 +1865,7 @@ fun GlobalWebPublicScreen(
                                     }
                                     Column {
                                         Text(
-                                            text = "Arama Sonuçları (${searchResultsList.ifEmpty { filteredHotels }.size} Paket Tur / Otel Bulundu)",
+                                            text = "Arama Sonuçları (${b2bSearchResults.size} Paket Tur / Otel Bulundu)",
                                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                         )
                                         Text(
@@ -1872,15 +1888,36 @@ fun GlobalWebPublicScreen(
 
                             HorizontalDivider(color = Color(0xFFE2E8F0))
 
-                            // ── Bulunan Arama Fırsatları Dikey Kart Izgarası (Vertical Grid)
-                            VerticalSearchResultsGridSection(
-                                titleIcon = "✨",
-                                title = "Bulunan Arama Fırsatları",
-                                subtitle = "Kriterlerinize uyan en uygun fiyatlı canlı tur ve otel teklifleri",
-                                hotels = b2bSearchResults.ifEmpty { searchResultsList.ifEmpty { filteredHotels } },
-                                onHotelClick = { selectedHotelForDetail = it },
-                                onSelectAndBook = handleDirectBooking
-                            )
+                            if (b2bSearchResults.isNotEmpty()) {
+                                // ── Bulunan Arama Fırsatları Dikey Kart Izgarası (Vertical Grid)
+                                VerticalSearchResultsGridSection(
+                                    titleIcon = "✨",
+                                    title = "Bulunan Arama Fırsatları",
+                                    subtitle = "Kriterlerinize uyan en uygun fiyatlı canlı tur ve otel teklifleri",
+                                    hotels = b2bSearchResults,
+                                    onHotelClick = { selectedHotelForDetail = it },
+                                    onSelectAndBook = handleDirectBooking
+                                )
+                            } else {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 32.dp, horizontal = 16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Text("🏖️", fontSize = 42.sp)
+                                    Text(
+                                        text = "Kriterlerinize Uygun Tur veya Otel Bulunamadı",
+                                        style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                                    )
+                                    Text(
+                                        text = "Seçtiğiniz destinasyon ($destinationCity) veya kalkış noktası ($departureCity) için şu anda aktif teklif bulunamadı. Lütfen tarih veya geceleme kriterlerinizi esnetmeyi deneyiniz.",
+                                        style = TourOSTypography.BodyMedium.copy(color = Color(0xFF64748B)),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -37,8 +37,8 @@ data class UnifiedProductEntity(
     @SerialName("airline_name") val airlineName: String = "",
     @SerialName("flight_number") val flightNumber: String = "",
     @SerialName("baggage_kg") val baggageKg: Int = 20,
-    @SerialName("picture_url") val pictureUrl: String = "",
-    val picture: String = "",
+    @SerialName("picture_url") val pictureUrl: String? = null,
+    val picture: String? = null,
     val latitude: Double? = null,
     val longitude: Double? = null,
     @SerialName("hotel_rating") val hotelRating: Double = 8.0,
@@ -78,5 +78,5 @@ data class UnifiedProductEntity(
     val safeAirlineName: String get() = airlineName
     val safeFlightNumber: String get() = flightNumber
     val safeBaggageKg: Int get() = baggageKg
-    val safePictureUrl: String get() = pictureUrl.ifBlank { picture }
+    val safePictureUrl: String get() = (pictureUrl ?: picture ?: "").ifBlank { "" }
 }

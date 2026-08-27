@@ -40,6 +40,7 @@ fun OperatorCurrentAccountReportScreen(
     onNavigateBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -146,7 +147,7 @@ fun OperatorCurrentAccountReportScreen(
                                 ) {
                                     // Tarih Aralığı Filtresi
                                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("📅 Tarih Aralığı:", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                                        Text("📅 ${AppLanguageManager.translate("Tarih Aralığı:")}", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             listOf("Tüm Zamanlar", "Bu Ay", "Bu Yıl").forEach { filterLabel ->
                                                 val isSelected = state.selectedDateFilter == filterLabel
@@ -165,12 +166,12 @@ fun OperatorCurrentAccountReportScreen(
 
                                     // Tur Operatörü Açılır Kutusu (Dropdown)
                                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                        Text("💼 Tur Operatörü Seçin:", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
+                                        Text("💼 ${AppLanguageManager.translate("Tur Operatörü Seçin:")}", style = TourOSTypography.Caption, color = TourOSColors.TextSecondary)
                                         var showOpDropdown by remember { mutableStateOf(false) }
 
                                         Box(modifier = Modifier.fillMaxWidth()) {
                                             TourOSTextField(
-                                                value = "💼 ${state.selectedOperator} ▼",
+                                                value = "💼 ${if (state.selectedOperator == "Tümü") AppLanguageManager.translate("Tümü") else state.selectedOperator} ▼",
                                                 onValueChange = { },
                                                 readOnly = true,
                                                 modifier = Modifier.fillMaxWidth()
@@ -184,7 +185,7 @@ fun OperatorCurrentAccountReportScreen(
                                             ) {
                                                 state.availableOperators.forEach { opName ->
                                                     DropdownMenuItem(
-                                                        text = { Text("💼 $opName", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                        text = { Text("💼 ${if (opName == "Tümü") AppLanguageManager.translate("Tümü") else opName}", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
                                                         onClick = {
                                                             viewModel.setFilter(opName, state.selectedDateFilter)
                                                             showOpDropdown = false
@@ -205,9 +206,9 @@ fun OperatorCurrentAccountReportScreen(
                         ) {
                             // Toplam Borç (Tur Maliyeti)
                             SummaryCard(
-                                title = "Toplam Borç (Tur Maliyeti)",
+                                title = AppLanguageManager.translate("Toplam Borç (Tur Maliyeti)"),
                                 value = "${formatCurrency(state.totalCost)} ₺",
-                                subtitle = "Paket Satış: ${formatCurrency(state.totalSales)} ₺",
+                                subtitle = "${AppLanguageManager.translate("Paket Satış")}: ${formatCurrency(state.totalSales)} ₺",
                                 icon = "💳",
                                 containerColor = TourOSColors.PrimaryContainer.copy(alpha = 0.3f),
                                 contentColor = TourOSColors.Primary,
@@ -216,9 +217,9 @@ fun OperatorCurrentAccountReportScreen(
 
                             // Toplam Ödeme (TO Ödenen)
                             SummaryCard(
-                                title = "Toplam Ödeme (TO Ödenen)",
+                                title = AppLanguageManager.translate("Toplam Ödeme (TO Ödenen)"),
                                 value = "${formatCurrency(state.totalPaid)} ₺",
-                                subtitle = "Acentenin TO'ya Ödediği",
+                                subtitle = AppLanguageManager.translate("Acentenin TO'ya Ödediği"),
                                 icon = "🟢",
                                 containerColor = Color(0xFFECFDF5),
                                 contentColor = Color(0xFF059669),
@@ -227,9 +228,9 @@ fun OperatorCurrentAccountReportScreen(
 
                             // Net Bakiye (Kalan Borç)
                             SummaryCard(
-                                title = "Net Bakiye (Kalan TO Borcu)",
+                                title = AppLanguageManager.translate("Net Bakiye (Kalan TO Borcu)"),
                                 value = "${formatCurrency(state.totalBalance)} ₺",
-                                subtitle = "Kalan Ödenecek Tutar",
+                                subtitle = AppLanguageManager.translate("Kalan Ödenecek Tutar"),
                                 icon = "⚖️",
                                 containerColor = Color(0xFFFEF3C7),
                                 contentColor = Color(0xFFD97706),
@@ -251,20 +252,20 @@ fun OperatorCurrentAccountReportScreen(
                                         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("TO PNR", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("Müşteri Adı", modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("Paket Tur Kodu", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("TO Acente Adı", modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("Tur Satış Fiyatı", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("Acenta %", modifier = Modifier.weight(0.8f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("Tur Satışı (Maliyet)", modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("TO Ödemesi", modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
-                                        Text("Bakiye", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("TO PNR"), modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("Müşteri Adı"), modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("Paket Tur Kodu"), modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("TO Acente Adı"), modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("Tur Satış Fiyatı"), modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("Acenta %"), modifier = Modifier.weight(0.8f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("Tur Satışı (Maliyet)"), modifier = Modifier.weight(1.2f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("TO Ödemesi"), modifier = Modifier.weight(1.0f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
+                                        Text(AppLanguageManager.translate("Bakiye"), modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = TourOSColors.OnPrimary), fontWeight = FontWeight.Bold)
                                     }
 
                                     if (state.filteredItems.isEmpty()) {
                                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                            Text("Filtrelere uygun Tur Operatörü PNR kaydı bulunamadı.", style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
+                                            Text(AppLanguageManager.translate("Filtrelere uygun Tur Operatörü PNR kaydı bulunamadı."), style = TourOSTypography.BodyMedium, color = TourOSColors.TextSecondary)
                                         }
                                     } else {
                                         LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -397,7 +398,7 @@ private fun OperatorLedgerRowItem(item: OperatorLedgerItem) {
         // 9. Bakiye
         val isZeroBalance = item.balance <= 0.0
         Text(
-            text = if (isZeroBalance) "0 ₺ (Kapandı)" else "${formatCurrency(item.balance)} ₺",
+            text = if (isZeroBalance) "0 ₺ (${AppLanguageManager.translate("Kapandı")})" else "${formatCurrency(item.balance)} ₺",
             modifier = Modifier.weight(1.1f),
             style = TourOSTypography.Label.copy(
                 color = if (isZeroBalance) Color(0xFF64748B) else Color(0xFFD97706),

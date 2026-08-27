@@ -145,7 +145,7 @@ fun OperatorPaymentManagementScreen(
                                 )
                                 OPSummaryCard(
                                     title = AppLanguageManager.translate("Eksik PNR Sayısı"),
-                                    value = "${state.missingPnrCount} Adet",
+                                    value = "${state.missingPnrCount} ${AppLanguageManager.translate("Adet")}",
                                     icon = "⚠️",
                                     containerColor = Color(0xFFFFFBEB),
                                     contentColor = Color(0xFFD97706),
@@ -180,7 +180,7 @@ fun OperatorPaymentManagementScreen(
                                     var showOpDropdown by remember { mutableStateOf(false) }
                                     Box(modifier = Modifier.weight(1f)) {
                                         TourOSTextField(
-                                            value = "🏢 ${state.selectedOperator}",
+                                            value = "🏢 ${AppLanguageManager.translate(state.selectedOperator)}",
                                             onValueChange = {},
                                             readOnly = true,
                                             label = AppLanguageManager.translate("Tur Operatörü"),
@@ -194,7 +194,7 @@ fun OperatorPaymentManagementScreen(
                                         ) {
                                             state.availableOperators.forEach { op ->
                                                 DropdownMenuItem(
-                                                    text = { Text(op, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
+                                                    text = { Text(AppLanguageManager.translate(op), style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp)) },
                                                     onClick = {
                                                         viewModel.updateFilters(operator = op)
                                                         showOpDropdown = false
@@ -460,7 +460,7 @@ private fun OperatorBookingPaymentRowCard(
                                         .padding(horizontal = 6.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
-                                    if (pnrInput.isEmpty()) Text("TO PNR No", style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = TourOSColors.TextDisabled))
+                                    if (pnrInput.isEmpty()) Text(AppLanguageManager.translate("TO PNR No"), style = TourOSTypography.Caption.copy(fontSize = 10.sp, color = TourOSColors.TextDisabled))
                                     inner()
                                 }
                             }
@@ -510,16 +510,16 @@ private fun OperatorBookingPaymentRowCard(
                 verticalArrangement = Arrangement.spacedBy(1.dp)
             ) {
                 Text(
-                    text = "Maliyet: ${row.operatorCost.toInt()} ${row.currency}",
+                    text = "${AppLanguageManager.translate("Maliyet")}: ${row.operatorCost.toInt()} ${row.currency}",
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                 )
                 Text(
-                    text = "Ödenen: ${row.totalPaid.toInt()} ${row.currency}",
+                    text = "${AppLanguageManager.translate("Ödenen")}: ${row.totalPaid.toInt()} ${row.currency}",
                     style = TourOSTypography.Caption.copy(color = Color(0xFF059669), fontSize = 11.sp)
                 )
                 val balColor = if (row.isFullyPaid) Color(0xFF059669) else Color(0xFFDC2626)
                 Text(
-                    text = "Kalan: ${row.remainingBalance.toInt()} ${row.currency}",
+                    text = "${AppLanguageManager.translate("Kalan")}: ${row.remainingBalance.toInt()} ${row.currency}",
                     style = TourOSTypography.Caption.copy(color = balColor, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 )
             }
@@ -533,7 +533,7 @@ private fun OperatorBookingPaymentRowCard(
                         border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.3f))
                     ) {
                         Text(
-                            text = "✓ Ödendi",
+                            text = "✓ ${AppLanguageManager.translate("Ödendi")}",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold, fontSize = 11.sp),
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         )

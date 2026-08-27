@@ -52,7 +52,7 @@ fun SyncLogsScreen(
                 onNavigateBack = onNavigateBack,
                 actions = {
                     TourOSButton(
-                        text = "🔄 Yenile",
+                        text = "🔄 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yenile"),
                         onClick = { viewModel.filterLogs(currentFilter) },
                         variant = TourOSButtonVariant.SECONDARY
                     )
@@ -80,7 +80,7 @@ fun SyncLogsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf(
-                        "ALL" to "🌐 Tümü",
+                        "ALL" to ("🌐 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tümü")),
                         "viator" to "Viator",
                         "getyourguide" to "GetYourGuide",
                         "booking" to "Booking.com",
@@ -113,7 +113,7 @@ fun SyncLogsScreen(
                 ) {
                     if (uiState.syncLogs.isEmpty()) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Seçilen filtrede henüz log kaydı bulunmuyor.", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Seçilen filtrede henüz log kaydı bulunmuyor."), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                         }
                     } else {
                         LazyColumn(
@@ -203,7 +203,7 @@ private fun OTASyncLogDetailPanel(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("📋 Log Ayrıntısı: ${log.logId}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text("📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Log Ayrıntısı")}: ${log.logId}", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
                 IconButton(onClick = onClose) {
                     Text("✕", style = TourOSTypography.TitleMedium)
                 }
@@ -211,9 +211,9 @@ private fun OTASyncLogDetailPanel(
 
             HorizontalDivider(color = TourOSColors.Divider)
 
-            Text("İşlem: ${log.eventName}", fontWeight = FontWeight.Bold)
-            Text("Zaman: ${log.timestamp}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-            Text("Sağlayıcı: ${log.providerName}", style = TourOSTypography.Caption)
+            Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İşlem")}: ${log.eventName}", fontWeight = FontWeight.Bold)
+            Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Zaman")}: ${log.timestamp}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+            Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sağlayıcı")}: ${log.providerName}", style = TourOSTypography.Caption)
 
             log.errorMessage?.let { err ->
                 Box(
@@ -223,11 +223,11 @@ private fun OTASyncLogDetailPanel(
                         .background(TourOSColors.SecondaryContainer)
                         .padding(TourOSSpacing.small)
                 ) {
-                    Text("❌ Hata: $err", style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary))
+                    Text("❌ ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hata")}: $err", style = TourOSTypography.Caption.copy(color = TourOSColors.Secondary))
                 }
             }
 
-            Text("📤 İstek Payload (JSON):", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("📤 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İstek Payload (JSON)")}:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Surface(
                 color = TourOSColors.SurfaceVariant,
                 shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
@@ -241,7 +241,7 @@ private fun OTASyncLogDetailPanel(
                 )
             }
 
-            Text("📥 Yanıt Body (JSON):", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text("📥 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yanıt Body (JSON)")}:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
             Surface(
                 color = TourOSColors.SurfaceVariant,
                 shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),

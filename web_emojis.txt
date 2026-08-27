@@ -1,0 +1,151 @@
+111:     val flightCode: String = "VKO - AYT (Ekonomi 🟢)",
+176:     val fCode = if (this.flightNumber.isNotBlank()) "${this.airlineName} (${this.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
+179:     val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || this.airlineName.isNotBlank() || this.flightNumber.startsWith("TK-") || this.flightNumber.startsWith("N4-") || this.flightNumber.startsWith("SU-") || this.flightNumber.startsWith("PC-") || this.safeTourName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("✈️", ignoreCase = true)
+210:         hotelName = this.safeHotelName.ifBlank { this.safeTourName.ifBlank { if (isFlight) "✈️ Charter Uçuş Seferi (${fCode})" else "Tur Operatörü Ürünü" } },
+292:         // ── 🇹🇷 TÜRKİYE FIRSATLARI ──
+305:             flightCode = "AYT - IST (THY 🟢)",
+326:             flightCode = "VKO - AYT (Azur Air 🟢)",
+347:             flightCode = "BJV - IST (AJet 🟢)",
+368:             flightCode = "AYT - IST (THY VIP 🟢)",
+378:         // ── 🇪🇬 MISIR FIRSATLARI ──
+391:             flightCode = "IST - SSH (THY 🟢)",
+412:             flightCode = "AYT - HRG (Pegasus 🟢)",
+433:             flightCode = "SAW - HRG (AJet 🟢)",
+443:         // ── 🇹🇭 TAYLAND FIRSATLARI ──
+456:             flightCode = "IST - HKT (THY 🟢)",
+477:             flightCode = "IST - BKK (Qatar 🟢)",
+498:             flightCode = "AYT - BKK (Emirates 🟢)",
+508:         // ── 🇻🇳 VİETNAM FIRSATLARI ──
+521:             flightCode = "IST - PQC (Vietnam Airlines 🟢)",
+542:             flightCode = "IST - DAD (Singapore Airlines 🟢)",
+552:         // ── 🇦🇪 BAE (DUBAİ) FIRSATLARI ──
+565:             flightCode = "SAW - DXB (FlyDubai 🟢)",
+586:             flightCode = "IST - DXB (Emirates 🟢)",
+596:         // ── 🇷🇺 RUSYA FIRSATLARI ──
+609:             flightCode = "IST - AER (Aeroflot 🟢)",
+630:             flightCode = "IST - SVO (Aeroflot 🟢)",
+640:         // ── 🏨 SADECE OTEL FIRSATLARI (HOTEL ONLY) ──
+705:         // ── ✈️ SADECE UÇUŞ FIRSATLARI (FLIGHT ONLY) ──
+718:             flightCode = "SVO - AYT (TK-3701 🟢)",
+739:             flightCode = "DME - SSH (N4-5821 🟢)",
+760:             flightCode = "IST - DXB (EK-122 🟢)",
+901:             it.hotelName.startsWith("✈️", ignoreCase = true) || 
+972:             customTitle = if (isFlightTab) "✈️ UÇUŞ KALKIŞ NOKTASI / ГОРОД ВЫЛЕТА" else null,
+985:             customTitle = if (isFlightTab) "✈️ UÇUŞ VARIŞ DESTİNASYONU / ПУНКТ НАЗНАЧЕНИЯ" else null,
+999:             title = "🗓️ Gidiş Tarih Aralığı Seçin",
+1012:             title = "🗓️ Dönüş Tarih Aralığı Seçin",
+1103:                 val fCode = if (p.flightNumber.isNotBlank()) "${p.airlineName} (${p.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
+1106:                 val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || p.airlineName.isNotBlank() || p.flightNumber.startsWith("TK-") || p.flightNumber.startsWith("N4-") || p.flightNumber.startsWith("SU-") || p.flightNumber.startsWith("PC-") || p.safeTourName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("✈️", ignoreCase = true)
+1138:                         hotelName = p.safeHotelName.ifBlank { p.safeTourName.ifBlank { if (isFlight) "✈️ Charter Uçuş Seferi (${fCode})" else "Tur Operatörü Ürünü" } },
+1172:             val fCode = if (p.flightNumber.isNotBlank()) "${p.airlineName} (${p.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
+1233:                            h.hotelName.startsWith("✈️", ignoreCase = true)
+1289:                             // 📱 MOBİL DİKEY EKRAN DÜZENİ (Telefonlarda Acente / Müşteri Giriş Butonları En Üstte Net Görünür)
+1335:                                     // 🧳 Misafir / 🏢 Acenta Giriş Butonları (Minimalist & Şık)
+1344:                                         val guestLabel = "🧳 Misafir"
+1345:                                         val agencyLabel = if (currentUser != null) "🏢 Acenta ➔" else "🏢 Acenta"
+1415:                             // 💻 MASAÜSTÜ GENİŞ EKRAN DÜZENİ
+1869:             // ── ⚡ SAYFA İÇİ AKICI İNLİNE ARAMA SONUÇLARI BÖLÜMÜ (INLINE SEARCH SECTION) ──
+1904:                                         Text("🔍", fontSize = 20.sp)
+1912:                                             text = "🗓️ Tarih: $startDateText — $endDateText  |  📍 Destinasyon: $destinationCity  |  🌙 Gece: $selectedNightsText",
+1919:                                     text = "Aramayı Temizle / Kapat ✕",
+1933:                                 titleIcon = "✨",
+1959:                                 text = "🏨 Aradığınız kriterlere uygun tur/otel paketi bulunamadı.",
+1963:                                 text = "Filtreleri Sıfırla 🔄",
+1987:                             // ── 🌍 HİZMETLERİ KEŞFEDİN: ÜLKE GİRİŞ KARTLARI & HIZLI LİSTELEME ──────────────────
+1990:                                     Triple("ALL", "Tüm Dünyayı Keşfet", "🌍") to Triple("https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80", "Global Destinasyonlar", "En İyi Fiyat"),
+1991:                                     Triple("TR", "Türkiye", "🇹🇷") to Triple("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=80", "Antalya · Belek · Bodrum · Kemer", "$580'den başlayan"),
+1992:                                     Triple("EG", "Mısır", "🇪🇬") to Triple("https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&auto=format&fit=crop&q=80", "Şarm El-Şeyh · Hurgada · El Gouna", "$490'dan başlayan"),
+1993:                                     Triple("TH", "Tayland", "🇹🇭") to Triple("https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&auto=format&fit=crop&q=80", "Phuket · Pattaya · Bangkok · Samui", "$790'dan başlayan"),
+1994:                                     Triple("VN", "Vietnam", "🇻🇳") to Triple("https://images.unsplash.com/photo-1528127269322-539801943592?w=800&auto=format&fit=crop&q=80", "Da Nang · Phu Quoc · Nha Trang", "$850'den başlayan"),
+1995:                                     Triple("AE", "BAE (Dubai)", "🇦🇪") to Triple("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop&q=80", "Dubai Marina · Palm Jumeirah", "$690'den başlayan"),
+1996:                                     Triple("RU", "Rusya", "🇷🇺") to Triple("https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800&auto=format&fit=crop&q=80", "Moskova · Sochi · St. Petersburg", "$420'den başlayan")
+2012:                                 // ── 🗺️ ÜLKE DETAY SAYFASI: BAĞIMSIZ ARAMA PANELİ VE OTELLER ──────────────────
+2015:                                 val (cCode, cName, cFlag) = countryData?.first ?: Triple(currentCountryCode, "Ülke Detayı", "🌍")
+2054:                                                 Text("← Tüm Ülkelere & Ana Sayfaya Dön", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+2068:                                                         text = "📍 $cSubInfo",
+2108:                                                 Text("🎯", fontSize = 16.sp)
+2120:                                                 Text("↺ Filtreleri Sıfırla", fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+2132:                                                 Text("📍 $cName Beldeleri", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp))
+2188:                                                             text = "$starCount⭐",
+2368:                                                                         text = "✓",
+2431:                                     it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+2524:                                                                     Text("⭐".repeat(dealHotel.stars.coerceIn(1, 5)), fontSize = 10.sp)
+2532:                                                                         text = "📍 ${dealHotel.location}",
+2537:                                                                         text = "✈️ 12 - 19 Eyl (7 Gece)",
+2541:                                                                         text = "🍴 Her Şey Dahil",
+2575:                                                                         text = AppLanguageManager.translate("Rezerve Et ➔"),
+2592:                                 // ── BLOK 1: 🏖️ PAKET TURLAR (UÇUŞLAR VE SAF OTELLER HARİÇ - ANA SAYFA SABİT BLOK) ─────
+2596:                                     !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+2613:                                     !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true)
+2628:                                     it.category != "FLIGHT" && !it.hotelName.startsWith("Uçuş:", ignoreCase = true) && !it.hotelName.startsWith("✈️", ignoreCase = true) && (it.isLastMinute || (it.discountPercent ?: 0) > 0)
+2641:                                 // ── BLOK 4: ✈️ CHARTER & TARİFELİ UÇUŞLAR (ANA SAYFA SABİT BLOK) ─────
+2643:                                     it.category == "FLIGHT" || it.hotelName.startsWith("Uçuş:", ignoreCase = true) || it.hotelName.startsWith("✈️", ignoreCase = true)
+2662:             // ── 🌟 HİZMETLERİMİZ (OUR SERVICES - FOOTER ÜSTÜ 6'LI KURUMSAL SEKSİYON) ──
+2730:             // ── 🏢 KURUMSAL BUSINESS FOOTER (WEB PANEL YÖNETİMİNDEN CANLI VERİLERLE) ──
+2740:         // ── 🏢 ACENTE GİRİŞİ MODALI (EMAIL + ŞİFRE + ACENTE KODU) ──────────────────
+2763:                                 text = "🏢 Acente Yetkili Girişi (B2B)",
+2772:                                 Text("❌", fontSize = 16.sp)
+2836:                                 text = "Giriş Yap & Bağlan 🚀",
+2847:                                                 bookingSuccessMessage = "✅ Acente girişi başarılı! Hoş geldiniz: ${agencyEmailInput.trim()}"
+2900:                                 Text("📝 Rezervasyon ve Ödeme Sihirbazı", style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold))
+2902:                                     text = "✖",
+2940:                                     text = "← Geri (Fiyat Karşılaştırma)",
+2946:                                     text = "Bilet & Rezervasyonu Onayla 🚀",
+2969:                                                 productName = if (isFlightBooking) "✈️ Charter Uçuş Bileti: ${hotel.hotelName} (${hotel.flightCode})" else "${hotel.hotelName} (${option.roomType})",
+3004:                                                     println("✅ Web rezervasyonu Supabase ve yerel önbelleğe kaydedildi: ${newBooking.bookingCode}")
+3007:                                                     println("⚠️ Web rezervasyonu kayıt uyarısı: ${err.message}")
+3011:                                                 "✅ Rezervasyon/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Acente (${safeTenantId}) Paneline Aktarıldı."
+3013:                                                 "✅ Bilet/PNR (${newBooking.bookingCode}) başarıyla oluşturuldu! Ana Acente HQ (AGN-MASTER-8492) Paneline Aktarıldı."
+3061:                                         text = "📍 ${hotel.location} • ID: ${hotel.id}",
+3076:                                     Text("✕", fontSize = 14.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+3088:                                     text = "🏬 " + AppLanguageManager.translate("Hangi Acente / Operatör Kaç Satıyor?"),
+3137:                                                         text = "🏢 ${option.agencyName}",
+3147:                                                             Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp))
+3180:                                                         text = AppLanguageManager.translate("Rezerve Et ➔"),
+3198: // ── ⚡ DİKEY LİSTE ARAMA SONUÇLARI SEKSİYONU (HIZLI FIRSATLAR SATIR STİLİ) ──────────
+3201:     titleIcon: String = "✨",
+3311:                                     Text("⭐".repeat(hotel.stars.coerceIn(1, 5)), fontSize = 10.sp)
+3332:                                         text = "📍 ${hotel.location}",
+3338:                                         text = "✈️ ${hotel.flightCode}",
+3342:                                         text = "🍴 ${hotel.mealType}",
+3377:                                         text = AppLanguageManager.translate("Rezerve Et ➔"),
+3392: // ── 🌟 YATAY KAYDIRILABİLİR TEMATİK ÜRÜN SEKSİYONU (SCREENSHOT BİREBİR) ────────
+3461:                     // Sol Vektör Ok (←)
+3482:                     // Sağ Vektör Ok (→)
+3570:                 // Sağ Üst Mavi Yıldız Rozeti (Vektör Yıldızlar ⭐)
+3676:                         loc.contains("Kemer", ignoreCase = true) || hName.contains("kemer") -> "🇹🇷 Türkiye · Antalya · Kemer"
+3677:                         loc.contains("Belek", ignoreCase = true) || hName.contains("belek") -> "🇹🇷 Türkiye · Antalya · Belek"
+3678:                         loc.contains("Lara", ignoreCase = true) || loc.contains("Kundu", ignoreCase = true) || hName.contains("lara") || hName.contains("kundu") -> "🇹🇷 Türkiye · Antalya · Lara"
+3679:                         loc.contains("Alanya", ignoreCase = true) || hName.contains("alanya") -> "🇹🇷 Türkiye · Antalya · Alanya"
+3680:                         loc.contains("Side", ignoreCase = true) || loc.contains("Manavgat", ignoreCase = true) || hName.contains("side") -> "🇹🇷 Türkiye · Antalya · Side"
+3681:                         loc.contains("Bodrum", ignoreCase = true) || hName.contains("bodrum") -> "🇹🇷 Türkiye · Muğla · Bodrum"
+3682:                         loc.contains("Marmaris", ignoreCase = true) || hName.contains("marmaris") -> "🇹🇷 Türkiye · Muğla · Marmaris"
+3683:                         loc.contains("Fethiye", ignoreCase = true) || hName.contains("fethiye") -> "🇹🇷 Türkiye · Muğla · Fethiye"
+3684:                         loc.contains("Moskova", ignoreCase = true) -> "🇷🇺 Rusya · Moskova"
+3685:                         loc.contains("Dubai", ignoreCase = true) -> "🇦🇪 BAE · Dubai"
+3686:                         loc.contains("Şarm", ignoreCase = true) || loc.contains("Hurgada", ignoreCase = true) -> "🇪🇬 Mısır · Şarm El-Şeyh"
+3687:                         else -> "🇹🇷 Türkiye · $loc"
+3874: // ── 🌟 HİZMETLERİMİZ (OUR SERVICES - SCREENSHOT BİREBİR KART GRID SEKSİYONU) ────────
+3896:                 // 📥 Uygulama İndirme Butonları (Windows Desktop .exe & Android .apk)
+4087: // ── 🏨 TEK KART METASEARCH GRUPLAMA FONKSİYONU ───────────────────────────────
+4142: // ── 📜 ACENTA REZERVASYONLARI MODÜLÜ (PNR & BİLET YÖNETİMİ) ─────────────────
+4183:                         text = "📜 Gelen Acente Rezervasyonları & PNR Yönetimi",
+4193:                     text = "🔄 Canlı Yenile",
+4204:                 StatMiniBadge("📋 Toplam Satış", "${bookings.size} Adet", Color(0xFF0284C7), Modifier.weight(1f))
+4205:                 StatMiniBadge("✈️ Uçuş (PNR)", "${bookings.count { it.bookingType == "FLIGHT" || it.bookingCode.startsWith("PNR") }} Adet", Color(0xFF0D5653), Modifier.weight(1f))
+4206:                 StatMiniBadge("🏨 Otel & Tur", "${bookings.count { it.bookingType != "FLIGHT" && !it.bookingCode.startsWith("PNR") }} Adet", Color(0xFFD97706), Modifier.weight(1f))
+4207:                 StatMiniBadge("🟢 Onaylanan", "${bookings.count { it.status == BookingStatus.ONAYLANDI || it.status.name == "CONFIRMED" }} Adet", Color(0xFF16A34A), Modifier.weight(1f))
+4229:                             "FLIGHT" -> "✈️ Uçuşlar"
+4230:                             "HOTEL" -> "🏨 Oteller & Turlar"
+4262:                     Text("⏳ Rezervasyonlar yükleniyor...", style = TourOSTypography.TitleMedium.copy(color = Color(0xFF64748B)))
+4271:                     Text("📭 Aradığınız kriterlere uygun henüz bir acente rezervasyonu bulunamadı.", style = TourOSTypography.BodyMedium.copy(color = Color(0xFF94A3B8)))
+4301:                                             text = if (booking.bookingType == "FLIGHT" || booking.bookingCode.startsWith("PNR")) "✈️" else "🏨",
+4318:                                                 Text("ONAYLANDI ✅", style = TourOSTypography.Caption.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 9.sp))
+4323:                                             text = "👤 ${booking.customerName} • 📞 ${booking.customerPhone}",
+4328:                                             text = "📦 Ürün: ${booking.productName} • Operatör: ${booking.operatorName}",
+4444:                 // Month & Year Selector Header with interactive ◀ and ▶ arrows
+4451:                         text = "📅 ${monthNames[currentMonth - 1]} $currentYear",
+4470:                             Text("◀", fontSize = 12.sp, color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold)
+4487:                             Text("▶", fontSize = 12.sp, color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold)
+4664:                             text = "👶 ${AppLanguageManager.translate("Çocuk Yaşları (Fiyatlandırma için gereklidir)")}",
+4696:                                             Text("▼", fontSize = 8.sp, color = Color(0xFF64748B))

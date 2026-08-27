@@ -237,7 +237,7 @@ fun ReportsScreen(
                                 items = state.availableOperators,
                                 selectedItem = state.selectedOperator,
                                 onItemSelected = { viewModel.setOperatorFilter(it) },
-                                itemLabel = { "💼 $it" },
+                                itemLabel = { "💼 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(it)}" },
                                 modifier = Modifier.width(180.dp)
                             )
 
@@ -246,7 +246,7 @@ fun ReportsScreen(
                                 items = state.availableStatuses,
                                 selectedItem = state.selectedStatus,
                                 onItemSelected = { viewModel.setStatusFilter(it) },
-                                itemLabel = { "📌 $it" },
+                                itemLabel = { "📌 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(it)}" },
                                 modifier = Modifier.width(130.dp)
                             )
 
@@ -280,13 +280,13 @@ fun ReportsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon")}: ${state.totalBookingCount} Adet",
+                                text = "📋 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rezervasyon")}: ${state.totalBookingCount} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Adet")}",
                                 style = TourOSTypography.Caption,
                                 fontWeight = FontWeight.Bold,
                                 color = TourOSColors.TextPrimary
                             )
                             Text(
-                                text = "📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hacim")}: ${state.totalQuantityCount} Pax/Gece",
+                                text = "📊 ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Hacim")}: ${state.totalQuantityCount} Pax/${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gece")}",
                                 style = TourOSTypography.Caption,
                                 color = TourOSColors.TextSecondary
                             )
@@ -343,11 +343,11 @@ fun ReportsScreen(
                                 val isHotel = booking.bookingType == "HOTEL"
                                 val icon = if (isHotel) "🏨" else "🚌"
                                 val isOwnProduct = booking.operatorName.isNullOrBlank() || booking.operatorName.contains("MGA", ignoreCase = true)
-                                val operatorStr = if (isOwnProduct) "Kendi Ürünümüz" else booking.operatorName
+                                val operatorStr = if (isOwnProduct) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kendi Ürünümüz") else booking.operatorName
 
                                 Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text(
-                                        text = "$icon ${booking.productName.takeIf { it.isNotBlank() } ?: (if (isHotel) "Otel" else "Tur")}",
+                                        text = "$icon ${booking.productName.takeIf { it.isNotBlank() } ?: (if (isHotel) com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur"))}",
                                         style = TourOSTypography.BodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = TourOSColors.TextPrimary,
@@ -391,7 +391,7 @@ fun ReportsScreen(
                             cellContent = { booking ->
                                 val isHotel = booking.bookingType == "HOTEL"
                                 val dateStr = booking.checkInDate ?: booking.departureDate ?: "-"
-                                val durationStr = if (isHotel) "${booking.nights} Gece" else "${booking.paxCount} Pax"
+                                val durationStr = if (isHotel) "${booking.nights} ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gece")}" else "${booking.paxCount} Pax"
 
                                 Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                                     Text(
@@ -424,7 +424,7 @@ fun ReportsScreen(
                             weight = 1.2f,
                             cellContent = { booking ->
                                 TourOSStatusBadge(
-                                    text = booking.status.displayName,
+                                    text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(booking.status.displayName),
                                     backgroundColor = if (booking.status.name == "CONFIRMED" || booking.status.name == "ONAYLANDI") TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer,
                                     textColor = if (booking.status.name == "CONFIRMED" || booking.status.name == "ONAYLANDI") TourOSColors.Success else TourOSColors.Primary
                                 )

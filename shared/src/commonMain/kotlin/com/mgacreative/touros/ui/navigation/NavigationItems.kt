@@ -32,7 +32,7 @@ data class NavigationItem(
  */
 val navigationGroups = listOf(
     NavigationGroup(
-        title = "👑 SAAS ADMİN PANELİ",
+        title = "SAAS ADMİN PANELİ",
         items = listOf(
             NavigationItem(
                 title = "Onay Bekleyen Acenteler",

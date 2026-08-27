@@ -120,6 +120,292 @@ class B2BTourSearchViewModel(
         fun calculateDynamicPrice(basePrice: Double, adultsCount: Int, childAgesList: List<Int>, isFlight: Boolean = false): Double {
             return basePrice * calculateMultiplier(adultsCount, childAgesList, isFlight)
         }
+
+        fun isDepartureMatchingText(targetDeparture: String, selectedDeparture: String): Boolean {
+            val dep = selectedDeparture.trim()
+            if (dep.isBlank() || dep.equals("Tüm Kalkış Şehirleri", ignoreCase = true) || dep.startsWith("Tüm", ignoreCase = true) || dep.contains("Tüm", ignoreCase = true) || dep.contains("Hepsi", ignoreCase = true) || dep.equals("ALL", ignoreCase = true) || dep.startsWith("Все", ignoreCase = true) || dep.contains("Все", ignoreCase = true)) {
+                return true
+            }
+            if (targetDeparture.isBlank() || targetDeparture.contains("Yerel", ignoreCase = true)) {
+                return true
+            }
+            val target = targetDeparture.lowercase()
+            val query = dep.lowercase()
+
+            if (target.contains(query) || query.contains(target)) return true
+
+            // Eş anlamlı havaalanı ve şehir kodları eşleşmeleri
+            val isTargetMoscow = target.contains("moskova") || target.contains("moscow") || target.contains("москва") || target.contains("svo") || target.contains("vko") || target.contains("dme") || target.contains("zia")
+            val isQueryMoscow = query.contains("moskova") || query.contains("moscow") || query.contains("москва") || query.contains("svo") || query.contains("vko") || query.contains("dme") || query.contains("zia")
+            if (isTargetMoscow && isQueryMoscow) return true
+
+            val isTargetSpb = target.contains("petersburg") || target.contains("петербург") || target.contains("питер") || target.contains("led")
+            val isQuerySpb = query.contains("petersburg") || query.contains("петербург") || query.contains("питер") || query.contains("led")
+            if (isTargetSpb && isQuerySpb) return true
+
+            val isTargetIst = target.contains("istanbul") || target.contains("istanbul") || target.contains("ist") || target.contains("saw") || target.contains("стамбул")
+            val isQueryIst = query.contains("istanbul") || query.contains("istanbul") || query.contains("ist") || query.contains("saw") || query.contains("стамбул")
+            if (isTargetIst && isQueryIst) return true
+
+            val isTargetKzn = target.contains("kazan") || target.contains("казань") || target.contains("kzn")
+            val isQueryKzn = query.contains("kazan") || query.contains("казань") || query.contains("kzn")
+            if (isTargetKzn && isQueryKzn) return true
+
+            val isTargetAntalya = target.contains("antalya") || target.contains("ayt") || target.contains("анталья")
+            val isQueryAntalya = query.contains("antalya") || query.contains("ayt") || query.contains("анталья")
+            if (isTargetAntalya && isQueryAntalya) return true
+
+            return false
+        }
+
+        fun isDepartureMatching(item: UnifiedProductEntity, departure: String): Boolean {
+            return isDepartureMatchingText(item.departureCity, departure)
+        }
+
+        fun isDestinationMatchingText(targetText: String, selectedDest: String): Boolean {
+            val dest = selectedDest.trim()
+            if (dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Tüm Varış Noktaları", ignoreCase = true) || dest.equals("Tüm", ignoreCase = true) || dest.equals("ALL", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.startsWith("Tüm", ignoreCase = true) || dest.startsWith("Все", ignoreCase = true)) {
+                return true
+            }
+
+            val targetLower = targetText.lowercase()
+            val destLower = dest.lowercase()
+
+            // 1. Doğrudan tam içerik kontrolü
+            if (targetLower.contains(destLower)) {
+                return true
+            }
+
+            // 2. Belirli bir alt bölge / şehir / belde var mı kontrolü (Öncelikli Katı Eşleşme)
+            val isBelek = destLower.contains("belek") || destLower.contains("белек") || destLower.contains("boğazkent") || destLower.contains("kadriye")
+            if (isBelek) {
+                return targetLower.contains("belek") || targetLower.contains("белек") || targetLower.contains("boğazkent") || targetLower.contains("kadriye")
+            }
+
+            val isKemer = destLower.contains("kemer") || destLower.contains("кемер") || destLower.contains("beldibi") || destLower.contains("tekirova") || destLower.contains("göynük") || destLower.contains("kiriş") || destLower.contains("çamyuva")
+            if (isKemer) {
+                return targetLower.contains("kemer") || targetLower.contains("кемер") || targetLower.contains("beldibi") || targetLower.contains("tekirova") || targetLower.contains("göynük") || targetLower.contains("kiriş") || targetLower.contains("çamyuva")
+            }
+
+            val isLara = destLower.contains("lara") || destLower.contains("лара") || destLower.contains("kundu")
+            if (isLara) {
+                return targetLower.contains("lara") || targetLower.contains("лара") || targetLower.contains("kundu")
+            }
+
+            val isSide = destLower.contains("side") || destLower.contains("сиде") || destLower.contains("manavgat") || destLower.contains("çolaklı") || destLower.contains("kumköy") || destLower.contains("sorgun") || destLower.contains("titreyengöl")
+            if (isSide) {
+                return targetLower.contains("side") || targetLower.contains("сиде") || targetLower.contains("manavgat") || targetLower.contains("çolaklı") || targetLower.contains("kumköy") || targetLower.contains("sorgun") || targetLower.contains("titreyengöl")
+            }
+
+            val isAlanya = destLower.contains("alanya") || destLower.contains("аланья") || destLower.contains("okurcalar") || destLower.contains("mahmutlar") || destLower.contains("avsallar") || destLower.contains("konaklı") || destLower.contains("oba")
+            if (isAlanya) {
+                return targetLower.contains("alanya") || targetLower.contains("аланья") || targetLower.contains("okurcalar") || targetLower.contains("mahmutlar") || targetLower.contains("avsallar") || targetLower.contains("konaklı") || targetLower.contains("oba")
+            }
+
+            val isBodrum = destLower.contains("bodrum") || destLower.contains("бодрум") || destLower.contains("yalıkavak") || destLower.contains("torba") || destLower.contains("gümbet") || destLower.contains("turgutreis") || destLower.contains("gündoğan")
+            if (isBodrum) {
+                return targetLower.contains("bodrum") || targetLower.contains("бодрум") || targetLower.contains("yalıkavak") || targetLower.contains("torba") || targetLower.contains("gümbet") || targetLower.contains("turgutreis") || targetLower.contains("gündoğan")
+            }
+
+            val isMarmaris = destLower.contains("marmaris") || destLower.contains("мармарис") || destLower.contains("içmeler") || destLower.contains("turunç")
+            if (isMarmaris) {
+                return targetLower.contains("marmaris") || targetLower.contains("мармарис") || targetLower.contains("içmeler") || targetLower.contains("turunç")
+            }
+
+            val isFethiye = destLower.contains("fethiye") || destLower.contains("фетхие") || destLower.contains("ölüdeniz") || destLower.contains("göcek") || destLower.contains("kayaköy")
+            if (isFethiye) {
+                return targetLower.contains("fethiye") || targetLower.contains("фетхие") || targetLower.contains("ölüdeniz") || targetLower.contains("göcek") || targetLower.contains("kayaköy")
+            }
+
+            val isCesme = destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("alaçatı") || destLower.contains("чешме")
+            if (isCesme) {
+                return targetLower.contains("çeşme") || targetLower.contains("cesme") || targetLower.contains("alaçatı") || targetLower.contains("чешме")
+            }
+
+            val isAntalyaGenel = destLower.contains("antalya") || destLower.contains("анталья")
+            if (isAntalyaGenel) {
+                return targetLower.contains("antalya") || targetLower.contains("анталья") || targetLower.contains("belek") || targetLower.contains("kemer") || targetLower.contains("lara") || targetLower.contains("side") || targetLower.contains("alanya")
+            }
+
+            val isSharm = destLower.contains("şarm") || destLower.contains("sharm") || destLower.contains("шарм") || destLower.contains("nabq") || destLower.contains("naama")
+            if (isSharm) {
+                return targetLower.contains("şarm") || targetLower.contains("sharm") || targetLower.contains("шарм") || targetLower.contains("nabq") || targetLower.contains("naama")
+            }
+
+            val isHurghada = destLower.contains("hurgada") || destLower.contains("hurghada") || destLower.contains("хургада") || destLower.contains("el gouna") || destLower.contains("makadi") || destLower.contains("sahl hasheesh")
+            if (isHurghada) {
+                return targetLower.contains("hurgada") || targetLower.contains("hurghada") || targetLower.contains("хургада") || targetLower.contains("el gouna") || targetLower.contains("makadi") || targetLower.contains("sahl hasheesh")
+            }
+
+            val isPhuket = destLower.contains("phuket") || destLower.contains("пхукет")
+            if (isPhuket) {
+                return targetLower.contains("phuket") || targetLower.contains("пхукет")
+            }
+
+            val isPattaya = destLower.contains("pattaya") || destLower.contains("паттайя")
+            if (isPattaya) {
+                return targetLower.contains("pattaya") || targetLower.contains("паттайя")
+            }
+
+            val isBangkok = destLower.contains("bangkok") || destLower.contains("бангкок")
+            if (isBangkok) {
+                return targetLower.contains("bangkok") || targetLower.contains("бангкок")
+            }
+
+            val isSamui = destLower.contains("samui") || destLower.contains("самуи")
+            if (isSamui) {
+                return targetLower.contains("samui") || targetLower.contains("самуи")
+            }
+
+            val isDaNang = destLower.contains("da nang") || destLower.contains("danang") || destLower.contains("дананг")
+            if (isDaNang) {
+                return targetLower.contains("da nang") || targetLower.contains("danang") || targetLower.contains("дананг")
+            }
+
+            val isPhuQuoc = destLower.contains("phu quoc") || destLower.contains("phuquoc") || destLower.contains("фукуок")
+            if (isPhuQuoc) {
+                return targetLower.contains("phu quoc") || targetLower.contains("phuquoc") || targetLower.contains("фукуок")
+            }
+
+            val isNhaTrang = destLower.contains("nha trang") || destLower.contains("nhatrang") || destLower.contains("нячанг")
+            if (isNhaTrang) {
+                return targetLower.contains("nha trang") || targetLower.contains("nhatrang") || targetLower.contains("нячанг")
+            }
+
+            val isDubai = destLower.contains("dubai") || destLower.contains("дубай") || destLower.contains("jumeirah") || destLower.contains("marina") || destLower.contains("downtown")
+            if (isDubai) {
+                return targetLower.contains("dubai") || targetLower.contains("дубай") || targetLower.contains("jumeirah") || targetLower.contains("marina") || targetLower.contains("downtown")
+            }
+
+            val isAbuDhabi = destLower.contains("abu dhabi") || destLower.contains("абу-даби")
+            if (isAbuDhabi) {
+                return targetLower.contains("abu dhabi") || targetLower.contains("абу-даби")
+            }
+
+            val isSochi = destLower.contains("sochi") || destLower.contains("сочи") || destLower.contains("krasnaya polyana") || destLower.contains("красная поляна")
+            if (isSochi) {
+                return targetLower.contains("sochi") || targetLower.contains("сочи") || targetLower.contains("krasnaya polyana") || targetLower.contains("красная поляна")
+            }
+
+            // 3. Genel Ülke Eşleşmesi (Eğer belirli bir alt şehir seçilmemişse)
+            val isTurkey = destLower.contains("türkiye") || destLower.contains("turkey") || destLower.contains("турция")
+            if (isTurkey) {
+                return targetLower.contains("türkiye") || targetLower.contains("turkey") || targetLower.contains("турция") || targetLower.contains("antalya") || targetLower.contains("belek") || targetLower.contains("kemer") || targetLower.contains("bodrum") || targetLower.contains("marmaris") || targetLower.contains("fethiye") || targetLower.contains("side") || targetLower.contains("alanya") || targetLower.contains("istanbul")
+            }
+
+            val isEgypt = destLower.contains("mısır") || destLower.contains("egypt") || destLower.contains("египет")
+            if (isEgypt) {
+                return targetLower.contains("mısır") || targetLower.contains("egypt") || targetLower.contains("египет") || targetLower.contains("sharm") || targetLower.contains("şarm") || targetLower.contains("hurgada") || targetLower.contains("hurghada") || targetLower.contains("gouna") || targetLower.contains("makadi")
+            }
+
+            val isThailand = destLower.contains("tayland") || destLower.contains("thailand") || destLower.contains("таиланд") || destLower.contains("тайланд")
+            if (isThailand) {
+                return targetLower.contains("tayland") || targetLower.contains("thailand") || targetLower.contains("таиланд") || targetLower.contains("тайланд") || targetLower.contains("phuket") || targetLower.contains("pattaya") || targetLower.contains("bangkok") || targetLower.contains("samui")
+            }
+
+            val isVietnam = destLower.contains("vietnam") || destLower.contains("вьетнам")
+            if (isVietnam) {
+                return targetLower.contains("vietnam") || targetLower.contains("вьетнам") || targetLower.contains("da nang") || targetLower.contains("phu quoc") || targetLower.contains("nha trang") || targetLower.contains("hoi an")
+            }
+
+            val isUAE = destLower.contains("bae") || destLower.contains("uae") || destLower.contains("оаэ")
+            if (isUAE) {
+                return targetLower.contains("bae") || targetLower.contains("uae") || targetLower.contains("оаэ") || targetLower.contains("dubai") || targetLower.contains("abu dhabi") || targetLower.contains("sharjah")
+            }
+
+            val isRussia = destLower.contains("rusya") || destLower.contains("russia") || destLower.contains("россия")
+            if (isRussia) {
+                return targetLower.contains("rusya") || targetLower.contains("russia") || targetLower.contains("россия") || targetLower.contains("sochi") || targetLower.contains("сочи") || targetLower.contains("petersburg") || targetLower.contains("kazan") || targetLower.contains("moskova")
+            }
+
+            // 4. Token bazlı fallback
+            val tokens = dest.split('/', ',', '(', ')', '—', '-')
+                .map { it.trim().lowercase() }
+                .filter { it.length >= 3 && !it.startsWith("tüm") && !it.startsWith("все") }
+
+            return tokens.any { targetLower.contains(it) }
+        }
+
+        fun isDestinationMatching(item: UnifiedProductEntity, selectedDest: String): Boolean {
+            val targetText = "${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion} ${item.safeHotelName} ${item.tourName} ${item.roomType}"
+            return isDestinationMatchingText(targetText, selectedDest)
+        }
+
+        fun isCountryMatching(item: UnifiedProductEntity, countryCodeOrName: String): Boolean {
+            if (countryCodeOrName.isBlank() || countryCodeOrName == "ALL" || countryCodeOrName.equals("Tüm", ignoreCase = true)) return true
+            val code = countryCodeOrName.uppercase().trim()
+            if (item.countryCode.isNotBlank() && item.countryCode.equals(code, ignoreCase = true)) return true
+
+            val destText = "${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion} ${item.safeHotelName}".lowercase().trim()
+
+            return when (code) {
+                "TR", "TÜRKIYE", "TURKEY", "ТУРЦИЯ" -> destText.contains("türkiye") || destText.contains("turkey") || destText.contains("турция") || destText.contains(" tr ") || destText.startsWith("tr ") || destText.endsWith(" tr") || destText == "tr" ||
+                        destText.contains("antalya") || destText.contains("belek") || destText.contains("kemer") || destText.contains("lara") ||
+                        destText.contains("alanya") || destText.contains("side") || destText.contains("bodrum") || destText.contains("marmaris") ||
+                        destText.contains("fethiye") || destText.contains("çeşme") || destText.contains("белек") ||
+                        destText.contains("кемер") || destText.contains("анталья") || destText.contains("аланья") || destText.contains("сиде") ||
+                        destText.contains("бодрум") || destText.contains("мармарис") || destText.contains("фетхие") || (destText.contains("istanbul") && !destText.contains("sharm") && !destText.contains("dubai"))
+                "EG", "MISIR", "EGYPT", "ЕГИПЕТ" -> destText.contains("mısır") || destText.contains("egypt") || destText.contains("египет") || destText.contains(" eg ") || destText.startsWith("eg ") || destText == "eg" ||
+                        destText.contains("şarm") || destText.contains("sharm") || destText.contains("hurgada") || destText.contains("hurghada") ||
+                        destText.contains("el gouna") || destText.contains("makadi") || destText.contains("шарм") || destText.contains("хургада") ||
+                        destText.contains("эль гуна") || destText.contains("макади")
+                "TH", "TAYLAND", "THAILAND", "ТАИЛАНД", "ТАЙЛАНД" -> destText.contains("tayland") || destText.contains("thailand") || destText.contains("таиланд") || destText.contains("тайланд") || destText.contains(" th ") || destText.startsWith("th ") || destText == "th" ||
+                        destText.contains("phuket") || destText.contains("pattaya") || destText.contains("bangkok") || destText.contains("samui") ||
+                        destText.contains("krabi") || destText.contains("пхукет") || destText.contains("паттайя") || destText.contains("бангкок") ||
+                        destText.contains("самуи") || destText.contains("краби")
+                "VN", "VIETNAM", "ВЬЕТНАМ" -> destText.contains("vietnam") || destText.contains("вьетнам") || destText.contains(" vn ") || destText.startsWith("vn ") || destText == "vn" ||
+                        destText.contains("da nang") || destText.contains("phu quoc") || destText.contains("nha trang") || destText.contains("hoi an") ||
+                        destText.contains("дананг") || destText.contains("фукуок") || destText.contains("нячанг") || destText.contains("хойан")
+                "AE", "BAE", "DUBAI", "UAE", "ОАЭ" -> destText.contains("bae") || destText.contains("dubai") || destText.contains("uae") || destText.contains("оаэ") || destText.contains(" ae ") || destText.startsWith("ae ") || destText == "ae" ||
+                        destText.contains("дубай") || destText.contains("abu dhabi") || destText.contains("абу-даби") || destText.contains("sharjah") ||
+                        destText.contains("шарджа") || destText.contains("jumeirah") || destText.contains("marina")
+                "RU", "RUSYA", "RUSSIA", "РОССИЯ" -> (destText.contains("rusya") || destText.contains("russia") || destText.contains("россия") || destText.contains("sochi") ||
+                        destText.contains("сочи") || destText.contains("st. petersburg") || destText.contains("петербург") || destText.contains("kazan") ||
+                        destText.contains("казань")) && !destText.contains("antalya") && !destText.contains("belek") && !destText.contains("kemer") && !destText.contains("lara")
+                else -> destText.contains(countryCodeOrName.lowercase())
+            }
+        }
+
+        fun isSubRegionMatching(item: UnifiedProductEntity, subRegion: String?): Boolean {
+            if (subRegion.isNullOrBlank() || subRegion == "Tümü" || subRegion == "ALL") return true
+            val s = subRegion.lowercase().trim()
+            val fullText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion} ${item.safeHotelName}".lowercase()
+
+            val synonyms = when (s) {
+                "belek" -> listOf("belek", "белек")
+                "kemer" -> listOf("kemer", "кемер")
+                "antalya" -> listOf("antalya", "анталья", "ayt")
+                "alanya" -> listOf("alanya", "аланья")
+                "side" -> listOf("side", "сиде")
+                "bodrum" -> listOf("bodrum", "бодрум")
+                "marmaris" -> listOf("marmaris", "мармарис")
+                "fethiye" -> listOf("fethiye", "фетхие")
+                "çeşme" -> listOf("çeşme", "cesme", "чешме")
+                "şarm el-şeyh" -> listOf("şarm", "sharm", "шарм")
+                "hurgada" -> listOf("hurgada", "hurghada", "хургада")
+                "el gouna" -> listOf("el gouna", "gouna", "эль гуна")
+                "makadi bay" -> listOf("makadi", "макади")
+                "phuket" -> listOf("phuket", "пхукет")
+                "pattaya" -> listOf("pattaya", "паттайя")
+                "bangkok" -> listOf("bangkok", "бангкок")
+                "koh samui" -> listOf("samui", "самуи")
+                "krabi" -> listOf("krabi", "краби")
+                "da nang" -> listOf("da nang", "danang", "дананг")
+                "phu quoc" -> listOf("phu quoc", "phuquoc", "фукуок")
+                "nha trang" -> listOf("nha trang", "nhatrang", "нячанг")
+                "hoi an" -> listOf("hoi an", "hoian", "хойан")
+                "dubai marina" -> listOf("dubai", "marina", "дубай")
+                "palm jumeirah" -> listOf("palm", "jumeirah", "пальм")
+                "downtown" -> listOf("downtown", "даунтаун")
+                "abu dhabi" -> listOf("abu dhabi", "абу-даби")
+                "moskova" -> listOf("moskova", "moscow", "москва")
+                "st. petersburg" -> listOf("petersburg", "петербург", "питер")
+                "sochi" -> listOf("sochi", "сочи")
+                "kazan" -> listOf("kazan", "казань")
+                else -> listOf(s)
+            }
+            return synonyms.any { fullText.contains(it) }
+        }
     }
 
     private val _uiState = MutableStateFlow<B2BTourSearchUiState>(B2BTourSearchUiState.Loading)
@@ -358,6 +644,175 @@ data class QuotaCheckResultDto(
             )
 
             val sampleMultiCountryTours = listOf(
+                // 🇹🇷 TÜRKİYE (BELEK, BODRUM, KEMER, SİDE, ALANYA, MARMARİS, FETHİYE)
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-belek-1",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (SVO) - Antalya (AYT) Belek Golf & Sahil Paketi",
+                    operatorName = "Coral Travel",
+                    price = 920.0,
+                    currency = "EUR",
+                    hotelName = "Maxx Royal Belek Golf Resort",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Antalya",
+                    subRegion = "Belek",
+                    roomType = "Suite Kara Manzaralı",
+                    mealType = "Maxx All Inclusive",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("Golf", "Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Çocuk Kulübü", "Havuz")
+                ),
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-belek-2",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (VKO) - Antalya (AYT) Belek Lüks Aile Tatili",
+                    operatorName = "Anex Tour",
+                    price = 840.0,
+                    currency = "EUR",
+                    hotelName = "Rixos Premium Belek",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Antalya",
+                    subRegion = "Belek",
+                    roomType = "Deluxe Deniz Manzaralı Oda",
+                    mealType = "Ultra Her Şey Dahil (UAI)",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("The Land of Legends Giriş", "Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Havuz")
+                ),
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-bodrum-1",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (SVO) - Bodrum (BJV) Ege Rüyası Tatil Paketi",
+                    operatorName = "Pegas Touristik",
+                    price = 890.0,
+                    currency = "EUR",
+                    hotelName = "Titanic Luxury Collection Bodrum",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Bodrum",
+                    subRegion = "Güvercinlik (Yalıkavak, Torba)",
+                    roomType = "Superior Deniz Manzaralı",
+                    mealType = "Ultra Her Şey Dahil (UAI)",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("Özel İskele", "Wi-Fi", "SPA", "Kum Plaj", "Havuz", "Çocuk Kulübü")
+                ),
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-bodrum-2",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (DME) - Bodrum (BJV) Yalıkavak & Torba Paketi",
+                    operatorName = "Coral Travel",
+                    price = 980.0,
+                    currency = "EUR",
+                    hotelName = "Rixos Premium Bodrum",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Bodrum",
+                    subRegion = "Torba (Yalıkavak)",
+                    roomType = "Deluxe Garden View",
+                    mealType = "Ultra Her Şey Dahil (UAI)",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("Aqua Park", "Wi-Fi", "SPA", "Özel Koy", "Havuz")
+                ),
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-kemer-1",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (VKO) - Antalya (AYT) Kemer Doğa & Eğlence Paketi",
+                    operatorName = "Fun & Sun",
+                    price = 780.0,
+                    currency = "EUR",
+                    hotelName = "Rixos Sungate Kemer",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Antalya",
+                    subRegion = "Kemer (Beldibi)",
+                    roomType = "Standard Marine Room",
+                    mealType = "Ultra Her Şey Dahil (UAI)",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("Aquapark", "Wi-Fi", "SPA", "Plaj", "Konser Alanı")
+                ),
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-side-1",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (SVO) - Antalya (AYT) Side Tarih & Kum Plaj Paketi",
+                    operatorName = "Biblio-Globus",
+                    price = 710.0,
+                    currency = "EUR",
+                    hotelName = "Barut Hemera Side",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Antalya",
+                    subRegion = "Side (Kumköy)",
+                    roomType = "Deluxe Room Garden View",
+                    mealType = "Ultra Her Şey Dahil (UAI)",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("Kum Plaj", "Wi-Fi", "SPA", "Havuz")
+                ),
+                UnifiedProductEntity(
+                    id = "tour-seed-tr-marmaris-1",
+                    productType = "PACKAGE_TOUR",
+                    tourName = "Moskova (SVO) - Dalaman (DLM) Marmaris Çam Kokulu Tatil",
+                    operatorName = "Anex Tour",
+                    price = 760.0,
+                    currency = "EUR",
+                    hotelName = "D-Resort Grand Azur Marmaris",
+                    hotelCategory = 5,
+                    country = "Türkiye",
+                    countryCode = "TR",
+                    countryName = "Türkiye",
+                    region = "Marmaris",
+                    subRegion = "İçmeler",
+                    roomType = "Standard Deniz Manzaralı",
+                    mealType = "Her Şey Dahil (AI)",
+                    departureCity = "Moskova",
+                    nights = 7,
+                    pictureUrl = "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800",
+                    isInstantConfirmation = true,
+                    hasTransfer = true,
+                    isDirectFlight = true,
+                    amenities = listOf("Mavi Bayrak Plaj", "Wi-Fi", "SPA", "Havuz")
+                ),
                 // 🇪🇬 MISIR
                 UnifiedProductEntity(
                     id = "tour-seed-eg-1",
@@ -641,6 +1096,11 @@ data class QuotaCheckResultDto(
         val stars = selectedStars.value
         val meals = selectedMealTypes.value
         val cat = selectedCategory.value.uppercase()
+        val dest = selectedRegion.value.trim()
+        val country = destinationCountry.value.trim()
+        val dep = departureCity.value.trim()
+        val isInstant = isInstantConfirmationOnly.value
+        val isPromo = isPromoOnly.value
 
         return list.filter { item ->
             val pType = item.safeProductType.uppercase()
@@ -667,7 +1127,13 @@ data class QuotaCheckResultDto(
                     item.departureCity.lowercase().contains(q) ||
                     item.operatorName.lowercase().contains(q)
 
+            val matchesDest = isDestinationMatching(item, dest)
+            val matchesCountry = isCountryMatching(item, country)
+            val matchesDep = isDepartureMatching(item, dep)
             val matchesStar = stars.isEmpty() || item.hotelCategory == 0 || stars.contains(item.hotelCategory)
+            val matchesInstant = !isInstant || item.isInstantConfirmation
+            val matchesPromo = !isPromo || item.isPromo
+
             val matchesMeal = meals.isEmpty() || item.mealType.isBlank() || meals.any { m ->
                 val lower = item.mealType.lowercase()
                 when (m.uppercase()) {
@@ -676,11 +1142,12 @@ data class QuotaCheckResultDto(
                     "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный pansiyon") || lower.contains("полный пансион")
                     "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
                     "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
+                    "RO" -> lower.contains("ro") || lower.contains("room only") || lower.contains("sadece oda") || lower.contains("bez pitaniya") || lower.contains("без питания")
                     else -> lower.contains(m.lowercase())
                 }
             }
 
-            matchesSearch && matchesStar && matchesMeal
+            matchesSearch && matchesDest && matchesCountry && matchesDep && matchesStar && matchesMeal && matchesInstant && matchesPromo
         }
     }
 
