@@ -45,6 +45,7 @@ import androidx.compose.runtime.collectAsState
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 
 import com.mgacreative.touros.ui.components.TourOSNavGroup
+import com.mgacreative.touros.ui.components.TourOSNavSubGroup
 
 // ─── Global NavController CompositionLocal (Tüm sayfalarda Geri Dön ve Navigasyon için) ───
 val LocalNavController = androidx.compose.runtime.staticCompositionLocalOf<NavHostController?> { null }
@@ -53,13 +54,14 @@ val LocalNavController = androidx.compose.runtime.staticCompositionLocalOf<NavHo
 private val publicAndAuthRoutePatterns = listOf(
     "SplashRoute", "LoginRoute", "RegisterRoute",
     "ForgotPasswordRoute", "OnboardingRoute", "EmailVerificationRoute",
-    "GlobalWebPublicRoute", "B2BTourFlightServiceSelectionRoute", "B2BPassengerCheckoutWizardRoute"
+    "GlobalWebPublicRoute", "B2BTourFlightServiceSelectionRoute", "B2BPassengerCheckoutWizardRoute",
+    "AxiletoMembersPortalRoute"
 )
 
 private val adminRoutePatterns = listOf(
     "AgencyApprovalRoute", "AgencySearchRoute", "AgencyQuotaReportRoute",
     "AdminAgencyLedgerRoute", "GlobalWebCmsRoute", "AdminProductManagementRoute",
-    "SaasCacheManagementRoute", "AdminDeploymentRoute"
+    "SaasCacheManagementRoute", "AdminDeploymentRoute", "ClubManagementRoute"
 )
 
 private fun NavDestination?.isAuthOrPublicRoute(): Boolean =
@@ -78,47 +80,99 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
     if (isSystemAdmin) {
         groups.add(
             TourOSNavGroup(
-                categoryTitle = AppLanguageManager.translate("SAAS ADMİN PANELİ"),
-                items = listOf(
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Onay Bekleyen Acenteler"),
-                        route = AgencyApprovalRoute,
-                        isSelected = currentRoute?.contains("AgencyApprovalRoute") == true
+                categoryTitle = AppLanguageManager.translate("ADMİN PANELİ"),
+                isCollapsible = true,
+                isAdminOnly = true,
+                isInitiallyExpanded = currentRoute?.let { r ->
+                    adminRoutePatterns.any { r.contains(it) }
+                } ?: true,
+                subGroups = listOf(
+                    // 1. Acentalar
+                    TourOSNavSubGroup(
+                        title = AppLanguageManager.translate("Acentalar"),
+                        isInitiallyExpanded = currentRoute?.let {
+                            it.contains("AgencyApprovalRoute") || it.contains("AgencySearchRoute") ||
+                            it.contains("AgencyQuotaReportRoute") || it.contains("AdminAgencyLedgerRoute")
+                        } ?: true,
+                        items = listOf(
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Onay Bekleyen Acentalar"),
+                                route = AgencyApprovalRoute,
+                                isSelected = currentRoute?.contains("AgencyApprovalRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Acenta Sorgulama"),
+                                route = AgencySearchRoute,
+                                isSelected = currentRoute?.contains("AgencySearchRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Acenta Kota Raporu"),
+                                route = AgencyQuotaReportRoute,
+                                isSelected = currentRoute?.contains("AgencyQuotaReportRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Acenta Cari Hesap"),
+                                route = AdminAgencyLedgerRoute,
+                                isSelected = currentRoute?.contains("AdminAgencyLedgerRoute") == true
+                            )
+                        )
                     ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Acente Sorgulama & Lisans"),
-                        route = AgencySearchRoute,
-                        isSelected = currentRoute?.contains("AgencySearchRoute") == true
-                    ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Acente Kota & Tüketim Raporu"),
-                        route = AgencyQuotaReportRoute,
-                        isSelected = currentRoute?.contains("AgencyQuotaReportRoute") == true
-                    ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Acente Cari & Borç Takibi"),
-                        route = AdminAgencyLedgerRoute,
-                        isSelected = currentRoute?.contains("AdminAgencyLedgerRoute") == true
-                    ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
-                        route = GlobalWebCmsRoute,
-                        isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
-                    ),
-                    TourOSNavItem(
+                    // 2. Ürün & Data Yönetimi
+                    TourOSNavSubGroup(
                         title = AppLanguageManager.translate("Ürün & Data Yönetimi"),
-                        route = AdminProductManagementRoute,
-                        isSelected = currentRoute?.contains("AdminProductManagementRoute") == true
+                        isInitiallyExpanded = currentRoute?.let {
+                            it.contains("AdminProductManagementRoute") || it.contains("SaasCacheManagementRoute")
+                        } ?: false,
+                        items = listOf(
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Ürün & Data Yönetimi"),
+                                route = AdminProductManagementRoute,
+                                isSelected = currentRoute?.contains("AdminProductManagementRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Önbellek & API Performansı"),
+                                route = SaasCacheManagementRoute,
+                                isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
+                            )
+                        )
                     ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Önbellek & API Performansı"),
-                        route = SaasCacheManagementRoute,
-                        isSelected = currentRoute?.contains("SaasCacheManagementRoute") == true
+                    // 3. WEB Yönetim
+                    TourOSNavSubGroup(
+                        title = AppLanguageManager.translate("WEB Yönetim"),
+                        isInitiallyExpanded = currentRoute?.let {
+                            it.contains("GlobalWebCmsRoute") || it.contains("AdminDeploymentRoute")
+                        } ?: false,
+                        items = listOf(
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Web Yönetimi (CMS)"),
+                                route = GlobalWebCmsRoute,
+                                isSelected = currentRoute?.contains("GlobalWebCmsRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Sürüm & Dağıtım (CI/CD)"),
+                                route = AdminDeploymentRoute,
+                                isSelected = currentRoute?.contains("AdminDeploymentRoute") == true
+                            )
+                        )
                     ),
-                    TourOSNavItem(
-                        title = AppLanguageManager.translate("Sürüm & Dağıtım (CI/CD)"),
-                        route = AdminDeploymentRoute,
-                        isSelected = currentRoute?.contains("AdminDeploymentRoute") == true
+                    // 4. Club
+                    TourOSNavSubGroup(
+                        title = AppLanguageManager.translate("Club"),
+                        isInitiallyExpanded = currentRoute?.let {
+                            it.contains("ClubManagementRoute") || it.contains("AxiletoMembersPortalRoute")
+                        } ?: false,
+                        items = listOf(
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Club Yönetimi"),
+                                route = ClubManagementRoute,
+                                isSelected = currentRoute?.contains("ClubManagementRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Club Portalı"),
+                                route = AxiletoMembersPortalRoute,
+                                isSelected = currentRoute?.contains("AxiletoMembersPortalRoute") == true
+                            )
+                        )
                     )
                 )
             )
@@ -332,7 +386,7 @@ fun AppNavigation() {
             val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
             val isMedium = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM
             val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin) { buildNavGroups(currentRoute, isSystemAdmin) }
-            val navItems = remember(navGroups) { navGroups.flatMap { it.items } }
+            val navItems = remember(navGroups) { navGroups.flatMap { it.allItems } }
 
             // Mobil Bottom Bar için "☰ Menü" Butonlu Liste
             val menuDummyRoute = "HamburgerMenuOpen"
@@ -629,6 +683,22 @@ private fun AppNavHost(navController: NavHostController) {
             }
         }
 
+        composable<ClubManagementRoute> {
+            val isAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
+            if (!isAdmin) {
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    navController.navigate(LoginRoute) {
+                        popUpTo(ClubManagementRoute) { inclusive = true }
+                    }
+                }
+            } else {
+                com.mgacreative.touros.ui.screens.admin.ClubManagementScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToClubPreview = { navController.navigate(AxiletoMembersPortalRoute) }
+                )
+            }
+        }
+
         composable<GlobalWebPublicRoute> {
             GlobalWebPublicScreen(
                 onNavigateToB2BSearch = {
@@ -644,6 +714,9 @@ private fun AppNavHost(navController: NavHostController) {
                 },
                 onNavigateToAdminCms = {
                     navController.navigate(GlobalWebCmsRoute)
+                },
+                onNavigateToClub = {
+                    navController.navigate(AxiletoMembersPortalRoute)
                 },
                 onNavigateToNewBooking = { selectedOffer ->
                     navController.navigate(B2BTourFlightServiceSelectionRoute(productId = selectedOffer.id))
@@ -675,13 +748,23 @@ private fun AppNavHost(navController: NavHostController) {
         }
 
         composable<SettingsRoute> {
-            CompanySettingsScreen()
+            val targetCompanyId = currentUser?.tenantId?.takeIf { it.isNotBlank() } ?: "00000000-0000-0000-0000-000000000001"
+            CompanySettingsScreen(companyId = targetCompanyId)
         }
 
         composable<MultiLanguageRoute> {
             MultiLanguageScreen(
                 viewModel = koinViewModel(),
                 onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<AxiletoMembersPortalRoute> {
+            com.mgacreative.touros.ui.screens.members.AxiletoMembersPortalScreen(
+                onNavigateBackToMainApp = { navController.popBackStack() },
+                onNavigateToSearch = { _ ->
+                    navController.navigate(GlobalWebPublicRoute)
+                }
             )
         }
 

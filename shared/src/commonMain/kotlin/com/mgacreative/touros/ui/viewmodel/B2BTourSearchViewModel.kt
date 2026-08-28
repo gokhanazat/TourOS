@@ -103,6 +103,14 @@ class B2BTourSearchViewModel(
 ) : ViewModel() {
 
     companion object {
+        private var globalCachedCombined: List<UnifiedProductEntity>? = null
+        private var globalCachedMetadata: SearchFilterMetadataDto? = null
+
+        fun clearGlobalCache() {
+            globalCachedCombined = null
+            globalCachedMetadata = null
+        }
+
         fun calculateMultiplier(adultsCount: Int, childAgesList: List<Int>, isFlight: Boolean = false): Double {
             val adultWeight = adultsCount.coerceAtLeast(1) * 1.0
             val childWeight = childAgesList.sumOf { age ->
@@ -463,7 +471,19 @@ data class QuotaCheckResultDto(
     val current_month_queries: Int = 0
 )
 
-    fun performSearch(companyId: String? = null) {
+    fun performSearch(companyId: String? = null, forceRefresh: Boolean = false) {
+        // ⚡ 0 MS ANLIK ÖNBELLEK ÇIKIŞI: Eğer ürün havuzu bellekte varsa anında ekrana bas
+        globalCachedCombined?.let { cached ->
+            val filtered = filterProducts(cached)
+            _uiState.value = B2BTourSearchUiState.Success(
+                allProducts = cached,
+                filteredProducts = filtered,
+                totalFoundCount = filtered.size
+            )
+            globalCachedMetadata?.let { searchFilterMetadata.value = it }
+            if (!forceRefresh) return
+        }
+
         viewModelScope.launch {
             // 1. CANLI GÜNLÜK & AYLIK KOTA KONTROLÜ (RPC Guard)
             if (!companyId.isNullOrBlank()) {
@@ -514,7 +534,9 @@ data class QuotaCheckResultDto(
             isQuotaExceeded.value = false
             quotaExceededType.value = null
             quotaErrorMessage.value = null
-            _uiState.value = B2BTourSearchUiState.Loading
+            if (globalCachedCombined == null) {
+                _uiState.value = B2BTourSearchUiState.Loading
+            }
 
             var items = emptyList<UnifiedProductEntity>()
             runCatching {
@@ -1082,6 +1104,9 @@ data class QuotaCheckResultDto(
                 operators = dbOperators.ifEmpty { listOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Biblio Globus", "Fun & Sun", "Tez Tour") },
                 currencies = dbCurrencies.ifEmpty { listOf("RUB", "TRY", "EUR", "USD") }
             )
+
+            globalCachedCombined = combined
+            globalCachedMetadata = searchFilterMetadata.value
 
             _uiState.value = B2BTourSearchUiState.Success(
                 allProducts = combined,

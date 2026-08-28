@@ -25,6 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,12 +38,22 @@ import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
 
+data class TourOSNavSubGroup(
+    val title: String,
+    val items: List<TourOSNavItem>,
+    val isInitiallyExpanded: Boolean = false
+)
+
 data class TourOSNavGroup(
     val categoryTitle: String,
-    val items: List<TourOSNavItem>,
+    val items: List<TourOSNavItem> = emptyList(),
+    val subGroups: List<TourOSNavSubGroup> = emptyList(),
     val isCollapsible: Boolean = true,
-    val isInitiallyExpanded: Boolean = true
-)
+    val isInitiallyExpanded: Boolean = true,
+    val isAdminOnly: Boolean = false
+) {
+    val allItems: List<TourOSNavItem> get() = items + subGroups.flatMap { it.items }
+}
 
 data class TourOSNavItem(
     val title: String,
@@ -157,7 +169,7 @@ fun TourOSSidebar(
         ) {
             if (groups != null && groups.isNotEmpty()) {
                 groups.forEach { group ->
-                    val hasActiveChild = group.items.any { it.isSelected }
+                    val hasActiveChild = group.allItems.any { it.isSelected }
                     val isExpanded = expandedGroups[group.categoryTitle] ?: (group.isInitiallyExpanded || hasActiveChild)
 
                     Spacer(modifier = Modifier.height(4.dp))
@@ -212,6 +224,68 @@ fun TourOSSidebar(
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                             modifier = Modifier.padding(top = 2.dp, bottom = 4.dp)
                         ) {
+                            // 1. Alt Kırılımlar (Sub-groups)
+                            if (group.subGroups.isNotEmpty()) {
+                                group.subGroups.forEach { subGroup ->
+                                    val subHasActive = subGroup.items.any { it.isSelected }
+                                    val subKey = "${group.categoryTitle}_${subGroup.title}"
+                                    val isSubExpanded = expandedGroups[subKey] ?: (subGroup.isInitiallyExpanded || subHasActive)
+
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 1.dp),
+                                        verticalArrangement = Arrangement.spacedBy(1.dp)
+                                    ) {
+                                        // Alt Sekme Başlığı
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(if (subHasActive) TourOSColors.PrimaryContainer.copy(alpha = 0.20f) else Color.Transparent)
+                                                .clickable {
+                                                    expandedGroups[subKey] = !isSubExpanded
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(subGroup.title),
+                                                style = TourOSTypography.BodyMedium.copy(
+                                                    color = if (subHasActive) TourOSColors.Primary else Color(0xFF334155),
+                                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                                    fontSize = 12.sp
+                                                )
+                                            )
+                                            androidx.compose.material3.Icon(
+                                                imageVector = if (isSubExpanded) androidx.compose.material.icons.Icons.Default.KeyboardArrowDown else androidx.compose.material.icons.Icons.Default.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = if (subHasActive) TourOSColors.Primary else Color(0xFF64748B),
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+
+                                        // Alt Sekme Öğeleri
+                                        androidx.compose.animation.AnimatedVisibility(
+                                            visible = isSubExpanded,
+                                            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                                            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+                                        ) {
+                                            Column(
+                                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                                                modifier = Modifier.padding(start = 10.dp, top = 2.dp, bottom = 2.dp)
+                                            ) {
+                                                subGroup.items.forEach { item ->
+                                                    RenderSidebarItem(item = item, onItemSelect = onItemSelect)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Doğrudan Grup Öğeleri (Varsa)
                             group.items.forEach { item ->
                                 RenderSidebarItem(item = item, onItemSelect = onItemSelect)
                             }

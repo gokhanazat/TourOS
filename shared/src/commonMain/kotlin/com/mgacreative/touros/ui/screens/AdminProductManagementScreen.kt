@@ -35,17 +35,14 @@ import org.koin.compose.viewmodel.koinViewModel
  */
 @Composable
 fun AdminProductManagementScreen(
-    publishingViewModel: AgencyProductPublishingViewModel = koinViewModel(),
     dataManagementViewModel: AdminDataManagementViewModel = koinViewModel()
 ) {
-    var activeTab by remember { mutableStateOf(0) } // 0: Ürün Havuzu, 1: Data Yönetimi
-
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
-                title = "Admin Ürün & Data Yönetimi",
-                subtitle = "SaaS Admin: Tur operatörleri ürün havuzu ve merkezi API veri besleme kontrolü"
+                title = "Admin Data & API Yönetimi",
+                subtitle = "SaaS Admin: TourVisor / Radar canlı API veri besleme ve operatör senkronizasyon kontrolü"
             )
         }
     ) { padding ->
@@ -56,45 +53,11 @@ fun AdminProductManagementScreen(
                 .padding(TourOSSpacing.large),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
-            // SEKME DEĞİŞTİRİCİ
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                listOf(
-                    "📦 1. Tur Operatörleri Ürün Havuzu",
-                    "🗄️ 2. Data Yönetimi (API Beslemeleri & Entegrasyon)"
-                ).forEachIndexed { index, title ->
-                    val isSelected = activeTab == index
-                    OutlinedButton(
-                        onClick = { activeTab = index },
-                        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
-                        colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
-                    ) {
-                        Text(
-                            title,
-                            style = TourOSTypography.Label.copy(
-                                color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        )
-                    }
-                }
-            }
-
-            // İÇERİK: SEKME 1 veya SEKME 2
-            if (activeTab == 0) {
-                // ── SEKME 1: TUR OPERATÖRLERİ ÜRÜN HAVUZU ─────────────────────────
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AgencyProductPublishingScreen(viewModel = publishingViewModel)
-                }
-            } else {
-                // ── SEKME 2: DATA YÖNETİMİ ────────────────────────────────────────
-                AdminDataManagementSection(
-                    viewModel = dataManagementViewModel,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+            // ── DOĞRUDAN MERKEZİ CANLI API DATA YÖNETİMİ ─────────────────────────
+            AdminDataManagementSection(
+                viewModel = dataManagementViewModel,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }

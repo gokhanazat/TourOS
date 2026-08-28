@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import touros.shared.generated.resources.Res
 import touros.shared.generated.resources.axileto_logo_white
+import touros.shared.generated.resources.club_badge
 import com.mgacreative.touros.domain.model.PromoBannerItem
 import com.mgacreative.touros.domain.model.BookingItem
 import com.mgacreative.touros.domain.model.Passenger
@@ -790,6 +791,7 @@ fun GlobalWebPublicScreen(
     onNavigateToLogin: () -> Unit = {},
     onNavigateToAdminCms: () -> Unit = {},
     onNavigateToNewBooking: (PublicHotelOffer) -> Unit = {},
+    onNavigateToClub: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -1344,7 +1346,7 @@ fun GlobalWebPublicScreen(
                                         }
                                     }
 
-                                    // 🧳 Misafir / 🏢 Acenta Giriş Butonları (Minimalist & Şık)
+                                    // 🧳 Misafir / 🏢 Acenta / 👑 Club Giriş Butonları (Minimalist & Şık)
                                     Row(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
@@ -1355,16 +1357,21 @@ fun GlobalWebPublicScreen(
                                     ) {
                                         val guestLabel = "🧳 Misafir"
                                         val agencyLabel = if (currentUser != null) "🏢 Acenta ➔" else "🏢 Acenta"
+                                        val clubLabel = "👑 Club"
 
-                                        listOf(guestLabel, agencyLabel).forEach { modeLabel ->
+                                        listOf(guestLabel, agencyLabel, clubLabel).forEach { modeLabel ->
                                             val isGuest = modeLabel.contains("Misafir")
-                                            val isSelectedMode = (isGuest && userMode == "Turist") || (!isGuest && userMode == "Acente")
+                                            val isAgency = modeLabel.contains("Acenta")
+                                            val isClub = modeLabel.contains("Club")
+                                            val isSelectedMode = (isGuest && userMode == "Turist") || (isAgency && userMode == "Acente")
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(16.dp))
-                                                    .background(if (isSelectedMode) Color(0xFF0284C7) else Color.Transparent)
+                                                    .background(if (isSelectedMode) Color(0xFF0284C7) else if (isClub) Color(0xFF0F172A) else Color.Transparent)
                                                     .clickable {
-                                                        if (isGuest) {
+                                                        if (isClub) {
+                                                            onNavigateToClub()
+                                                        } else if (isGuest) {
                                                             userMode = "Turist"
                                                         } else {
                                                             userMode = "Acente"
@@ -1378,7 +1385,11 @@ fun GlobalWebPublicScreen(
                                             ) {
                                                 Text(
                                                     text = modeLabel,
-                                                    style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = if (isSelectedMode) FontWeight.Bold else FontWeight.Medium, fontSize = 11.sp)
+                                                    style = TourOSTypography.Caption.copy(
+                                                        color = if (isClub) Color(0xFFE2B755) else Color.White,
+                                                        fontWeight = if (isSelectedMode || isClub) FontWeight.Bold else FontWeight.Medium,
+                                                        fontSize = 11.sp
+                                                    )
                                                 )
                                             }
                                         }
@@ -1503,7 +1514,7 @@ fun GlobalWebPublicScreen(
                                         }
                                     }
 
-                                    // Misafir / Acenta Seçici Segment Butonları (Minimalist & Şık)
+                                    // Misafir / Acenta / 👑 Club Seçici Segment Butonları (Minimalist & Şık)
                                     Row(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(20.dp))
@@ -1628,6 +1639,24 @@ fun GlobalWebPublicScreen(
                                             )
                                         )
                                 )
+
+                                // Sağ: 👑 Axileto Club VIP Rozeti (Hero Banner İçi - Büyütülmüş ve Net)
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 24.dp)
+                                        .size(265.dp)
+                                        .clip(RoundedCornerShape(24.dp))
+                                        .clickable { onNavigateToClub() },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.foundation.Image(
+                                        painter = org.jetbrains.compose.resources.painterResource(Res.drawable.club_badge),
+                                        contentDescription = "Axileto Club",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Fit
+                                    )
+                                }
 
                                 // Sol Alt Slogan (Yalnızca CMS'ten metin girilmişse gösterilir)
                                 val customHeroText = companySettings?.heroSubtitle?.trim().orEmpty()
@@ -1971,7 +2000,7 @@ fun GlobalWebPublicScreen(
                                     Triple("ALL", "Tüm Dünyayı Keşfet", "🌍") to Triple("https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80", "Global Destinasyonlar", "En İyi Fiyat"),
                                     Triple("TR", "Türkiye", "🇹🇷") to Triple("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=80", "Antalya · Belek · Bodrum · Kemer", "$580'den başlayan"),
                                     Triple("EG", "Mısır", "🇪🇬") to Triple("https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&auto=format&fit=crop&q=80", "Şarm El-Şeyh · Hurgada · El Gouna", "$490'dan başlayan"),
-                                    Triple("TH", "Tayland", "🇹🇭") to Triple("https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&auto=format&fit=crop&q=80", "Phuket · Pattaya · Bangkok · Samui", "$790'dan başlayan"),
+                                    Triple("TH", "Tayland", "🇹🇭") to Triple("https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&auto=format&fit=crop&q=80", "Phuket · Pattaya · Bangkok · Samui", "$790'den başlayan"),
                                     Triple("VN", "Vietnam", "🇻🇳") to Triple("https://images.unsplash.com/photo-1528127269322-539801943592?w=800&auto=format&fit=crop&q=80", "Da Nang · Phu Quoc · Nha Trang", "$850'den başlayan"),
                                     Triple("AE", "BAE (Dubai)", "🇦🇪") to Triple("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop&q=80", "Dubai Marina · Palm Jumeirah", "$690'den başlayan"),
                                     Triple("RU", "Rusya", "🇷🇺") to Triple("https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800&auto=format&fit=crop&q=80", "Moskova · Sochi · St. Petersburg", "$420'den başlayan")

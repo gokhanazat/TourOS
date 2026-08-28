@@ -243,6 +243,7 @@ fun UniversalTourSearchBar(
                 if (isCompact) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         TourSearchFields(
+                            activeTab = activeTab,
                             departureCity = departureCity,
                             onDepartureCityClick = { showRussianDepartureModal = true },
                             selectedRegion = selectedRegion,
@@ -270,6 +271,7 @@ fun UniversalTourSearchBar(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TourSearchFields(
+                            activeTab = activeTab,
                             departureCity = departureCity,
                             onDepartureCityClick = { showRussianDepartureModal = true },
                             selectedRegion = selectedRegion,
@@ -305,6 +307,7 @@ fun UniversalTourSearchBar(
 
 @Composable
 private fun RowScope.TourSearchFields(
+    activeTab: String = "TOURS",
     departureCity: String,
     onDepartureCityClick: () -> Unit,
     selectedRegion: String,
@@ -328,6 +331,12 @@ private fun RowScope.TourSearchFields(
         "$adults ${AppLanguageManager.translate("Yetişkin")}"
     } else {
         "$adults ${AppLanguageManager.translate("Yet")}, ${childrenAges.size} ${AppLanguageManager.translate("Çoc")} (${childrenAges.joinToString(",") { "${it}y" }})"
+    }
+
+    val searchButtonText = when (activeTab.uppercase()) {
+        "HOTELS", "HOTEL", "LOCAL_HOTELS" -> "OTELLERİ BUL"
+        "FLIGHTS", "FLIGHT" -> "UÇUŞLARI BUL"
+        else -> "TURLARI BUL"
     }
 
     // 1. NEREDEN
@@ -445,7 +454,7 @@ private fun RowScope.TourSearchFields(
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = AppLanguageManager.translate("TURLARI BUL"),
+                text = AppLanguageManager.translate(searchButtonText),
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp
@@ -458,6 +467,7 @@ private fun RowScope.TourSearchFields(
 
 @Composable
 private fun ColumnScope.TourSearchFields(
+    activeTab: String = "TOURS",
     departureCity: String,
     onDepartureCityClick: () -> Unit,
     selectedRegion: String,
@@ -481,6 +491,12 @@ private fun ColumnScope.TourSearchFields(
         "$adults ${AppLanguageManager.translate("Yetişkin")}"
     } else {
         "$adults ${AppLanguageManager.translate("Yet")}, ${childrenAges.size} ${AppLanguageManager.translate("Çoc")} (${childrenAges.joinToString(",") { "${it}y" }})"
+    }
+
+    val searchButtonText = when (activeTab.uppercase()) {
+        "HOTELS", "HOTEL", "LOCAL_HOTELS" -> "OTELLERİ BUL"
+        "FLIGHTS", "FLIGHT" -> "UÇUŞLARI BUL"
+        else -> "TURLARI BUL"
     }
 
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -597,7 +613,7 @@ private fun ColumnScope.TourSearchFields(
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = AppLanguageManager.translate("TURLARI BUL"),
+                text = AppLanguageManager.translate(searchButtonText),
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp

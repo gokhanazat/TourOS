@@ -86,3 +86,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class B2BTourFlightServiceSelectionRoute(val productId: String = "")
 @Serializable data class B2BPassengerCheckoutWizardRoute(val productId: String = "", val flightOptionId: String = "")
 
+// ─── Axileto Members Portal & Admin Club Management ─────────────────────────
+@Serializable object AxiletoMembersPortalRoute
+@Serializable object ClubManagementRoute
+
