@@ -83,16 +83,15 @@ fun LoginScreen(
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .widthIn(max = 440.dp)
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(TourOSSpacing.large),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             TourOSCard(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 420.dp),
+                modifier = Modifier.fillMaxWidth(),
                 backgroundColor = TourOSColors.Background,
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.xxLarge

@@ -61,7 +61,7 @@ private val publicAndAuthRoutePatterns = listOf(
 private val adminRoutePatterns = listOf(
     "AgencyApprovalRoute", "AgencySearchRoute", "AgencyQuotaReportRoute",
     "AdminAgencyLedgerRoute", "GlobalWebCmsRoute", "AdminProductManagementRoute",
-    "SaasCacheManagementRoute", "AdminDeploymentRoute", "ClubManagementRoute"
+    "SaasCacheManagementRoute", "AdminDeploymentRoute", "ClubManagementRoute", "ClubReportRoute"
 )
 
 private fun NavDestination?.isAuthOrPublicRoute(): Boolean =
@@ -159,13 +159,18 @@ private fun buildNavGroups(currentRoute: String?, isSystemAdmin: Boolean = false
                     TourOSNavSubGroup(
                         title = AppLanguageManager.translate("Club"),
                         isInitiallyExpanded = currentRoute?.let {
-                            it.contains("ClubManagementRoute") || it.contains("AxiletoMembersPortalRoute")
+                            it.contains("ClubManagementRoute") || it.contains("AxiletoMembersPortalRoute") || it.contains("ClubReportRoute")
                         } ?: false,
                         items = listOf(
                             TourOSNavItem(
                                 title = AppLanguageManager.translate("Club Yönetimi"),
                                 route = ClubManagementRoute,
                                 isSelected = currentRoute?.contains("ClubManagementRoute") == true
+                            ),
+                            TourOSNavItem(
+                                title = AppLanguageManager.translate("Club Raporu"),
+                                route = ClubReportRoute,
+                                isSelected = currentRoute?.contains("ClubReportRoute") == true
                             ),
                             TourOSNavItem(
                                 title = AppLanguageManager.translate("Club Portalı"),
@@ -408,7 +413,7 @@ fun AppNavigation() {
                 coroutineScope.launch {
                     authRepository.signOut()
                     if (drawerState.isOpen) drawerState.close()
-                    navController.navigate(GlobalWebPublicRoute) {
+                    navController.navigate(GlobalWebPublicRoute()) {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -558,17 +563,17 @@ private fun AppNavHost(navController: NavHostController) {
     val authRepository: AuthRepository = org.koin.compose.koinInject()
     val currentUser by authRepository.observeAuthState().collectAsState()
 
-    NavHost(navController = navController, startDestination = GlobalWebPublicRoute) {
+    NavHost(navController = navController, startDestination = GlobalWebPublicRoute()) {
 
         // ─── Auth & Public Landing ──────────────────────────────────────────
 
         composable<SplashRoute> {
             SplashScreen(
                 onNavigateToLogin = {
-                    navController.navigate(GlobalWebPublicRoute) { popUpTo(SplashRoute) { inclusive = true } }
+                    navController.navigate(GlobalWebPublicRoute()) { popUpTo(SplashRoute) { inclusive = true } }
                 },
                 onNavigateToDashboard = { role ->
-                    navController.navigate(GlobalWebPublicRoute) {
+                    navController.navigate(GlobalWebPublicRoute()) {
                         popUpTo(SplashRoute) { inclusive = true }
                     }
                 }
@@ -633,7 +638,7 @@ private fun AppNavHost(navController: NavHostController) {
         composable<DashboardRoute> {
             DashboardScreen(
                 onNavigateToLogin = {
-                    navController.navigate(GlobalWebPublicRoute) { popUpTo(DashboardRoute) { inclusive = true } }
+                    navController.navigate(GlobalWebPublicRoute()) { popUpTo(DashboardRoute) { inclusive = true } }
                 },
                 onNavigateToBookings = { navController.navigate(BookingsRoute) },
                 onNavigateToTours = { navController.navigate(ToursRoute) },
@@ -699,8 +704,25 @@ private fun AppNavHost(navController: NavHostController) {
             }
         }
 
-        composable<GlobalWebPublicRoute> {
+        composable<ClubReportRoute> {
+            val isAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
+            if (!isAdmin) {
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    navController.navigate(LoginRoute) {
+                        popUpTo(ClubReportRoute) { inclusive = true }
+                    }
+                }
+            } else {
+                com.mgacreative.touros.ui.screens.admin.ClubReportScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable<GlobalWebPublicRoute> { backStackEntry ->
+            val route: GlobalWebPublicRoute = backStackEntry.toRoute()
             GlobalWebPublicScreen(
+                initialSearchQuery = route.initialQuery,
                 onNavigateToB2BSearch = {
                     navController.navigate(B2BTourSearchDashboardRoute)
                 },
@@ -762,8 +784,8 @@ private fun AppNavHost(navController: NavHostController) {
         composable<AxiletoMembersPortalRoute> {
             com.mgacreative.touros.ui.screens.members.AxiletoMembersPortalScreen(
                 onNavigateBackToMainApp = { navController.popBackStack() },
-                onNavigateToSearch = { _ ->
-                    navController.navigate(GlobalWebPublicRoute)
+                onNavigateToSearch = { query ->
+                    navController.navigate(GlobalWebPublicRoute(initialQuery = query))
                 }
             )
         }
@@ -1072,8 +1094,8 @@ private fun AppNavHost(navController: NavHostController) {
                             popUpTo(DashboardRoute) { inclusive = true }
                         }
                     } else {
-                        navController.navigate(GlobalWebPublicRoute) {
-                            popUpTo(GlobalWebPublicRoute) { inclusive = true }
+                        navController.navigate(GlobalWebPublicRoute()) {
+                            popUpTo(GlobalWebPublicRoute()) { inclusive = true }
                         }
                     }
                 }

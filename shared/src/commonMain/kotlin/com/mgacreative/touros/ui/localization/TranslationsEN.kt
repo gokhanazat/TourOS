@@ -1220,6 +1220,7 @@ internal object TranslationsEN {
             "ÜRÜN & DATA YÖNETİMİ" to "PRODUCT & DATA MANAGEMENT",
             "WEB YÖNETİM" to "WEB MANAGEMENT",
             "Club Yönetimi" to "Club Management",
+            "Club Raporu" to "Club Report",
             "Club Portalı" to "Club Portal",
             "ADMİN PANELİ" to "ADMIN PANEL",
             "Acentalar" to "Agencies",

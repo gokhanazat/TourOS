@@ -786,6 +786,7 @@ fun AxiletoLogoText(
 @Composable
 fun GlobalWebPublicScreen(
     referralCode: String? = null,
+    initialSearchQuery: String? = null,
     onNavigateToB2BSearch: () -> Unit = {},
     onNavigateToBookingDetail: (String) -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
@@ -812,7 +813,18 @@ fun GlobalWebPublicScreen(
     }
 
     // Filtreleme State'leri
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember(initialSearchQuery) { mutableStateOf(initialSearchQuery ?: "") }
+
+    LaunchedEffect(initialSearchQuery) {
+        if (!initialSearchQuery.isNullOrBlank()) {
+            searchQuery = initialSearchQuery
+            coroutineScope.launch {
+                try {
+                    mainLazyListState.animateScrollToItem(1)
+                } catch (_: Exception) {}
+            }
+        }
+    }
     var selectedSearchCategoryTab by remember { mutableStateOf("ALL") } // "ALL", "PACKAGE_TOUR", "HOTEL", "FLIGHT", "LAST_MINUTE"
     var selectedDestinationFilter by remember { mutableStateOf("Tüm Destinasyonlar") }
     var selectedStarFilter by remember { mutableStateOf(0) } // 0 = Hepsi

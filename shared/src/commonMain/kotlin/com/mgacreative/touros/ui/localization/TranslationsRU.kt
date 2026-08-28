@@ -877,6 +877,7 @@ internal object TranslationsRU {
             "WEB YÖNETİM" to "УПРАВЛЕНИЕ ВЕБ-САЙТОМ",
             "CLUB" to "CLUB",
             "Club Yönetimi" to "Управление Club",
+            "Club Raporu" to "Отчет Club",
             "Club Portalı" to "Портал Club",
             "Acente Kodu (B2B SaaS / Master Referans Kodu)" to "Код агентства (B2B SaaS / Мастер-референс)",
             "Admin Tarafından Kilitlendi" to "Заблокировано администратором",

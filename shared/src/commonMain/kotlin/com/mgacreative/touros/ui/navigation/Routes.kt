@@ -21,7 +21,7 @@ import kotlinx.serialization.Serializable
 @Serializable object AgencySearchRoute
 @Serializable object AgencyQuotaReportRoute
 @Serializable object GlobalWebCmsRoute
-@Serializable object GlobalWebPublicRoute
+@Serializable data class GlobalWebPublicRoute(val initialQuery: String? = null)
 @Serializable object SettingsRoute
 @Serializable object UserListRoute
 @Serializable object InviteUserRoute
@@ -89,4 +89,5 @@ import kotlinx.serialization.Serializable
 // ─── Axileto Members Portal & Admin Club Management ─────────────────────────
 @Serializable object AxiletoMembersPortalRoute
 @Serializable object ClubManagementRoute
+@Serializable object ClubReportRoute
 

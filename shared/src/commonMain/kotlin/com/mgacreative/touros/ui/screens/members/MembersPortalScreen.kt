@@ -224,6 +224,28 @@ data class MarketplaceProductRpcDto(
     val stars: Int = 5
 )
 
+@Serializable
+data class ClubAgencyOfferDto(
+    val id: String? = null,
+    val agency_id: String? = null,
+    val agency_name: String? = null,
+    val hotel_name: String? = null,
+    val stars: Int? = 5,
+    val operator_badge: String? = null,
+    val flight_badge: String? = null,
+    val location_text: String? = null,
+    val nights_text: String? = null,
+    val meal_text: String? = null,
+    val lowest_price: String? = null,
+    val highest_price: String? = null,
+    val award_badge: String? = null,
+    val discount_percent: Int? = 25,
+    val rating_score: Double? = 4.8,
+    val review_count: Int? = 120,
+    val image_url: String? = null,
+    val is_active: Boolean? = true
+)
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DİNAMİK 3 DİL SÖZLÜĞÜ (TR - EN - RU)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -264,12 +286,12 @@ data class AgencyOfferBlock(
 )
 
 data class MemberModel(
-    val fullName: String = "Gökhan Azat",
-    val email: String = "gkhnazat@gmail.com",
-    val phone: String = "+90 (544) 220-0600",
+    val fullName: String = "",
+    val email: String = "",
+    val phone: String = "",
     val isAgency: Boolean = false,
-    val agencyName: String = "MGA Seyahat Acentesi",
-    val avatarInitials: String = "GA",
+    val agencyName: String = "",
+    val avatarInitials: String = "VIP",
     val avatarUrl: String? = null
 )
 
@@ -331,6 +353,61 @@ fun AxiletoMembersPortalScreen(
     var liveBookingsList by remember { mutableStateOf<List<MemberBookingRpcDto>>(defaultBookings) }
     var isOfferModalOpen by remember { mutableStateOf(false) }
 
+    fun fetchAgencyOffers() {
+        coroutineScope.launch {
+            try {
+                val list = supabaseClient.postgrest.from("club_agency_offers")
+                    .select {
+                        filter {
+                            eq("is_active", true)
+                        }
+                    }
+                    .decodeList<ClubAgencyOfferDto>()
+
+                val grouped = list.groupBy { it.agency_name ?: "Yetkili Acente" }
+                val blocks = grouped.map { (agnName, offersList) ->
+                    AgencyOfferBlock(
+                        agencyId = offersList.firstOrNull()?.agency_id ?: "agn-1",
+                        agencyName = agnName,
+                        offers = offersList.map { dto ->
+                            AgencyBlockOfferItem(
+                                id = dto.id ?: "",
+                                hotelName = dto.hotel_name ?: "",
+                                stars = dto.stars ?: 5,
+                                operatorBadge = dto.operator_badge ?: "VIP Özel Teklif",
+                                flightBadge = dto.flight_badge ?: "Charter & Lounge 🧳",
+                                locationText = dto.location_text ?: "Türkiye • Antalya",
+                                nightsText = dto.nights_text ?: "7 Gece",
+                                mealText = dto.meal_text ?: "Ultra Her Şey Dahil",
+                                lowestPrice = dto.lowest_price ?: "₺35.000",
+                                highestPrice = dto.highest_price ?: "₺42.000",
+                                awardBadge = dto.award_badge ?: "Starway Award",
+                                discountPercent = dto.discount_percent ?: 25,
+                                ratingScore = dto.rating_score ?: 4.8,
+                                reviewCount = dto.review_count ?: 120,
+                                imageUrl = dto.image_url ?: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&auto=format&fit=crop&q=60"
+                            )
+                        }
+                    )
+                }
+
+                if (currentMember.isAgency && currentMember.agencyName.isNotBlank() && blocks.none { it.agencyName.equals(currentMember.agencyName, ignoreCase = true) }) {
+                    agencyBlocks = listOf(
+                        AgencyOfferBlock(
+                            agencyId = "agn-${currentMember.agencyName.hashCode()}",
+                            agencyName = currentMember.agencyName,
+                            offers = emptyList()
+                        )
+                    ) + blocks
+                } else {
+                    agencyBlocks = blocks
+                }
+            } catch (e: Exception) {
+                println("⚠️ fetchAgencyOffers: ${e.message}")
+            }
+        }
+    }
+
     fun fetchVipData(email: String, phone: String) {
         coroutineScope.launch {
             try {
@@ -360,6 +437,10 @@ fun AxiletoMembersPortalScreen(
         }
     }
 
+    LaunchedEffect(stage, currentMember.agencyName) {
+        fetchAgencyOffers()
+    }
+
     when (stage) {
         ClubStage.AUTH -> {
             AxiletoClubAuthScreen(
@@ -375,15 +456,7 @@ fun AxiletoMembersPortalScreen(
                         avatarInitials = name.take(2).uppercase().ifBlank { "VIP" }
                     )
                     if (isAgency) {
-                        if (agencyBlocks.none { it.agencyName.equals(finalAgencyName, ignoreCase = true) }) {
-                            agencyBlocks = listOf(
-                                AgencyOfferBlock(
-                                    agencyId = "agn-${(1000..9999).random()}",
-                                    agencyName = finalAgencyName,
-                                    offers = emptyList()
-                                )
-                            ) + agencyBlocks
-                        }
+                        fetchAgencyOffers()
                     } else {
                         fetchVipData(email, phone)
                     }
@@ -409,12 +482,16 @@ fun AxiletoMembersPortalScreen(
                     liveBookingsList = listOf(newBooking) + liveBookingsList
                 },
                 onDeleteOffer = { agencyId, offerId ->
-                    agencyBlocks = agencyBlocks.map { blk ->
-                        if (blk.agencyId == agencyId || blk.agencyName.equals(currentMember.agencyName, ignoreCase = true)) {
-                            blk.copy(offers = blk.offers.filterNot { it.id == offerId })
-                        } else {
-                            blk
+                    coroutineScope.launch {
+                        try {
+                            val params = buildJsonObject {
+                                put("p_offer_id", offerId)
+                            }
+                            supabaseClient.postgrest.rpc("delete_club_agency_offer", params)
+                        } catch (e: Exception) {
+                            println("⚠️ delete_club_agency_offer: ${e.message}")
                         }
+                        fetchAgencyOffers()
                     }
                 },
                 onOpenOfferModal = {
@@ -462,15 +539,28 @@ fun AxiletoMembersPortalScreen(
                     agencyName = currentMember.agencyName,
                     onDismiss = { isOfferModalOpen = false },
                     onPublishOffer = { newOfferItem ->
-                        val updatedBlocks = agencyBlocks.map { blk ->
-                            if (blk.agencyName.equals(currentMember.agencyName, ignoreCase = true)) {
-                                val currentList = blk.offers.take(9)
-                                blk.copy(offers = listOf(newOfferItem) + currentList)
-                            } else {
-                                blk
+                        coroutineScope.launch {
+                            try {
+                                val params = buildJsonObject {
+                                    put("p_agency_id", "agn-${currentMember.agencyName.hashCode()}")
+                                    put("p_agency_name", currentMember.agencyName.ifBlank { "Yetkili Acente" })
+                                    put("p_hotel_name", newOfferItem.hotelName)
+                                    put("p_stars", newOfferItem.stars)
+                                    put("p_operator_badge", newOfferItem.operatorBadge)
+                                    put("p_flight_badge", newOfferItem.flightBadge)
+                                    put("p_location_text", newOfferItem.locationText)
+                                    put("p_nights_text", newOfferItem.nightsText)
+                                    put("p_meal_text", newOfferItem.mealText)
+                                    put("p_lowest_price", newOfferItem.lowestPrice)
+                                    put("p_highest_price", newOfferItem.highestPrice)
+                                    put("p_image_url", newOfferItem.imageUrl)
+                                }
+                                supabaseClient.postgrest.rpc("save_club_agency_offer", params)
+                            } catch (e: Exception) {
+                                println("⚠️ save_club_agency_offer: ${e.message}")
                             }
+                            fetchAgencyOffers()
                         }
-                        agencyBlocks = updatedBlocks
                         isOfferModalOpen = false
                     }
                 )
@@ -3389,15 +3479,15 @@ private fun AxiletoClubAuthScreen(
     var selectedAuthTab by remember { mutableStateOf(0) } // 0: VIP Üye, 1: Acente Girişi
 
     // VIP Üye State
-    var memberEmail by remember { mutableStateOf("gkhnazat@gmail.com") }
-    var memberPhone by remember { mutableStateOf("+90 (544) 220-0600") }
-    var memberName by remember { mutableStateOf("Gökhan Azat") }
+    var memberEmail by remember { mutableStateOf("") }
+    var memberPhone by remember { mutableStateOf("") }
+    var memberName by remember { mutableStateOf("") }
 
     // Acente Girişi State
-    var agencyCode by remember { mutableStateOf("AXL-1002") }
-    var agencyCompanyName by remember { mutableStateOf("Axileto VIP Tourism") }
-    var agencyEmail by remember { mutableStateOf("agency@touros.com") }
-    var agencyPassword by remember { mutableStateOf("••••••••") }
+    var agencyCode by remember { mutableStateOf("") }
+    var agencyCompanyName by remember { mutableStateOf("") }
+    var agencyEmail by remember { mutableStateOf("") }
+    var agencyPassword by remember { mutableStateOf("") }
     var agencyErrorMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
