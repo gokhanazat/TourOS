@@ -247,27 +247,36 @@ private fun PassengerFormCardItem(
                 Box(modifier = Modifier.weight(1f)) {
                     TourOSTextField(
                         value = passenger.firstName,
-                        onValueChange = { onUpdatePassenger(passenger.copy(firstName = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(firstName = it.uppercase())) },
                         label = AppLanguageManager.translate("Adı (Имя)"),
                         placeholder = "AHMET",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     TourOSTextField(
                         value = passenger.lastName,
-                        onValueChange = { onUpdatePassenger(passenger.copy(lastName = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(lastName = it.uppercase())) },
                         label = AppLanguageManager.translate("Soyadı (Фамилия)"),
                         placeholder = "YILMAZ",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     TourOSTextField(
                         value = passenger.birthDate,
-                        onValueChange = { onUpdatePassenger(passenger.copy(birthDate = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(birthDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
                         label = AppLanguageManager.translate("Doğum Tarihi (GG.AA.YYYY)"),
                         placeholder = "12.05.1985",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -281,27 +290,36 @@ private fun PassengerFormCardItem(
                 Box(modifier = Modifier.weight(1f)) {
                     TourOSTextField(
                         value = passenger.citizenship,
-                        onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it.uppercase())) },
                         label = AppLanguageManager.translate("Uyruk (Гражданство)"),
-                        placeholder = "Türkiye",
+                        placeholder = "TÜRKİYE",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     TourOSTextField(
                         value = passenger.passportNumber,
-                        onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it.uppercase())) },
                         label = AppLanguageManager.translate("Pasaport No (Номер)"),
                         placeholder = "84920492",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     TourOSTextField(
                         value = passenger.documentExpiryDate,
-                        onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
                         label = AppLanguageManager.translate("Son Geçerlilik (Срок действия)"),
                         placeholder = "12.05.2030",
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

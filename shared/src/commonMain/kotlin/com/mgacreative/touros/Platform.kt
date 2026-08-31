@@ -48,12 +48,23 @@ fun addDaysToTriple(triple: Triple<Int, Int, Int>, daysToAdd: Int): Triple<Int, 
         }
     }
     d += daysToAdd
-    while (d > getDim(m, y)) {
-        d -= getDim(m, y)
-        m++
-        if (m > 12) {
-            m = 1
-            y++
+    if (d > 0) {
+        while (d > getDim(m, y)) {
+            d -= getDim(m, y)
+            m++
+            if (m > 12) {
+                m = 1
+                y++
+            }
+        }
+    } else {
+        while (d <= 0) {
+            m--
+            if (m < 1) {
+                m = 12
+                y--
+            }
+            d += getDim(m, y)
         }
     }
     return Triple(d, m, y)

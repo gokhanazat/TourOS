@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import com.mgacreative.touros.utils.DateUtils
 
 val STANDARD_ROOM_TYPES = listOf(
     "Single Room",
@@ -46,8 +47,8 @@ data class PeriodRoomItem(
 data class HotelPeriodItem(
     val id: String = "",
     val periodName: String = "1. Periyot (Tüm Yıl)",
-    val startDate: String = "2026-01-01",
-    val endDate: String = "2026-12-31",
+    val startDate: String = "${DateUtils.getCurrentYear()}-01-01",
+    val endDate: String = "${DateUtils.getCurrentYear()}-12-31",
     val rooms: List<PeriodRoomItem> = listOf(
         PeriodRoomItem(id = "rm-1", roomTypeName = "Double Room", allotment = 0, costPrice = 0.0, salePrice = 0.0)
     )
@@ -97,11 +98,12 @@ class HotelFormViewModel(
     fun addPeriod() {
         val currentPeriods = _uiState.value.periods.toMutableList()
         val newIdx = currentPeriods.size + 1
+        val currentYear = DateUtils.getCurrentYear()
         val newPeriod = HotelPeriodItem(
             id = "p-${(100000..999999).random()}",
             periodName = "$newIdx. Periyot",
-            startDate = "2026-01-01",
-            endDate = "2026-12-31",
+            startDate = "$currentYear-01-01",
+            endDate = "$currentYear-12-31",
             rooms = listOf(PeriodRoomItem(id = "rm-${(100000..999999).random()}", roomTypeName = "Double Room", allotment = 0, costPrice = 0.0, salePrice = 0.0))
         )
         currentPeriods.add(newPeriod)

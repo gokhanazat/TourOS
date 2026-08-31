@@ -40,6 +40,7 @@ class BookingListViewModel(
 
     private var tenantId: String = ""
     private var toursList: List<Tour> = emptyList()
+    private var allBookingsList: List<Booking> = emptyList()
 
     private var currentStatus: BookingStatus? = null
     private var currentTourId: String? = null
@@ -58,28 +59,21 @@ class BookingListViewModel(
             tenantId = user?.tenantId.orEmpty()
 
             getToursUseCase.getTours(tenantId).onSuccess { toursList = it }
-            fetchBookings()
+            fetchBookingsFromRemote()
         }
     }
 
-    private suspend fun fetchBookings() {
+    private suspend fun fetchBookingsFromRemote() {
         getBookingsUseCase.getBookings(
             tenantId = tenantId,
-            statusFilter = currentStatus,
-            tourIdFilter = currentTourId,
-            startDate = currentStartDate,
-            endDate = currentEndDate,
-            searchQuery = currentSearch
+            statusFilter = null,
+            tourIdFilter = null,
+            startDate = null,
+            endDate = null,
+            searchQuery = ""
         ).onSuccess { list ->
-            _uiState.value = BookingListUiState.Success(
-                bookings = list,
-                tours = toursList,
-                selectedStatusFilter = currentStatus,
-                selectedTourFilterId = currentTourId,
-                startDateFilter = currentStartDate,
-                endDateFilter = currentEndDate,
-                searchQuery = currentSearch
-            )
+            allBookingsList = list
+            applyLocalFilters()
         }.onFailure { err ->
             _uiState.value = BookingListUiState.Error(
                 err.message ?: "Rezervasyonlar yüklenirken hata oluştu"
@@ -87,31 +81,75 @@ class BookingListViewModel(
         }
     }
 
+    private fun applyLocalFilters() {
+        val q = currentSearch.trim()
+        val filtered = allBookingsList.filter { booking ->
+            val matchesStatus = if (currentStatus != null) {
+                booking.status == currentStatus
+            } else {
+                booking.status != BookingStatus.IPTAL && booking.status != BookingStatus.TAMAMLANDI
+            }
+            val matchesTour = currentTourId.isNullOrBlank() ||
+                    booking.departureId == currentTourId ||
+                    booking.hotelId == currentTourId
+            val matchesDate = when {
+                currentStartDate != null && booking.departureDate.isNotBlank() -> booking.departureDate >= currentStartDate!!
+                currentEndDate != null && booking.departureDate.isNotBlank() -> booking.departureDate <= currentEndDate!!
+                else -> true
+            }
+            val matchesSearch = if (q.isBlank()) true else {
+                booking.bookingCode.contains(q, ignoreCase = true) ||
+                (booking.operatorPnrCode?.contains(q, ignoreCase = true) == true) ||
+                booking.customerName.contains(q, ignoreCase = true) ||
+                (booking.customerPhone?.contains(q, ignoreCase = true) == true) ||
+                (booking.customerEmail?.contains(q, ignoreCase = true) == true) ||
+                booking.productName.contains(q, ignoreCase = true) ||
+                booking.passengers.any { p ->
+                    p.fullName.contains(q, ignoreCase = true) ||
+                    (p.tcNo?.contains(q, ignoreCase = true) == true) ||
+                    (p.passportNo?.contains(q, ignoreCase = true) == true) ||
+                    (p.phone?.contains(q, ignoreCase = true) == true)
+                }
+            }
+            matchesStatus && matchesTour && matchesDate && matchesSearch
+        }
+
+        _uiState.value = BookingListUiState.Success(
+            bookings = filtered,
+            tours = toursList,
+            selectedStatusFilter = currentStatus,
+            selectedTourFilterId = currentTourId,
+            startDateFilter = currentStartDate,
+            endDateFilter = currentEndDate,
+            searchQuery = currentSearch
+        )
+    }
+
     fun onStatusFilterSelected(status: BookingStatus?) {
         currentStatus = status
-        viewModelScope.launch { fetchBookings() }
+        applyLocalFilters()
     }
 
     fun onTourFilterSelected(tourId: String?) {
         currentTourId = tourId
-        viewModelScope.launch { fetchBookings() }
+        applyLocalFilters()
     }
 
     fun onDateRangeChanged(startDate: String?, endDate: String?) {
         currentStartDate = startDate
         currentEndDate = endDate
-        viewModelScope.launch { fetchBookings() }
+        applyLocalFilters()
     }
 
     fun onSearchQueryChanged(query: String) {
         currentSearch = query
-        viewModelScope.launch { fetchBookings() }
+        applyLocalFilters()
     }
 
     fun updateBookingStatus(bookingId: String, currentStatus: BookingStatus, targetStatus: BookingStatus) {
         viewModelScope.launch {
             updateBookingStatusUseCase(bookingId, currentStatus, targetStatus)
-                .onSuccess { fetchBookings() }
+                .onSuccess { fetchBookingsFromRemote() }
         }
     }
 }

@@ -864,10 +864,10 @@ fun GlobalWebPublicScreen(
     // Hero Arama Barı Form State'leri
     var departureCity by remember { mutableStateOf("Москва (Все аэропорты)") }
     var destinationCity by remember { mutableStateOf("Türkiye (Antalya)") }
-    var startDateText by remember { mutableStateOf("20.08.2026") }
-    var endDateText by remember { mutableStateOf("28.08.2026") }
-    var returnStartDateText by remember { mutableStateOf("28.08.2026") }
-    var returnEndDateText by remember { mutableStateOf("05.09.2026") }
+    var startDateText by remember { mutableStateOf(com.mgacreative.touros.utils.DateUtils.getTodayDot()) }
+    var endDateText by remember { mutableStateOf(com.mgacreative.touros.utils.DateUtils.getFutureDot(7)) }
+    var returnStartDateText by remember { mutableStateOf(com.mgacreative.touros.utils.DateUtils.getFutureDot(7)) }
+    var returnEndDateText by remember { mutableStateOf(com.mgacreative.touros.utils.DateUtils.getFutureDot(14)) }
     var selectedNightsText by remember { mutableStateOf("7 - 10 Gece") }
     var selectedTouristsText by remember { mutableStateOf("2 Yetişkin · 1 Oda") }
     var adultsCount by remember { mutableStateOf(2) }
@@ -4385,9 +4385,10 @@ fun ModernDatePickerDialog(
         if (p.size == 3 && p[0].length == 4) listOf(p[2], p[1], p[0]) else p
     } else listOf()
 
-    val initDay = parts.getOrNull(0)?.toIntOrNull() ?: 20
-    val initMonth = (parts.getOrNull(1)?.toIntOrNull() ?: 8).coerceIn(1, 12)
-    val initYear = parts.getOrNull(2)?.toIntOrNull() ?: 2026
+    val today = com.mgacreative.touros.utils.DateUtils.getToday()
+    val initDay = parts.getOrNull(0)?.toIntOrNull() ?: today.first
+    val initMonth = (parts.getOrNull(1)?.toIntOrNull() ?: today.second).coerceIn(1, 12)
+    val initYear = parts.getOrNull(2)?.toIntOrNull() ?: today.third
 
     var selectedDay by remember { mutableStateOf(initDay) }
     var currentMonth by remember { mutableStateOf(initMonth) }

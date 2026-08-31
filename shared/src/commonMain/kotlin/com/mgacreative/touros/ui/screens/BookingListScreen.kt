@@ -22,6 +22,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -133,6 +134,21 @@ fun BookingListScreen(
                         value = successState?.searchQuery ?: "",
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
                         placeholder = "🔍 " + AppLanguageManager.translate("PNR, rezervasyon kodu, müşteri adı veya telefon ile ara..."),
+                        trailingIcon = if (!successState?.searchQuery.isNullOrBlank()) {
+                            {
+                                IconButton(
+                                    onClick = { viewModel.onSearchQueryChanged("") }
+                                ) {
+                                    Text(
+                                        text = "✕",
+                                        style = TourOSTypography.BodyMedium.copy(
+                                            color = TourOSColors.TextSecondary,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                        } else null,
                         modifier = Modifier.weight(1f)
                     )
 

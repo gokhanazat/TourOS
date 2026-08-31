@@ -22,6 +22,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.mgacreative.touros.utils.DateUtils
+
 enum class CalendarViewMode(val title: String) {
     MONTH("Aylık"),
     WEEK("Haftalık"),
@@ -67,8 +69,8 @@ fun CalendarView(
     onDepartureSelected: (String) -> Unit = {}
 ) {
     var selectedMode by remember { mutableStateOf(CalendarViewMode.MONTH) }
-    var selectedMonthName by remember { mutableStateOf("Ağustos 2026") }
-    var selectedDate by remember { mutableStateOf("2026-08-10") }
+    var selectedMonthName by remember { mutableStateOf(DateUtils.getCurrentMonthAndYear()) }
+    var selectedDate by remember { mutableStateOf(DateUtils.getTodayIso()) }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -152,10 +154,15 @@ private fun MonthCalendarView(
     onDateSelected: (String) -> Unit,
     onDepartureClick: (String) -> Unit
 ) {
-    val dayNames = listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz")
-    val daysInMonth = (1..31).map { day ->
+    val dayNames = DateUtils.dayNamesTr
+    val today = DateUtils.getToday()
+    val currentMonth = today.second
+    val currentYear = today.third
+    val totalDays = DateUtils.getDaysInMonth(currentMonth, currentYear)
+    val monthStr = currentMonth.toString().padStart(2, '0')
+    val daysInMonth = (1..totalDays).map { day ->
         val dayStr = if (day < 10) "0$day" else "$day"
-        "2026-08-$dayStr"
+        "$currentYear-$monthStr-$dayStr"
     }
 
     Column {
@@ -243,15 +250,17 @@ private fun WeekCalendarView(
     selectedDate: String,
     onDepartureClick: (String) -> Unit
 ) {
-    val weekDays = listOf(
-        "2026-08-10" to "Pzt 10",
-        "2026-08-11" to "Sal 11",
-        "2026-08-12" to "Çar 12",
-        "2026-08-13" to "Per 13",
-        "2026-08-14" to "Cum 14",
-        "2026-08-15" to "Cmt 15",
-        "2026-08-16" to "Paz 16"
-    )
+    val dayNames = DateUtils.dayNamesTr
+    val today = DateUtils.getToday()
+    val weekDays = (0..6).map { offset ->
+        val dateTriple = com.mgacreative.touros.addDaysToTriple(today, offset)
+        val ds = dateTriple.first.toString().padStart(2, '0')
+        val ms = dateTriple.second.toString().padStart(2, '0')
+        val ys = dateTriple.third.toString()
+        val iso = "$ys-$ms-$ds"
+        val label = "${dayNames[offset % 7]} ${dateTriple.first}"
+        iso to label
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(

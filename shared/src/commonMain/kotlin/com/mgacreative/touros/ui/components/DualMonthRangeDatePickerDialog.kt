@@ -19,19 +19,24 @@ import androidx.compose.ui.window.Dialog
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSTypography
 
+import com.mgacreative.touros.utils.DateUtils
+
 /**
  * Booking.com standartlarında Çift Ay (Dual-Month) Yan Yana Tarih Aralığı ve ±3 Gün Esneklik Seçici Dialog'u.
  */
 @Composable
 fun DualMonthRangeDatePickerDialog(
-    initialStartDateText: String = "20.08.2026",
-    initialEndDateText: String = "28.08.2026",
+    initialStartDateText: String = "",
+    initialEndDateText: String = "",
     initialFlexibilityDays: Int = 3,
     onRangeSelected: (startDate: String, endDate: String, nights: Int, flexDays: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val monthNames = listOf("Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık")
-    val dayNames = listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz")
+    val monthNames = DateUtils.monthNamesTr
+    val dayNames = DateUtils.dayNamesTr
+
+    val today = DateUtils.getToday()
+    val defaultEnd = com.mgacreative.touros.addDaysToTriple(today, 7)
 
     fun parseDate(str: String, defDay: Int, defMonth: Int, defYear: Int): Triple<Int, Int, Int> {
         val parts = if (str.contains(".")) str.split(".")
@@ -45,8 +50,8 @@ fun DualMonthRangeDatePickerDialog(
         return Triple(d, m, y)
     }
 
-    val (startD, startM, startY) = parseDate(initialStartDateText, 20, 8, 2026)
-    val (endD, endM, endY) = parseDate(initialEndDateText, 28, 8, 2026)
+    val (startD, startM, startY) = if (initialStartDateText.isNotBlank()) parseDate(initialStartDateText, today.first, today.second, today.third) else today
+    val (endD, endM, endY) = if (initialEndDateText.isNotBlank()) parseDate(initialEndDateText, defaultEnd.first, defaultEnd.second, defaultEnd.third) else defaultEnd
 
     // Sol ay başlangıç state'i
     var leftMonth by remember { mutableStateOf(startM) }

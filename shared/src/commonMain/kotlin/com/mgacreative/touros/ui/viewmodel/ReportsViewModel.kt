@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.mgacreative.touros.utils.DateUtils
 
 enum class ReportType(val label: String, val icon: String) {
     ALL("Tüm Rezervasyonlar", "📋"),
@@ -49,8 +50,8 @@ data class ReportsUiState(
     val isLoading: Boolean = false,
     val reportType: ReportType = ReportType.ALL,
     val datePreset: DatePreset = DatePreset.THIS_YEAR,
-    val startDate: String = "2026-01-01",
-    val endDate: String = "2026-12-31",
+    val startDate: String = "${DateUtils.getCurrentYear()}-01-01",
+    val endDate: String = "${DateUtils.getCurrentYear()}-12-31",
     val selectedOperator: String = "Tümü",
     val selectedStatus: String = "Tümü",
     val searchQuery: String = "",
@@ -111,12 +112,18 @@ class ReportsViewModel(
     }
 
     fun setDatePreset(preset: DatePreset) {
+        val today = DateUtils.getToday()
+        val todayIso = DateUtils.getTodayIso()
         val (start, end) = when (preset) {
-            DatePreset.TODAY -> "2026-08-09" to "2026-08-09"
-            DatePreset.THIS_WEEK -> "2026-08-03" to "2026-08-09"
-            DatePreset.THIS_MONTH -> "2026-08-01" to "2026-08-31"
-            DatePreset.THIS_YEAR -> "2026-01-01" to "2026-12-31"
-            DatePreset.ALL_TIME -> "2020-01-01" to "2030-12-31"
+            DatePreset.TODAY -> todayIso to todayIso
+            DatePreset.THIS_WEEK -> DateUtils.getFutureDateFormatted(-6, "-", reverseOrder = true) to todayIso
+            DatePreset.THIS_MONTH -> {
+                val ms = today.second.toString().padStart(2, '0')
+                val lastDay = DateUtils.getDaysInMonth(today.second, today.third).toString().padStart(2, '0')
+                "${today.third}-$ms-01" to "${today.third}-$ms-$lastDay"
+            }
+            DatePreset.THIS_YEAR -> "${today.third}-01-01" to "${today.third}-12-31"
+            DatePreset.ALL_TIME -> "2020-01-01" to "${today.third + 5}-12-31"
             DatePreset.CUSTOM -> _uiState.value.startDate to _uiState.value.endDate
         }
         _uiState.value = _uiState.value.copy(datePreset = preset, startDate = start, endDate = end)

@@ -201,9 +201,12 @@ private fun PassengersStepContent(
 
                 TourOSTextField(
                     value = uiState.leadPassengerName,
-                    onValueChange = { viewModel.updateLeadPassenger(it, uiState.leadPassengerEmail, uiState.leadPassengerPhone, uiState.leadPassengerTcNo) },
+                    onValueChange = { viewModel.updateLeadPassenger(it.uppercase(), uiState.leadPassengerEmail, uiState.leadPassengerPhone, uiState.leadPassengerTcNo) },
                     label = "Ad Soyad *",
-                    placeholder = "Örn: Ahmet Yılmaz",
+                    placeholder = "ÖRN: AHMET YILMAZ",
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
@@ -229,9 +232,12 @@ private fun PassengersStepContent(
 
                 TourOSTextField(
                     value = uiState.leadPassengerTcNo,
-                    onValueChange = { viewModel.updateLeadPassenger(uiState.leadPassengerName, uiState.leadPassengerEmail, uiState.leadPassengerPhone, it) },
+                    onValueChange = { viewModel.updateLeadPassenger(uiState.leadPassengerName, uiState.leadPassengerEmail, uiState.leadPassengerPhone, it.uppercase()) },
                     label = "TC Kimlik / Pasaport No",
                     placeholder = "11 Haneli TC Kimlik veya Pasaport Numarası",
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
+                    ),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

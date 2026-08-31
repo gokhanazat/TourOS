@@ -13,12 +13,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import com.mgacreative.touros.utils.DateUtils
+
 data class DepartureFormUiState(
     val departureId: String? = null,
     val tourId: String = "",
     val tourTitle: String = "Tur Kalkış Seferi",
-    val departureDate: String = "2026-08-14",
-    val returnDate: String = "2026-08-17",
+    val departureDate: String = DateUtils.getTodayIso(),
+    val returnDate: String = DateUtils.getFutureIso(3),
     val priceOverride: String = "4500",
     val childPriceOverride: String = "3000",
     val infantPriceOverride: String = "1000",
@@ -28,7 +30,7 @@ data class DepartureFormUiState(
     val isGuaranteed: Boolean = true,
     val isRecurring: Boolean = false,
     val selectedDayOfWeek: Int = 5, // 5 = Cuma
-    val recurrenceEndDate: String = "2026-10-31",
+    val recurrenceEndDate: String = DateUtils.getFutureIso(60),
     val isLoading: Boolean = false,
     val isSavedSuccess: Boolean = false,
     val generatedCount: Int = 0,

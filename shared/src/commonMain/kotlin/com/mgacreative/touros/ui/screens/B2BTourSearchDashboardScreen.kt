@@ -1541,16 +1541,84 @@ fun B2BTourSearchDashboardScreen(
                                 )
                             }
 
+                            // CANLI FİYAT VE EKSTRALAR HESAPLAMASI
+                            val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
+                            val conversionRate = when (curProduct.currency.uppercase()) {
+                                "RUB" -> 100.0
+                                "TRY", "TL" -> 38.0
+                                "USD" -> 1.08
+                                else -> 1.0 // EUR
+                            }
+                            val selectedExtras = extraServices.filter { it.isSelected }
+                            val extrasTotalInCurrency = selectedExtras.sumOf { (it.unitPriceEur * conversionRate) * it.paxCount }
+                            val step2GrandTotal = basePrice + flightDelta + extrasTotalInCurrency
+
                             Spacer(modifier = Modifier.height(TourOSSpacing.small))
-                            Row(
+
+                            // ── CANLI GENEL TOPLAM VE ÖZET KARTI ──
+                            TourOSCard(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
+                                backgroundColor = TourOSColors.Surface,
+                                borderColor = TourOSColors.Primary,
+                                contentPadding = TourOSSpacing.medium
                             ) {
-                                TourOSButton(
-                                    text = AppLanguageManager.translate("İleri: Turist Bilgileri & Onaya Geç"),
-                                    onClick = { activeStep = 3 },
-                                    variant = TourOSButtonVariant.PRIMARY
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(
+                                            text = AppLanguageManager.translate("Canlı Fiyat & Hizmet Özeti"),
+                                            style = TourOSTypography.TitleSmall.copy(color = TourOSColors.Primary),
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "${AppLanguageManager.translate("Konaklama")}: ${basePrice.toInt()} ${curProduct.currency}",
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                            )
+                                            if (flightDelta != 0.0) {
+                                                Text(
+                                                    text = "• ${AppLanguageManager.translate("Uçuş Farkı")}: +${flightDelta.toInt()} ${curProduct.currency}",
+                                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                                )
+                                            }
+                                            if (extrasTotalInCurrency > 0) {
+                                                Text(
+                                                    text = "• ${AppLanguageManager.translate("Ekstralar")} (${selectedExtras.size}): +${extrasTotalInCurrency.toInt()} ${curProduct.currency}",
+                                                    style = TourOSTypography.Caption.copy(color = TourOSColors.Success, fontWeight = FontWeight.Bold)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text(
+                                                text = AppLanguageManager.translate("Güncel Toplam"),
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontWeight = FontWeight.SemiBold)
+                                            )
+                                            Text(
+                                                text = "${step2GrandTotal.toInt()} ${curProduct.currency}",
+                                                style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary),
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        TourOSButton(
+                                            text = AppLanguageManager.translate("İleri: Turist Bilgileri & Onaya Geç"),
+                                            onClick = { activeStep = 3 },
+                                            variant = TourOSButtonVariant.PRIMARY
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -2540,14 +2608,14 @@ private fun PassengerFormCardItem(
             ) {
                 B2BCompactField(
                     value = passenger.firstName,
-                    onValueChange = { onUpdatePassenger(passenger.copy(firstName = it)) },
+                    onValueChange = { onUpdatePassenger(passenger.copy(firstName = it.uppercase())) },
                     label = AppLanguageManager.translate("Adı (Имя)"),
                     placeholder = "AHMET",
                     modifier = Modifier.weight(1.1f)
                 )
                 B2BCompactField(
                     value = passenger.lastName,
-                    onValueChange = { onUpdatePassenger(passenger.copy(lastName = it)) },
+                    onValueChange = { onUpdatePassenger(passenger.copy(lastName = it.uppercase())) },
                     label = AppLanguageManager.translate("Soyadı (Фамилия)"),
                     placeholder = "YILMAZ",
                     modifier = Modifier.weight(1.1f)
@@ -2613,21 +2681,21 @@ private fun PassengerFormCardItem(
 
                 B2BCompactField(
                     value = passenger.birthDate,
-                    onValueChange = { onUpdatePassenger(passenger.copy(birthDate = it)) },
+                    onValueChange = { onUpdatePassenger(passenger.copy(birthDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
                     label = AppLanguageManager.translate("Doğum Tarihi"),
                     placeholder = "12.05.1985",
                     modifier = Modifier.weight(1.0f)
                 )
                 B2BCompactField(
                     value = passenger.citizenship,
-                    onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it)) },
+                    onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it.uppercase())) },
                     label = AppLanguageManager.translate("Uyruk"),
-                    placeholder = "Türkiye",
+                    placeholder = "TÜRKİYE",
                     modifier = Modifier.weight(0.9f)
                 )
                 B2BCompactField(
                     value = passenger.passportNumber,
-                    onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it)) },
+                    onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it.uppercase())) },
                     label = AppLanguageManager.translate("Pasaport No"),
                     placeholder = "84920492",
                     modifier = Modifier.weight(1.0f)
@@ -2635,7 +2703,7 @@ private fun PassengerFormCardItem(
                 if (passenger.passengerType == "ADULT") {
                     B2BCompactField(
                         value = passenger.documentExpiryDate,
-                        onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = it)) },
+                        onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
                         label = AppLanguageManager.translate("Son Geçerlilik"),
                         placeholder = "12.05.2030",
                         modifier = Modifier.weight(1.0f)

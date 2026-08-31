@@ -79,8 +79,8 @@ fun CreateBookingStep1Screen(
     val uiState by viewModel.uiState.collectAsState()
     var showDualCalendarModal by remember { mutableStateOf(false) }
     var showHierarchicalDestModal by remember { mutableStateOf(false) }
-    var customStartDate by remember { mutableStateOf("20.08.2026") }
-    var customEndDate by remember { mutableStateOf("28.08.2026") }
+    var customStartDate by remember { mutableStateOf(com.mgacreative.touros.utils.DateUtils.getTodayDot()) }
+    var customEndDate by remember { mutableStateOf(com.mgacreative.touros.utils.DateUtils.getFutureDot(7)) }
     var customFlexDays by remember { mutableStateOf(3) }
 
     if (showHierarchicalDestModal) {
