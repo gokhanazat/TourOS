@@ -327,6 +327,7 @@ fun AxiletoMembersPortalScreen(
     val selectedLang = currentLangState.code.lowercase()
 
     val currentUser by authRepository.observeAuthState().collectAsState()
+    val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN" || currentUser?.role == UserRole.SYSTEM_ADMIN
     var stage by remember { mutableStateOf(if (currentUser != null) ClubStage.DASHBOARD else ClubStage.AUTH) }
 
     var currentMember by remember(currentUser) {
@@ -595,6 +596,7 @@ private fun AxiletoClubVipDashboardScreen(
     var searchQuery by remember { mutableStateOf("") }
     var bookedOfferNotice by remember { mutableStateOf<String?>(null) }
     var isUploadingAvatar by remember { mutableStateOf(false) }
+    val isSystemAdmin = member.email == "gkhnazat@gmail.com"
 
     val avatarPickerLauncher = rememberFilePickerLauncher(mimeType = "image/*") { fileName, bytes ->
         if (bytes.size > MAX_IMAGE_SIZE_BYTES) {
@@ -879,7 +881,8 @@ private fun AxiletoClubVipDashboardScreen(
                                 },
                                 onLanguageSelected = { lang ->
                                     AppLanguageManager.setLanguage(lang.code)
-                                }
+                                },
+                                isAdmin = isSystemAdmin
                             )
 
                             // Bildirim Zili

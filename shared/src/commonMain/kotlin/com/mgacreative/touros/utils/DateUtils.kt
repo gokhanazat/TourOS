@@ -78,15 +78,58 @@ object DateUtils {
     fun getFutureDot(daysToAdd: Int): String = getFutureDateFormatted(daysToAdd, delimiter = ".", reverseOrder = false)
 
     /**
-     * Doğum tarihi veya tarih girişlerinde (GG.AA.YYYY) otomatik nokta (.) yerleşimini sağlar.
-     * Örn: "15051994" -> "15.05.1994"
+     * Doğum tarihi veya tarih girişlerinde (GG.AA.YYYY) akıllı otomatik nokta (.) yerleşimini sağlar.
+     * Kullanıcı 13/4/1960, 13.4.1960, 1/1/1985 veya 13041960 yazsa bile standart GG.AA.YYYY formatına çevirir.
      */
     fun formatDateInput(input: String): String {
+        if (input.isBlank()) return ""
+
+        val hasExplicitDelimiter = input.any { it == '/' || it == '-' || it == '.' || it == ' ' }
+
+        if (hasExplicitDelimiter) {
+            val parts = input.split(Regex("[./\\- ]")).filter { it.isNotEmpty() }
+            if (parts.isEmpty()) return ""
+
+            val endsWithDelim = input.endsWith(".") || input.endsWith("/") || input.endsWith("-") || input.endsWith(" ")
+
+            val dRaw = parts.getOrNull(0)?.filter { it.isDigit() }?.take(2) ?: ""
+            val mRaw = parts.getOrNull(1)?.filter { it.isDigit() }?.take(2) ?: ""
+            val yRaw = parts.getOrNull(2)?.filter { it.isDigit() }?.take(4) ?: ""
+
+            return when {
+                parts.size >= 3 -> {
+                    val d = dRaw.padStart(2, '0')
+                    val m = mRaw.padStart(2, '0')
+                    "$d.$m.$yRaw"
+                }
+                parts.size == 2 -> {
+                    val d = dRaw.padStart(2, '0')
+                    if (endsWithDelim) {
+                        val m = mRaw.padStart(2, '0')
+                        "$d.$m."
+                    } else {
+                        "$d.$mRaw"
+                    }
+                }
+                parts.size == 1 -> {
+                    if (endsWithDelim) {
+                        val d = dRaw.padStart(2, '0')
+                        "$d."
+                    } else {
+                        dRaw
+                    }
+                }
+                else -> input
+            }
+        }
+
+        // Delimitersiz ham rakam girişi (örn: 13041960)
         val clean = input.filter { it.isDigit() }.take(8)
         return when {
             clean.length < 2 -> clean
-            clean.length == 2 -> if (input.endsWith(".")) "$clean." else clean
+            clean.length == 2 -> if (input.length > 2) "$clean." else clean
             clean.length < 4 -> "${clean.substring(0, 2)}.${clean.substring(2)}"
+            clean.length == 4 -> if (input.length > 5) "${clean.substring(0, 2)}.${clean.substring(2, 4)}." else "${clean.substring(0, 2)}.${clean.substring(2, 4)}"
             else -> "${clean.substring(0, 2)}.${clean.substring(2, 4)}.${clean.substring(4)}"
         }
     }

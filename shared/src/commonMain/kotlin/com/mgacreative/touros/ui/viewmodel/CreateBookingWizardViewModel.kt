@@ -392,6 +392,8 @@ class CreateBookingWizardViewModel(
                 isLead = true
             )
 
+            val user = getCurrentUserUseCase()
+            val agencyName = user?.fullName?.takeIf { it.isNotBlank() } ?: "Yerel Acente"
             val isHotelBooking = currentState.selectedHotel != null || currentState.selectedRoomType != null
             val booking = Booking(
                 departureId = currentState.selectedDeparture?.id?.takeIf { it.isValidUuid() },
@@ -399,8 +401,9 @@ class CreateBookingWizardViewModel(
                 checkInDate = currentState.selectedDeparture?.departureDate,
                 roomTypeName = currentState.selectedRoomType?.name,
                 nights = currentState.nightCount,
-                bookingType = if (isHotelBooking) "HOTEL" else "TOUR",
-                productName = currentState.selectedTour?.title ?: currentState.selectedHotel?.name ?: "Otel Konaklama",
+                bookingType = if (isHotelBooking) "LOCAL_HOTEL" else "LOCAL_TOUR",
+                productName = currentState.selectedTour?.title ?: currentState.selectedHotel?.name ?: "Yerel Konaklama",
+                operatorName = agencyName,
                 customerName = currentState.leadPassengerName,
                 customerEmail = currentState.leadPassengerEmail,
                 customerPhone = currentState.leadPassengerPhone,

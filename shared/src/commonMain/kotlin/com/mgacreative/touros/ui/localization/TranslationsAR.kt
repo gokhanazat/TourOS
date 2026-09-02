@@ -699,7 +699,12 @@ internal object TranslationsAR {
             "Düzenle & Detay" to "تعديل وتفاصيل",
             "Acente Kodu (B2B SaaS / Master Referans Kodu)" to "رمز الوكالة (B2B SaaS / الرمز المرجعي الرئيسي)",
             "Admin Tarafından Kilitlendi" to "مقفل بواسطة المسؤول",
-            "Bu acente referans kodu sistem yöneticisi (Admin) tarafından tahsis edilmiştir ve acente tarafından değiştirilemez." to "تم تخصيص هذا الرمز المرجعي بواسطة مسؤول النظام (Admin) ولا يمكن تغييره من قبل الوكالة."
+            "Bu acente referans kodu sistem yöneticisi (Admin) tarafından tahsis edilmiştir ve acente tarafından değiştirilemez." to "تم تخصيص هذا الرمز المرجعي بواسطة مسؤول النظام (Admin) ولا يمكن تغييره من قبل الوكالة.",
+            "Misafir" to "ضيف",
+            "Acenta" to "وكالة",
+            "Acente" to "وكالة",
+            "Acenteler" to "وكالات",
+            "Club" to "كلوب"
     )
 
     val map: Map<String, String> = part1 + part2 + part3

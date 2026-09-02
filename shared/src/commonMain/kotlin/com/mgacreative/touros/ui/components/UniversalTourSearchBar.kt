@@ -86,10 +86,20 @@ fun UniversalTourSearchBar(
     }
 
     if (showDestinationModal) {
+        val isFlightTab = activeTab.uppercase() == "FLIGHTS" || activeTab.uppercase() == "FLIGHT"
         HierarchicalDestinationPickerDialog(
             currentSelection = selectedRegion,
+            onlyAirports = isFlightTab,
+            customTitle = if (isFlightTab) "✈️ UÇUŞ VARIŞ HAVALİMANI / АЭРОПОРТ НАЗНАЧЕНИЯ" else null,
             onDestinationSelected = { destItem ->
-                onRegionChange(destItem.name)
+                val formatted = if (isFlightTab && destItem.airportCode != null) {
+                    "${destItem.name.substringBefore(" Havalimanı").substringBefore(" Uluslararası")} (${destItem.airportCode})"
+                } else if (destItem.nameRu.isNotBlank()) {
+                    "${destItem.name} (${destItem.nameRu})"
+                } else {
+                    destItem.name
+                }
+                onRegionChange(formatted)
                 showDestinationModal = false
             },
             onDismiss = { showDestinationModal = false }
@@ -339,13 +349,15 @@ private fun RowScope.TourSearchFields(
         else -> "TURLARI BUL"
     }
 
+    val isFlightTab = activeTab.uppercase() == "FLIGHTS" || activeTab.uppercase() == "FLIGHT"
+
     // 1. NEREDEN
     Box(modifier = Modifier.weight(1.3f)) {
         TourOSTextField(
-            value = departureCity.ifBlank { AppLanguageManager.translate("Tüm Kalkış Şehirleri") },
+            value = departureCity.ifBlank { if (isFlightTab) AppLanguageManager.translate("Tüm Kalkış Havalimanları") else AppLanguageManager.translate("Tüm Kalkış Şehirleri") },
             onValueChange = {},
             readOnly = true,
-            label = AppLanguageManager.translate("Nereden (Kalkış Şehri)"),
+            label = if (isFlightTab) AppLanguageManager.translate("Nereden (Kalkış)") else AppLanguageManager.translate("Nereden (Kalkış Şehri)"),
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onDepartureCityClick() })
@@ -354,10 +366,10 @@ private fun RowScope.TourSearchFields(
     // 2. NEREYE
     Box(modifier = Modifier.weight(1.4f)) {
         TourOSTextField(
-            value = selectedRegion.ifBlank { AppLanguageManager.translate("Tüm Destinasyonlar / Ülkeler") },
+            value = selectedRegion.ifBlank { if (isFlightTab) AppLanguageManager.translate("Tüm Varış Havalimanları") else AppLanguageManager.translate("Tüm Destinasyonlar / Ülkeler") },
             onValueChange = {},
             readOnly = true,
-            label = AppLanguageManager.translate("Nereye (Destinasyon / Otel)"),
+            label = if (isFlightTab) AppLanguageManager.translate("Nereye (Varış Havalimanı)") else AppLanguageManager.translate("Nereye (Destinasyon / Otel)"),
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onRegionClick() })
@@ -499,12 +511,14 @@ private fun ColumnScope.TourSearchFields(
         else -> "TURLARI BUL"
     }
 
+    val isFlightTab = activeTab.uppercase() == "FLIGHTS" || activeTab.uppercase() == "FLIGHT"
+
     Box(modifier = Modifier.fillMaxWidth()) {
         TourOSTextField(
-            value = departureCity.ifBlank { AppLanguageManager.translate("Tüm Kalkış Şehirleri") },
+            value = departureCity.ifBlank { if (isFlightTab) AppLanguageManager.translate("Tüm Kalkış Havalimanları") else AppLanguageManager.translate("Tüm Kalkış Şehirleri") },
             onValueChange = {},
             readOnly = true,
-            label = AppLanguageManager.translate("Nereden (Kalkış Şehri)"),
+            label = if (isFlightTab) AppLanguageManager.translate("Nereden (Kalkış)") else AppLanguageManager.translate("Nereden (Kalkış Şehri)"),
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onDepartureCityClick() })
@@ -512,10 +526,10 @@ private fun ColumnScope.TourSearchFields(
 
     Box(modifier = Modifier.fillMaxWidth()) {
         TourOSTextField(
-            value = selectedRegion.ifBlank { AppLanguageManager.translate("Tüm Destinasyonlar / Ülkeler") },
+            value = selectedRegion.ifBlank { if (isFlightTab) AppLanguageManager.translate("Tüm Varış Havalimanları") else AppLanguageManager.translate("Tüm Destinasyonlar / Ülkeler") },
             onValueChange = {},
             readOnly = true,
-            label = AppLanguageManager.translate("Nereye (Destinasyon / Otel)"),
+            label = if (isFlightTab) AppLanguageManager.translate("Nereye (Varış Havalimanı)") else AppLanguageManager.translate("Nereye (Destinasyon / Otel)"),
             modifier = Modifier.fillMaxWidth()
         )
         Box(modifier = Modifier.matchParentSize().clickable { onRegionClick() })

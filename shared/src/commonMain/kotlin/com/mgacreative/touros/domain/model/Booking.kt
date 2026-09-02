@@ -53,4 +53,38 @@ data class Booking(
      */
     val allowedNextStatuses: List<BookingStatus>
         get() = BookingStateMachine.getAllowedNextStatuses(status)
+
+    /**
+     * Rezervasyon listesinde ve yönetiminde Acente/Operatör sütununda gösterilecek temiz isim.
+     * - Tur Operatörü ürünlerinde (Paket Tur, Uçuş, Otel): Sadece Tur Operatörünün Adı (örn: "Coral Travel")
+     * - Yerel Tur ve Yerel Otel ürünlerinde: Acentanın Adı (örn: "Bozaci Turizm")
+     */
+    val displayOperatorOrAgencyName: String
+        get() {
+            val isLocal = bookingType.equals("LOCAL_TOUR", ignoreCase = true) ||
+                          bookingType.equals("LOCAL_HOTEL", ignoreCase = true) ||
+                          operatorName.contains("Yerel", ignoreCase = true) ||
+                          productName.contains("Yerel", ignoreCase = true)
+
+            if (operatorName.contains(" / ")) {
+                val parts = operatorName.split(" / ").map { it.trim() }
+                return if (isLocal) {
+                    parts.getOrNull(1)?.ifBlank { parts[0] } ?: operatorName
+                } else {
+                    val first = parts.firstOrNull() ?: operatorName
+                    val b2bIdx = first.indexOf(" B2B", ignoreCase = true)
+                    if (b2bIdx != -1) first.substring(0, b2bIdx).trim() else first
+                }
+            }
+
+            if (!isLocal) {
+                val b2bIdx = operatorName.indexOf(" B2B", ignoreCase = true)
+                if (b2bIdx != -1) {
+                    val cleaned = operatorName.substring(0, b2bIdx).trim()
+                    if (cleaned.isNotBlank()) return cleaned
+                }
+            }
+
+            return operatorName
+        }
 }

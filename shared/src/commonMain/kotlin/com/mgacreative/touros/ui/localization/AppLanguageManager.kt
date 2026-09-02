@@ -21,7 +21,7 @@ object AppLanguageManager {
         AppLanguageItem("es", "Español", false, "🇪🇸")
     )
 
-    private val _currentLanguage = MutableStateFlow(supportedLanguages.first())
+    private val _currentLanguage = MutableStateFlow(supportedLanguages.firstOrNull { it.code == "ru" } ?: supportedLanguages.first())
     val currentLanguage: StateFlow<AppLanguageItem> = _currentLanguage.asStateFlow()
 
     fun setLanguage(lang: AppLanguageItem) {

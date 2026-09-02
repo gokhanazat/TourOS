@@ -52,6 +52,7 @@ fun HierarchicalDestinationPickerDialog(
     currentSelection: String = "",
     allowedAirportCodes: Set<String>? = null,
     allowedDestinationNames: Set<String>? = null,
+    onlyAirports: Boolean = false,
     customTitle: String? = null,
     onDestinationSelected: (DestinationItem) -> Unit,
     onDismiss: () -> Unit
@@ -59,7 +60,44 @@ fun HierarchicalDestinationPickerDialog(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCountryTab by remember { mutableStateOf("ALL") }
 
-    val allDestinations = remember {
+    val isFlightAirportMode = onlyAirports || allowedAirportCodes != null
+
+    val flightAirportDestinations = remember {
+        listOf(
+            // TÜRKİYE HAVALİMANLARI
+            DestinationItem("air_ayt", "Antalya Havalimanı (AYT)", "Аэропорт Анталья", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Antalya, Belek, Kemer, Side, Lara"),
+            DestinationItem("air_gzp", "Alanya Gazipaşa Havalimanı (GZP)", "Аэропорт Газипаша / Аланья", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "GZP", "Alanya, Okurcalar, Mahmutlar"),
+            DestinationItem("air_bjv", "Milas-Bodrum Havalimanı (BJV)", "Аэропорт Милас-Бодрум", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Bodrum, Yalıkavak, Torba, Gümbet"),
+            DestinationItem("air_dlm", "Dalaman Havalimanı (DLM)", "Аэропорт Даламан", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "DLM", "Marmaris, Fethiye, Ölüdeniz, Göcek"),
+            DestinationItem("air_adb", "İzmir Adnan Menderes (ADB)", "Аэропорт Измир", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Çeşme, Alaçatı, Kuşadası"),
+            DestinationItem("air_ist", "İstanbul Havalimanı (IST)", "Международный аэропорт Стамбул", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "İstanbul Avrupa Yakası"),
+            DestinationItem("air_saw", "İstanbul Sabiha Gökçen (SAW)", "Аэропорт Сабиха Гёкчен", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "SAW", "İstanbul Anadolu Yakası"),
+
+            // MISIR HAVALİMANLARI
+            DestinationItem("air_ssh", "Şarm El-Şeyh Havalimanı (SSH)", "Аэропорт Шарм-эль-Шейх", "Mısır", "Mısır", "🇪🇬", DestinationLevel.CITY, "SSH", "Naama Bay, Nabq, Ras Um Sid"),
+            DestinationItem("air_hrg", "Hurgada Havalimanı (HRG)", "Аэропорт Хургада", "Mısır", "Mısır", "🇪🇬", DestinationLevel.CITY, "HRG", "El Gouna, Makadi Bay, Sahl Hasheesh"),
+
+            // BAE HAVALİMANLARI
+            DestinationItem("air_dxb", "Dubai Uluslararası Havalimanı (DXB)", "Международный аэропорт Дубай", "BAE", "BAE", "🇦🇪", DestinationLevel.CITY, "DXB", "Dubai Marina, Palm Jumeirah, Downtown"),
+            DestinationItem("air_auh", "Abu Dhabi Uluslararası (AUH)", "Международный аэропорт Абу-Даби", "BAE", "BAE", "🇦🇪", DestinationLevel.CITY, "AUH", "Saadiyat Island, Yas Island"),
+
+            // TAYLAND HAVALİMANLARI
+            DestinationItem("air_hkt", "Phuket Uluslararası Havalimanı (HKT)", "Международный аэропорт Пхукет", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "HKT", "Patong, Karon, Kata, Bang Tao"),
+            DestinationItem("air_bkk", "Bangkok Suvarnabhumi (BKK)", "Международный аэропорт Суварнабхуми", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "BKK", "Bangkok Şehir Merkezi"),
+            DestinationItem("air_utp", "U-Tapao Pattaya (UTP)", "Аэропорт У-Тапао / Паттайя", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "UTP", "Pattaya, Jomtien"),
+            DestinationItem("air_usm", "Koh Samui Havalimanı (USM)", "Аэропорт Самуи", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "USM", "Chaweng, Lamai"),
+
+            // VİETNAM HAVALİMANLARI
+            DestinationItem("air_dad", "Da Nang Uluslararası (DAD)", "Международный аэропорт Дананг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "DAD", "Da Nang, Hoi An"),
+            DestinationItem("air_pqc", "Phu Quoc Uluslararası (PQC)", "Международный аэропорт Фукуок", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "PQC", "Phu Quoc Adası"),
+            DestinationItem("air_cxr", "Cam Ranh / Nha Trang (CXR)", "Аэропорт Камрань / Нячанг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "CXR", "Nha Trang Sahili"),
+
+            // RUSYA HAVALİMANLARI
+            DestinationItem("air_aer", "Soçi Adler Havalimanı (AER)", "Международный аэропорт Сочи", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "AER", "Soçi, Adler, Krasnaya Polyana")
+        )
+    }
+
+    val generalDestinations = remember {
         listOf(
             // TÜRKİYE
             DestinationItem("tr_all", "Türkiye (Tüm Bölgeler)", "Турция (Все регионы)", null, "Türkiye", "🇹🇷", DestinationLevel.COUNTRY, null, "Tüm Türkiye turları ve otelleri"),
@@ -70,7 +108,7 @@ fun HierarchicalDestinationPickerDialog(
             DestinationItem("tr_ayt_lara", "Lara / Kundu", "Лара / Кунду", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Havalimanına En Yakın Sahil Bandı"),
             DestinationItem("tr_ayt_side", "Side / Manavgat", "Сиде / Манавгат", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Tarihi Yarımada & Kum Plajlar"),
             DestinationItem("tr_ayt_kemer", "Kemer / Beldibi / Tekirova", "Кемер / Бельдиби / Текирова", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Dağ & Deniz Manzaralı Tesisler"),
-            DestinationItem("tr_ayt_alanya", "Alanya / Okurcalar / Mahmutlar", "Аланья / Окурджалар / Махмутлар", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "GZP", "Kleopatra Plajı & Kalabalık Merkez"),
+            DestinationItem("tr_ayt_alanya", "Alanya / Okurcalar / Mahmutlar", "Аланья / Окурджалар / Махмутlar", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "GZP", "Kleopatra Plajı & Kalabalık Merkez"),
             DestinationItem("tr_ayt_cirali", "Çıralı / Olimpos / Kaş", "Чиралы / Олимпос / Каш", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Butik & Doğa Otelleri"),
 
             // MUĞLA / EGE
@@ -113,6 +151,8 @@ fun HierarchicalDestinationPickerDialog(
             DestinationItem("vn_cxr", "Nha Trang (Tran Phu)", "Нячанг (Чан Фу)", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "CXR", "Akdeniz Havasında Asya Sahili")
         )
     }
+
+    val allDestinations = if (isFlightAirportMode) flightAirportDestinations else generalDestinations
 
     // Veritabanı Uçuş Filtresi (Sadece veritabanında olan destinasyonlar)
     val baseDestinations = remember(allDestinations, allowedAirportCodes, allowedDestinationNames) {

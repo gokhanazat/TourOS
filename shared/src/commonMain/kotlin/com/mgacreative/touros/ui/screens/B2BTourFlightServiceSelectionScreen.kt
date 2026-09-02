@@ -395,7 +395,7 @@ private fun FlightOptionCardItem(
             ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                     Text(
-                        text = "🛫 GİDİŞ: ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
+                        text = "🛫 ${AppLanguageManager.translate("GİDİŞ:")} ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                         fontWeight = FontWeight.SemiBold
                     )
@@ -403,14 +403,14 @@ private fun FlightOptionCardItem(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                     Text(
-                        text = "🛬 DÖNÜŞ: ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
+                        text = "🛬 ${AppLanguageManager.translate("DÖNÜŞ:")} ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
                 Text(
-                    text = "🧳 El Bagajı: ${option.handBaggageKg}kg  ·  Kayıtlı Bagaj: ${option.baggageKg}kg",
+                    text = "🧳 ${AppLanguageManager.translate("El Bagajı:")} ${option.handBaggageKg}kg  ·  ${AppLanguageManager.translate("Kayıtlı Bagaj:")} ${option.baggageKg}kg",
                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                 )
             }
@@ -539,7 +539,7 @@ private fun CompactExtraServiceRow(
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = service.name,
+                        text = AppLanguageManager.translate(service.name),
                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontSize = 13.sp),
                         fontWeight = FontWeight.SemiBold
                     )
@@ -551,7 +551,7 @@ private fun CompactExtraServiceRow(
                                 .padding(horizontal = 5.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                text = "Zorunlu",
+                                text = AppLanguageManager.translate("Zorunlu"),
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold

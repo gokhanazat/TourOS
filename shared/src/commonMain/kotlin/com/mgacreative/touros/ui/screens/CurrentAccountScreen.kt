@@ -253,7 +253,7 @@ private fun TopBalanceSummarySection(
                     color = Color(0xFF1E3A5F)
                 ) {
                     Text(
-                        if (isNetPositive) "Alacaklı" else "Borçlu",
+                        com.mgacreative.touros.ui.localization.AppLanguageManager.translate(if (isNetPositive) "Alacaklı" else "Borçlu"),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                         style = TourOSTypography.Caption.copy(
                             color = if (isNetPositive) Color(0xFF34D399) else Color(0xFFF87171),
@@ -343,7 +343,7 @@ private fun SearchAndFilterBar(
                 color = Color(0xFFF1F5F9)
             ) {
                 Text(
-                    text = "Toplam: $totalCount",
+                    text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam:")} $totalCount",
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
                     style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 )
@@ -377,7 +377,7 @@ private fun CurrentAccountsDataTable(
             ) {
                 Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Kodu & Türü"), modifier = Modifier.weight(1.3f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
                 Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari Ünvanı / İletişim"), modifier = Modifier.weight(2.0f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
-                Text("VKN / TC", modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("VKN / TC"), modifier = Modifier.weight(1.1f), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
                 Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Borç"), modifier = Modifier.weight(1.1f), textAlign = TextAlign.End, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
                 Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Toplam Alacak"), modifier = Modifier.weight(1.1f), textAlign = TextAlign.End, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
                 Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Net Bakiye"), modifier = Modifier.weight(1.3f), textAlign = TextAlign.End, style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp))
@@ -392,10 +392,10 @@ private fun CurrentAccountsDataTable(
                 items(accounts) { account ->
                     val isDebit = account.balance > 0
                     val typeTitle = when (account.entityType) {
-                        "customer" -> "👤 Müşteri"
-                        "agency" -> "🏢 Acente"
-                        "supplier" -> "🏨 Tedarikçi"
-                        else -> "📌 Cari"
+                        "customer" -> "👤 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Müşteri")
+                        "agency" -> "🏢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Acente")
+                        "supplier" -> "🏨 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tedarikçi")
+                        else -> "📌 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Cari")
                     }
                     val codeText = account.accountCode.ifBlank { "CAR-${account.entityId.take(6).uppercase()}" }
 
@@ -497,7 +497,7 @@ private fun CurrentAccountsDataTable(
                                 modifier = Modifier.clickable { onStatementClick(account) }
                             ) {
                                 Text(
-                                    text = "📄 Ekstre",
+                                    text = "📄 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ekstre"),
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                                 )
@@ -537,7 +537,7 @@ private fun CurrentAccountMobileCard(
                     Text(codeText, style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold, fontSize = 10.sp))
                     Text(account.entityName, style = TourOSTypography.Caption.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp), maxLines = 1)
                 }
-                Text("Borç/Alacak: ₺ ${formatMoney(account.totalDebit)} / ₺ ${formatMoney(account.totalCredit)}", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp))
+                Text("${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Borç/Alacak:")} ₺ ${formatMoney(account.totalDebit)} / ₺ ${formatMoney(account.totalCredit)}", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp))
             }
 
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -550,7 +550,7 @@ private fun CurrentAccountMobileCard(
                     color = Color(0xFF0284C7),
                     modifier = Modifier.clickable { onStatementClick() }
                 ) {
-                    Text("📄 Ekstre", modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = TourOSTypography.Caption.copy(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold))
+                    Text("📄 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Ekstre"), modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), style = TourOSTypography.Caption.copy(color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold))
                 }
             }
         }

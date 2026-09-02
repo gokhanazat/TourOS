@@ -26,7 +26,7 @@ enum class AppLanguage(val code: String, val flag: String, val label: String, va
 
 /**
  * Web, Desktop, Android ve iOS platformlarında birebir aynı tasarım diline sahip
- * 3 Dilli (RU - ENG - TR) Dil Seçim Bileşeni.
+ * Rol Tabanlı Dil Seçim Bileşeni (Admin: RU-ENG-TR | Genel Kullanıcı/Acente: RU-ENG).
  */
 @Composable
 fun LanguageSelector(
@@ -35,8 +35,21 @@ fun LanguageSelector(
     modifier: Modifier = Modifier,
     textColor: Color = Color(0xFF0F172A),
     activeBgColor: Color = Color(0xFF0284C7),
-    isPillStyle: Boolean = true
+    isPillStyle: Boolean = true,
+    isAdmin: Boolean = false
 ) {
+    val availableLanguages = if (isAdmin) {
+        listOf(AppLanguage.RU, AppLanguage.EN, AppLanguage.TR)
+    } else {
+        listOf(AppLanguage.RU, AppLanguage.EN)
+    }
+
+    val effectiveSelectedLanguage = if (!isAdmin && selectedLanguage == AppLanguage.TR) {
+        AppLanguage.RU
+    } else {
+        selectedLanguage
+    }
+
     if (isPillStyle) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -46,8 +59,8 @@ fun LanguageSelector(
                 .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(20.dp))
                 .padding(2.dp)
         ) {
-            AppLanguage.entries.forEach { language ->
-                val isSelected = language == selectedLanguage
+            availableLanguages.forEach { language ->
+                val isSelected = language == effectiveSelectedLanguage
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
@@ -72,8 +85,8 @@ fun LanguageSelector(
             verticalAlignment = Alignment.CenterVertically,
             modifier = modifier
         ) {
-            AppLanguage.entries.forEachIndexed { index, language ->
-                val isSelected = language == selectedLanguage
+            availableLanguages.forEachIndexed { index, language ->
+                val isSelected = language == effectiveSelectedLanguage
                 Text(
                     text = language.displayCode,
                     style = TourOSTypography.Caption.copy(
@@ -85,7 +98,7 @@ fun LanguageSelector(
                         .clickable { onLanguageSelected(language) }
                         .padding(horizontal = 5.dp, vertical = 2.dp)
                 )
-                if (index < AppLanguage.entries.size - 1) {
+                if (index < availableLanguages.size - 1) {
                     Text(
                         text = "|",
                         style = TourOSTypography.Caption.copy(

@@ -76,7 +76,8 @@ fun TourOSSidebar(
     userName: String = "",
     userRole: String = "",
     onLogoutClick: (() -> Unit)? = null,
-    onNavigateToWeb: (() -> Unit)? = null
+    onNavigateToWeb: (() -> Unit)? = null,
+    onHelpClick: (() -> Unit)? = null
 ) {
     val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
     val expandedGroups = androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateMapOf<String, Boolean>() }
@@ -295,6 +296,53 @@ fun TourOSSidebar(
             } else {
                 items.forEach { item ->
                     RenderSidebarItem(item = item, onItemSelect = onItemSelect)
+                }
+            }
+        }
+
+        // ─── Sayfa İçi Akıllı Yardım & Rehber Butonu (Sidebar İçi) ───
+        if (onHelpClick != null) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onHelpClick() },
+                color = Color(0xFFE6F4F1),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF0F5A56).copy(alpha = 0.25f)),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF0F5A56)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("💬", fontSize = 13.sp)
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber & Asistan"),
+                            style = TourOSTypography.BodyMedium.copy(
+                                color = Color(0xFF0F5A56),
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        )
+                        Text(
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sayfa İpuçları & Yardım"),
+                            style = TourOSTypography.Caption.copy(
+                                color = Color(0xFF64748B),
+                                fontSize = 10.sp
+                            )
+                        )
+                    }
                 }
             }
         }

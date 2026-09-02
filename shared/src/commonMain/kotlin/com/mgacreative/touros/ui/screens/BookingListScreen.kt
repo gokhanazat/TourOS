@@ -260,7 +260,7 @@ fun BookingListScreen(
                                 },
                                 TourOSColumn<Booking>(title = AppLanguageManager.translate("ACENTE / OPERATÖR"), weight = 1.4f) { booking ->
                                     Text(
-                                        text = "🏢 ${booking.operatorName}", 
+                                        text = "🏢 ${booking.displayOperatorOrAgencyName}", 
                                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Medium)
                                     )
                                 },
@@ -480,7 +480,7 @@ fun BookingListScreen(
                                         }
 
                                         Text(
-                                            text = "🏢 ${booking.operatorName}  •  $icon ${booking.productName}",
+                                            text = "🏢 ${booking.displayOperatorOrAgencyName}  •  $icon ${booking.productName}",
                                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
                                         )
                                         Text(

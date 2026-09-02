@@ -15,10 +15,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.mgacreative.touros.domain.model.UserRole
+import com.mgacreative.touros.domain.repository.AuthRepository
 import com.mgacreative.touros.ui.navigation.LocalNavController
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,9 +31,14 @@ fun TourOSTopBar(
     subtitle: String? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     onNavigateBack: (() -> Unit)? = null,
+    isAdmin: Boolean? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
+    val authRepository: AuthRepository = koinInject()
+    val currentUser by authRepository.observeAuthState().collectAsState()
+    val isSystemAdmin = isAdmin ?: (currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN" || currentUser?.role == UserRole.SYSTEM_ADMIN)
+
     val navController = LocalNavController.current
     val canPop = navController?.previousBackStackEntry != null
     val effectiveBackAction: (() -> Unit)? = onNavigateBack ?: (if (canPop) {
@@ -71,7 +79,17 @@ fun TourOSTopBar(
             },
             actions = {
                 actions()
-                LanguageSelector()
+                LanguageSelector(
+                    selectedLanguage = when (currentLanguage.code) {
+                        "ru" -> AppLanguage.RU
+                        "en" -> AppLanguage.EN
+                        else -> AppLanguage.TR
+                    },
+                    onLanguageSelected = { lang ->
+                        com.mgacreative.touros.ui.localization.AppLanguageManager.setLanguage(lang.code)
+                    },
+                    isAdmin = isSystemAdmin
+                )
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = TourOSColors.Background,

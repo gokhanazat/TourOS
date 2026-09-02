@@ -90,7 +90,7 @@ fun DashboardScreen(
                         style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.Bold)
                     )
                     Text(
-                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yetki")}: ${currentRole.displayName} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
+                        text = "${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yetki")}: ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate(currentRole.displayName)} • ${com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Canlı İşletme & Operasyon Özeti")}",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }

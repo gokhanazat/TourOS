@@ -429,7 +429,8 @@ fun AppNavigation() {
                             onItemSelect = { navigate(it.route) },
                             userName = displayName,
                             userRole = displayRole,
-                            onLogoutClick = handleLogout
+                            onLogoutClick = handleLogout,
+                            onHelpClick = if (showHelpAssistant) { { isHelpDrawerOpen = true } } else null
                         )
                     }
                     Box(modifier = Modifier.weight(1f).fillMaxSize()) {
@@ -533,7 +534,8 @@ fun AppNavigation() {
             }
 
             // ─── Sayfa İçi Akıllı Yardım & Rehber Asistanı (Web, Desktop, Android, iOS) ───
-            if (showHelpAssistant) {
+            // Masaüstünde Sol Sidebar içindedir; mobilde/dar ekranda sağ alttaki FAB korunur.
+            if (showHelpAssistant && (!isExpanded || !showShell)) {
                 com.mgacreative.touros.ui.components.TourOSHelpAssistantFAB(
                     onClick = { isHelpDrawerOpen = true },
                     modifier = Modifier

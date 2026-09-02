@@ -179,154 +179,10 @@ class B2BTourSearchViewModel(
             val targetLower = targetText.lowercase()
             val destLower = dest.lowercase()
 
-            // 1. Doğrudan tam içerik kontrolü
             if (targetLower.contains(destLower)) {
                 return true
             }
 
-            // 2. Belirli bir alt bölge / şehir / belde var mı kontrolü (Öncelikli Katı Eşleşme)
-            val isBelek = destLower.contains("belek") || destLower.contains("белек") || destLower.contains("boğazkent") || destLower.contains("kadriye")
-            if (isBelek) {
-                return targetLower.contains("belek") || targetLower.contains("белек") || targetLower.contains("boğazkent") || targetLower.contains("kadriye")
-            }
-
-            val isKemer = destLower.contains("kemer") || destLower.contains("кемер") || destLower.contains("beldibi") || destLower.contains("tekirova") || destLower.contains("göynük") || destLower.contains("kiriş") || destLower.contains("çamyuva")
-            if (isKemer) {
-                return targetLower.contains("kemer") || targetLower.contains("кемер") || targetLower.contains("beldibi") || targetLower.contains("tekirova") || targetLower.contains("göynük") || targetLower.contains("kiriş") || targetLower.contains("çamyuva")
-            }
-
-            val isLara = destLower.contains("lara") || destLower.contains("лара") || destLower.contains("kundu")
-            if (isLara) {
-                return targetLower.contains("lara") || targetLower.contains("лара") || targetLower.contains("kundu")
-            }
-
-            val isSide = destLower.contains("side") || destLower.contains("сиде") || destLower.contains("manavgat") || destLower.contains("çolaklı") || destLower.contains("kumköy") || destLower.contains("sorgun") || destLower.contains("titreyengöl")
-            if (isSide) {
-                return targetLower.contains("side") || targetLower.contains("сиде") || targetLower.contains("manavgat") || targetLower.contains("çolaklı") || targetLower.contains("kumköy") || targetLower.contains("sorgun") || targetLower.contains("titreyengöl")
-            }
-
-            val isAlanya = destLower.contains("alanya") || destLower.contains("аланья") || destLower.contains("okurcalar") || destLower.contains("mahmutlar") || destLower.contains("avsallar") || destLower.contains("konaklı") || destLower.contains("oba")
-            if (isAlanya) {
-                return targetLower.contains("alanya") || targetLower.contains("аланья") || targetLower.contains("okurcalar") || targetLower.contains("mahmutlar") || targetLower.contains("avsallar") || targetLower.contains("konaklı") || targetLower.contains("oba")
-            }
-
-            val isBodrum = destLower.contains("bodrum") || destLower.contains("бодрум") || destLower.contains("yalıkavak") || destLower.contains("torba") || destLower.contains("gümbet") || destLower.contains("turgutreis") || destLower.contains("gündoğan")
-            if (isBodrum) {
-                return targetLower.contains("bodrum") || targetLower.contains("бодрум") || targetLower.contains("yalıkavak") || targetLower.contains("torba") || targetLower.contains("gümbet") || targetLower.contains("turgutreis") || targetLower.contains("gündoğan")
-            }
-
-            val isMarmaris = destLower.contains("marmaris") || destLower.contains("мармарис") || destLower.contains("içmeler") || destLower.contains("turunç")
-            if (isMarmaris) {
-                return targetLower.contains("marmaris") || targetLower.contains("мармарис") || targetLower.contains("içmeler") || targetLower.contains("turunç")
-            }
-
-            val isFethiye = destLower.contains("fethiye") || destLower.contains("фетхие") || destLower.contains("ölüdeniz") || destLower.contains("göcek") || destLower.contains("kayaköy")
-            if (isFethiye) {
-                return targetLower.contains("fethiye") || targetLower.contains("фетхие") || targetLower.contains("ölüdeniz") || targetLower.contains("göcek") || targetLower.contains("kayaköy")
-            }
-
-            val isCesme = destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("alaçatı") || destLower.contains("чешме")
-            if (isCesme) {
-                return targetLower.contains("çeşme") || targetLower.contains("cesme") || targetLower.contains("alaçatı") || targetLower.contains("чешме")
-            }
-
-            val isAntalyaGenel = destLower.contains("antalya") || destLower.contains("анталья")
-            if (isAntalyaGenel) {
-                return targetLower.contains("antalya") || targetLower.contains("анталья") || targetLower.contains("belek") || targetLower.contains("kemer") || targetLower.contains("lara") || targetLower.contains("side") || targetLower.contains("alanya")
-            }
-
-            val isSharm = destLower.contains("şarm") || destLower.contains("sharm") || destLower.contains("шарм") || destLower.contains("nabq") || destLower.contains("naama")
-            if (isSharm) {
-                return targetLower.contains("şarm") || targetLower.contains("sharm") || targetLower.contains("шарм") || targetLower.contains("nabq") || targetLower.contains("naama")
-            }
-
-            val isHurghada = destLower.contains("hurgada") || destLower.contains("hurghada") || destLower.contains("хургада") || destLower.contains("el gouna") || destLower.contains("makadi") || destLower.contains("sahl hasheesh")
-            if (isHurghada) {
-                return targetLower.contains("hurgada") || targetLower.contains("hurghada") || targetLower.contains("хургада") || targetLower.contains("el gouna") || targetLower.contains("makadi") || targetLower.contains("sahl hasheesh")
-            }
-
-            val isPhuket = destLower.contains("phuket") || destLower.contains("пхукет")
-            if (isPhuket) {
-                return targetLower.contains("phuket") || targetLower.contains("пхукет")
-            }
-
-            val isPattaya = destLower.contains("pattaya") || destLower.contains("паттайя")
-            if (isPattaya) {
-                return targetLower.contains("pattaya") || targetLower.contains("паттайя")
-            }
-
-            val isBangkok = destLower.contains("bangkok") || destLower.contains("бангкок")
-            if (isBangkok) {
-                return targetLower.contains("bangkok") || targetLower.contains("бангкок")
-            }
-
-            val isSamui = destLower.contains("samui") || destLower.contains("самуи")
-            if (isSamui) {
-                return targetLower.contains("samui") || targetLower.contains("самуи")
-            }
-
-            val isDaNang = destLower.contains("da nang") || destLower.contains("danang") || destLower.contains("дананг")
-            if (isDaNang) {
-                return targetLower.contains("da nang") || targetLower.contains("danang") || targetLower.contains("дананг")
-            }
-
-            val isPhuQuoc = destLower.contains("phu quoc") || destLower.contains("phuquoc") || destLower.contains("фукуок")
-            if (isPhuQuoc) {
-                return targetLower.contains("phu quoc") || targetLower.contains("phuquoc") || targetLower.contains("фукуок")
-            }
-
-            val isNhaTrang = destLower.contains("nha trang") || destLower.contains("nhatrang") || destLower.contains("нячанг")
-            if (isNhaTrang) {
-                return targetLower.contains("nha trang") || targetLower.contains("nhatrang") || targetLower.contains("нячанг")
-            }
-
-            val isDubai = destLower.contains("dubai") || destLower.contains("дубай") || destLower.contains("jumeirah") || destLower.contains("marina") || destLower.contains("downtown")
-            if (isDubai) {
-                return targetLower.contains("dubai") || targetLower.contains("дубай") || targetLower.contains("jumeirah") || targetLower.contains("marina") || targetLower.contains("downtown")
-            }
-
-            val isAbuDhabi = destLower.contains("abu dhabi") || destLower.contains("абу-даби")
-            if (isAbuDhabi) {
-                return targetLower.contains("abu dhabi") || targetLower.contains("абу-даби")
-            }
-
-            val isSochi = destLower.contains("sochi") || destLower.contains("сочи") || destLower.contains("krasnaya polyana") || destLower.contains("красная поляна")
-            if (isSochi) {
-                return targetLower.contains("sochi") || targetLower.contains("сочи") || targetLower.contains("krasnaya polyana") || targetLower.contains("красная поляна")
-            }
-
-            // 3. Genel Ülke Eşleşmesi (Eğer belirli bir alt şehir seçilmemişse)
-            val isTurkey = destLower.contains("türkiye") || destLower.contains("turkey") || destLower.contains("турция")
-            if (isTurkey) {
-                return targetLower.contains("türkiye") || targetLower.contains("turkey") || targetLower.contains("турция") || targetLower.contains("antalya") || targetLower.contains("belek") || targetLower.contains("kemer") || targetLower.contains("bodrum") || targetLower.contains("marmaris") || targetLower.contains("fethiye") || targetLower.contains("side") || targetLower.contains("alanya") || targetLower.contains("istanbul")
-            }
-
-            val isEgypt = destLower.contains("mısır") || destLower.contains("egypt") || destLower.contains("египет")
-            if (isEgypt) {
-                return targetLower.contains("mısır") || targetLower.contains("egypt") || targetLower.contains("египет") || targetLower.contains("sharm") || targetLower.contains("şarm") || targetLower.contains("hurgada") || targetLower.contains("hurghada") || targetLower.contains("gouna") || targetLower.contains("makadi")
-            }
-
-            val isThailand = destLower.contains("tayland") || destLower.contains("thailand") || destLower.contains("таиланд") || destLower.contains("тайланд")
-            if (isThailand) {
-                return targetLower.contains("tayland") || targetLower.contains("thailand") || targetLower.contains("таиланд") || targetLower.contains("тайланд") || targetLower.contains("phuket") || targetLower.contains("pattaya") || targetLower.contains("bangkok") || targetLower.contains("samui")
-            }
-
-            val isVietnam = destLower.contains("vietnam") || destLower.contains("вьетнам")
-            if (isVietnam) {
-                return targetLower.contains("vietnam") || targetLower.contains("вьетнам") || targetLower.contains("da nang") || targetLower.contains("phu quoc") || targetLower.contains("nha trang") || targetLower.contains("hoi an")
-            }
-
-            val isUAE = destLower.contains("bae") || destLower.contains("uae") || destLower.contains("оаэ")
-            if (isUAE) {
-                return targetLower.contains("bae") || targetLower.contains("uae") || targetLower.contains("оаэ") || targetLower.contains("dubai") || targetLower.contains("abu dhabi") || targetLower.contains("sharjah")
-            }
-
-            val isRussia = destLower.contains("rusya") || destLower.contains("russia") || destLower.contains("россия")
-            if (isRussia) {
-                return targetLower.contains("rusya") || targetLower.contains("russia") || targetLower.contains("россия") || targetLower.contains("sochi") || targetLower.contains("сочи") || targetLower.contains("petersburg") || targetLower.contains("kazan") || targetLower.contains("moskova")
-            }
-
-            // 4. Token bazlı fallback
             val tokens = dest.split('/', ',', '(', ')', '—', '-')
                 .map { it.trim().lowercase() }
                 .filter { it.length >= 3 && !it.startsWith("tüm") && !it.startsWith("все") }
@@ -335,49 +191,159 @@ class B2BTourSearchViewModel(
         }
 
         fun isDestinationMatching(item: UnifiedProductEntity, selectedDest: String): Boolean {
-            val targetText = "${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion} ${item.safeHotelName} ${item.tourName} ${item.roomType}"
-            return isDestinationMatchingText(targetText, selectedDest)
+            val dest = selectedDest.trim()
+            if (dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Tüm Varış Noktaları", ignoreCase = true) || dest.equals("Tüm", ignoreCase = true) || dest.equals("ALL", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.startsWith("Tüm", ignoreCase = true) || dest.startsWith("Все", ignoreCase = true)) {
+                return true
+            }
+
+            val destLower = dest.lowercase()
+            // Sadece Coğrafi Alanlar (Ülke, Bölge, Alt Bölge) ve Uçuş Kodu / Havayolu
+            val geoText = "${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion} ${item.flightNumber} ${item.airlineName}".lowercase()
+            val itemHotelLower = item.safeHotelName.lowercase()
+
+            // 1. Türkiye Destinasyonları (Antalya, Kemer, Belek, Side, Alanya, Bodrum, Marmaris, AYT, BJV, DLM, GZP, ADB, IST)
+            val isTargetTurkey = destLower.contains("türkiye") || destLower.contains("turkey") || destLower.contains("турция") ||
+                    destLower.contains("antalya") || destLower.contains("belek") || destLower.contains("kemer") || destLower.contains("lara") ||
+                    destLower.contains("side") || destLower.contains("alanya") || destLower.contains("bodrum") || destLower.contains("marmaris") ||
+                    destLower.contains("fethiye") || destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("istanbul") ||
+                    destLower.contains("ayt") || destLower.contains("bjv") || destLower.contains("dlm") || destLower.contains("gzp") || destLower.contains("adb") || destLower.contains("ist") || destLower.contains("saw")
+
+            if (isTargetTurkey) {
+                // Kesinlikle Türkiye kontrolü (Tayland / Mısır otelleri 'side' kelimesi içerse bile elenir)
+                if (!isCountryMatching(item, "TR")) return false
+
+                if (destLower.contains("belek") || destLower.contains("белек")) return geoText.contains("belek") || geoText.contains("белек") || geoText.contains("boğazkent") || geoText.contains("kadriye") || geoText.contains("ayt")
+                if (destLower.contains("kemer") || destLower.contains("кемер")) return geoText.contains("kemer") || geoText.contains("кемер") || geoText.contains("beldibi") || geoText.contains("göynük") || geoText.contains("tekirova") || geoText.contains("kiriş") || geoText.contains("çamyuva") || geoText.contains("ayt")
+                if (destLower.contains("lara") || destLower.contains("лара")) return geoText.contains("lara") || geoText.contains("лара") || geoText.contains("kundu") || geoText.contains("ayt")
+                if (destLower.contains("side") || destLower.contains("сиде") || destLower.contains("manavgat")) return geoText.contains("side") || geoText.contains("сиде") || geoText.contains("manavgat") || geoText.contains("çolaklı") || geoText.contains("kumköy") || geoText.contains("sorgun") || geoText.contains("titreyengöl") || geoText.contains("ayt")
+                if (destLower.contains("alanya") || destLower.contains("аланья") || destLower.contains("gzp")) return geoText.contains("alanya") || geoText.contains("аланья") || geoText.contains("okurcalar") || geoText.contains("mahmutlar") || geoText.contains("avsallar") || geoText.contains("konaklı") || geoText.contains("gzp") || geoText.contains("ayt")
+                if (destLower.contains("bodrum") || destLower.contains("бодрум") || destLower.contains("bjv")) return geoText.contains("bodrum") || geoText.contains("бодрум") || geoText.contains("yalıkavak") || geoText.contains("torba") || geoText.contains("gümbet") || geoText.contains("bjv")
+                if (destLower.contains("marmaris") || destLower.contains("мармарис") || destLower.contains("fethiye") || destLower.contains("фетхие") || destLower.contains("dlm") || destLower.contains("dalaman")) return geoText.contains("marmaris") || geoText.contains("мармарис") || geoText.contains("fethiye") || geoText.contains("фетхие") || geoText.contains("dlm") || geoText.contains("dalaman") || geoText.contains("ölüdeniz") || geoText.contains("göcek")
+                if (destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("чешме") || destLower.contains("adb") || destLower.contains("izmir") || destLower.contains("измир")) return geoText.contains("çeşme") || geoText.contains("cesme") || geoText.contains("alaçatı") || geoText.contains("adb") || geoText.contains("izmir") || geoText.contains("измир")
+                if (destLower.contains("antalya") || destLower.contains("анталья") || destLower.contains("ayt")) {
+                    return geoText.contains("antalya") || geoText.contains("анталья") || geoText.contains("ayt") || geoText.contains("belek") || geoText.contains("kemer") || geoText.contains("lara") || geoText.contains("side") || geoText.contains("alanya")
+                }
+                return true
+            }
+
+            // 2. Mısır Destinasyonları (Şarm, Hurgada, SSH, HRG vb.)
+            val isTargetEgypt = destLower.contains("mısır") || destLower.contains("egypt") || destLower.contains("египет") ||
+                    destLower.contains("şarm") || destLower.contains("sharm") || destLower.contains("шарм") || destLower.contains("ssh") ||
+                    destLower.contains("hurgada") || destLower.contains("hurghada") || destLower.contains("хургада") || destLower.contains("hrg")
+            if (isTargetEgypt) {
+                if (!isCountryMatching(item, "EG")) return false
+                if (destLower.contains("şarm") || destLower.contains("sharm") || destLower.contains("шарм") || destLower.contains("ssh")) return geoText.contains("şarm") || geoText.contains("sharm") || geoText.contains("шарм") || geoText.contains("ssh") || geoText.contains("nabq") || geoText.contains("naama")
+                if (destLower.contains("hurgada") || destLower.contains("hurghada") || destLower.contains("хургада") || destLower.contains("hrg")) return geoText.contains("hurgada") || geoText.contains("hurghada") || geoText.contains("хургада") || geoText.contains("hrg") || geoText.contains("el gouna") || geoText.contains("makadi") || geoText.contains("sahl hasheesh")
+                return true
+            }
+
+            // 3. Tayland Destinasyonları (Phuket, Pattaya, Bangkok, Samui, HKT, BKK, UTP, USM vb.)
+            val isTargetThailand = destLower.contains("tayland") || destLower.contains("thailand") || destLower.contains("таиланд") || destLower.contains("тайланд") ||
+                    destLower.contains("phuket") || destLower.contains("пхукет") || destLower.contains("hkt") ||
+                    destLower.contains("pattaya") || destLower.contains("паттайя") || destLower.contains("utp") ||
+                    destLower.contains("bangkok") || destLower.contains("бангкок") || destLower.contains("bkk") ||
+                    destLower.contains("samui") || destLower.contains("самуи") || destLower.contains("usm")
+            if (isTargetThailand) {
+                if (!isCountryMatching(item, "TH")) return false
+                if (destLower.contains("phuket") || destLower.contains("пхукет") || destLower.contains("hkt")) return geoText.contains("phuket") || geoText.contains("пхукет") || geoText.contains("hkt") || geoText.contains("patong") || geoText.contains("патонг") || geoText.contains("karon") || geoText.contains("карон") || geoText.contains("kata") || geoText.contains("ката")
+                if (destLower.contains("pattaya") || destLower.contains("паттайя") || destLower.contains("utp")) return geoText.contains("pattaya") || geoText.contains("паттайя") || geoText.contains("utp") || geoText.contains("jomtien")
+                if (destLower.contains("bangkok") || destLower.contains("бангкок") || destLower.contains("bkk")) return geoText.contains("bangkok") || geoText.contains("бангкок") || geoText.contains("bkk")
+                if (destLower.contains("samui") || destLower.contains("самуи") || destLower.contains("usm")) return geoText.contains("samui") || geoText.contains("самуи") || geoText.contains("usm") || geoText.contains("chaweng")
+                return true
+            }
+
+            // 4. BAE / Dubai Destinasyonları (DXB, AUH)
+            val isTargetUAE = destLower.contains("bae") || destLower.contains("uae") || destLower.contains("оаэ") ||
+                    destLower.contains("dubai") || destLower.contains("дубай") || destLower.contains("dxb") ||
+                    destLower.contains("abu dhabi") || destLower.contains("абу-даби") || destLower.contains("auh")
+            if (isTargetUAE) {
+                if (!isCountryMatching(item, "AE")) return false
+                if (destLower.contains("dubai") || destLower.contains("дубай") || destLower.contains("dxb")) return geoText.contains("dubai") || geoText.contains("дубай") || geoText.contains("dxb") || geoText.contains("marina") || geoText.contains("jumeirah") || geoText.contains("downtown")
+                if (destLower.contains("abu dhabi") || destLower.contains("абу-даби") || destLower.contains("auh")) return geoText.contains("abu dhabi") || geoText.contains("абу-даби") || geoText.contains("auh") || geoText.contains("yas island")
+                return true
+            }
+
+            // 5. Vietnam Destinasyonları (DAD, PQC, CXR)
+            val isTargetVietnam = destLower.contains("vietnam") || destLower.contains("вьетнам") ||
+                    destLower.contains("da nang") || destLower.contains("dad") ||
+                    destLower.contains("phu quoc") || destLower.contains("pqc") ||
+                    destLower.contains("nha trang") || destLower.contains("cxr") || destLower.contains("hoi an")
+            if (isTargetVietnam) {
+                if (!isCountryMatching(item, "VN")) return false
+                if (destLower.contains("da nang") || destLower.contains("дананг") || destLower.contains("dad")) return geoText.contains("da nang") || geoText.contains("danang") || geoText.contains("дананг") || geoText.contains("dad")
+                if (destLower.contains("phu quoc") || destLower.contains("фукуок") || destLower.contains("pqc")) return geoText.contains("phu quoc") || geoText.contains("phuquoc") || geoText.contains("фукуок") || geoText.contains("pqc")
+                if (destLower.contains("nha trang") || destLower.contains("нячанг") || destLower.contains("cxr")) return geoText.contains("nha trang") || geoText.contains("nhatrang") || geoText.contains("нячанг") || geoText.contains("cxr")
+                return true
+            }
+
+            // 6. Rusya Destinasyonları (AER, SVO, VKO, DME, LED, KZN)
+            val isTargetRussia = destLower.contains("rusya") || destLower.contains("russia") || destLower.contains("россия") ||
+                    destLower.contains("sochi") || destLower.contains("сочи") || destLower.contains("aer") ||
+                    destLower.contains("moskova") || destLower.contains("москва") ||
+                    destLower.contains("petersburg") || destLower.contains("петербург") || destLower.contains("kazan") || destLower.contains("казань")
+            if (isTargetRussia) {
+                if (!isCountryMatching(item, "RU")) return false
+                if (destLower.contains("sochi") || destLower.contains("сочи") || destLower.contains("aer")) return geoText.contains("sochi") || geoText.contains("сочи") || geoText.contains("aer") || geoText.contains("krasnaya polyana") || geoText.contains("красная поляна")
+                if (destLower.contains("moskova") || destLower.contains("москва")) return geoText.contains("moskova") || geoText.contains("moscow") || geoText.contains("москва")
+                if (destLower.contains("petersburg") || destLower.contains("петербург")) return geoText.contains("petersburg") || geoText.contains("петербург")
+                if (destLower.contains("kazan") || destLower.contains("казань")) return geoText.contains("kazan") || geoText.contains("казань")
+                return true
+            }
+
+            // 7. Genel Fallback (Coğrafi ve Otel Adı)
+            val combinedText = "$geoText $itemHotelLower"
+            if (combinedText.contains(destLower)) return true
+
+            val tokens = dest.split('/', ',', '(', ')', '—', '-')
+                .map { it.trim().lowercase() }
+                .filter { it.length >= 3 && !it.startsWith("tüm") && !it.startsWith("все") }
+
+            return tokens.any { combinedText.contains(it) }
         }
 
         fun isCountryMatching(item: UnifiedProductEntity, countryCodeOrName: String): Boolean {
             if (countryCodeOrName.isBlank() || countryCodeOrName == "ALL" || countryCodeOrName.equals("Tüm", ignoreCase = true)) return true
             val code = countryCodeOrName.uppercase().trim()
-            if (item.countryCode.isNotBlank() && item.countryCode.equals(code, ignoreCase = true)) return true
+            val itemCode = item.countryCode.uppercase().trim()
+            if (itemCode.isNotBlank() && (itemCode == code || (code == "TR" && itemCode == "TUR") || (code == "EG" && itemCode == "EGY") || (code == "TH" && itemCode == "THA") || (code == "VN" && itemCode == "VNM") || (code == "AE" && itemCode == "ARE") || (code == "RU" && itemCode == "RUS"))) {
+                return true
+            }
 
-            val destText = "${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion} ${item.safeHotelName}".lowercase().trim()
+            // Sadece Ülke ve Resmi Bölge / Belde alanları taranır (Otel adı veya oda adı ülkeyi yanıltamaz!)
+            val geoText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion}".lowercase().trim()
 
             return when (code) {
-                "TR", "TÜRKIYE", "TURKEY", "ТУРЦИЯ" -> destText.contains("türkiye") || destText.contains("turkey") || destText.contains("турция") || destText.contains(" tr ") || destText.startsWith("tr ") || destText.endsWith(" tr") || destText == "tr" ||
-                        destText.contains("antalya") || destText.contains("belek") || destText.contains("kemer") || destText.contains("lara") ||
-                        destText.contains("alanya") || destText.contains("side") || destText.contains("bodrum") || destText.contains("marmaris") ||
-                        destText.contains("fethiye") || destText.contains("çeşme") || destText.contains("белек") ||
-                        destText.contains("кемер") || destText.contains("анталья") || destText.contains("аланья") || destText.contains("сиде") ||
-                        destText.contains("бодрум") || destText.contains("мармарис") || destText.contains("фетхие") || (destText.contains("istanbul") && !destText.contains("sharm") && !destText.contains("dubai"))
-                "EG", "MISIR", "EGYPT", "ЕГИПЕТ" -> destText.contains("mısır") || destText.contains("egypt") || destText.contains("египет") || destText.contains(" eg ") || destText.startsWith("eg ") || destText == "eg" ||
-                        destText.contains("şarm") || destText.contains("sharm") || destText.contains("hurgada") || destText.contains("hurghada") ||
-                        destText.contains("el gouna") || destText.contains("makadi") || destText.contains("шарм") || destText.contains("хургада") ||
-                        destText.contains("эль гуна") || destText.contains("макади")
-                "TH", "TAYLAND", "THAILAND", "ТАИЛАНД", "ТАЙЛАНД" -> destText.contains("tayland") || destText.contains("thailand") || destText.contains("таиланд") || destText.contains("тайланд") || destText.contains(" th ") || destText.startsWith("th ") || destText == "th" ||
-                        destText.contains("phuket") || destText.contains("pattaya") || destText.contains("bangkok") || destText.contains("samui") ||
-                        destText.contains("krabi") || destText.contains("пхукет") || destText.contains("паттайя") || destText.contains("бангкок") ||
-                        destText.contains("самуи") || destText.contains("краби")
-                "VN", "VIETNAM", "ВЬЕТНАМ" -> destText.contains("vietnam") || destText.contains("вьетнам") || destText.contains(" vn ") || destText.startsWith("vn ") || destText == "vn" ||
-                        destText.contains("da nang") || destText.contains("phu quoc") || destText.contains("nha trang") || destText.contains("hoi an") ||
-                        destText.contains("дананг") || destText.contains("фукуок") || destText.contains("нячанг") || destText.contains("хойан")
-                "AE", "BAE", "DUBAI", "UAE", "ОАЭ" -> destText.contains("bae") || destText.contains("dubai") || destText.contains("uae") || destText.contains("оаэ") || destText.contains(" ae ") || destText.startsWith("ae ") || destText == "ae" ||
-                        destText.contains("дубай") || destText.contains("abu dhabi") || destText.contains("абу-даби") || destText.contains("sharjah") ||
-                        destText.contains("шарджа") || destText.contains("jumeirah") || destText.contains("marina")
-                "RU", "RUSYA", "RUSSIA", "РОССИЯ" -> (destText.contains("rusya") || destText.contains("russia") || destText.contains("россия") || destText.contains("sochi") ||
-                        destText.contains("сочи") || destText.contains("st. petersburg") || destText.contains("петербург") || destText.contains("kazan") ||
-                        destText.contains("казань")) && !destText.contains("antalya") && !destText.contains("belek") && !destText.contains("kemer") && !destText.contains("lara")
-                else -> destText.contains(countryCodeOrName.lowercase())
+                "TR", "TÜRKIYE", "TURKEY", "ТУРЦИЯ" -> itemCode == "TR" || geoText.contains("türkiye") || geoText.contains("turkey") || geoText.contains("турция") ||
+                        geoText.contains("antalya") || geoText.contains("belek") || geoText.contains("kemer") || geoText.contains("lara") ||
+                        geoText.contains("alanya") || geoText.contains("side") || geoText.contains("bodrum") || geoText.contains("marmaris") ||
+                        geoText.contains("fethiye") || geoText.contains("çeşme") || geoText.contains("белек") ||
+                        geoText.contains("кемер") || geoText.contains("анталья") || geoText.contains("аланья") || geoText.contains("сиде") ||
+                        geoText.contains("бодрум") || geoText.contains("мармарис") || geoText.contains("фетхие") || (geoText.contains("istanbul") && !geoText.contains("sharm") && !geoText.contains("dubai"))
+                "EG", "MISIR", "EGYPT", "ЕГИПЕТ" -> itemCode == "EG" || geoText.contains("mısır") || geoText.contains("egypt") || geoText.contains("египет") ||
+                        geoText.contains("şarm") || geoText.contains("sharm") || geoText.contains("hurgada") || geoText.contains("hurghada") ||
+                        geoText.contains("el gouna") || geoText.contains("makadi") || geoText.contains("шарм") || geoText.contains("хургада") ||
+                        geoText.contains("эль гуна") || geoText.contains("макади")
+                "TH", "TAYLAND", "THAILAND", "ТАИЛАНД", "ТАЙЛАНД" -> itemCode == "TH" || geoText.contains("tayland") || geoText.contains("thailand") || geoText.contains("таиланд") || geoText.contains("тайланд") ||
+                        geoText.contains("phuket") || geoText.contains("pattaya") || geoText.contains("bangkok") || geoText.contains("samui") ||
+                        geoText.contains("krabi") || geoText.contains("пхукет") || geoText.contains("паттайя") || geoText.contains("бангкок") ||
+                        geoText.contains("самуи") || geoText.contains("краби")
+                "VN", "VIETNAM", "ВЬЕТНАМ" -> itemCode == "VN" || geoText.contains("vietnam") || geoText.contains("вьетнам") ||
+                        geoText.contains("da nang") || geoText.contains("phu quoc") || geoText.contains("nha trang") || geoText.contains("hoi an") ||
+                        geoText.contains("дананг") || geoText.contains("фукуок") || geoText.contains("нячанг") || geoText.contains("хойан")
+                "AE", "BAE", "DUBAI", "UAE", "ОАЭ" -> itemCode == "AE" || geoText.contains("bae") || geoText.contains("dubai") || geoText.contains("uae") || geoText.contains("оаэ") ||
+                        geoText.contains("дубай") || geoText.contains("abu dhabi") || geoText.contains("абу-даби") || geoText.contains("sharjah") ||
+                        geoText.contains("шарджа") || geoText.contains("jumeirah")
+                "RU", "RUSYA", "RUSSIA", "РОССИЯ" -> itemCode == "RU" || ((geoText.contains("rusya") || geoText.contains("russia") || geoText.contains("россия") || geoText.contains("sochi") ||
+                        geoText.contains("сочи") || geoText.contains("st. petersburg") || geoText.contains("петербург") || geoText.contains("kazan") ||
+                        geoText.contains("казань")) && !geoText.contains("antalya") && !geoText.contains("belek") && !geoText.contains("kemer") && !geoText.contains("lara"))
+                else -> geoText.contains(countryCodeOrName.lowercase())
             }
         }
 
         fun isSubRegionMatching(item: UnifiedProductEntity, subRegion: String?): Boolean {
             if (subRegion.isNullOrBlank() || subRegion == "Tümü" || subRegion == "ALL") return true
             val s = subRegion.lowercase().trim()
-            val fullText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion} ${item.safeHotelName}".lowercase()
+            val geoText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion}".lowercase()
 
             val synonyms = when (s) {
                 "belek" -> listOf("belek", "белек")
@@ -393,7 +359,7 @@ class B2BTourSearchViewModel(
                 "hurgada" -> listOf("hurgada", "hurghada", "хургада")
                 "el gouna" -> listOf("el gouna", "gouna", "эль гуна")
                 "makadi bay" -> listOf("makadi", "макади")
-                "phuket" -> listOf("phuket", "пхукет")
+                "phuket" -> listOf("phuket", "пхукет", "patong", "патонг", "karon", "карон", "kata", "ката")
                 "pattaya" -> listOf("pattaya", "паттайя")
                 "bangkok" -> listOf("bangkok", "бангкок")
                 "koh samui" -> listOf("samui", "самуи")
@@ -412,7 +378,7 @@ class B2BTourSearchViewModel(
                 "kazan" -> listOf("kazan", "казань")
                 else -> listOf(s)
             }
-            return synonyms.any { fullText.contains(it) }
+            return synonyms.any { geoText.contains(it) }
         }
     }
 

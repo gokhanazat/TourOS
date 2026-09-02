@@ -249,7 +249,7 @@ private fun PassengerFormCardItem(
                         value = passenger.firstName,
                         onValueChange = { onUpdatePassenger(passenger.copy(firstName = it.uppercase())) },
                         label = AppLanguageManager.translate("Adı (Имя)"),
-                        placeholder = "AHMET",
+                        placeholder = "",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
                         ),
@@ -261,7 +261,7 @@ private fun PassengerFormCardItem(
                         value = passenger.lastName,
                         onValueChange = { onUpdatePassenger(passenger.copy(lastName = it.uppercase())) },
                         label = AppLanguageManager.translate("Soyadı (Фамилия)"),
-                        placeholder = "YILMAZ",
+                        placeholder = "",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
                         ),
@@ -273,7 +273,7 @@ private fun PassengerFormCardItem(
                         value = passenger.birthDate,
                         onValueChange = { onUpdatePassenger(passenger.copy(birthDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
                         label = AppLanguageManager.translate("Doğum Tarihi (GG.AA.YYYY)"),
-                        placeholder = "12.05.1985",
+                        placeholder = "GG.AA.YYYY",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                         ),
@@ -292,7 +292,7 @@ private fun PassengerFormCardItem(
                         value = passenger.citizenship,
                         onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it.uppercase())) },
                         label = AppLanguageManager.translate("Uyruk (Гражданство)"),
-                        placeholder = "TÜRKİYE",
+                        placeholder = "",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
                         ),
@@ -304,7 +304,7 @@ private fun PassengerFormCardItem(
                         value = passenger.passportNumber,
                         onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it.uppercase())) },
                         label = AppLanguageManager.translate("Pasaport No (Номер)"),
-                        placeholder = "84920492",
+                        placeholder = "",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
                         ),
@@ -316,7 +316,7 @@ private fun PassengerFormCardItem(
                         value = passenger.documentExpiryDate,
                         onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
                         label = AppLanguageManager.translate("Son Geçerlilik (Срок действия)"),
-                        placeholder = "12.05.2030",
+                        placeholder = "GG.AA.YYYY",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                         ),
@@ -336,7 +336,7 @@ private fun PassengerFormCardItem(
                             value = passenger.phone,
                             onValueChange = { onUpdatePassenger(passenger.copy(phone = it)) },
                             label = AppLanguageManager.translate("Telefon No"),
-                            placeholder = "+90 532 100 2030",
+                            placeholder = "+...",
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -345,7 +345,7 @@ private fun PassengerFormCardItem(
                             value = passenger.email,
                             onValueChange = { onUpdatePassenger(passenger.copy(email = it)) },
                             label = AppLanguageManager.translate("E-posta Adresi"),
-                            placeholder = "ahmet@gmail.com",
+                            placeholder = "example@domain.com",
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -372,7 +372,7 @@ private fun PassengerFormCardItem(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Turist 1 (Yetişkin / Lead)",
+                            text = AppLanguageManager.translate("Turist 1 (Yetişkin / Lead)"),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
                             fontWeight = FontWeight.Bold
                         )

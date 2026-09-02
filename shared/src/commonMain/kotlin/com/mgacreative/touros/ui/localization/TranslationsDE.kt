@@ -847,7 +847,12 @@ internal object TranslationsDE {
             "Teklif" to "Angebot",
             "Tatil, şehir, otel ara..." to "Urlaub, Stadt, Hotel suchen...",
             "Kayıtlı teklif bulunamadı." to "Keine Angebote gefunden.",
-            "Rezervasyon bulunamadı." to "Keine Buchungen gefunden."
+            "Rezervasyon bulunamadı." to "Keine Buchungen gefunden.",
+            "Misafir" to "Gast",
+            "Acenta" to "Agentur",
+            "Acente" to "Agentur",
+            "Acenteler" to "Agenturen",
+            "Club" to "Club"
     )
 
     val map: Map<String, String> = part1 + part2 + part3 + part4

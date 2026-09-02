@@ -32,8 +32,8 @@ fun DualMonthRangeDatePickerDialog(
     onRangeSelected: (startDate: String, endDate: String, nights: Int, flexDays: Int) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val monthNames = DateUtils.monthNamesTr
-    val dayNames = DateUtils.dayNamesTr
+    val monthNames = DateUtils.monthNamesTr.map { AppLanguageManager.translate(it) }
+    val dayNames = DateUtils.dayNamesTr.map { AppLanguageManager.translate(it) }
 
     val today = DateUtils.getToday()
     val defaultEnd = com.mgacreative.touros.addDaysToTriple(today, 7)
@@ -114,7 +114,8 @@ fun DualMonthRangeDatePickerDialog(
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
-                .width(720.dp)
+                .widthIn(min = 780.dp, max = 840.dp)
+                .fillMaxWidth(0.95f)
                 .wrapContentHeight()
                 .clip(RoundedCornerShape(24.dp)),
             color = Color.White,
@@ -242,12 +243,14 @@ fun DualMonthRangeDatePickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f, fill = false)
                     ) {
                         Text(
                             text = "⚡ ${AppLanguageManager.translate("Esneklik")}:",
-                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = Color(0xFF475569), fontSize = 12.sp)
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = Color(0xFF475569), fontSize = 12.sp),
+                            softWrap = false
                         )
 
                         listOf(
@@ -269,16 +272,33 @@ fun DualMonthRangeDatePickerDialog(
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         fontSize = 11.sp
                                     ),
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    softWrap = false,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                                 )
                             }
                         }
                     }
 
+                    Spacer(modifier = Modifier.width(12.dp))
+
                     // Action Buttons
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = onDismiss) {
-                            Text(AppLanguageManager.translate("İptal"), color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.wrapContentWidth()
+                    ) {
+                        TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.wrapContentWidth()
+                        ) {
+                            Text(
+                                text = AppLanguageManager.translate("İptal"),
+                                color = Color(0xFF64748B),
+                                fontWeight = FontWeight.SemiBold,
+                                softWrap = false,
+                                maxLines = 1
+                            )
                         }
                         Button(
                             onClick = {
@@ -291,9 +311,17 @@ fun DualMonthRangeDatePickerDialog(
                                 )
                                 onDismiss()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56)),
+                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+                            modifier = Modifier.wrapContentWidth().defaultMinSize(minWidth = 90.dp)
                         ) {
-                            Text(AppLanguageManager.translate("Uygula"), color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = AppLanguageManager.translate("Uygula"),
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                softWrap = false,
+                                maxLines = 1
+                            )
                         }
                     }
                 }

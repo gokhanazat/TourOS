@@ -33,17 +33,16 @@ private val DEFAULT_OPERATOR_LIST = listOf(
     "Tümü",
     "Kendi Ürünlerimiz",
     "Coral Travel",
-    "Jolly Tur",
-    "Etstur",
-    "Setur",
-    "TatilBudur",
     "Pegas Touristik",
     "Anex Tour",
-    "Touristica",
+    "Biblioglobus",
+    "ICS Travel Group",
+    "FUN&SUN (TUI)",
+    "Sunmar",
+    "Intourist",
     "Paximum",
-    "Odeon Tour",
-    "Hotelbeds",
-    "Booking.com"
+    "Планета Travel",
+    "Меркурий"
 )
 
 data class ReportsUiState(
