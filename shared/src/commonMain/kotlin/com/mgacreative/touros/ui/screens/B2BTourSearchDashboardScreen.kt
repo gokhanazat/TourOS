@@ -36,6 +36,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextDecoration
@@ -254,6 +256,9 @@ fun B2BTourSearchDashboardScreen(
             onDateRangeSelected = { start, end ->
                 startDateText = start
                 endDateText = end
+                viewModel.selectedStartDate.value = start
+                viewModel.selectedEndDate.value = end
+                viewModel.performSearch(forceRefresh = true)
             },
             onDismissRequest = { showDateRangePicker = false }
         )
@@ -262,7 +267,11 @@ fun B2BTourSearchDashboardScreen(
         SimpleDatePickerDialog(
             title = "Gidiş Tarihi (Başlangıç) Seçin",
             initialDateText = startDateText,
-            onDateSelected = { startDateText = it },
+            onDateSelected = { 
+                startDateText = it
+                viewModel.selectedStartDate.value = it
+                viewModel.performSearch(forceRefresh = true)
+            },
             onDismissRequest = { showStartDatePicker = false }
         )
     }
@@ -270,7 +279,11 @@ fun B2BTourSearchDashboardScreen(
         SimpleDatePickerDialog(
             title = "Gidiş Tarihi (Bitiş) Seçin",
             initialDateText = endDateText,
-            onDateSelected = { endDateText = it },
+            onDateSelected = { 
+                endDateText = it
+                viewModel.selectedEndDate.value = it
+                viewModel.performSearch(forceRefresh = true)
+            },
             onDismissRequest = { showEndDatePicker = false }
         )
     }
@@ -675,6 +688,9 @@ fun B2BTourSearchDashboardScreen(
                                     onDateRangeChange = { start, end ->
                                         startDateText = start
                                         endDateText = end
+                                        viewModel.selectedStartDate.value = start
+                                        viewModel.selectedEndDate.value = end
+                                        viewModel.performSearch(forceRefresh = true)
                                     },
                                     nightsText = nightsText,
                                     onNightsTextChange = { nightsText = it },
@@ -693,7 +709,9 @@ fun B2BTourSearchDashboardScreen(
                                         viewModel.selectedCategory.value = activeSearchTab
                                         viewModel.departureCity.value = departureCity
                                         viewModel.selectedRegion.value = selectedRegion
-                                        viewModel.performSearch() 
+                                        viewModel.selectedStartDate.value = startDateText
+                                        viewModel.selectedEndDate.value = endDateText
+                                        viewModel.performSearch(forceRefresh = true) 
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -1554,25 +1572,52 @@ fun B2BTourSearchDashboardScreen(
                                         }
                                     }
                                 } else {
+                                    val b2bResultsScrollState = rememberScrollState()
+                                    LaunchedEffect(safeB2BCurrentPage) {
+                                        b2bResultsScrollState.scrollTo(0)
+                                    }
+
                                     Column(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
                                     ) {
-                                        b2bPagedProducts.forEach { item ->
-                                            val isSelected = selectedProduct?.id == item.id
-                                            TourResultMatrixCard(
-                                                product = item,
-                                                isSelected = isSelected,
-                                                adults = adults,
-                                                childrenAges = childrenAges,
-                                                isFlightTab = (activeSearchTab == "FLIGHTS"),
-                                                onSelectForBooking = {
-                                                    selectedProductForOperatorModal = item
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 580.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .verticalScroll(b2bResultsScrollState)
+                                                    .padding(end = 10.dp),
+                                                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                            ) {
+                                                b2bPagedProducts.forEach { item ->
+                                                    val isSelected = selectedProduct?.id == item.id
+                                                    TourResultMatrixCard(
+                                                        product = item,
+                                                        isSelected = isSelected,
+                                                        adults = adults,
+                                                        childrenAges = childrenAges,
+                                                        isFlightTab = (activeSearchTab == "FLIGHTS"),
+                                                        onSelectForBooking = {
+                                                            selectedProductForOperatorModal = item
+                                                        }
+                                                    )
                                                 }
+                                            }
+
+                                            TourOSVerticalScrollbar(
+                                                scrollState = b2bResultsScrollState,
+                                                modifier = Modifier
+                                                    .align(Alignment.CenterEnd)
+                                                    .fillMaxHeight()
+                                                    .padding(end = 2.dp)
                                             )
                                         }
 
-                                        // ── B2B SAYFALAMA KONTROL ÇUBUĞU ──
+                                        // B2B Sayfalama Kontrol Çubuğu
                                         if (totalB2BPages > 1) {
                                             Spacer(modifier = Modifier.height(8.dp))
                                             Surface(
@@ -1586,7 +1631,6 @@ fun B2BTourSearchDashboardScreen(
                                                     horizontalArrangement = Arrangement.SpaceBetween,
                                                     verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    // Önceki Sayfa Butonu
                                                     Surface(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(6.dp))
@@ -1613,7 +1657,6 @@ fun B2BTourSearchDashboardScreen(
                                                         )
                                                     }
 
-                                                    // Sayfa Numaraları
                                                     Row(
                                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                                         verticalAlignment = Alignment.CenterVertically
@@ -1650,7 +1693,6 @@ fun B2BTourSearchDashboardScreen(
                                                         }
                                                     }
 
-                                                    // Sonraki Sayfa Butonu
                                                     Surface(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(6.dp))
@@ -2040,6 +2082,7 @@ fun B2BTourSearchDashboardScreen(
             }
         }
     }
+
 
     if (isEmbedded) {
         content(PaddingValues(0.dp))
@@ -3849,3 +3892,5 @@ fun B2BTouristAndChildAgePickerDialog(
         }
     }
 }
+
+

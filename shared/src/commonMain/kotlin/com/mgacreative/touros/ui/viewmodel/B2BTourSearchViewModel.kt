@@ -129,6 +129,105 @@ class B2BTourSearchViewModel(
             return basePrice * calculateMultiplier(adultsCount, childAgesList, isFlight)
         }
 
+        fun generateDynamicFlightSchedules(
+            targetDate: String,
+            depFilter: String = "",
+            arrFilter: String = "",
+            countryFilter: String = ""
+        ): List<UnifiedProductEntity> {
+            val dateStr = targetDate.ifBlank { "02.09.2026" }
+            val rawFlights = listOf(
+                // ✈️ Moskova (SVO / DME / VKO) -> Antalya (AYT)
+                Triple("Moskova", "Antalya", "TK-3701") to Triple("Turkish Airlines", "Moskova (SVO) - Antalya (AYT) Uçuş Seferi", 240.0),
+                Triple("Moskova", "Antalya", "TK-3705") to Triple("Turkish Airlines", "Moskova (VKO) - Antalya (AYT) Sabah Seferi", 260.0),
+                Triple("Moskova", "Antalya", "N4-5821") to Triple("Nordwind Airlines", "Moskova (DME) - Antalya (AYT) Direk Charter", 185.0),
+                Triple("Moskova", "Antalya", "N4-5825") to Triple("Nordwind Airlines", "Moskova (SVO) - Antalya (AYT) Gece Charter Seferi", 175.0),
+                Triple("Moskova", "Antalya", "SU-2140") to Triple("Aeroflot", "Moskova (SVO) - Antalya (AYT) Tarifeli Sefer", 230.0),
+                Triple("Moskova", "Antalya", "PC-1822") to Triple("Pegasus Airlines", "Moskova (DME) - Antalya (AYT) Direkt Uçuş", 195.0),
+                Triple("Moskova", "Antalya", "2S-101") to Triple("Southwind Airlines", "Moskova (VKO) - Antalya (AYT) Charter Seferi", 180.0),
+                Triple("Moskova", "Antalya", "WZ-3091") to Triple("Red Wings", "Moskova (DME) - Antalya (AYT) Direkt Sefer", 190.0),
+
+                // ✈️ Moskova -> İstanbul (IST / SAW)
+                Triple("Moskova", "İstanbul", "SU-2134") to Triple("Aeroflot", "Moskova (SVO) - İstanbul (IST) Tarifeli Uçuş", 210.0),
+                Triple("Moskova", "İstanbul", "TK-1984") to Triple("Turkish Airlines", "Moskova (VKO) - İstanbul (IST) Konfor Seferi", 255.0),
+                Triple("Moskova", "İstanbul", "PC-1880") to Triple("Pegasus Airlines", "Moskova (DME) - İstanbul (SAW) Direkt Uçuş", 170.0),
+
+                // ✈️ Moskova -> Bodrum / Dalaman
+                Triple("Moskova", "Bodrum", "TK-3940") to Triple("Turkish Airlines", "Moskova (VKO) - Bodrum (BJV) Seferi", 270.0),
+                Triple("Moskova", "Dalaman", "N4-5931") to Triple("Nordwind Airlines", "Moskova (SVO) - Dalaman (DLM) Charter", 205.0),
+
+                // ✈️ Moskova -> Dubai / BAE
+                Triple("Moskova", "Dubai", "FZ-921") to Triple("Flydubai", "Moskova (VKO) - Dubai (DXB) Direkt Sefer", 310.0),
+                Triple("Moskova", "Dubai", "EK-121") to Triple("Emirates", "Moskova (DME) - Dubai (DXB) Tarifeli Uçuş", 420.0),
+
+                // ✈️ Moskova -> Mısır (Sharm / Hurgada)
+                Triple("Moskova", "Şarm El-Şeyh", "SU-2200") to Triple("Aeroflot", "Moskova (SVO) - Sharm El Sheikh (SSH) Seferi", 290.0),
+                Triple("Moskova", "Hurgada", "N4-5855") to Triple("Nordwind Airlines", "Moskova (DME) - Hurgada (HRG) Charter", 260.0),
+
+                // ✈️ Saint Petersburg (LED) -> Antalya / İstanbul
+                Triple("Saint Petersburg", "Antalya", "TK-3980") to Triple("Turkish Airlines", "Saint Petersburg (LED) - Antalya (AYT) Seferi", 275.0),
+                Triple("Saint Petersburg", "Antalya", "SU-270") to Triple("Aeroflot", "Saint Petersburg (LED) - Antalya (AYT) Tarifeli", 260.0),
+                Triple("Saint Petersburg", "Antalya", "PC-4022") to Triple("Pegasus Airlines", "Saint Petersburg (LED) - Antalya (AYT) Uçuş", 220.0),
+
+                // ✈️ Kazan / Yekaterinburg / Novosibirsk -> Antalya
+                Triple("Kazan", "Antalya", "N4-6012") to Triple("Nordwind Airlines", "Kazan (KZN) - Antalya (AYT) Direkt Charter", 215.0),
+                Triple("Kazan", "Antalya", "2S-304") to Triple("Southwind Airlines", "Kazan (KZN) - Antalya (AYT) Charter Seferi", 210.0),
+                Triple("Yekaterinburg", "Antalya", "N4-7701") to Triple("Nordwind Airlines", "Yekaterinburg (SVX) - Antalya (AYT) Seferi", 245.0),
+                Triple("Yekaterinburg", "Antalya", "WZ-4022") to Triple("Red Wings", "Yekaterinburg (SVX) - Antalya (AYT) Seferi", 235.0),
+                Triple("Novosibirsk", "Antalya", "S7-3802") to Triple("S7 Airlines", "Novosibirsk (OVB) - Antalya (AYT) Direkt Sefer", 295.0),
+
+                // ✈️ Türkiye İçi & Türkiye Çıkışlı (İstanbul / İzmir / Ankara -> Antalya / Bodrum)
+                Triple("İstanbul", "Antalya", "PC-2014") to Triple("Pegasus Airlines", "İstanbul (SAW) - Antalya (AYT) Direkt Uçuş", 85.0),
+                Triple("İstanbul", "Antalya", "TK-2412") to Triple("Turkish Airlines", "İstanbul (IST) - Antalya (AYT) Sabah Seferi", 110.0),
+                Triple("İstanbul", "Bodrum", "PC-5540") to Triple("Pegasus Airlines", "İstanbul (SAW) - Bodrum (BJV) Direkt Uçuş", 90.0),
+                Triple("İzmir", "Antalya", "XQ-504") to Triple("SunExpress", "İzmir (ADB) - Antalya (AYT) Direkt Uçuş", 75.0),
+                Triple("Ankara", "Antalya", "TK-7012") to Triple("AJet / THY", "Ankara (ESB) - Antalya (AYT) Direkt Uçuş", 80.0)
+            )
+
+            val photoPool = listOf(
+                "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800",
+                "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800",
+                "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=800",
+                "https://images.unsplash.com/photo-1519074069444-1ba4eff56b61?w=800",
+                "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800",
+                "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800"
+            )
+
+            return rawFlights.mapIndexed { idx, (route, meta) ->
+                val (dep, arr, fNum) = route
+                val (airline, name, baseEur) = meta
+                val isChar = fNum.startsWith("N4-") || fNum.startsWith("2S-") || fNum.startsWith("WZ-")
+                val country = when (arr) {
+                    "Dubai" -> "BAE"
+                    "Şarm El-Şeyh", "Hurgada" -> "Mısır"
+                    "Phuket", "Bangkok" -> "Tayland"
+                    "Soçi", "Moskova", "St. Petersburg" -> "Rusya"
+                    else -> "Türkiye"
+                }
+
+                UnifiedProductEntity(
+                    id = "flight-dyn-$dateStr-${fNum.lowercase()}-$idx",
+                    productType = "FLIGHT",
+                    tourName = "$name ($dateStr)",
+                    operatorName = if (isChar) "Charter & Tur Seferi" else airline,
+                    departureCity = dep,
+                    departureDate = dateStr,
+                    country = country,
+                    countryCode = if (country == "Türkiye") "TR" else if (country == "Mısır") "EG" else if (country == "BAE") "AE" else "RU",
+                    region = arr,
+                    flightNumber = fNum,
+                    airlineName = airline,
+                    isCharter = isChar,
+                    isDirectFlight = true,
+                    baggageKg = if (airline.contains("Turkish") || airline.contains("Aeroflot")) 23 else 20,
+                    price = baseEur,
+                    currency = "EUR",
+                    pictureUrl = photoPool[idx % photoPool.size],
+                    isInstantConfirmation = true
+                )
+            }
+        }
+
         fun isDepartureMatchingText(targetDeparture: String, selectedDeparture: String): Boolean {
             val dep = selectedDeparture.trim()
             if (dep.isBlank() || dep.equals("Tüm Kalkış Şehirleri", ignoreCase = true) || dep.startsWith("Tüm", ignoreCase = true) || dep.contains("Tüm", ignoreCase = true) || dep.contains("Hepsi", ignoreCase = true) || dep.equals("ALL", ignoreCase = true) || dep.startsWith("Все", ignoreCase = true) || dep.contains("Все", ignoreCase = true)) {
@@ -391,6 +490,8 @@ class B2BTourSearchViewModel(
     var departureCity = MutableStateFlow("")
     var destinationCountry = MutableStateFlow("")
     var selectedRegion = MutableStateFlow("")
+    var selectedStartDate = MutableStateFlow("")
+    var selectedEndDate = MutableStateFlow("")
     var nights = MutableStateFlow(7)
     var adults = MutableStateFlow(2)
     var childs = MutableStateFlow(0)
@@ -568,67 +669,11 @@ data class QuotaCheckResultDto(
                 }
             }
 
-            val sampleFlightProducts = listOf(
-                UnifiedProductEntity(
-                    id = "flight-sample-1",
-                    productType = "FLIGHT",
-                    tourName = "Moskova (SVO) - Antalya (AYT) Uçuş Seferi",
-                    operatorName = "Turkish Airlines (THY)",
-                    departureCity = "Moskova",
-                    country = "Türkiye",
-                    region = "Antalya",
-                    flightNumber = "TK-3701",
-                    airlineName = "Turkish Airlines",
-                    isCharter = false,
-                    price = 240.0,
-                    currency = "EUR",
-                    pictureUrl = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800"
-                ),
-                UnifiedProductEntity(
-                    id = "flight-sample-2",
-                    productType = "FLIGHT",
-                    tourName = "Moskova (DME) - Antalya (AYT) Direk Charter Uçuş",
-                    operatorName = "Pegas Touristik (Nordwind)",
-                    departureCity = "Moskova",
-                    country = "Türkiye",
-                    region = "Antalya",
-                    flightNumber = "N4-5821",
-                    airlineName = "Nordwind Airlines",
-                    isCharter = true,
-                    price = 185.0,
-                    currency = "EUR",
-                    pictureUrl = "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800"
-                ),
-                UnifiedProductEntity(
-                    id = "flight-sample-3",
-                    productType = "FLIGHT",
-                    tourName = "Moskova (VKO) - İstanbul (IST) Tarifeli Uçuş",
-                    operatorName = "Aeroflot",
-                    departureCity = "Moskova",
-                    country = "Türkiye",
-                    region = "İstanbul",
-                    flightNumber = "SU-2134",
-                    airlineName = "Aeroflot",
-                    isCharter = false,
-                    price = 210.0,
-                    currency = "EUR",
-                    pictureUrl = "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=800"
-                ),
-                UnifiedProductEntity(
-                    id = "flight-sample-4",
-                    productType = "FLIGHT",
-                    tourName = "İstanbul (SAW) - Antalya (AYT) Direkt Uçuş",
-                    operatorName = "Pegasus Airlines",
-                    departureCity = "İstanbul",
-                    country = "Türkiye",
-                    region = "Antalya",
-                    flightNumber = "PC-2014",
-                    airlineName = "Pegasus Airlines",
-                    isCharter = false,
-                    price = 85.0,
-                    currency = "EUR",
-                    pictureUrl = "https://images.unsplash.com/photo-1519074069444-1ba4eff56b61?w=800"
-                )
+            val sampleFlightProducts = generateDynamicFlightSchedules(
+                targetDate = selectedStartDate.value,
+                depFilter = departureCity.value,
+                arrFilter = selectedRegion.value,
+                countryFilter = destinationCountry.value
             )
 
             val sampleMultiCountryTours = listOf(
@@ -1254,6 +1299,106 @@ data class QuotaCheckResultDto(
                 baggageKg = bagKg,
                 handBaggageKg = 8,
                 priceDeltaRub = 0.0
+            ),
+            FlightOption(
+                id = "fl-${product.id}-2",
+                outboundAirline = "Turkish Airlines (THY)",
+                outboundFlightNumber = "TK-3701",
+                outboundDeparturePort = "$depCity 07:30",
+                outboundArrivalPort = "$arrCity 11:50",
+                outboundDepartureTime = "07:30",
+                outboundArrivalTime = "11:50",
+                outboundDuration = "4s 20d",
+                inboundAirline = "Turkish Airlines (THY)",
+                inboundFlightNumber = "TK-3702",
+                inboundDeparturePort = "$arrCity 20:15",
+                inboundArrivalPort = "$depCity 00:40",
+                inboundDepartureTime = "20:15",
+                inboundArrivalTime = "00:40",
+                inboundDuration = "4s 25d",
+                baggageKg = 23,
+                handBaggageKg = 8,
+                priceDeltaRub = 4200.0
+            ),
+            FlightOption(
+                id = "fl-${product.id}-3",
+                outboundAirline = "Pegasus Airlines",
+                outboundFlightNumber = "PC-2014",
+                outboundDeparturePort = "$depCity 10:15",
+                outboundArrivalPort = "$arrCity 14:40",
+                outboundDepartureTime = "10:15",
+                outboundArrivalTime = "14:40",
+                outboundDuration = "4s 25d",
+                inboundAirline = "Pegasus Airlines",
+                inboundFlightNumber = "PC-2015",
+                inboundDeparturePort = "$arrCity 16:30",
+                inboundArrivalPort = "$depCity 20:50",
+                inboundDepartureTime = "16:30",
+                inboundArrivalTime = "20:50",
+                inboundDuration = "4s 20d",
+                baggageKg = 20,
+                handBaggageKg = 8,
+                priceDeltaRub = 1800.0
+            ),
+            FlightOption(
+                id = "fl-${product.id}-4",
+                outboundAirline = "Aeroflot",
+                outboundFlightNumber = "SU-2134",
+                outboundDeparturePort = "$depCity 14:00",
+                outboundArrivalPort = "$arrCity 18:25",
+                outboundDepartureTime = "14:00",
+                outboundArrivalTime = "18:25",
+                outboundDuration = "4s 25d",
+                inboundAirline = "Aeroflot",
+                inboundFlightNumber = "SU-2135",
+                inboundDeparturePort = "$arrCity 11:20",
+                inboundArrivalPort = "$depCity 15:45",
+                inboundDepartureTime = "11:20",
+                inboundArrivalTime = "15:45",
+                inboundDuration = "4s 25d",
+                baggageKg = 23,
+                handBaggageKg = 10,
+                priceDeltaRub = 5600.0
+            ),
+            FlightOption(
+                id = "fl-${product.id}-5",
+                outboundAirline = "Nordwind Airlines",
+                outboundFlightNumber = "N4-5821",
+                outboundDeparturePort = "$depCity 23:45",
+                outboundArrivalPort = "$arrCity 04:15",
+                outboundDepartureTime = "23:45",
+                outboundArrivalTime = "04:15",
+                outboundDuration = "4s 30d",
+                inboundAirline = "Nordwind Airlines",
+                inboundFlightNumber = "N4-5822",
+                inboundDeparturePort = "$arrCity 05:30",
+                inboundArrivalPort = "$depCity 09:55",
+                inboundDepartureTime = "05:30",
+                inboundArrivalTime = "09:55",
+                inboundDuration = "4s 25d",
+                baggageKg = 20,
+                handBaggageKg = 8,
+                priceDeltaRub = -1500.0
+            ),
+            FlightOption(
+                id = "fl-${product.id}-6",
+                outboundAirline = "SunExpress",
+                outboundFlightNumber = "XQ-9012",
+                outboundDeparturePort = "$depCity 18:20",
+                outboundArrivalPort = "$arrCity 22:45",
+                outboundDepartureTime = "18:20",
+                outboundArrivalTime = "22:45",
+                outboundDuration = "4s 25d",
+                inboundAirline = "SunExpress",
+                inboundFlightNumber = "XQ-9013",
+                inboundDeparturePort = "$arrCity 08:40",
+                inboundArrivalPort = "$depCity 13:05",
+                inboundDepartureTime = "08:40",
+                inboundArrivalTime = "13:05",
+                inboundDuration = "4s 25d",
+                baggageKg = 20,
+                handBaggageKg = 8,
+                priceDeltaRub = 2300.0
             )
         )
 

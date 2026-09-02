@@ -50,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.layout.ContentScale
@@ -57,6 +58,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.mgacreative.touros.ui.components.TourOSVerticalScrollbar
 import io.github.jan.supabase.postgrest.postgrest
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -3460,12 +3462,25 @@ fun VerticalSearchResultsGridSection(
                 hotels.drop((safeCurrentPage - 1) * pageSize).take(pageSize)
             }
 
-            // Tek Satırlık Fırsat / Arama Sonuçları Listesi (Sayfalanmış)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            val resultsScrollState = rememberScrollState()
+            LaunchedEffect(safeCurrentPage) {
+                resultsScrollState.scrollTo(0)
+            }
+
+            // Tek Satırlık Fırsat / Arama Sonuçları Listesi (İç Kaydırma Çubuğu ile Sabit Yükseklikte Pencere)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 580.dp)
             ) {
-                pagedHotels.forEach { hotel ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(resultsScrollState)
+                        .padding(end = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    pagedHotels.forEach { hotel ->
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -3767,6 +3782,15 @@ fun VerticalSearchResultsGridSection(
                     }
                 }
             }
+
+            TourOSVerticalScrollbar(
+                scrollState = resultsScrollState,
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .fillMaxHeight()
+                    .padding(end = 2.dp)
+            )
+        }
 
             // ── 📄 ALT SAYFALAMA (PAGINATION) KONTROLLERİ ──
             if (totalPages > 1) {
@@ -5299,4 +5323,6 @@ private fun GuestCounterRow(
         }
     }
 }
+
+
 
