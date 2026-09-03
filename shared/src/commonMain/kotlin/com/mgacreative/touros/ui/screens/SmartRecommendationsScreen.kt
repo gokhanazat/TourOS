@@ -14,44 +14,8 @@ import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
 
-private val sampleRecommendations = listOf(
-    TourRecommendation(
-        recommendationId = "rec-101",
-        tourId = "t101",
-        tourName = "Kapadokya VIP Balon & Vadi Turu",
-        category = "Balon & Doğa",
-        price = 12500.0,
-        matchScore = 96.0,
-        recommendationReason = "Geçmiş balon turu aramalarınız ve beğendikleriniz temel alınarak özel önerildi."
-    ),
-    TourRecommendation(
-        recommendationId = "rec-102",
-        tourId = "t102",
-        tourName = "Ege & Efes Antik Kenti Günübirlik Turu",
-        category = "Kültür & Tarih",
-        price = 8400.0,
-        matchScore = 91.0,
-        recommendationReason = "Tarih turlarını tercih eden benzer 1,200 gezgin bu turu çok beğendi."
-    ),
-    TourRecommendation(
-        recommendationId = "rec-103",
-        tourId = "t103",
-        tourName = "Antalya Yat & Koyu Macera Gezisi",
-        category = "Deniz & Yaz",
-        price = 9800.0,
-        matchScore = 88.0,
-        recommendationReason = "Yaz sezonu kişiselleştirilmiş popüler deniz rotaları eşleşmesi."
-    ),
-    TourRecommendation(
-        recommendationId = "rec-104",
-        tourId = "t104",
-        tourName = "Trabzon Uzungöl & Yayla Safari Turu",
-        category = "Yaylalar & Doğa",
-        price = 11200.0,
-        matchScore = 85.0,
-        recommendationReason = "Doğa yürüyüşü ve fotoğrafçılık ilgi alanlarınıza özel öneri."
-    )
-)
+private val sampleRecommendations = emptyList<TourRecommendation>()
+
 
 
 /**

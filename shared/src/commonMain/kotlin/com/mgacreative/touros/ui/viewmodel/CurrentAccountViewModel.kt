@@ -112,13 +112,9 @@ class CurrentAccountViewModel(
         }
 
         viewModelScope.launch {
-            val sampleDetails = listOf(
-                AccountTransactionDetail("t1", "07.08.2026", "Rezervasyon Satış Faturası", account.balance.coerceAtLeast(0.0), 0.0, account.balance, "INV-1001"),
-                AccountTransactionDetail("t2", "05.08.2026", "Banka Havale Tahsilatı", 0.0, 5000.0, (account.balance - 5000.0).coerceAtLeast(0.0), "DEC-2004")
-            )
             _uiState.value = state.copy(
                 selectedAccountForStatement = account,
-                statementDetails = sampleDetails
+                statementDetails = emptyList()
             )
         }
     }

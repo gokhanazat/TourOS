@@ -77,23 +77,17 @@ class HotelContractViewModel(
 
             val contractsRes = getHotelContractsUseCase(validId)
             contractsRes.onSuccess { list ->
-                val fallbackList = if (list.isEmpty()) createSampleContracts(validId, roomTypes) else list
                 _uiState.value = HotelContractUiState.Success(
-                    contracts = fallbackList,
+                    contracts = list,
                     roomTypes = roomTypes
                 )
             }.onFailure { err ->
-                // DB Error / UUID error fallback to sample contracts so screen opens smoothly
                 _uiState.value = HotelContractUiState.Success(
-                    contracts = createSampleContracts(validId, roomTypes),
+                    contracts = emptyList(),
                     roomTypes = roomTypes
                 )
             }
         }
-    }
-
-    private fun createSampleContracts(hotelId: String, roomTypes: List<RoomType>): List<HotelContract> {
-        return emptyList()
     }
 
 

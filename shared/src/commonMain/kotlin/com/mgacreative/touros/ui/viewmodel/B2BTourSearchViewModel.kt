@@ -404,11 +404,29 @@ class B2BTourSearchViewModel(
             if (countryCodeOrName.isBlank() || countryCodeOrName == "ALL" || countryCodeOrName.equals("Tüm", ignoreCase = true)) return true
             val code = countryCodeOrName.uppercase().trim()
             val itemCode = item.countryCode.uppercase().trim()
-            if (itemCode.isNotBlank() && (itemCode == code || (code == "TR" && itemCode == "TUR") || (code == "EG" && itemCode == "EGY") || (code == "TH" && itemCode == "THA") || (code == "VN" && itemCode == "VNM") || (code == "AE" && itemCode == "ARE") || (code == "RU" && itemCode == "RUS"))) {
+            if (itemCode.isNotBlank() && (itemCode == code || 
+                (code == "TR" && itemCode == "TUR") || 
+                (code == "EG" && itemCode == "EGY") || 
+                (code == "TH" && itemCode == "THA") || 
+                (code == "VN" && itemCode == "VNM") || 
+                (code == "AE" && itemCode == "ARE") || 
+                (code == "RU" && itemCode == "RUS") ||
+                (code == "MV" && itemCode == "MDV") ||
+                (code == "CY" && itemCode == "CYP") ||
+                (code == "GE" && itemCode == "GEO") ||
+                (code == "SC" && itemCode == "SYC") ||
+                (code == "LK" && itemCode == "LKA") ||
+                (code == "MU" && itemCode == "MUS") ||
+                (code == "ID" && itemCode == "IDN") ||
+                (code == "TZ" && itemCode == "TZA") ||
+                (code == "ME" && itemCode == "MNE") ||
+                (code == "GR" && itemCode == "GRC") ||
+                (code == "CN" && itemCode == "CHN") ||
+                (code == "AB" && itemCode == "ABH")
+            )) {
                 return true
             }
 
-            // Sadece Ülke ve Resmi Bölge / Belde alanları taranır (Otel adı veya oda adı ülkeyi yanıltamaz!)
             val geoText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion}".lowercase().trim()
 
             return when (code) {
@@ -432,10 +450,34 @@ class B2BTourSearchViewModel(
                 "AE", "BAE", "DUBAI", "UAE", "ОАЭ" -> itemCode == "AE" || geoText.contains("bae") || geoText.contains("dubai") || geoText.contains("uae") || geoText.contains("оаэ") ||
                         geoText.contains("дубай") || geoText.contains("abu dhabi") || geoText.contains("абу-даби") || geoText.contains("sharjah") ||
                         geoText.contains("шарджа") || geoText.contains("jumeirah")
-                "RU", "RUSYA", "RUSSIA", "РОССИЯ" -> itemCode == "RU" || ((geoText.contains("rusya") || geoText.contains("russia") || geoText.contains("россия") || geoText.contains("sochi") ||
-                        geoText.contains("сочи") || geoText.contains("st. petersburg") || geoText.contains("петербург") || geoText.contains("kazan") ||
-                        geoText.contains("казань")) && !geoText.contains("antalya") && !geoText.contains("belek") && !geoText.contains("kemer") && !geoText.contains("lara"))
-                else -> geoText.contains(countryCodeOrName.lowercase())
+                "RU", "RUSYA", "RUSSIA", "РОССИЯ" -> itemCode == "RU" || geoText.contains("rusya") || geoText.contains("russia") || geoText.contains("россия") ||
+                        geoText.contains("moskova") || geoText.contains("moscow") || geoText.contains("москва") ||
+                        geoText.contains("sochi") || geoText.contains("сочи") || geoText.contains("st. petersburg") || geoText.contains("петербург") ||
+                        geoText.contains("kazan") || geoText.contains("казань")
+                "MV", "MALDIVLER", "MALDIVES", "МАЛЬДИВЫ" -> itemCode == "MV" || geoText.contains("maldiv") || geoText.contains("maldives") || geoText.contains("мальдив") ||
+                        geoText.contains("male") || geoText.contains("мале") || geoText.contains("atoll") || geoText.contains("атолл")
+                "CY", "KIBRIS", "CYPRUS", "КИПР" -> itemCode == "CY" || geoText.contains("kıbrıs") || geoText.contains("cyprus") || geoText.contains("кипр") ||
+                        geoText.contains("girne") || geoText.contains("kyrenia") || geoText.contains("lefkoşa") || geoText.contains("nicosia") || geoText.contains("magusa") || geoText.contains("bafra") || geoText.contains("гирне") || geoText.contains("никосия")
+                "GE", "GÜRCISTAN", "GURCISTAN", "GEORGIA", "ГРУЗИЯ" -> itemCode == "GE" || geoText.contains("gürcistan") || geoText.contains("gurcistan") || geoText.contains("georgia") || geoText.contains("грузия") ||
+                        geoText.contains("batum") || geoText.contains("batumi") || geoText.contains("батуми") || geoText.contains("tbilisi") || geoText.contains("tiflis") || geoText.contains("тбилиси")
+                "SC", "SEYSELLER", "ŞEYŞELLER", "SEYCHELLES", "СЕЙШЕЛЫ" -> itemCode == "SC" || geoText.contains("seyşel") || geoText.contains("seysel") || geoText.contains("seychelles") || geoText.contains("сейшел") ||
+                        geoText.contains("mahe") || geoText.contains("маэ") || geoText.contains("praslin") || geoText.contains("праслин")
+                "LK", "SRI LANKA", "ŞRİ LANKA", "ШРИ-ЛАНКА" -> itemCode == "LK" || geoText.contains("sri lanka") || geoText.contains("srilanka") || geoText.contains("шри-ланка") || geoText.contains("шри ланка") ||
+                        geoText.contains("colombo") || geoText.contains("коломбо") || geoText.contains("bentota") || geoText.contains("бентота")
+                "MU", "MAURITIUS", "MAVRİKIY", "МАВРИКИЙ" -> itemCode == "MU" || geoText.contains("mauritius") || geoText.contains("маврикий") ||
+                        geoText.contains("port louis") || geoText.contains("порт-луи")
+                "ID", "ENDONEZYA", "INDONESIA", "ИНДОНЕЗИЯ" -> itemCode == "ID" || geoText.contains("endonezya") || geoText.contains("indonesia") || geoText.contains("индонезия") ||
+                        geoText.contains("bali") || geoText.contains("бали") || geoText.contains("ubud") || geoText.contains("убуд")
+                "TZ", "ZANZIBAR", "TANZANIA", "ТАНЗАНИЯ" -> itemCode == "TZ" || geoText.contains("zanzibar") || geoText.contains("занзибар") || geoText.contains("tanzania") || geoText.contains("танзания")
+                "ME", "KARADAG", "KARADAĞ", "MONTENEGRO", "ЧЕРНОГОРИЯ" -> itemCode == "ME" || geoText.contains("karadağ") || geoText.contains("karadag") || geoText.contains("montenegro") || geoText.contains("черногория") ||
+                        geoText.contains("budva") || geoText.contains("будва") || geoText.contains("kotor") || geoText.contains("котор") || geoText.contains("tivat") || geoText.contains("тиват")
+                "GR", "YUNANISTAN", "GREECE", "ГРЕЦИЯ" -> itemCode == "GR" || geoText.contains("yunanistan") || geoText.contains("greece") || geoText.contains("греция") ||
+                        geoText.contains("rodos") || geoText.contains("rhodes") || geoText.contains("родос") || geoText.contains("girit") || geoText.contains("crete") || geoText.contains("крит")
+                "CN", "ÇIN", "CIN", "CHINA", "КИТАЙ" -> itemCode == "CN" || geoText.contains("çin") || geoText.contains("cin") || geoText.contains("china") || geoText.contains("китай") ||
+                        geoText.contains("hainan") || geoText.contains("хайнань") || geoText.contains("sanya") || geoText.contains("санья")
+                "AB", "ABHAZYA", "ABKHAZIA", "АБХАЗИЯ" -> itemCode == "AB" || geoText.contains("abhazya") || geoText.contains("abkhazia") || geoText.contains("абхазия") ||
+                        geoText.contains("gagra") || geoText.contains("гагра") || geoText.contains("pitsunda") || geoText.contains("пицунда")
+                else -> geoText.contains(countryCodeOrName.lowercase()) || code.contains(itemCode)
             }
         }
 
@@ -448,23 +490,22 @@ class B2BTourSearchViewModel(
                 "belek" -> listOf("belek", "белек")
                 "kemer" -> listOf("kemer", "кемер")
                 "antalya" -> listOf("antalya", "анталья", "ayt")
+                "lara" -> listOf("lara", "лара", "kundu", "кунду")
                 "alanya" -> listOf("alanya", "аланья")
                 "side" -> listOf("side", "сиде")
                 "bodrum" -> listOf("bodrum", "бодрум")
                 "marmaris" -> listOf("marmaris", "мармарис")
                 "fethiye" -> listOf("fethiye", "фетхие")
-                "çeşme" -> listOf("çeşme", "cesme", "чешме")
-                "şarm el-şeyh" -> listOf("şarm", "sharm", "шарм")
-                "hurgada" -> listOf("hurgada", "hurghada", "хургада")
-                "el gouna" -> listOf("el gouna", "gouna", "эль гуна")
+                "çeşme", "cesme" -> listOf("çeşme", "cesme", "чешме")
+                "şarm el-şeyh", "sharm el-sheikh" -> listOf("şarm", "sharm", "шарм")
+                "hurgada", "hurghada" -> listOf("hurgada", "hurghada", "хургада")
+                "el gouna" -> listOf("el gouna", "gouna", "эль гуна", "эль-гуна")
                 "makadi bay" -> listOf("makadi", "макади")
                 "phuket" -> listOf("phuket", "пхукет", "patong", "патонг", "karon", "карон", "kata", "ката")
                 "pattaya" -> listOf("pattaya", "паттайя")
                 "bangkok" -> listOf("bangkok", "бангкок")
-                "koh samui" -> listOf("samui", "самуи")
+                "koh samui", "samui" -> listOf("samui", "самуи")
                 "krabi" -> listOf("krabi", "краби")
-                "da nang" -> listOf("da nang", "danang", "дананг")
-                "phu quoc" -> listOf("phu quoc", "phuquoc", "фукуок")
                 "nha trang" -> listOf("nha trang", "nhatrang", "нячанг")
                 "hoi an" -> listOf("hoi an", "hoian", "хойан")
                 "dubai marina" -> listOf("dubai", "marina", "дубай")
@@ -669,437 +710,9 @@ data class QuotaCheckResultDto(
                 }
             }
 
-            val sampleFlightProducts = generateDynamicFlightSchedules(
-                targetDate = selectedStartDate.value,
-                depFilter = departureCity.value,
-                arrFilter = selectedRegion.value,
-                countryFilter = destinationCountry.value
-            )
-
-            val sampleMultiCountryTours = listOf(
-                // 🇹🇷 TÜRKİYE (BELEK, BODRUM, KEMER, SİDE, ALANYA, MARMARİS, FETHİYE)
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-belek-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Antalya (AYT) Belek Golf & Sahil Paketi",
-                    operatorName = "Coral Travel",
-                    price = 920.0,
-                    currency = "EUR",
-                    hotelName = "Maxx Royal Belek Golf Resort",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Antalya",
-                    subRegion = "Belek",
-                    roomType = "Suite Kara Manzaralı",
-                    mealType = "Maxx All Inclusive",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Golf", "Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Çocuk Kulübü", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-belek-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (VKO) - Antalya (AYT) Belek Lüks Aile Tatili",
-                    operatorName = "Anex Tour",
-                    price = 840.0,
-                    currency = "EUR",
-                    hotelName = "Rixos Premium Belek",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Antalya",
-                    subRegion = "Belek",
-                    roomType = "Deluxe Deniz Manzaralı Oda",
-                    mealType = "Ultra Her Şey Dahil (UAI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("The Land of Legends Giriş", "Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-bodrum-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Bodrum (BJV) Ege Rüyası Tatil Paketi",
-                    operatorName = "Pegas Touristik",
-                    price = 890.0,
-                    currency = "EUR",
-                    hotelName = "Titanic Luxury Collection Bodrum",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Bodrum",
-                    subRegion = "Güvercinlik (Yalıkavak, Torba)",
-                    roomType = "Superior Deniz Manzaralı",
-                    mealType = "Ultra Her Şey Dahil (UAI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Özel İskele", "Wi-Fi", "SPA", "Kum Plaj", "Havuz", "Çocuk Kulübü")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-bodrum-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (DME) - Bodrum (BJV) Yalıkavak & Torba Paketi",
-                    operatorName = "Coral Travel",
-                    price = 980.0,
-                    currency = "EUR",
-                    hotelName = "Rixos Premium Bodrum",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Bodrum",
-                    subRegion = "Torba (Yalıkavak)",
-                    roomType = "Deluxe Garden View",
-                    mealType = "Ultra Her Şey Dahil (UAI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Aqua Park", "Wi-Fi", "SPA", "Özel Koy", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-kemer-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (VKO) - Antalya (AYT) Kemer Doğa & Eğlence Paketi",
-                    operatorName = "Fun & Sun",
-                    price = 780.0,
-                    currency = "EUR",
-                    hotelName = "Rixos Sungate Kemer",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Antalya",
-                    subRegion = "Kemer (Beldibi)",
-                    roomType = "Standard Marine Room",
-                    mealType = "Ultra Her Şey Dahil (UAI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Aquapark", "Wi-Fi", "SPA", "Plaj", "Konser Alanı")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-side-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Antalya (AYT) Side Tarih & Kum Plaj Paketi",
-                    operatorName = "Biblio-Globus",
-                    price = 710.0,
-                    currency = "EUR",
-                    hotelName = "Barut Hemera Side",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Antalya",
-                    subRegion = "Side (Kumköy)",
-                    roomType = "Deluxe Room Garden View",
-                    mealType = "Ultra Her Şey Dahil (UAI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Kum Plaj", "Wi-Fi", "SPA", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-tr-marmaris-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Dalaman (DLM) Marmaris Çam Kokulu Tatil",
-                    operatorName = "Anex Tour",
-                    price = 760.0,
-                    currency = "EUR",
-                    hotelName = "D-Resort Grand Azur Marmaris",
-                    hotelCategory = 5,
-                    country = "Türkiye",
-                    countryCode = "TR",
-                    countryName = "Türkiye",
-                    region = "Marmaris",
-                    subRegion = "İçmeler",
-                    roomType = "Standard Deniz Manzaralı",
-                    mealType = "Her Şey Dahil (AI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Mavi Bayrak Plaj", "Wi-Fi", "SPA", "Havuz")
-                ),
-                // 🇪🇬 MISIR
-                UnifiedProductEntity(
-                    id = "tour-seed-eg-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Şarm El-Şeyh (SSH) Lüks Plaj Paketi",
-                    operatorName = "Coral Travel",
-                    price = 850.0,
-                    currency = "EUR",
-                    hotelName = "Rixos Premium Seagate Sharm",
-                    hotelCategory = 5,
-                    country = "Mısır",
-                    countryCode = "EG",
-                    countryName = "Mısır",
-                    region = "Şarm El-Şeyh",
-                    subRegion = "Nabq Bay",
-                    roomType = "Deluxe Aqua Sea View",
-                    mealType = "Ultra Her Şey Dahil (UAI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Çocuk Kulübü", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-eg-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "İstanbul (IST) - Hurgada (HRG) Kızıldeniz Tatil Paketi",
-                    operatorName = "Anex Tour",
-                    price = 720.0,
-                    currency = "EUR",
-                    hotelName = "Steigenberger ALDAU Beach Hotel",
-                    hotelCategory = 5,
-                    country = "Mısır",
-                    countryCode = "EG",
-                    countryName = "Mısır",
-                    region = "Hurgada",
-                    subRegion = "El Gouna",
-                    roomType = "Standard Sea Front Room",
-                    mealType = "Her Şey Dahil (AI)",
-                    departureCity = "İstanbul",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Wi-Fi", "SPA", "Kum Plaj", "Havuz", "Aquapark")
-                ),
-
-                // 🇹🇭 TAYLAND
-                UnifiedProductEntity(
-                    id = "tour-seed-th-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (VKO) - Phuket (HKT) Egzotik Ada Paketi",
-                    operatorName = "Pegas Touristik",
-                    price = 1150.0,
-                    currency = "EUR",
-                    hotelName = "JW Marriott Phuket Resort & Spa",
-                    hotelCategory = 5,
-                    country = "Tayland",
-                    countryCode = "TH",
-                    countryName = "Tayland",
-                    region = "Phuket",
-                    subRegion = "Mai Khao Beach",
-                    roomType = "Deluxe Garden View",
-                    mealType = "Oda Kahvaltı (BB)",
-                    departureCity = "Moskova",
-                    nights = 10,
-                    pictureUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Wi-Fi", "SPA", "Kum Plaj", "Havuz", "Çocuk Kulübü")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-th-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "İstanbul (IST) - Pattaya (UTP) Eğlence & Sahil Turu",
-                    operatorName = "Fun & Sun",
-                    price = 890.0,
-                    currency = "EUR",
-                    hotelName = "Centara Grand Mirage Beach Resort",
-                    hotelCategory = 5,
-                    country = "Tayland",
-                    countryCode = "TH",
-                    countryName = "Tayland",
-                    region = "Pattaya",
-                    subRegion = "Naklua Beach",
-                    roomType = "Deluxe Ocean Facing",
-                    mealType = "Oda Kahvaltı (BB)",
-                    departureCity = "İstanbul",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Havuz")
-                ),
-
-                // 🇻🇳 VİETNAM
-                UnifiedProductEntity(
-                    id = "tour-seed-vn-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Phu Quoc (PQC) Tropikal Cennet Paketi",
-                    operatorName = "Anex Tour",
-                    price = 980.0,
-                    currency = "EUR",
-                    hotelName = "Vinpearl Resort & Spa Phu Quoc",
-                    hotelCategory = 5,
-                    country = "Vietnam",
-                    countryCode = "VN",
-                    countryName = "Vietnam",
-                    region = "Phu Quoc",
-                    subRegion = "Long Beach",
-                    roomType = "Deluxe King Room",
-                    mealType = "Tam Pansiyon (FB)",
-                    departureCity = "Moskova",
-                    nights = 10,
-                    pictureUrl = "https://images.unsplash.com/photo-1528127269322-539801943592?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Çocuk Kulübü", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-vn-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "İstanbul (IST) - Da Nang (DAD) Sahil & Kültür Paketi",
-                    operatorName = "Coral Travel",
-                    price = 1290.0,
-                    currency = "EUR",
-                    hotelName = "InterContinental Danang Sun Peninsula Resort",
-                    hotelCategory = 5,
-                    country = "Vietnam",
-                    countryCode = "VN",
-                    countryName = "Vietnam",
-                    region = "Da Nang",
-                    subRegion = "Son Tra Peninsula",
-                    roomType = "Classic Resort View",
-                    mealType = "Oda Kahvaltı (BB)",
-                    departureCity = "İstanbul",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = false,
-                    amenities = listOf("Wi-Fi", "SPA", "Kum Plaj", "Havuz")
-                ),
-
-                // 🇦🇪 BAE (DUBAİ)
-                UnifiedProductEntity(
-                    id = "tour-seed-ae-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (DME) - Dubai (DXB) Lüks Tatil & Aquaventure",
-                    operatorName = "Coral Travel",
-                    price = 1450.0,
-                    currency = "EUR",
-                    hotelName = "Atlantis The Palm Dubai",
-                    hotelCategory = 5,
-                    country = "BAE (Dubai)",
-                    countryCode = "AE",
-                    countryName = "BAE",
-                    region = "Dubai",
-                    subRegion = "Palm Jumeirah",
-                    roomType = "Ocean King Room",
-                    mealType = "Yarım Pansiyon (HB)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Aquapark", "Wi-Fi", "SPA", "Kum Plaj", "Çocuk Kulübü", "Havuz")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-ae-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "İstanbul (IST) - Dubai (DXB) Şehir & Marina Paketi",
-                    operatorName = "Anex Tour",
-                    price = 990.0,
-                    currency = "EUR",
-                    hotelName = "Rixos Premium Dubai JBR",
-                    hotelCategory = 5,
-                    country = "BAE (Dubai)",
-                    countryCode = "AE",
-                    countryName = "BAE",
-                    region = "Dubai",
-                    subRegion = "Dubai Marina",
-                    roomType = "Deluxe Walk View",
-                    mealType = "Oda Kahvaltı (BB)",
-                    departureCity = "İstanbul",
-                    nights = 5,
-                    pictureUrl = "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Wi-Fi", "SPA", "Kum Plaj", "Havuz")
-                ),
-
-                // 🇷🇺 RUSYA
-                UnifiedProductEntity(
-                    id = "tour-seed-ru-1",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Moskova (SVO) - Soçi (AER) Karadeniz Sahil & Spa Turu",
-                    operatorName = "Biblio-Globus",
-                    price = 680.0,
-                    currency = "EUR",
-                    hotelName = "Radisson Collection Paradise Resort & Spa Sochi",
-                    hotelCategory = 5,
-                    country = "Rusya",
-                    countryCode = "RU",
-                    countryName = "Rusya",
-                    region = "Sochi",
-                    subRegion = "Adler",
-                    roomType = "Superior Room Sea View",
-                    mealType = "Her Şey Dahil (AI)",
-                    departureCity = "Moskova",
-                    nights = 7,
-                    pictureUrl = "https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Wi-Fi", "SPA", "Kum Plaj", "Havuz", "Çocuk Kulübü")
-                ),
-                UnifiedProductEntity(
-                    id = "tour-seed-ru-2",
-                    productType = "PACKAGE_TOUR",
-                    tourName = "Saint Petersburg (LED) - Soçi Dağ & Doğa Tatili",
-                    operatorName = "Pegas Touristik",
-                    price = 540.0,
-                    currency = "EUR",
-                    hotelName = "Krasnaya Polyana Mountain Resort Hotel",
-                    hotelCategory = 5,
-                    country = "Rusya",
-                    countryCode = "RU",
-                    countryName = "Rusya",
-                    region = "Sochi",
-                    subRegion = "Krasnaya Polyana",
-                    roomType = "Standard Mountain View",
-                    mealType = "Oda Kahvaltı (BB)",
-                    departureCity = "Saint Petersburg",
-                    nights = 6,
-                    pictureUrl = "https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=800",
-                    isInstantConfirmation = true,
-                    hasTransfer = true,
-                    isDirectFlight = true,
-                    amenities = listOf("Wi-Fi", "SPA", "Havuz")
-                )
-            )
-
-            // Hem Supabase'den gelenleri, Yerel Otelleri, Uçuşları hem de hafızadaki ürünleri birleştir
+            // Canlı DB (marketplace_products) ve yerel ürünleri birleştir
             val memoryItems = AgencyProductPublishingViewModel.getPersistentProducts()
-            val combined = (items + localHotelProducts + localTourProducts + sampleFlightProducts + sampleMultiCountryTours + memoryItems).distinctBy { it.id }
+            val combined = (items + localHotelProducts + localTourProducts + memoryItems).distinctBy { it.id }
             val filtered = filterProducts(combined)
 
             val dbDepartureCities = combined.map { it.departureCity }.filter { it.isNotBlank() && it != "Yerel Otel" }.distinct().sorted()
@@ -1112,7 +725,7 @@ data class QuotaCheckResultDto(
                 departure_cities = dbDepartureCities.ifEmpty { listOf("Moskova", "Saint Petersburg", "Kazan", "Yekaterinburg", "İstanbul") },
                 countries = dbCountries.ifEmpty { listOf("Türkiye", "Mısır", "BAE", "Rusya", "Tayland") },
                 regions = dbRegions.ifEmpty { listOf("Alanya", "Antalya", "Belek", "Kemer", "Side", "Marmaris", "Bodrum") },
-                operators = dbOperators.ifEmpty { listOf("Coral Travel", "Pegas Touristik", "Anex Tour", "Biblio Globus", "Fun & Sun", "Tez Tour") },
+                operators = dbOperators,
                 currencies = dbCurrencies.ifEmpty { listOf("RUB", "TRY", "EUR", "USD") }
             )
 

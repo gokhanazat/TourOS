@@ -92,6 +92,28 @@ fun HierarchicalDestinationPickerDialog(
             DestinationItem("air_pqc", "Phu Quoc Uluslararası (PQC)", "Международный аэропорт Фукуок", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "PQC", "Phu Quoc Adası"),
             DestinationItem("air_cxr", "Cam Ranh / Nha Trang (CXR)", "Аэропорт Камрань / Нячанг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "CXR", "Nha Trang Sahili"),
 
+            // MALDİVLER HAVALİMANLARI
+            DestinationItem("air_mle", "Male Velana Uluslararası (MLE)", "Международный аэропорт Мале", "Maldivler", "Maldivler", "🇲🇻", DestinationLevel.CITY, "MLE", "Hulhumale, Kuzey ve Güney Atolleri"),
+
+            // SRİ LANKA HAVALİMANLARI
+            DestinationItem("air_cmb", "Colombo Bandaranaike (CMB)", "Международный аэропорт Коломбо", "Sri Lanka", "Sri Lanka", "🇱🇰", DestinationLevel.CITY, "CMB", "Colombo, Bentota, Negombo"),
+
+            // SEYŞELLER HAVALİMANLARI
+            DestinationItem("air_sez", "Seyşeller Uluslararası (SEZ)", "Международный аэропорт Сейшелы", "Seyşeller", "Seyşeller", "🇸🇨", DestinationLevel.CITY, "SEZ", "Mahe Adası, Praslin"),
+
+            // ENDONEZYA (BALİ)
+            DestinationItem("air_dps", "Bali Ngurah Rai / Denpasar (DPS)", "Международный аэропорт Денпасар", "Endonezya (Bali)", "Endonezya (Bali)", "🇮🇩", DestinationLevel.CITY, "DPS", "Kuta, Seminyak, Nusa Dua, Ubud"),
+
+            // KIBRIS
+            DestinationItem("air_ecn", "Ercan Havalimanı (ECN)", "Аэропорт Эрджан", "Kıbrıs", "Kıbrıs", "🇨🇾", DestinationLevel.CITY, "ECN", "Girne, Lefkoşa, Gazimağusa"),
+
+            // GÜRCİSTAN
+            DestinationItem("air_bus", "Batum Havalimanı (BUS)", "Международный аэропорт Батуми", "Gürcistan", "Gürcistan", "🇬🇪", DestinationLevel.CITY, "BUS", "Batum Sahil & Merkez"),
+            DestinationItem("air_tbs", "Tiflis Uluslararası (TBS)", "Международный аэропорт Тбилиси", "Gürcistan", "Gürcistan", "🇬🇪", DestinationLevel.CITY, "TBS", "Tiflis Şehir"),
+
+            // KARADAĞ
+            DestinationItem("air_tiv", "Tivat Havalimanı (TIV)", "Аэропорт Тиват", "Karadağ", "Karadağ", "🇲🇪", DestinationLevel.CITY, "TIV", "Budva, Kotor, Tivat Marina"),
+
             // RUSYA HAVALİMANLARI
             DestinationItem("air_aer", "Soçi Adler Havalimanı (AER)", "Международный аэропорт Сочи", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "AER", "Soçi, Adler, Krasnaya Polyana")
         )
@@ -143,6 +165,28 @@ fun HierarchicalDestinationPickerDialog(
             DestinationItem("th_utp", "Pattaya (Jomtien, Naklua)", "Паттайя (Джомтьен, Наклуа)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "UTP", "Eğlence, Gece Hayatı & Su Sporları"),
             DestinationItem("th_bkk", "Bangkok (Sukhumvit, Silom)", "Бангкок", "Tayland", "Tayland", "🏙️", DestinationLevel.CITY, "BKK", "Tapınaklar & Alışveriş"),
             DestinationItem("th_usm", "Koh Samui (Chaweng)", "Самуи (Чавенг)", "Tayland", "Tayland", "🏝️", DestinationLevel.RESORT, "USM", "Palmiye Plajları & Lüks Villalar"),
+
+            // MALDİVLER
+            DestinationItem("mv_all", "Maldivler (Tüm Atoller)", "Мальдивы (Все атоллы)", null, "Maldivler", "🇲🇻", DestinationLevel.COUNTRY, "MLE", "Su Üstü Villaları & Mercan Resifleri"),
+            DestinationItem("mv_mle", "Male & Kuzey Atolü", "Мале и Северный Атолл", "Maldivler", "Maldivler", "🏝️", DestinationLevel.RESORT, "MLE", "Lüks Resort Adaları"),
+
+            // SEYŞELLER
+            DestinationItem("sc_all", "Seyşeller (Mahe / Praslin)", "Сейшелы (Маэ / Праслин)", null, "Seyşeller", "🇸🇨", DestinationLevel.COUNTRY, "SEZ", "Tropik Cennet & Granit Sahilleri"),
+
+            // SRİ LANKA
+            DestinationItem("lk_all", "Sri Lanka (Tüm Bölgeler)", "Шри-Ланка (Все курорты)", null, "Sri Lanka", "🇱🇰", DestinationLevel.COUNTRY, "CMB", "Bentota, Hikkaduwa, Kandy"),
+
+            // ENDONEZYA (BALİ)
+            DestinationItem("id_all", "Endonezya (Bali)", "Индонезия (Бали)", null, "Endonezya (Bali)", "🇮🇩", DestinationLevel.COUNTRY, "DPS", "Kuta, Seminyak, Ubud"),
+
+            // KIBRIS
+            DestinationItem("cy_all", "Kıbrıs (Girne / Gazimağusa)", "Кипр (Все курорты)", null, "Kıbrıs", "🇨🇾", DestinationLevel.COUNTRY, "ECN", "Akdeniz Plajları & Kumarhaneler"),
+
+            // GÜRCİSTAN
+            DestinationItem("ge_all", "Gürcistan (Batum / Tiflis)", "Грузия (Батуми / Тбилиси)", null, "Gürcistan", "🇬🇪", DestinationLevel.COUNTRY, "BUS", "Karadeniz Sahili & Gastronomi"),
+
+            // KARADAĞ
+            DestinationItem("me_all", "Karadağ (Budva / Kotor)", "Черногория (Будва / Котор)", null, "Karadağ", "🇲🇪", DestinationLevel.COUNTRY, "TIV", "Adriyatik Kıyıları & Fiyortlar"),
 
             // VİETNAM
             DestinationItem("vn_all", "Vietnam (Tüm Bölgeler)", "Вьетнам (Все курорты)", null, "Vietnam", "🇻🇳", DestinationLevel.COUNTRY, null, "Da Nang, Phu Quoc, Nha Trang"),
@@ -204,6 +248,13 @@ fun HierarchicalDestinationPickerDialog(
             "Mısır" to "🇪🇬 Mısır / Египет",
             "BAE" to "🇦🇪 BAE / ОАЭ",
             "Tayland" to "🇹🇭 Tayland / Таиланд",
+            "Maldivler" to "🇲🇻 Maldivler / Мальдивы",
+            "Seyşeller" to "🇸🇨 Seyşeller / Сейшелы",
+            "Sri Lanka" to "🇱🇰 Sri Lanka / Шри-Ланка",
+            "Endonezya (Bali)" to "🇮🇩 Bali / Бали",
+            "Kıbrıs" to "🇨🇾 Kıbrıs / Кипр",
+            "Gürcistan" to "🇬🇪 Gürcistan / Грузия",
+            "Karadağ" to "🇲🇪 Karadağ / Черногория",
             "Vietnam" to "🇻🇳 Vietnam / Вьетнам"
         )
         allTabs.filter { it.first == "ALL" || availableCountries.any { c -> c.equals(it.first, ignoreCase = true) } }

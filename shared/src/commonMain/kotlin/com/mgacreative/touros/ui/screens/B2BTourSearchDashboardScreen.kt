@@ -212,24 +212,73 @@ fun B2BTourSearchDashboardScreen(
     val b2bCountryTabsList = remember {
         listOf(
             Triple("ALL", "Tüm Ülkeler", "ALL"),
-            Triple("TR", "Türkiye", "TR"),
-            Triple("EG", "Mısır", "EG"),
-            Triple("TH", "Tayland", "TH"),
-            Triple("VN", "Vietnam", "VN"),
-            Triple("AE", "BAE (Dubai)", "AE"),
-            Triple("RU", "Rusya", "RU")
+            Triple("TR", "Türkiye", "🇹🇷"),
+            Triple("EG", "Mısır", "🇪🇬"),
+            Triple("TH", "Tayland", "🇹🇭"),
+            Triple("VN", "Vietnam", "🇻🇳"),
+            Triple("AE", "BAE (Dubai)", "🇦🇪"),
+            Triple("RU", "Rusya", "🇷🇺"),
+            Triple("MV", "Maldivler", "🇲🇻"),
+            Triple("CY", "Kıbrıs", "🇨🇾"),
+            Triple("GE", "Gürcistan", "🇬🇪"),
+            Triple("SC", "Seyşeller", "🇸🇨"),
+            Triple("LK", "Sri Lanka", "🇱🇰"),
+            Triple("MU", "Mauritius", "🇲🇺"),
+            Triple("ID", "Endonezya", "🇮🇩"),
+            Triple("TZ", "Zanzibar", "🇹🇿"),
+            Triple("ME", "Karadağ", "🇲🇪"),
+            Triple("GR", "Yunanistan", "🇬🇷"),
+            Triple("CN", "Çin", "🇨🇳"),
+            Triple("AB", "Abhazya", "🇬🇪")
         )
     }
 
-    val b2bSubRegionsMap = remember {
-        mapOf(
-            "TR" to listOf("Tümü", "Antalya", "Belek", "Kemer", "Lara", "Alanya", "Side", "Bodrum", "Marmaris", "Fethiye", "Çeşme"),
-            "EG" to listOf("Tümü", "Şarm El-Şeyh", "Hurgada", "El Gouna", "Makadi Bay"),
-            "TH" to listOf("Tümü", "Phuket", "Pattaya", "Bangkok", "Koh Samui", "Krabi"),
-            "VN" to listOf("Tümü", "Da Nang", "Phu Quoc", "Nha Trang", "Hoi An"),
-            "AE" to listOf("Tümü", "Dubai Marina", "Palm Jumeirah", "Downtown", "Abu Dhabi"),
-            "RU" to listOf("Tümü", "Moskova", "St. Petersburg", "Sochi", "Kazan")
+    val b2bSubRegionsMap = remember(allDbProducts) {
+        val staticMap = mapOf(
+            "TR" to listOf("Antalya", "Belek", "Kemer", "Lara", "Alanya", "Side", "Bodrum", "Marmaris", "Fethiye", "Çeşme"),
+            "EG" to listOf("Şarm El-Şeyh", "Hurgada", "El Gouna", "Makadi Bay"),
+            "TH" to listOf("Phuket", "Pattaya", "Bangkok", "Koh Samui", "Krabi"),
+            "VN" to listOf("Da Nang", "Phu Quoc", "Nha Trang", "Hoi An"),
+            "AE" to listOf("Dubai Marina", "Palm Jumeirah", "Downtown", "Abu Dhabi"),
+            "RU" to listOf("Moskova", "St. Petersburg", "Sochi", "Kazan"),
+            "MV" to listOf("Male", "Ari Atoll", "Baa Atoll", "Kaafu Atoll"),
+            "CY" to listOf("Girne", "Gazimağusa", "Lefkoşa", "Bafra", "Larnaka"),
+            "GE" to listOf("Batum", "Tiflis", "Gudauri", "Bakuriani"),
+            "SC" to listOf("Mahe", "Praslin", "La Digue"),
+            "LK" to listOf("Colombo", "Bentota", "Kandy", "Galle"),
+            "MU" to listOf("Port Louis", "Grand Baie", "Flic-en-Flac", "Belle Mare"),
+            "ID" to listOf("Bali", "Ubud", "Kuta", "Seminyak", "Nusa Dua"),
+            "TZ" to listOf("Zanzibar", "Nungwi", "Kendwa", "Stone Town"),
+            "ME" to listOf("Budva", "Kotor", "Tivat", "Herceg Novi"),
+            "GR" to listOf("Rodos", "Girit", "Atina", "Selanik", "Halkidiki"),
+            "CN" to listOf("Hainan", "Sanya", "Pekin", "Şanghay"),
+            "AB" to listOf("Gagra", "Pitsunda", "Sohum")
         )
+
+        val countryCodes = listOf("TR", "EG", "TH", "VN", "AE", "RU", "MV", "CY", "GE", "SC", "LK", "MU", "ID", "TZ", "ME", "GR", "CN", "AB")
+        val result = mutableMapOf<String, List<String>>()
+
+        countryCodes.forEach { cCode ->
+            val statics = staticMap[cCode] ?: emptyList()
+            val dynamicList = allDbProducts
+                .filter { B2BTourSearchViewModel.isCountryMatching(it, cCode) }
+                .flatMap { p ->
+                    listOfNotNull(
+                        p.region.takeIf { it.isNotBlank() && it != "null" },
+                        p.subRegion.takeIf { it.isNotBlank() && it != "null" }
+                    )
+                }
+                .filter { it.length > 2 && !it.equals("null", ignoreCase = true) && !it.equals(cCode, ignoreCase = true) }
+                .distinct()
+
+            val combined = (statics + dynamicList).distinct().filter { it.isNotBlank() }
+            if (combined.isNotEmpty()) {
+                result[cCode] = listOf("Tümü") + combined
+            } else {
+                result[cCode] = listOf("Tümü")
+            }
+        }
+        result
     }
 
     fun isB2BMatchingCountry(item: UnifiedProductEntity, countryCode: String): Boolean {
@@ -613,17 +662,9 @@ fun B2BTourSearchDashboardScreen(
                             }
                         }
 
-                        val defaultTourVisorOperators = listOf(
-                            "Ambotis", "Amigo-S", "Anex", "Biblioglobus", "China Travel", 
-                            "Crystal Bay Tours", "Evroport", "Fun&Sun (RU)", "ICS Travel Group", 
-                            "ITM group", "Kazunion", "Lets Fly", "One Click Travel", "OneTouch & Travel", 
-                            "Paks", "Panteon", "Pegas Touristik", "Resort Holiday", "Russian Express", 
-                            "Space Travel", "Алеан", "Арт Тревел", "Арт-Тур", "Интурист", 
-                            "Меркурий", "Планета Travel", "Премьера", "Турплатформа"
-                        )
-                        // Dış Paket Tur Operatörleri (Yerel Turlar ve Yerel Oteller Filtrelendi)
+                        // Dış Paket Tur Operatörleri (Sadece Veritabanındaki Gerçek TourVisor / Paket Verileri)
                         val dbOperators = remember(allDbProducts) {
-                            val fromProducts = allDbProducts.map { it.safeOperatorName }
+                            allDbProducts.map { it.safeOperatorName }
                                 .filter { op ->
                                     op.isNotBlank() && 
                                     !op.contains("•") && 
@@ -633,7 +674,7 @@ fun B2BTourSearchDashboardScreen(
                                     !op.contains("ACENTE", ignoreCase = true)
                                 }
                                 .distinct()
-                            (fromProducts + defaultTourVisorOperators).distinct().sorted()
+                                .sorted()
                         }
                         // Sadece Ürünlerdeki (Paket Turlardaki) Oteller (Uçuş kayıtları filtrelendi)
                         val dbProductHotels = remember(allDbProducts) {
@@ -1318,9 +1359,6 @@ fun B2BTourSearchDashboardScreen(
                                                     modifier = Modifier.clickable {
                                                         val chosen = if (sReg == "Tümü") null else sReg
                                                         b2bSelectedSubRegion = chosen
-                                                        selectedRegion = chosen ?: ""
-                                                        viewModel.selectedRegion.value = chosen ?: ""
-                                                        viewModel.performSearch()
                                                     }
                                                 )
                                             }
@@ -1431,7 +1469,7 @@ fun B2BTourSearchDashboardScreen(
                                     val queryMatch = searchQuery.isBlank() || item.safeHotelName.contains(searchQuery, ignoreCase = true) || item.tourName.contains(searchQuery, ignoreCase = true) || item.region.contains(searchQuery, ignoreCase = true)
 
                                     val flightDepMatch = isDepartureMatching(item, departureCity)
-                                    val flightDestMatch = isDestinationMatching(item, selectedRegion)
+                                    val flightDestMatch = (b2bSelectedCountryTab != "ALL") || selectedRegion.isBlank() || isDestinationMatching(item, selectedRegion)
 
                                     val (b2bMinNights, b2bMaxNights) = when {
                                         nightsText.contains("1 - 4") -> 1 to 4

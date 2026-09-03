@@ -1117,7 +1117,7 @@ fun UniversalTouristPickerDialog(
                                     DropdownMenu(
                                         expanded = showAgeMenu,
                                         onDismissRequest = { showAgeMenu = false },
-                                        modifier = Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState())
+                                        modifier = Modifier.heightIn(max = 200.dp)
                                     ) {
                                         (0..17).forEach { possibleAge ->
                                             DropdownMenuItem(

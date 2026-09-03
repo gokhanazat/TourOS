@@ -23,78 +23,6 @@ class AgencyOperatorConnectionsViewModel(
     private val _uiState = MutableStateFlow<AgencyOperatorConnectionsUiState>(AgencyOperatorConnectionsUiState.Loading)
     val uiState: StateFlow<AgencyOperatorConnectionsUiState> = _uiState.asStateFlow()
 
-    private val sampleOperators = listOf(
-        AgencyOperatorConnectionEntity(
-            id = "sample-1",
-            agencyId = "agency-01",
-            operatorCompanyId = "op-coral-01",
-            operatorName = "Coral Travel",
-            operatorLogo = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=120&q=80",
-            operatorType = "GLOBAL",
-            integrationType = "API",
-            apiEndpoint = "https://api.coraltravel.com/v2/b2b",
-            apiKey = "crl_live_894f2910a",
-            priceAdjustmentType = "percentage",
-            priceAdjustmentValue = 12.5,
-            commissionRate = 8.0,
-            currency = "EUR",
-            taxOffice = "Mecidiyeköy VD",
-            taxNumber = "2240091823",
-            iban = "TR88 0006 4000 0011 2233 4455 66",
-            bankName = "İş Bankası - Levent Şubesi",
-            contactName = "Ahmet Yılmaz (Operasyon Müdürü)",
-            contactPhone = "+90 212 555 0199",
-            contactEmail = "b2b@coraltravel.com",
-            status = "ACTIVE"
-        ),
-        AgencyOperatorConnectionEntity(
-            id = "sample-2",
-            agencyId = "agency-01",
-            operatorCompanyId = "op-pegas-02",
-            operatorName = "Pegas Touristik",
-            operatorLogo = "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?auto=format&fit=crop&w=120&q=80",
-            operatorType = "GLOBAL",
-            integrationType = "REST",
-            apiEndpoint = "https://b2b.pegast.ru/api/v1",
-            apiKey = "pgs_prod_77192bc",
-            priceAdjustmentType = "percentage",
-            priceAdjustmentValue = 10.0,
-            commissionRate = 9.5,
-            currency = "USD",
-            taxOffice = "Zincirlikuyu VD",
-            taxNumber = "7290019283",
-            iban = "TR44 0001 5000 0099 8877 6655 44",
-            bankName = "Garanti BBVA - Beşiktaş",
-            contactName = "Elena Volkova (Key Account)",
-            contactPhone = "+90 532 999 4422",
-            contactEmail = "partner@pegast.ru",
-            status = "ACTIVE"
-        ),
-        AgencyOperatorConnectionEntity(
-            id = "sample-3",
-            agencyId = "agency-01",
-            operatorCompanyId = "op-anex-03",
-            operatorName = "Anex Tour",
-            operatorLogo = "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?auto=format&fit=crop&w=120&q=80",
-            operatorType = "GLOBAL",
-            integrationType = "API",
-            apiEndpoint = "https://api.anextour.com/v1",
-            apiKey = "anx_live_55481b",
-            priceAdjustmentType = "percentage",
-            priceAdjustmentValue = 10.0,
-            commissionRate = 10.0,
-            currency = "EUR",
-            taxOffice = "Antalya VD",
-            taxNumber = "3810029381",
-            iban = "TR12 0006 2000 0033 4455 6677 88",
-            bankName = "Akbank - Antalya",
-            contactName = "Sergey Ivanov (Partner Relations)",
-            contactPhone = "+90 242 310 8800",
-            contactEmail = "partner@anextour.com",
-            status = "ACTIVE"
-        )
-    )
-
     init {
         loadConnections()
     }
@@ -107,14 +35,9 @@ class AgencyOperatorConnectionsViewModel(
                     .select()
                     .decodeList<AgencyOperatorConnectionEntity>()
             }.onSuccess { list ->
-                if (list.isEmpty()) {
-                    _uiState.value = AgencyOperatorConnectionsUiState.Success(sampleOperators)
-                } else {
-                    _uiState.value = AgencyOperatorConnectionsUiState.Success(list)
-                }
-            }.onFailure {
-                // Supabase bağlantısı henüz kurulmamışsa lokal demo listeyi göster
-                _uiState.value = AgencyOperatorConnectionsUiState.Success(sampleOperators)
+                _uiState.value = AgencyOperatorConnectionsUiState.Success(list)
+            }.onFailure { error ->
+                _uiState.value = AgencyOperatorConnectionsUiState.Error(error.message ?: "Bağlantılar yüklenemedi")
             }
         }
     }

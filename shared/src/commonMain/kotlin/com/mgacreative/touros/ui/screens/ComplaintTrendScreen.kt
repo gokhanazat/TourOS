@@ -28,58 +28,8 @@ private data class ComplaintCategoryData(
     val summaryText: String
 )
 
-private val sampleComplaintCategories = listOf(
-    ComplaintCategoryData(
-        categoryId = "c1",
-        categoryName = "Transfer & Araç Hizmeti",
-        categoryIcon = "🚌",
-        complaintCount = 38,
-        increasePercentage = 42,
-        isCriticalSurge = true,
-        isWarning = true,
-        summaryText = "Son 7 günde havalimanı rötarı ve araç klima arızası kaynaklı 38 yeni şikayet kaydedildi."
-    ),
-    ComplaintCategoryData(
-        categoryId = "c2",
-        categoryName = "Tur Saati & Rota Değişikliği",
-        categoryIcon = "⏰",
-        complaintCount = 24,
-        increasePercentage = 28,
-        isCriticalSurge = false,
-        isWarning = true,
-        summaryText = "Yoğun trafik sebebiyle ören yeri ziyaret sürelerinin kısalması şikayet artışına yol açtı."
-    ),
-    ComplaintCategoryData(
-        categoryId = "c3",
-        categoryName = "Otel & Konaklama Kalitesi",
-        categoryIcon = "🏨",
-        complaintCount = 18,
-        increasePercentage = 12,
-        isCriticalSurge = false,
-        isWarning = false,
-        summaryText = "Giriş işlemleri ve oda temizliği ile ilgili rutin şikayet seviyesi."
-    ),
-    ComplaintCategoryData(
-        categoryId = "c4",
-        categoryName = "Yemek & Restoran İkramı",
-        categoryIcon = "🍽️",
-        complaintCount = 12,
-        increasePercentage = 4,
-        isCriticalSurge = false,
-        isWarning = false,
-        summaryText = "Öğle yemeği menü çeşitliliği şikayetleri kontrol altında."
-    ),
-    ComplaintCategoryData(
-        categoryId = "c5",
-        categoryName = "Rehberlik Hizmeti",
-        categoryIcon = "👨‍🌾",
-        complaintCount = 8,
-        increasePercentage = -15,
-        isCriticalSurge = false,
-        isWarning = false,
-        summaryText = "Rehber anlatım kalitesi yüksek memnuniyet oranını koruyor."
-    )
-)
+private val sampleComplaintCategories = emptyList<ComplaintCategoryData>()
+
 
 /**
  * Şikayet Trend Paneli — TourOS 0.3

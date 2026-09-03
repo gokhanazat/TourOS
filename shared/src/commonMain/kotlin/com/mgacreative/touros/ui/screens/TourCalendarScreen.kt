@@ -89,18 +89,7 @@ fun TourCalendarScreen(
     var selectedMonth by remember { mutableStateOf(DateUtils.getCurrentMonthAndYear()) }
 
     val currentMonthName = DateUtils.getCurrentMonthName()
-    val sampleDepartures = remember {
-        listOf(
-            CalendarDepartureItem("1", 2, currentMonthName, "Kapadokya Balon Turu", "KPD-101", 28, 30),
-            CalendarDepartureItem("2", 5, currentMonthName, "Ege Koyları Mavi Yolculuk", "EGE-202", 15, 20),
-            CalendarDepartureItem("3", 9, currentMonthName, "Karadeniz Yayla Turu", "KDN-303", 10, 25),
-            CalendarDepartureItem("4", 12, currentMonthName, "İstanbul Boğaz & Kültür", "IST-404", 24, 25),
-            CalendarDepartureItem("5", 16, currentMonthName, "Antalya VIP Safari", "ANT-505", 5, 15),
-            CalendarDepartureItem("6", 20, currentMonthName, "GAP Kültür Turu", "GAP-606", 18, 20),
-            CalendarDepartureItem("7", 25, currentMonthName, "Bursa Uludağ Günübirlik", "BRS-707", 22, 22),
-            CalendarDepartureItem("8", 28, currentMonthName, "Pamukkale & Efes Turu", "PMK-808", 8, 30)
-        )
-    }
+    val sampleDepartures = remember { emptyList<CalendarDepartureItem>() }
 
     Scaffold(
         topBar = {
