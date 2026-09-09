@@ -202,9 +202,9 @@ fun TourListScreen(
                     is TourListUiState.Success -> {
                         if (state.tours.isEmpty()) {
                             TourOSEmptyState(
-                                title = "Tur Bulunamadı",
-                                description = "Filtre kriterlerinize uygun tur bulunmamaktadır.",
-                                actionButtonText = "+ Yeni Tur Ekle",
+                                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Tur Bulunamadı"),
+                                description = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtre kriterlerinize uygun tur bulunmamaktadır."),
+                                actionButtonText = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Tur Ekle"),
                                 onActionClick = onNavigateToCreateTour
                             )
                         } else {

@@ -206,9 +206,9 @@ fun HotelListScreen(
                     is HotelListUiState.Success -> {
                         if (state.filteredHotels.isEmpty()) {
                             TourOSEmptyState(
-                                title = "Otel Bulunamadı",
-                                description = "Filtre kriterlerinize uygun konaklama tesisi bulunmamaktadır.",
-                                actionButtonText = "+ Yeni Otel Ekle",
+                                title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel Bulunamadı"),
+                                description = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Filtre kriterlerinize uygun konaklama tesisi bulunmamaktadır."),
+                                actionButtonText = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Otel Ekle"),
                                 onActionClick = onAddHotelClick
                             )
                         } else {

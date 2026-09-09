@@ -186,6 +186,7 @@ fun B2BTourSearchDashboardScreen(
         isInstantOnly = false
         viewModel.isInstantConfirmationOnly.value = false
         nightsText = "Tüm Geceler (1 - 30)"
+        b2bCurrentPage = 1
         viewModel.adults.value = 2
         viewModel.childs.value = 0
         viewModel.childrenAges.value = emptyList()
@@ -341,16 +342,15 @@ fun B2BTourSearchDashboardScreen(
     if (selectedProductForOperatorModal != null) {
         val prod = selectedProductForOperatorModal!!
         val isFlightProd = prod.safeProductType.uppercase().contains("FLIGHT") || prod.flightNumber.isNotBlank() || prod.tourName.contains("Uçuş", ignoreCase = true)
-        val basePrice = prod.price
 
-        val mainOp = prod.safeOperatorName.ifBlank { "Coral Travel" }
-        val effectiveAgencyPrices = listOf(
-            AgencyPriceOption("AGN-1", mainOp, mainOp, prod.roomType.ifBlank { "Standart Oda" }, prod.mealType.ifBlank { "Her Şey Dahil" }, basePrice, isBestDeal = true),
-            AgencyPriceOption("AGN-2", "Anex Tour", "Anex Tour", if (isFlightProd) "Ekonomi Uçuş" else "Deluxe Room", if (isFlightProd) "Standart Bagaj" else "Her Şey Dahil", basePrice * 1.08),
-            AgencyPriceOption("AGN-3", "Pegas Touristik", "Pegas Touristik", if (isFlightProd) "Flexi Uçuş" else "Standard Room", if (isFlightProd) "20kg Bagaj" else "Oda Kahvaltı", basePrice * 1.15),
-            AgencyPriceOption("AGN-4", "Biblioglobus", "Biblioglobus", if (isFlightProd) "Promo Uçuş" else "Promo Room", if (isFlightProd) "El Bagajı" else "Bez pitaniya", basePrice * 1.04),
-            AgencyPriceOption("AGN-5", "Fun&Sun (RU)", "Fun&Sun (RU)", if (isFlightProd) "Charter Sefer" else "Standart Oda", if (isFlightProd) "Sıcak İkram" else "Ultra Her Şey Dahil", basePrice * 1.10)
-        )
+        val hotelKey = if (prod.hotelName.isNotBlank()) prod.hotelName.trim().lowercase() else prod.tourName.trim().lowercase()
+        val realOffers = remember(prod, allDbProducts) {
+            val matching = allDbProducts.filter { item: UnifiedProductEntity ->
+                val itemKey = if (item.hotelName.isNotBlank()) item.hotelName.trim().lowercase() else item.tourName.trim().lowercase()
+                itemKey == hotelKey
+            }.sortedBy { it.price }
+            if (matching.isNotEmpty()) matching else listOf(prod)
+        }
 
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { selectedProductForOperatorModal = null }
@@ -411,7 +411,7 @@ fun B2BTourSearchDashboardScreen(
                             style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         )
                         Text(
-                            text = AppLanguageManager.translate("Canlı Fiyat Karşılaştırma"),
+                            text = "${realOffers.size} ${AppLanguageManager.translate("Canlı Teklifler")}",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                         )
                     }
@@ -423,14 +423,16 @@ fun B2BTourSearchDashboardScreen(
                             .weight(1f, fill = false),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(effectiveAgencyPrices) { option ->
+                        items(realOffers) { option ->
+                            val isBestDeal = (option.id == realOffers.first().id)
+                            val opName = option.safeOperatorName.ifBlank { option.operatorName.ifBlank { "Coral Travel" } }
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
-                                color = if (option.isBestDeal) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
+                                color = if (isBestDeal) Color(0xFFF0FDF4) else Color(0xFFF8FAFC),
                                 border = BorderStroke(
                                     1.dp,
-                                    if (option.isBestDeal) Color(0xFF22C55E) else Color(0xFFE2E8F0)
+                                    if (isBestDeal) Color(0xFF22C55E) else Color(0xFFE2E8F0)
                                 )
                             ) {
                                 Row(
@@ -444,10 +446,10 @@ fun B2BTourSearchDashboardScreen(
                                     Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                             Text(
-                                                text = "${option.agencyName}",
+                                                text = AppLanguageManager.translate(opName),
                                                 style = TourOSTypography.BodyMedium.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                             )
-                                            if (option.isBestDeal) {
+                                            if (isBestDeal) {
                                                 Box(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(4.dp))
@@ -458,8 +460,11 @@ fun B2BTourSearchDashboardScreen(
                                                 }
                                             }
                                         }
+                                        val roomDesc = option.roomType.ifBlank { "Standart Oda" }
+                                        val mealDesc = option.mealType.ifBlank { "Her Şey Dahil" }
+                                        val dateInfo = if (!option.departureDate.isNullOrBlank()) " • 📅 ${option.departureDate} (${if (option.nights > 0) option.nights else 7} ${AppLanguageManager.translate("Gece")})" else ""
                                         Text(
-                                            text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${option.roomType} (${option.boardType})",
+                                            text = "${AppLanguageManager.translate("Operatör")}: ${AppLanguageManager.translate(opName)} • ${AppLanguageManager.translate(roomDesc)} (${AppLanguageManager.translate(mealDesc)})$dateInfo",
                                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -472,7 +477,7 @@ fun B2BTourSearchDashboardScreen(
                                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
                                         Text(
-                                            text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} ${if (prod.currency == "RUB") "RUB" else "₺"}",
+                                            text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} ${option.currency}",
                                             style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                         )
 
@@ -480,12 +485,7 @@ fun B2BTourSearchDashboardScreen(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
                                                 .clickable {
-                                                    viewModel.selectProductForBooking(
-                                                        prod.copy(
-                                                            operatorName = option.operatorName,
-                                                            price = option.price
-                                                        )
-                                                    )
+                                                    viewModel.selectProductForBooking(option)
                                                     activeStep = 2
                                                     selectedProductForOperatorModal = null
                                                 },
@@ -1409,7 +1409,7 @@ fun B2BTourSearchDashboardScreen(
                         }
 
                         is B2BTourSearchUiState.Success -> {
-                            val rawProducts = state.filteredProducts
+                            val rawProducts = state.allProducts.ifEmpty { state.filteredProducts }
                             val products = remember(
                                 rawProducts,
                                 activeSearchTab,
@@ -1446,7 +1446,7 @@ fun B2BTourSearchDashboardScreen(
                                     }
 
                                     val countryMatch = (b2bSelectedCountryTab == "ALL") || isB2BMatchingCountry(item, b2bSelectedCountryTab)
-                                    val subRegionMatch = (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü") || isB2BMatchingSubRegion(item, b2bSelectedSubRegion)
+                                    val subRegionMatch = (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü" || b2bSelectedSubRegion.equals("Все", ignoreCase = true)) || isB2BMatchingSubRegion(item, b2bSelectedSubRegion)
 
                                     val isFlightTab = (activeSearchTab == "FLIGHTS")
                                     val operatorMatch = isFlightTab || selectedOperators.isEmpty() || selectedOperators.any { op -> item.safeOperatorName.contains(op, ignoreCase = true) }
@@ -1477,19 +1477,34 @@ fun B2BTourSearchDashboardScreen(
                                         nightsText.contains("7 - 10") -> 7 to 10
                                         nightsText.contains("10 - 14") -> 10 to 14
                                         nightsText.contains("14 - 21") -> 14 to 21
-                                        nightsText.contains("Tüm") -> 1 to 30
+                                        nightsText.contains("Tüm", ignoreCase = true) || nightsText.contains("Все", ignoreCase = true) || nightsText.contains("Любое", ignoreCase = true) || nightsText.contains("1 - 30") -> 1 to 30
                                         else -> {
-                                            val num = nightsText.filter { it.isDigit() }.toIntOrNull() ?: 7
-                                            num to num
+                                            val digits = Regex("\\d+").findAll(nightsText).map { it.value.toInt() }.toList()
+                                            if (digits.size >= 2) digits[0] to digits[1]
+                                            else if (digits.size == 1) digits[0] to digits[0]
+                                            else 1 to 30
                                         }
                                     }
-                                    val nightsMatch = isFlightTab || nightsText.contains("Tüm") || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
+                                    val isAllNights = nightsText.isBlank() || nightsText.contains("Tüm", ignoreCase = true) || nightsText.contains("Все", ignoreCase = true) || nightsText.contains("Любое", ignoreCase = true) || nightsText.contains("1 - 30")
+                                    val nightsMatch = isFlightTab || isAllNights || (item.nights in b2bMinNights..b2bMaxNights) || item.nights <= 0
 
                                     val isTourOrHotel = (activeSearchTab == "TOURS" || activeSearchTab == "HOTELS")
-                                    val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == 0 || item.beachLine == selectedBeachLine
-                                    val ratingMatch = !isTourOrHotel || minRating <= 0.0 || item.hotelRating <= 0.0 || item.hotelRating >= minRating
-                                    val amenityMatch = !isTourOrHotel || selectedAmenities.isEmpty() || selectedAmenities.all { am -> item.amenities.any { a -> a.contains(am, ignoreCase = true) } }
-                                    val directFlightMatch = (activeSearchTab != "TOURS") || !isDirectFlightOnly || item.isDirectFlight
+                                    val beachMatch = !isTourOrHotel || selectedBeachLine == 0 || item.beachLine == selectedBeachLine || (selectedBeachLine == 1 && (item.safeHotelName.contains("Beach", ignoreCase = true) || item.safeHotelName.contains("Plaj", ignoreCase = true) || item.safeHotelName.contains("Resort", ignoreCase = true)))
+                                    val ratingMatch = !isTourOrHotel || minRating <= 0.0 || item.hotelRating >= minRating || (item.hotelRating <= 0.0 && item.hotelCategory.toDouble() >= minRating)
+                                    val amenityMatch = !isTourOrHotel || selectedAmenities.isEmpty() || selectedAmenities.all { am ->
+                                        val amLower = am.lowercase()
+                                        val inAmenities = item.amenities.any { a -> a.contains(am, ignoreCase = true) }
+                                        val inHotelName = when {
+                                            amLower.contains("aqua") || amLower.contains("su kaydırağı") || amLower.contains("аква") -> item.safeHotelName.contains("Aqua", ignoreCase = true) || item.safeTourName.contains("Aqua", ignoreCase = true)
+                                            amLower.contains("spa") || amLower.contains("спа") -> item.safeHotelName.contains("Spa", ignoreCase = true)
+                                            amLower.contains("plaj") || amLower.contains("beach") || amLower.contains("пляж") -> item.safeHotelName.contains("Beach", ignoreCase = true) || item.safeHotelName.contains("Plaj", ignoreCase = true)
+                                            amLower.contains("havuz") || amLower.contains("pool") || amLower.contains("бассейн") -> item.safeHotelName.contains("Resort", ignoreCase = true) || item.safeHotelName.contains("Hotel", ignoreCase = true)
+                                            amLower.contains("wifi") || amLower.contains("wi-fi") || amLower.contains("вайфай") -> true
+                                            else -> false
+                                        }
+                                        inAmenities || inHotelName
+                                    }
+                                    val directFlightMatch = (activeSearchTab != "TOURS" && activeSearchTab != "FLIGHTS") || !isDirectFlightOnly || item.isDirectFlight
                                     val transferMatch = !isTourOrHotel || !isTransferIncludedOnly || item.hasTransfer
                                     val instantMatch = !isInstantOnly || item.isInstantConfirmation
 
@@ -1499,7 +1514,7 @@ fun B2BTourSearchDashboardScreen(
 
                             // Ülke ve Alt Bölgeye Göre Kesin Filtrelenmiş Sonuçlar
                             val b2bCountryFilteredProducts = remember(products, b2bSelectedCountryTab, b2bSelectedSubRegion) {
-                                if (b2bSelectedCountryTab == "ALL" && (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü")) {
+                                if (b2bSelectedCountryTab == "ALL" && (b2bSelectedSubRegion.isNullOrBlank() || b2bSelectedSubRegion == "Tümü" || b2bSelectedSubRegion.equals("Все", ignoreCase = true))) {
                                     products
                                 } else {
                                     products.filter { item ->
@@ -1509,19 +1524,36 @@ fun B2BTourSearchDashboardScreen(
                                 }
                             }
 
+                            // ── OTEL BAZLI B2B AGGREGATION & GRUPLAMA ──
+                            // Uçuş sekmesinde her sefer tekil listelenir; Otel / Tur sekmesinde aynı otel tek satırda en düşük başlangıç fiyatıyla listelenir.
+                            val b2bAggregatedProducts = remember(b2bCountryFilteredProducts, activeSearchTab) {
+                                if (activeSearchTab == "FLIGHTS") {
+                                    b2bCountryFilteredProducts
+                                } else {
+                                    b2bCountryFilteredProducts
+                                        .groupBy { 
+                                            val h = it.hotelName.trim()
+                                            if (h.isNotBlank()) h.lowercase() else it.tourName.trim().lowercase() 
+                                        }
+                                        .values
+                                        .map { offers -> offers.minByOrNull { it.price } ?: offers.first() }
+                                        .sortedBy { it.price }
+                                }
+                            }
+
                             // ── B2B SAYFALAMA (PAGINATION) MANTIĞI ──
                             val b2bPageSize = 15
-                            val totalB2BPages = remember(b2bCountryFilteredProducts.size) {
-                                maxOf(1, (b2bCountryFilteredProducts.size + b2bPageSize - 1) / b2bPageSize)
+                            val totalB2BPages = remember(b2bAggregatedProducts.size) {
+                                maxOf(1, (b2bAggregatedProducts.size + b2bPageSize - 1) / b2bPageSize)
                             }
                             val safeB2BCurrentPage = remember(b2bCurrentPage, totalB2BPages) {
                                 b2bCurrentPage.coerceIn(1, totalB2BPages)
                             }
-                            val b2bPagedProducts = remember(b2bCountryFilteredProducts, safeB2BCurrentPage) {
+                            val b2bPagedProducts = remember(b2bAggregatedProducts, safeB2BCurrentPage) {
                                 val fromIdx = (safeB2BCurrentPage - 1) * b2bPageSize
-                                val toIdx = minOf(fromIdx + b2bPageSize, b2bCountryFilteredProducts.size)
-                                if (fromIdx in b2bCountryFilteredProducts.indices) {
-                                    b2bCountryFilteredProducts.subList(fromIdx, toIdx)
+                                val toIdx = minOf(fromIdx + b2bPageSize, b2bAggregatedProducts.size)
+                                if (fromIdx in b2bAggregatedProducts.indices) {
+                                    b2bAggregatedProducts.subList(fromIdx, toIdx)
                                 } else {
                                     emptyList()
                                 }
@@ -1549,7 +1581,7 @@ fun B2BTourSearchDashboardScreen(
                                         else -> "Tur Bulundu"
                                     }
                                     Text(
-                                        text = "${AppLanguageManager.translate(foundTitle)} (${b2bCountryFilteredProducts.size} ${AppLanguageManager.translate(foundCountLabel)} - ${AppLanguageManager.translate("Sayfa")} $safeB2BCurrentPage / $totalB2BPages)",
+                                        text = "${AppLanguageManager.translate(foundTitle)} (${b2bAggregatedProducts.size} ${AppLanguageManager.translate(foundCountLabel)} - ${AppLanguageManager.translate("Sayfa")} $safeB2BCurrentPage / $totalB2BPages)",
                                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                                         fontWeight = FontWeight.Bold
                                     )
@@ -1561,7 +1593,7 @@ fun B2BTourSearchDashboardScreen(
                                 }
 
                                 // 📱/💻 KOMPAKT SATIR LİSTE DÜZENİ VEYA TEMİZ BOŞ DURUM MESAJI
-                                if (b2bCountryFilteredProducts.isEmpty()) {
+                                if (b2bAggregatedProducts.isEmpty()) {
                                     val emptyTitle = when (activeSearchTab.uppercase()) {
                                         "LOCAL_TOURS" -> "Seçilen Kriterler İçin Aktif Yerel Tur Bulunamadı"
                                         "LOCAL_HOTELS" -> "Seçilen Kriterler İçin Aktif Yerel Otel Bulunamadı"
@@ -1633,12 +1665,24 @@ fun B2BTourSearchDashboardScreen(
                                             ) {
                                                 b2bPagedProducts.forEach { item ->
                                                     val isSelected = selectedProduct?.id == item.id
+                                                    val hotelKey = if (item.hotelName.isNotBlank()) item.hotelName.trim().lowercase() else item.tourName.trim().lowercase()
+                                                    val offersForThisHotel = remember(item, b2bCountryFilteredProducts) {
+                                                        if (activeSearchTab == "FLIGHTS") {
+                                                            listOf(item)
+                                                        } else {
+                                                            b2bCountryFilteredProducts.filter { prod ->
+                                                                val pKey = if (prod.hotelName.isNotBlank()) prod.hotelName.trim().lowercase() else prod.tourName.trim().lowercase()
+                                                                pKey == hotelKey
+                                                            }
+                                                        }
+                                                    }
                                                     TourResultMatrixCard(
                                                         product = item,
                                                         isSelected = isSelected,
                                                         adults = adults,
                                                         childrenAges = childrenAges,
                                                         isFlightTab = (activeSearchTab == "FLIGHTS"),
+                                                        offersCount = offersForThisHotel.size,
                                                         onSelectForBooking = {
                                                             selectedProductForOperatorModal = item
                                                         }
@@ -1827,8 +1871,14 @@ fun B2BTourSearchDashboardScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        val starsLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                            "ru" -> if (curProduct.hotelCategory in 2..4) "Звезды" else "Звезд"
+                                            "en" -> if (curProduct.hotelCategory == 1) "Star" else "Stars"
+                                            "de" -> "Sterne"
+                                            else -> "Yıldız"
+                                        }
                                         Text(
-                                            text = "${curProduct.hotelName} (${curProduct.hotelCategory.coerceAtMost(5)} Yıldız)",
+                                            text = "${curProduct.hotelName} (${curProduct.hotelCategory.coerceAtMost(5)} $starsLabel)",
                                             style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1859,18 +1909,20 @@ fun B2BTourSearchDashboardScreen(
                             }
 
                             // UÇUŞ SEÇENEKLERİ (GÖRSEL 9 & 10)
-                            Text(
-                                text = "${AppLanguageManager.translate("Uçuş Alternatifleri")} (${availableFlightOptions.size} ${AppLanguageManager.translate("Uçuş Çifti")})",
-                                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            availableFlightOptions.forEach { option ->
-                                FlightOptionCardItem(
-                                    option = option,
-                                    isSelected = selectedFlightOption?.id == option.id,
-                                    onSelect = { viewModel.selectedFlightOption.value = option }
+                            if (availableFlightOptions.isNotEmpty()) {
+                                Text(
+                                    text = "${AppLanguageManager.translate("Uçuş Alternatifleri")} (${availableFlightOptions.size} ${AppLanguageManager.translate("Uçuş Çifti")})",
+                                    style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                                    fontWeight = FontWeight.Bold
                                 )
+
+                                availableFlightOptions.forEach { option ->
+                                    FlightOptionCardItem(
+                                        option = option,
+                                        isSelected = selectedFlightOption?.id == option.id,
+                                        onSelect = { viewModel.selectedFlightOption.value = option }
+                                    )
+                                }
                             }
 
                             // EKSTRA HİZMETLER (GÖRSEL 3 & 4)
@@ -2131,7 +2183,13 @@ fun B2BTourSearchDashboardScreen(
                 TourOSTopBar(
                     title = AppLanguageManager.translate("Gelişmiş Tur & Otel Arama ve Rezervasyon Paneli"),
                     subtitle = AppLanguageManager.translate("B2B Standartlarında Canlı Arama, Uçuş, Ekstra Hizmetler ve Yolcu Kaydı"),
-                    onNavigateBack = onNavigateBack
+                    onNavigateBack = {
+                        if (activeStep > 1) {
+                            activeStep -= 1
+                        } else {
+                            onNavigateBack()
+                        }
+                    }
                 )
             }
         ) { padding ->
@@ -2200,6 +2258,7 @@ private fun TourResultMatrixCard(
     adults: Int = 2,
     childrenAges: List<Int> = emptyList(),
     isFlightTab: Boolean = false,
+    offersCount: Int = 1,
     onSelectForBooking: () -> Unit
 ) {
     val isFlightCard = isFlightTab || product.safeProductType.uppercase().contains("FLIGHT") || product.flightNumber.isNotBlank() || product.tourName.contains("Uçuş", ignoreCase = true)
@@ -2380,6 +2439,22 @@ private fun TourResultMatrixCard(
                         )
                     }
 
+                    if (offersCount > 1) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color(0xFFE0F2FE))
+                                .border(1.dp, Color(0xFFBAE6FD), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "$offersCount ${AppLanguageManager.translate("Farklı Teklif")}",
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF0369A1), fontWeight = FontWeight.Bold, fontSize = 10.sp),
+                                maxLines = 1
+                            )
+                        }
+                    }
+
                     // 2. Ülke & Bölge Hiyerarşi Rozeti
                     Box(
                         modifier = Modifier
@@ -2464,17 +2539,18 @@ private fun TourResultMatrixCard(
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .background(Color(0xFFF0FDF4))
-                            .border(0.5.dp, Color(0xFFBBF7D0), RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = "🌙 $nightsCount ${AppLanguageManager.translate("Gece")}",
-                            style = TourOSTypography.Caption.copy(color = Color(0xFF15803D), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                            text = "$nightsCount ${AppLanguageManager.translate("Gece")}",
+                            style = TourOSTypography.Caption.copy(color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 10.sp),
                             maxLines = 1
                         )
                     }
 
-                    if (product.mealType.isNotBlank()) {
+                    // 3. Konsept (Pansiyon) Rozeti
+                    val meal = product.mealType.ifBlank { "Her Şey Dahil" }
+                    if (meal.isNotBlank()) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
@@ -2482,7 +2558,7 @@ private fun TourResultMatrixCard(
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = AppLanguageManager.translate(product.mealType),
+                                text = "🍴 ${AppLanguageManager.translate(meal)}",
                                 style = TourOSTypography.Caption.copy(color = Color(0xFF059669), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                             )
                         }
@@ -2550,13 +2626,15 @@ private fun TourResultMatrixCard(
                     )
                 }
 
+                val pricePrefix = if (offersCount > 1) "${AppLanguageManager.translate("Başlayan")} " else ""
                 Text(
-                    text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(marginCalculatedPrice, decimals = false)} ${product.currency}",
+                    text = "$pricePrefix${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(marginCalculatedPrice, decimals = false)} ${product.currency}",
                     style = TourOSTypography.TitleLarge.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                 )
 
                 val buttonText = when {
                     isSelected -> AppLanguageManager.translate("Seçildi")
+                    offersCount > 1 -> AppLanguageManager.translate("Teklifleri Gör")
                     else -> AppLanguageManager.translate("Rezerve Et")
                 }
 
@@ -2612,7 +2690,7 @@ private fun FlightOptionCardItem(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                         Text(
-                            text = "GİDİŞ: ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
+                            text = "🛫 ${AppLanguageManager.translate("GİDİŞ:")} ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -2620,14 +2698,14 @@ private fun FlightOptionCardItem(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                         Text(
-                            text = "DÖNÜŞ: ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
+                            text = "🛬 ${AppLanguageManager.translate("DÖNÜŞ:")} ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.SemiBold
                         )
                     }
 
                     Text(
-                        text = "El Bagajı: ${option.handBaggageKg}kg  ·  Kayıtlı Bagaj: ${option.baggageKg}kg",
+                        text = "🧳 ${AppLanguageManager.translate("El Bagajı:")} ${option.handBaggageKg}kg  ·  ${AppLanguageManager.translate("Kayıtlı Bagaj:")} ${option.baggageKg}kg",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
@@ -2757,7 +2835,7 @@ private fun ExtraServiceCardItem(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = service.name,
+                            text = AppLanguageManager.translate(service.name),
                             style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.Bold
                         )
@@ -2770,7 +2848,7 @@ private fun ExtraServiceCardItem(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "Zorunlu",
+                                    text = AppLanguageManager.translate("Zorunlu"),
                                     style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold
@@ -2780,7 +2858,7 @@ private fun ExtraServiceCardItem(
                     }
 
                     Text(
-                        text = "Kişi Başı: ${unitPriceInCurrency.toInt()} $currency  ·  Toplam (${service.paxCount} Yolcu): ${totalPriceInCurrency.toInt()} $currency",
+                        text = "${AppLanguageManager.translate("Kişi Başı")}: ${unitPriceInCurrency.toInt()} $currency  ·  ${AppLanguageManager.translate("Toplam")} (${service.paxCount} ${AppLanguageManager.translate("Yolcu")}): ${totalPriceInCurrency.toInt()} $currency",
                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                     )
                 }
@@ -2850,6 +2928,53 @@ private fun B2BCompactField(
 
 // ─── GÖRSEL 5 & 6 ESİNTİLİ ULTRA-KOMPAKT B2B YOLCU FORM KART BİLEŞENİ ─────────
 
+private fun formatChildAgeMenuLabel(age: Int): String {
+    val lang = AppLanguageManager.currentLanguage.value.code
+    return when (lang) {
+        "ru" -> when {
+            age == 0 -> "0 лет (Младенец < 1 - 90%)"
+            age == 1 -> "1 год (Младенец - 90%)"
+            age in 2..4 -> "$age года (Младенец - 90%)"
+            age <= 6 -> "$age лет (Маленький ребенок - 50%)"
+            age <= 12 -> "$age лет (Ребенок - 30%)"
+            else -> "$age лет (Подросток - Стандарт)"
+        }
+        "en" -> when {
+            age == 0 -> "0 Years (Infant < 1 - 90%)"
+            age == 1 -> "1 Year (Infant - 90%)"
+            age <= 2 -> "$age Years (Infant - 90%)"
+            age <= 6 -> "$age Years (Young Child - 50%)"
+            age <= 12 -> "$age Years (Child - 30%)"
+            else -> "$age Years (Teen - Standard)"
+        }
+        "de" -> when {
+            age == 0 -> "0 Jahre (Kleinkind < 1 - 90%)"
+            age == 1 -> "1 Jahr (Kleinkind - 90%)"
+            age <= 2 -> "$age Jahre (Kleinkind - 90%)"
+            age <= 6 -> "$age Jahre (Kleinkind - 50%)"
+            age <= 12 -> "$age Jahre (Kind - 30%)"
+            else -> "$age Jahre (Jugendlicher - Standard)"
+        }
+        else -> when {
+            age == 0 -> "0 Yaş (Bebek < 1 - %90)"
+            age <= 2 -> "$age Yaş (Bebek - %90)"
+            age <= 6 -> "$age Yaş (Küçük Çocuk - %50)"
+            age <= 12 -> "$age Yaş (Büyük Çocuk - %30)"
+            else -> "$age Yaş (Genç - Standart)"
+        }
+    }
+}
+
+private fun formatAgeWithUnit(age: Int): String {
+    val lang = AppLanguageManager.currentLanguage.value.code
+    return when (lang) {
+        "ru" -> if (age == 1) "$age год" else if (age in 2..4) "$age года" else "$age лет"
+        "en" -> if (age == 1) "$age Year" else "$age Years"
+        "de" -> if (age == 1) "$age Jahr" else "$age Jahre"
+        else -> "$age Yaş"
+    }
+}
+
 @Composable
 private fun PassengerFormCardItem(
     passenger: PassengerInfo,
@@ -2874,8 +2999,8 @@ private fun PassengerFormCardItem(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     val typeBadgeText = when (passenger.passengerType) {
-                        "INFANT" -> "${AppLanguageManager.translate("Bebek")} (${passenger.childAge ?: 1} ${AppLanguageManager.translate("Yaş")})"
-                        "CHILD" -> "${AppLanguageManager.translate("Çocuk")} (${passenger.childAge ?: 5} ${AppLanguageManager.translate("Yaş")})"
+                        "INFANT" -> "${AppLanguageManager.translate("Bebek")} (${formatAgeWithUnit(passenger.childAge ?: 1)})"
+                        "CHILD" -> "${AppLanguageManager.translate("Çocuk")} (${formatAgeWithUnit(passenger.childAge ?: 5)})"
                         else -> AppLanguageManager.translate("Yetişkin")
                     }
                     val badgeColor = when (passenger.passengerType) {
@@ -2909,8 +3034,14 @@ private fun PassengerFormCardItem(
                             onDismissRequest = { showTypeAgeMenu = false },
                             modifier = Modifier.width(260.dp).background(TourOSColors.Surface)
                         ) {
+                            val adultLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Взрослый (18+ лет)"
+                                "en" -> "Adult (18+ Years)"
+                                "de" -> "Erwachsener (18+ Jahre)"
+                                else -> "Yetişkin (18+ Yaş)"
+                            }
                             DropdownMenuItem(
-                                text = { Text("${AppLanguageManager.translate("Yetişkin")} (18+ ${AppLanguageManager.translate("Yaş")})", style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)) },
+                                text = { Text(adultLabel, style = TourOSTypography.BodyMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold)) },
                                 onClick = {
                                     onUpdatePassenger(passenger.copy(passengerType = "ADULT", childAge = null, documentType = "Pasaport"))
                                     showTypeAgeMenu = false
@@ -2918,15 +3049,8 @@ private fun PassengerFormCardItem(
                             )
                             HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
                             (0..17).forEach { age ->
-                                val label = when {
-                                    age == 0 -> "0 ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Bebek")} < 1 - %90)"
-                                    age <= 2 -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Bebek")} - %90)"
-                                    age <= 6 -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Küçük Çocuk")} - %50)"
-                                    age <= 12 -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Büyük Çocuk")} - %30)"
-                                    else -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Genç")} - Standart)"
-                                }
                                 DropdownMenuItem(
-                                    text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp)) },
+                                    text = { Text(formatChildAgeMenuLabel(age), style = TourOSTypography.Caption.copy(fontSize = 12.sp)) },
                                     onClick = {
                                         val pType = if (age <= 2) "INFANT" else "CHILD"
                                         val docType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport"
@@ -3032,7 +3156,7 @@ private fun PassengerFormCardItem(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "$currentAge Yaş",
+                                        text = formatAgeWithUnit(currentAge),
                                         style = TourOSTypography.BodyMedium.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0284C7))
                                     )
                                     Text("▼", fontSize = 10.sp, color = Color(0xFF0284C7))
@@ -3045,15 +3169,8 @@ private fun PassengerFormCardItem(
                                 modifier = Modifier.width(260.dp).background(TourOSColors.Surface)
                             ) {
                                 (0..17).forEach { age ->
-                                    val label = when {
-                                        age == 0 -> "0 ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Bebek")} < 1 - %90)"
-                                        age <= 2 -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Bebek")} - %90)"
-                                        age <= 6 -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Küçük Çocuk")} - %50)"
-                                        age <= 12 -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Büyük Çocuk")} - %30)"
-                                        else -> "$age ${AppLanguageManager.translate("Yaş")} (${AppLanguageManager.translate("Genç")} - Standart)"
-                                    }
                                     DropdownMenuItem(
-                                        text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp, fontWeight = if (age == currentAge) FontWeight.Bold else FontWeight.Normal)) },
+                                        text = { Text(formatChildAgeMenuLabel(age), style = TourOSTypography.Caption.copy(fontSize = 12.sp, fontWeight = if (age == currentAge) FontWeight.Bold else FontWeight.Normal)) },
                                         onClick = {
                                             val pType = if (age <= 2) "INFANT" else "CHILD"
                                             val docType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport"
@@ -3075,7 +3192,7 @@ private fun PassengerFormCardItem(
                     modifier = Modifier.weight(1.0f)
                 )
                 B2BCompactField(
-                    value = passenger.citizenship,
+                    value = if (passenger.citizenship.equals("Türkiye", ignoreCase = true)) AppLanguageManager.translate("Türkiye") else passenger.citizenship,
                     onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it.uppercase())) },
                     label = AppLanguageManager.translate("Uyruk"),
                     placeholder = "",
@@ -3774,8 +3891,8 @@ fun B2BTouristAndChildAgePickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Yetişkinler", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
-                        Text("18 yaş ve üzeri", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        Text(AppLanguageManager.translate("Yetişkinler"), style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                        Text(AppLanguageManager.translate("18 yaş ve üzeri"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FilledIconButton(
@@ -3807,8 +3924,8 @@ fun B2BTouristAndChildAgePickerDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("Çocuklar & Bebekler", style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
-                        Text("0 - 17 yaş arası", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                        Text(AppLanguageManager.translate("Çocuklar & Bebekler"), style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.Bold))
+                        Text(AppLanguageManager.translate("0 - 17 yaş arası"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         FilledIconButton(
@@ -3856,11 +3973,31 @@ fun B2BTouristAndChildAgePickerDialog(
 
                         tempChildAges.forEachIndexed { index, age ->
                             var showAgeMenu by remember { mutableStateOf(false) }
-                            val categoryText = when {
-                                age <= 2 -> "(0-2 Yaş Bebek: %90 İndirim)"
-                                age <= 6 -> "(3-6 Yaş: %50 İndirim)"
-                                age <= 12 -> "(7-12 Yaş: %30 İndirim)"
-                                else -> "(13-17 Yaş: Standart)"
+                            val categoryText = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> when {
+                                    age <= 2 -> "(0-2 года: Скидка 90%)"
+                                    age <= 6 -> "(3-6 лет: Скидка 50%)"
+                                    age <= 12 -> "(7-12 лет: Скидка 30%)"
+                                    else -> "(13-17 лет: Стандарт)"
+                                }
+                                "en" -> when {
+                                    age <= 2 -> "(0-2 Years: 90% Discount)"
+                                    age <= 6 -> "(3-6 Years: 50% Discount)"
+                                    age <= 12 -> "(7-12 Years: 30% Discount)"
+                                    else -> "(13-17 Years: Standard)"
+                                }
+                                "de" -> when {
+                                    age <= 2 -> "(0-2 Jahre: 90% Rabatt)"
+                                    age <= 6 -> "(3-6 Jahre: 50% Rabatt)"
+                                    age <= 12 -> "(7-12 Jahre: 30% Rabatt)"
+                                    else -> "(13-17 Jahre: Standard)"
+                                }
+                                else -> when {
+                                    age <= 2 -> "(0-2 Yaş Bebek: %90 İndirim)"
+                                    age <= 6 -> "(3-6 Yaş: %50 İndirim)"
+                                    age <= 12 -> "(7-12 Yaş: %30 İndirim)"
+                                    else -> "(13-17 Yaş: Standart)"
+                                }
                             }
 
                             Row(
@@ -3869,7 +4006,7 @@ fun B2BTouristAndChildAgePickerDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${index + 1}. Çocuk $categoryText",
+                                    text = "${index + 1}. ${AppLanguageManager.translate("Çocuk")} $categoryText",
                                     style = TourOSTypography.Caption.copy(fontSize = 11.sp, color = TourOSColors.TextPrimary)
                                 )
                                 Box {
@@ -3880,7 +4017,7 @@ fun B2BTouristAndChildAgePickerDialog(
                                         modifier = Modifier.clickable { showAgeMenu = true }
                                     ) {
                                         Text(
-                                            text = "$age Yaş ▼",
+                                            text = "${formatAgeWithUnit(age)} ▼",
                                             style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.Primary),
                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                         )
@@ -3890,15 +4027,8 @@ fun B2BTouristAndChildAgePickerDialog(
                                         onDismissRequest = { showAgeMenu = false }
                                     ) {
                                         (0..17).forEach { a ->
-                                            val label = when (a) {
-                                                0 -> "0 Yaş (Bebek < 1 yaş)"
-                                                1, 2 -> "$a Yaş (Bebek)"
-                                                in 3..6 -> "$a Yaş (Küçük Çocuk)"
-                                                in 7..12 -> "$a Yaş (Büyük Çocuk)"
-                                                else -> "$a Yaş (Genç)"
-                                            }
                                             DropdownMenuItem(
-                                                text = { Text(label, style = TourOSTypography.Caption.copy(fontSize = 12.sp)) },
+                                                text = { Text(formatChildAgeMenuLabel(a), style = TourOSTypography.Caption.copy(fontSize = 12.sp)) },
                                                 onClick = {
                                                     val updated = tempChildAges.toMutableList()
                                                     if (index < updated.size) {
@@ -3918,7 +4048,7 @@ fun B2BTouristAndChildAgePickerDialog(
 
                 // 4. Uygula Butonu
                 TourOSButton(
-                    text = "Seçimi Uygula",
+                    text = AppLanguageManager.translate("Seçimi Uygula"),
                     onClick = {
                         onAdultsChange(tempAdults)
                         onChildrenAgesChange(tempChildAges)

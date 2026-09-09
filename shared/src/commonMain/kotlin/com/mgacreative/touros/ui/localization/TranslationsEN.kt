@@ -1565,7 +1565,22 @@ internal object TranslationsEN {
             "BAE (Dubai)" to "UAE (Dubai)",
             "Rusya" to "Russia",
             "Antalya, Türkiye" to "Antalya, Turkey",
-            "Antalya, Turkey" to "Antalya, Turkey"
+            "Antalya, Turkey" to "Antalya, Turkey",
+            "Filtrele:" to "Filter:",
+            "Filtrele" to "Filter",
+            "Filtreleme" to "Filtering",
+            "Ülke veya Şehir Ara..." to "Search country or city...",
+            "Ülke veya Şehir Ara" to "Search country or city",
+            "ülke veya şehir ara" to "Search country or city",
+            "Tüm Yıldızlar" to "All Star Ratings",
+            "5★ Deluxe" to "5★ Deluxe",
+            "5★ Delüks" to "5★ Deluxe",
+            "4★+" to "4★+",
+            "3★" to "3★",
+            "Operatör ara..." to "Search operator...",
+            "Operatör Seçili" to "Operators Selected",
+            "Temizle" to "Clear",
+            "Tümünü Seç" to "Select All"
     )
 
     val map: Map<String, String> = part1 + part2 + part3 + part4

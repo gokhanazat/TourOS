@@ -108,9 +108,9 @@ data class PublicHotelOffer(
     val maxPrice: Double,
     val imageUrl: String,
     val operatorName: String = "Coral Travel",
-    val roomType: String = "standard room, city view",
+    val roomType: String = "standard room",
     val mealType: String = "Bez pitaniya",
-    val flightCode: String = "VKO - AYT (Ekonomi 🟢)",
+    val flightCode: String = "",
     val nights: Int = 7,
     val currency: String = "RUB",
     val isInstantConfirmation: Boolean = true,
@@ -118,11 +118,12 @@ data class PublicHotelOffer(
     val discountPercent: Int? = null,
     val ratingScore: Double? = null,
     val isLastMinute: Boolean = false,
-    val baggageKg: Int = 20,
+    val baggageKg: Int = 0,
     val agencyPrices: List<AgencyPriceOption> = emptyList(),
     val countryCode: String = "TR",
-    val departureDate: String? = "02.09.2026",
-    val returnDate: String? = "09.09.2026"
+    val departureCity: String = "",
+    val departureDate: String? = null,
+    val returnDate: String? = null
 )
 
 fun matchesSelectedCountry(offer: PublicHotelOffer, selectedCode: String): Boolean {
@@ -198,15 +199,17 @@ fun PublicHotelOffer.toUnifiedProductEntity(): com.mgacreative.touros.data.datab
 
 fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHotelOffer(): PublicHotelOffer {
     val baseP = this.safePrice.coerceAtLeast(100.0)
-    val opName = this.safeOperatorName.ifBlank { "Coral Travel" }
-    val rType = this.safeRoomType.ifBlank { "standard room, city view" }
+    val opName = this.safeOperatorName.ifBlank { "TourVisor" }
+    val rType = this.safeRoomType.ifBlank { "standard room" }
     val mType = this.safeMealType.ifBlank { "Bez pitaniya" }
-    val fCode = if (this.flightNumber.isNotBlank()) "${this.airlineName} (${this.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
+    val fCode = if (this.flightNumber.isNotBlank() || this.airlineName.isNotBlank()) {
+        "${this.airlineName.ifBlank { "" }} ${this.flightNumber.ifBlank { "" }}".trim()
+    } else ""
 
     val rawType = this.safeProductType.uppercase()
     val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || this.airlineName.isNotBlank() || this.flightNumber.startsWith("TK-") || this.flightNumber.startsWith("N4-") || this.flightNumber.startsWith("SU-") || this.flightNumber.startsWith("PC-") || this.safeTourName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || this.safeHotelName.startsWith("✈️", ignoreCase = true)
     val isHotelOnly = !isFlight && (rawType == "HOTEL" || rawType == "LOCAL_HOTEL" || this.safeOperatorName.contains("Yerel Otel", ignoreCase = true))
-    val isPromo = this.safeIsPromo || (this.customPriceOverride != null && this.customPriceOverride < baseP)
+    val isPromo = this.safeIsPromo
 
     val mappedCat = when {
         isFlight -> "FLIGHT"
@@ -257,6 +260,11 @@ fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHot
         else -> "Türkiye"
     }
 
+    val overrideP = this.customPriceOverride
+    val calcDiscount = if (overrideP != null && overrideP > baseP) {
+        (((overrideP - baseP) / overrideP) * 100).toInt()
+    } else null
+
     return PublicHotelOffer(
         id = this.id,
         hotelName = this.safeHotelName.ifBlank { this.safeTourName.ifBlank { if (isFlight) "✈️ Charter Uçuş Seferi (${fCode})" else "Tur Operatörü Ürünü" } },
@@ -264,20 +272,21 @@ fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHot
         stars = if (this.safeHotelCategory > 0) this.safeHotelCategory else 5,
         description = (this.safeHotelName.ifBlank { this.safeTourName }) + " - Operatör: " + opName,
         minPrice = baseP,
-        maxPrice = this.customPriceOverride ?: (baseP * 1.15),
+        maxPrice = overrideP ?: baseP,
         imageUrl = this.safePictureUrl,
         operatorName = opName,
         roomType = rType,
         mealType = mType,
         flightCode = fCode,
         nights = if (this.nights > 0) this.nights else 7,
-        currency = this.safeCurrency.ifBlank { "USD" },
+        currency = this.safeCurrency.ifBlank { "RUB" },
         category = mappedCat,
-        discountPercent = if (isPromo) 35 else null,
+        discountPercent = calcDiscount,
         isLastMinute = isPromo,
-        baggageKg = if (this.baggageKg > 0) this.baggageKg else 20,
+        baggageKg = this.safeBaggageKg,
+        departureCity = this.safeDepartureCity,
         countryCode = cCode,
-        departureDate = this.departureDate?.ifBlank { "02.09.2026" } ?: "02.09.2026",
+        departureDate = this.departureDate ?: "",
         returnDate = this.departureDate?.let { dep ->
             try {
                 val n = if (this.nights > 0) this.nights else 7
@@ -303,7 +312,7 @@ fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHot
             } catch (_: Exception) {
                 null
             }
-        } ?: "09.09.2026",
+        },
         agencyPrices = listOf(
             AgencyPriceOption(
                 agencyId = "AGN-${this.operatorId}",
@@ -374,485 +383,7 @@ data class AgencyPriceOption(
 )
 
 fun getInitialDefaultOffers(): List<PublicHotelOffer> {
-    return listOf(
-        // ── 🇹🇷 TÜRKİYE FIRSATLARI ──
-        PublicHotelOffer(
-            id = "MOD-CORAL-101",
-            hotelName = "Nirvana Cosmopolitan Hotel",
-            location = "Lara, Antalya, Türkiye",
-            stars = 5,
-            description = "Starway Award ödüllü lüks tesis. Coral Travel özel fiyat garantili toplu paket.",
-            minPrice = 580.0,
-            maxPrice = 690.0,
-            imageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Superior Sea View Room",
-            mealType = "Ultra Her Şey Dahil",
-            flightCode = "AYT - IST (THY 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 44,
-            ratingScore = 9.4,
-            isLastMinute = true,
-            countryCode = "TR"
-        ),
-        PublicHotelOffer(
-            id = "MOD-ANEX-102",
-            hotelName = "Rixos Premium Belek",
-            location = "Belek, Antalya, Türkiye",
-            stars = 5,
-            description = "Anex Tour özel rezervasyonlu 5 yıldızlı lüks plaj tesisi.",
-            minPrice = 890.0,
-            maxPrice = 980.0,
-            imageUrl = "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
-            operatorName = "Anex Tour",
-            roomType = "Deluxe Suite Garden View",
-            mealType = "All Inclusive Special",
-            flightCode = "VKO - AYT (Azur Air 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 35,
-            ratingScore = 9.6,
-            isLastMinute = false,
-            countryCode = "TR"
-        ),
-        PublicHotelOffer(
-            id = "MOD-FUNSUN-104",
-            hotelName = "Lujo Hotel Bodrum",
-            location = "Bodrum, Muğla, Türkiye",
-            stars = 5,
-            description = "Fun & Sun Premium konseptli özel koy ve ultra lüks tatil paketi.",
-            minPrice = 1150.0,
-            maxPrice = 1350.0,
-            imageUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800",
-            operatorName = "Fun & Sun",
-            roomType = "Indigo Sea View Room",
-            mealType = "Luxury A La Carte All Inclusive",
-            flightCode = "BJV - IST (AJet 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 25,
-            ratingScore = 9.8,
-            isLastMinute = true,
-            countryCode = "TR"
-        ),
-        PublicHotelOffer(
-            id = "MOD-CORAL-105",
-            hotelName = "Maxx Royal Kemer Resort",
-            location = "Kemer, Antalya, Türkiye",
-            stars = 5,
-            description = "Maxx Inclusive konseptli özel koy, VIP hizmet ve Coral Travel ayrıcalığı.",
-            minPrice = 1420.0,
-            maxPrice = 1650.0,
-            imageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Suite Land View",
-            mealType = "Maxx Inclusive",
-            flightCode = "AYT - IST (THY VIP 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 20,
-            ratingScore = 9.9,
-            isLastMinute = false,
-            countryCode = "TR"
-        ),
-
-        // ── 🇪🇬 MISIR FIRSATLARI ──
-        PublicHotelOffer(
-            id = "MOD-EG-201",
-            hotelName = "Rixos Premium Seagate Sharm",
-            location = "Şarm El-Şeyh, Mısır",
-            stars = 5,
-            description = "Kızıldeniz'in en gözde resifi, ultra her şey dahil lüks konaklama.",
-            minPrice = 490.0,
-            maxPrice = 590.0,
-            imageUrl = "https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Superior Room Pool View",
-            mealType = "Ultra All Inclusive",
-            flightCode = "IST - SSH (THY 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 30,
-            ratingScore = 9.5,
-            isLastMinute = true,
-            countryCode = "EG"
-        ),
-        PublicHotelOffer(
-            id = "MOD-EG-202",
-            hotelName = "Pickalbatros Citadel Resort",
-            location = "Hurgada, Mısır",
-            stars = 5,
-            description = "Sahl Hasheesh koyunda özel lagünler ve mercan kayalıkları manzaralı tesis.",
-            minPrice = 520.0,
-            maxPrice = 610.0,
-            imageUrl = "https://images.unsplash.com/photo-1568084680786-a84f91d1153c?w=800",
-            operatorName = "Anex Tour",
-            roomType = "Deluxe Sea View",
-            mealType = "All Inclusive Plus",
-            flightCode = "AYT - HRG (Pegasus 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 25,
-            ratingScore = 9.3,
-            isLastMinute = false,
-            countryCode = "EG"
-        ),
-        PublicHotelOffer(
-            id = "MOD-EG-203",
-            hotelName = "Steigenberger ALDAU Beach Hotel",
-            location = "El Gouna, Mısır",
-            stars = 5,
-            description = "Lüks golf sahaları ve özel kum plajlı eşsiz tatil deneyimi.",
-            minPrice = 560.0,
-            maxPrice = 670.0,
-            imageUrl = "https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800",
-            operatorName = "Pegas Touristik",
-            roomType = "Deluxe Lagoon View",
-            mealType = "Ultra All Inclusive",
-            flightCode = "SAW - HRG (AJet 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 20,
-            ratingScore = 9.6,
-            isLastMinute = false,
-            countryCode = "EG"
-        ),
-
-        // ── 🇹🇭 TAYLAND FIRSATLARI ──
-        PublicHotelOffer(
-            id = "MOD-TH-301",
-            hotelName = "Centara Grand Beach Resort",
-            location = "Phuket, Tayland",
-            stars = 5,
-            description = "Karon Beach sahilinde Andaman Denizi manzaralı tropik cennet.",
-            minPrice = 790.0,
-            maxPrice = 920.0,
-            imageUrl = "https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Deluxe Ocean Facing",
-            mealType = "Oda & Kahvaltı",
-            flightCode = "IST - HKT (THY 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 25,
-            ratingScore = 9.4,
-            isLastMinute = true,
-            countryCode = "TH"
-        ),
-        PublicHotelOffer(
-            id = "MOD-TH-302",
-            hotelName = "Royal Cliff Beach Hotel",
-            location = "Pattaya, Tayland",
-            stars = 5,
-            description = "Pattaya Körfezi tepesinde lüks spa ve sonsuzluk havuzlu resort.",
-            minPrice = 820.0,
-            maxPrice = 950.0,
-            imageUrl = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800",
-            operatorName = "Anex Tour",
-            roomType = "Mini Suite Sea View",
-            mealType = "Oda Kahvaltı Dahil",
-            flightCode = "IST - BKK (Qatar 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 20,
-            ratingScore = 9.2,
-            isLastMinute = false,
-            countryCode = "TH"
-        ),
-        PublicHotelOffer(
-            id = "MOD-TH-303",
-            hotelName = "Banyan Tree Bangkok",
-            location = "Bangkok, Tayland",
-            stars = 5,
-            description = "Vertigo çatı restoranı ve Chao Phraya nehri manzaralı lüks şehir oteli.",
-            minPrice = 890.0,
-            maxPrice = 1040.0,
-            imageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800",
-            operatorName = "Pegas Touristik",
-            roomType = "Horizon Club Room",
-            mealType = "Oda Kahvaltı",
-            flightCode = "AYT - BKK (Emirates 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 15,
-            ratingScore = 9.7,
-            isLastMinute = false,
-            countryCode = "TH"
-        ),
-
-        // ── 🇻🇳 VİETNAM FIRSATLARI ──
-        PublicHotelOffer(
-            id = "MOD-VN-401",
-            hotelName = "Vinpearl Resort & Spa Phu Quoc",
-            location = "Phu Quoc, Vietnam",
-            stars = 5,
-            description = "Bai Dai sahilinde saf kum plajlar ve Safari tema parkı avantajlı paket.",
-            minPrice = 850.0,
-            maxPrice = 990.0,
-            imageUrl = "https://images.unsplash.com/photo-1528127269322-539801943592?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Deluxe Garden View",
-            mealType = "Tam Pansiyon Plus",
-            flightCode = "IST - PQC (Vietnam Airlines 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 22,
-            ratingScore = 9.3,
-            isLastMinute = true,
-            countryCode = "VN"
-        ),
-        PublicHotelOffer(
-            id = "MOD-VN-402",
-            hotelName = "InterContinental Danang Sun Peninsula",
-            location = "Da Nang, Vietnam",
-            stars = 5,
-            description = "Son Tra yarımadasında yağmur ormanı ve özel plajlı ikonik tasarım oteli.",
-            minPrice = 980.0,
-            maxPrice = 1180.0,
-            imageUrl = "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800",
-            operatorName = "Anex Tour",
-            roomType = "Classic Ocean View",
-            mealType = "Oda & Gurme Kahvaltı",
-            flightCode = "IST - DAD (Singapore Airlines 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 18,
-            ratingScore = 9.8,
-            isLastMinute = false,
-            countryCode = "VN"
-        ),
-
-        // ── 🇦🇪 BAE (DUBAİ) FIRSATLARI ──
-        PublicHotelOffer(
-            id = "MOD-AE-501",
-            hotelName = "Rixos Premium Dubai JBR",
-            location = "Dubai Marina, Dubai, BAE",
-            stars = 5,
-            description = "Jumeirah Beach Residence kalbinde Ain Dubai manzaralı lüks yaşam tesisi.",
-            minPrice = 690.0,
-            maxPrice = 820.0,
-            imageUrl = "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Deluxe Sea View Room",
-            mealType = "Oda Kahvaltı & Akşam Yemeği",
-            flightCode = "SAW - DXB (FlyDubai 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 30,
-            ratingScore = 9.6,
-            isLastMinute = true,
-            countryCode = "AE"
-        ),
-        PublicHotelOffer(
-            id = "MOD-AE-502",
-            hotelName = "Atlantis, The Palm",
-            location = "Palm Jumeirah, Dubai, BAE",
-            stars = 5,
-            description = "Palmiye Adası ucunda Aquaventure su parkı girişli dünyaca ünlü efsane otel.",
-            minPrice = 1090.0,
-            maxPrice = 1350.0,
-            imageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-            operatorName = "Anex Tour",
-            roomType = "Ocean King Room",
-            mealType = "Yarım Pansiyon Imperial",
-            flightCode = "IST - DXB (Emirates 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 20,
-            ratingScore = 9.7,
-            isLastMinute = false,
-            countryCode = "AE"
-        ),
-
-        // ── 🇷🇺 RUSYA FIRSATLARI ──
-        PublicHotelOffer(
-            id = "MOD-RU-601",
-            hotelName = "Radisson Collection Paradise Resort",
-            location = "Sochi, Rusya",
-            stars = 5,
-            description = "Karadeniz kıyısında Olimpiyat parkı yanında spa ve plaj konsepti.",
-            minPrice = 420.0,
-            maxPrice = 510.0,
-            imageUrl = "https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800",
-            operatorName = "Pegas Touristik",
-            roomType = "Collection Superior Room",
-            mealType = "Tam Pansiyon",
-            flightCode = "IST - AER (Aeroflot 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 25,
-            ratingScore = 9.4,
-            isLastMinute = true,
-            countryCode = "RU"
-        ),
-        PublicHotelOffer(
-            id = "MOD-RU-602",
-            hotelName = "The Carlton Moscow",
-            location = "Moskova, Rusya",
-            stars = 5,
-            description = "Kızıl Meydan ve Kremlin manzaralı tarihi ve ultra lüks 5 yıldızlı otel.",
-            minPrice = 510.0,
-            maxPrice = 640.0,
-            imageUrl = "https://images.unsplash.com/photo-1568084680786-a84f91d1153c?w=800",
-            operatorName = "Coral Travel",
-            roomType = "Executive Suite Red Square View",
-            mealType = "Oda Kahvaltı",
-            flightCode = "IST - SVO (Aeroflot 🟢)",
-            nights = 7,
-            currency = "USD",
-            category = "PACKAGE_TOUR",
-            discountPercent = 15,
-            ratingScore = 9.8,
-            isLastMinute = false,
-            countryCode = "RU"
-        ),
-
-        // ── 🏨 SADECE OTEL FIRSATLARI (HOTEL ONLY) ──
-        PublicHotelOffer(
-            id = "MOD-HOTEL-TR-01",
-            hotelName = "Akra Hotel Antalya",
-            location = "Muratpaşa, Antalya, Türkiye",
-            stars = 5,
-            description = "Akdeniz manzaralı sadece otel konaklaması (Uçak ve transfer hariçtir).",
-            minPrice = 140.0,
-            maxPrice = 190.0,
-            imageUrl = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800",
-            operatorName = "Yerel Oteller",
-            roomType = "Deluxe City & Sea View",
-            mealType = "Oda & Kahvaltı (BB)",
-            flightCode = "",
-            nights = 1,
-            currency = "EUR",
-            category = "HOTEL",
-            discountPercent = 10,
-            ratingScore = 9.3,
-            isLastMinute = false,
-            countryCode = "TR"
-        ),
-        PublicHotelOffer(
-            id = "MOD-HOTEL-EG-01",
-            hotelName = "Four Seasons Resort Sharm El Sheikh",
-            location = "Şarm El-Şeyh, Mısır",
-            stars = 5,
-            description = "Kızıldeniz kıyısında sadece lüks otel konaklaması.",
-            minPrice = 280.0,
-            maxPrice = 360.0,
-            imageUrl = "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800",
-            operatorName = "Yerel Oteller",
-            roomType = "Premier Sea View Suite",
-            mealType = "Oda Kahvaltı (BB)",
-            flightCode = "",
-            nights = 1,
-            currency = "USD",
-            category = "HOTEL",
-            discountPercent = 15,
-            ratingScore = 9.7,
-            isLastMinute = false,
-            countryCode = "EG"
-        ),
-        PublicHotelOffer(
-            id = "MOD-HOTEL-AE-01",
-            hotelName = "Burj Al Arab Jumeirah",
-            location = "Dubai Marina, Dubai, BAE",
-            stars = 5,
-            description = "Dünyaca ünlü 7 yıldızlı ikonik sadece otel konaklaması.",
-            minPrice = 950.0,
-            maxPrice = 1250.0,
-            imageUrl = "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800",
-            operatorName = "Yerel Oteller",
-            roomType = "Deluxe One-Bedroom Suite",
-            mealType = "Oda & Kahvaltı (BB)",
-            flightCode = "",
-            nights = 1,
-            currency = "USD",
-            category = "HOTEL",
-            discountPercent = 10,
-            ratingScore = 9.9,
-            isLastMinute = false,
-            countryCode = "AE"
-        ),
-
-        // ── ✈️ SADECE UÇUŞ FIRSATLARI (FLIGHT ONLY) ──
-        PublicHotelOffer(
-            id = "MOD-FLIGHT-01",
-            hotelName = "Uçuş: Moskova (SVO) - Antalya (AYT)",
-            location = "Antalya, Türkiye",
-            stars = 0,
-            description = "Türk Hava Yolları direkt tarifeli charter uçuş bileti.",
-            minPrice = 220.0,
-            maxPrice = 260.0,
-            imageUrl = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800",
-            operatorName = "Turkish Airlines",
-            roomType = "Ekonomi Sınıfı (20kg Bagaj Dahil)",
-            mealType = "Uçak İçi İkram",
-            flightCode = "SVO - AYT (TK-3701 🟢)",
-            nights = 0,
-            currency = "EUR",
-            category = "FLIGHT",
-            discountPercent = null,
-            ratingScore = 9.1,
-            isLastMinute = false,
-            countryCode = "TR"
-        ),
-        PublicHotelOffer(
-            id = "MOD-FLIGHT-02",
-            hotelName = "Uçuş: Moskova (DME) - Şarm El-Şeyh (SSH)",
-            location = "Şarm El-Şeyh, Mısır",
-            stars = 0,
-            description = "Nordwind Airlines direkt charter uçuş bileti.",
-            minPrice = 290.0,
-            maxPrice = 330.0,
-            imageUrl = "https://images.unsplash.com/photo-1519074069444-1ba4eff56b61?w=800",
-            operatorName = "Nordwind Airlines",
-            roomType = "Ekonomi Sınıfı (20kg Bagaj)",
-            mealType = "Standart İkram",
-            flightCode = "DME - SSH (N4-5821 🟢)",
-            nights = 0,
-            currency = "EUR",
-            category = "FLIGHT",
-            discountPercent = null,
-            ratingScore = 8.8,
-            isLastMinute = false,
-            countryCode = "EG"
-        ),
-        PublicHotelOffer(
-            id = "MOD-FLIGHT-03",
-            hotelName = "Uçuş: İstanbul (IST) - Dubai (DXB)",
-            location = "Dubai, BAE",
-            stars = 0,
-            description = "Emirates Airlines direkt tarifeli uçuş bileti.",
-            minPrice = 340.0,
-            maxPrice = 410.0,
-            imageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800",
-            operatorName = "Emirates Airlines",
-            roomType = "Ekonomi Sınıfı (30kg Bagaj)",
-            mealType = "Sıcak Yemek & İçecek",
-            flightCode = "IST - DXB (EK-122 🟢)",
-            nights = 0,
-            currency = "USD",
-            category = "FLIGHT",
-            discountPercent = null,
-            ratingScore = 9.6,
-            isLastMinute = false,
-            countryCode = "AE"
-        )
-    )
+    return emptyList()
 }
 
 @Composable
@@ -1200,10 +731,21 @@ fun GlobalWebPublicScreen(
     var agencyEmailInput by remember { mutableStateOf("") }
     var agencyPasswordInput by remember { mutableStateOf("") }
     var agencyCodeInput by remember { mutableStateOf(referralCode ?: "AGN-MASTER-8492") }
+    var rememberAgencyCredentials by remember { mutableStateOf(false) }
     var agencyLoginError by remember { mutableStateOf<String?>(null) }
 
     // SADECE "Toplu Veri Yükle" ile yüklenen Tur Operatörü ürünlerini (marketplace_products) çek
     LaunchedEffect(Unit) {
+        val savedAuth = com.mgacreative.touros.utils.LocalAuthStorage.loadCredentials()
+        if (savedAuth != null && savedAuth.rememberMe) {
+            agencyEmailInput = savedAuth.email
+            agencyPasswordInput = savedAuth.password
+            if (savedAuth.agencyCode.isNotBlank()) {
+                agencyCodeInput = savedAuth.agencyCode
+            }
+            rememberAgencyCredentials = true
+        }
+
         isLoadingProducts = true
         runCatching {
             companySettings = companySettingsRepository.getCompanySettings(currentUser?.tenantId ?: "00000000-0000-0000-0000-000000000001").getOrNull()
@@ -1219,189 +761,18 @@ fun GlobalWebPublicScreen(
                 .decodeList<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>()
         }.onSuccess { list ->
             list.filter { it.id.isNotBlank() }.forEach { p ->
-                val baseP = p.safePrice.coerceAtLeast(100.0)
-                val opName = p.safeOperatorName.ifBlank { "Coral Travel" }
-                val rType = p.safeRoomType.ifBlank { "standard room, city view" }
-                val mType = p.safeMealType.ifBlank { "Bez pitaniya" }
-                val fCode = if (p.flightNumber.isNotBlank()) "${p.airlineName} (${p.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
-
-                val rawType = p.safeProductType.uppercase()
-                val isFlight = rawType == "FLIGHT" || rawType == "CHARTER" || rawType == "FLIGHT_ONLY" || p.airlineName.isNotBlank() || p.flightNumber.startsWith("TK-") || p.flightNumber.startsWith("N4-") || p.flightNumber.startsWith("SU-") || p.flightNumber.startsWith("PC-") || p.safeTourName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("Uçuş:", ignoreCase = true) || p.safeHotelName.startsWith("✈️", ignoreCase = true)
-                val isHotelOnly = !isFlight && (rawType == "HOTEL" || rawType == "LOCAL_HOTEL" || p.safeOperatorName.contains("Yerel Otel", ignoreCase = true))
-                val isPromo = p.safeIsPromo || (p.customPriceOverride != null && p.customPriceOverride < baseP)
-
-                val mappedCat = when {
-                    isFlight -> "FLIGHT"
-                    isHotelOnly -> "HOTEL"
-                    else -> "PACKAGE_TOUR"
-                }
-
-                val cCode = when {
-                    p.safeCountryCode.isNotBlank() -> p.safeCountryCode.uppercase()
-                    p.safeCountry.contains("Mısır", ignoreCase = true) || p.safeCountry.contains("Egypt", ignoreCase = true) -> "EG"
-                    p.safeCountry.contains("Tayland", ignoreCase = true) || p.safeCountry.contains("Thailand", ignoreCase = true) -> "TH"
-                    p.safeCountry.contains("Vietnam", ignoreCase = true) -> "VN"
-                    p.safeCountry.contains("Dubai", ignoreCase = true) || p.safeCountry.contains("BAE", ignoreCase = true) || p.safeCountry.contains("UAE", ignoreCase = true) -> "AE"
-                    p.safeCountry.contains("Rusya", ignoreCase = true) || p.safeCountry.contains("Russia", ignoreCase = true) -> "RU"
-                    p.safeCountry.contains("Maldiv", ignoreCase = true) -> "MV"
-                    p.safeCountry.contains("Seyşel", ignoreCase = true) || p.safeCountry.contains("Seychelles", ignoreCase = true) -> "SC"
-                    p.safeCountry.contains("Sri Lanka", ignoreCase = true) -> "LK"
-                    p.safeCountry.contains("Mauritius", ignoreCase = true) -> "MU"
-                    p.safeCountry.contains("Bali", ignoreCase = true) || p.safeCountry.contains("Endonezya", ignoreCase = true) -> "ID"
-                    p.safeCountry.contains("Kıbrıs", ignoreCase = true) || p.safeCountry.contains("Cyprus", ignoreCase = true) -> "CY"
-                    p.safeCountry.contains("Gürcistan", ignoreCase = true) || p.safeCountry.contains("Georgia", ignoreCase = true) -> "GE"
-                    p.safeCountry.contains("Karadağ", ignoreCase = true) || p.safeCountry.contains("Montenegro", ignoreCase = true) -> "ME"
-                    p.safeCountry.contains("Zanzibar", ignoreCase = true) || p.safeCountry.contains("Tanzanya", ignoreCase = true) -> "TZ"
-                    p.safeCountry.contains("Yunanistan", ignoreCase = true) || p.safeCountry.contains("Greece", ignoreCase = true) -> "GR"
-                    p.safeCountry.contains("Çin", ignoreCase = true) || p.safeCountry.contains("China", ignoreCase = true) -> "CN"
-                    p.safeCountry.contains("Abhazya", ignoreCase = true) -> "AB"
-                    else -> "TR"
-                }
-
-                val cCountryName = when (cCode) {
-                    "EG" -> "Mısır"
-                    "TH" -> "Tayland"
-                    "VN" -> "Vietnam"
-                    "AE" -> "BAE (Dubai)"
-                    "RU" -> "Rusya"
-                    "MV" -> "Maldivler"
-                    "SC" -> "Seyşeller"
-                    "LK" -> "Sri Lanka"
-                    "MU" -> "Mauritius"
-                    "ID" -> "Endonezya (Bali)"
-                    "CY" -> "Kıbrıs"
-                    "GE" -> "Gürcistan"
-                    "ME" -> "Karadağ"
-                    "TZ" -> "Zanzibar"
-                    "GR" -> "Yunanistan"
-                    "CN" -> "Çin"
-                    "AB" -> "Abhazya"
-                    else -> "Türkiye"
-                }
-
-                offers.add(
-                    PublicHotelOffer(
-                        id = p.id,
-                        hotelName = p.safeHotelName.ifBlank { p.safeTourName.ifBlank { if (isFlight) "✈️ Charter Uçuş Seferi (${fCode})" else "Tur Operatörü Ürünü" } },
-                        location = "${p.safeRegion.ifBlank { p.safeDepartureCity.ifBlank { "Antalya" } }}, $cCountryName",
-                        stars = if (p.safeHotelCategory > 0) p.safeHotelCategory else 5,
-                        description = (p.safeHotelName.ifBlank { p.safeTourName }) + " - Operatör: " + opName,
-                        minPrice = baseP,
-                        maxPrice = p.customPriceOverride ?: (baseP * 1.15),
-                        imageUrl = p.safePictureUrl,
-                        operatorName = opName,
-                        roomType = rType,
-                        mealType = mType,
-                        flightCode = fCode,
-                        nights = if (p.nights > 0) p.nights else 7,
-                        currency = p.safeCurrency.ifBlank { "USD" },
-                        category = mappedCat,
-                        discountPercent = if (isPromo) 35 else null,
-                        isLastMinute = isPromo,
-                        countryCode = cCode,
-                        agencyPrices = listOf(
-                            AgencyPriceOption(
-                                agencyId = "AGN-${p.operatorId}",
-                                agencyName = opName,
-                                operatorName = opName,
-                                roomType = rType,
-                                boardType = mType,
-                                price = baseP,
-                                isBestDeal = true
-                            )
-                        )
-                    )
-                )
+                offers.add(p.toPublicHotelOffer())
             }
         }
 
         // 2. RAM'deki yüklenen operatör ürünlerini de ekle
         val memoryList = com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel.getPersistentProducts()
         memoryList.filter { it.id.isNotBlank() }.forEach { p ->
-            val baseP = p.safePrice.coerceAtLeast(100.0)
-            val opName = p.safeOperatorName.ifBlank { "TourVisor Operatörü" }
-            val rType = p.safeRoomType.ifBlank { "standard room" }
-            val mType = p.safeMealType.ifBlank { "Bez pitaniya" }
-            val fCode = if (p.flightNumber.isNotBlank()) "${p.airlineName} (${p.flightNumber})" else "VKO - AYT (Ekonomi 🟢)"
-
-            val cCode = when {
-                p.safeCountryCode.isNotBlank() -> p.safeCountryCode.uppercase()
-                p.safeCountry.contains("Mısır", ignoreCase = true) || p.safeCountry.contains("Egypt", ignoreCase = true) -> "EG"
-                p.safeCountry.contains("Tayland", ignoreCase = true) || p.safeCountry.contains("Thailand", ignoreCase = true) -> "TH"
-                p.safeCountry.contains("Vietnam", ignoreCase = true) -> "VN"
-                p.safeCountry.contains("Dubai", ignoreCase = true) || p.safeCountry.contains("BAE", ignoreCase = true) || p.safeCountry.contains("UAE", ignoreCase = true) -> "AE"
-                p.safeCountry.contains("Rusya", ignoreCase = true) || p.safeCountry.contains("Russia", ignoreCase = true) -> "RU"
-                p.safeCountry.contains("Maldiv", ignoreCase = true) -> "MV"
-                p.safeCountry.contains("Seyşel", ignoreCase = true) || p.safeCountry.contains("Seychelles", ignoreCase = true) -> "SC"
-                p.safeCountry.contains("Sri Lanka", ignoreCase = true) -> "LK"
-                p.safeCountry.contains("Mauritius", ignoreCase = true) -> "MU"
-                p.safeCountry.contains("Bali", ignoreCase = true) || p.safeCountry.contains("Endonezya", ignoreCase = true) -> "ID"
-                p.safeCountry.contains("Kıbrıs", ignoreCase = true) || p.safeCountry.contains("Cyprus", ignoreCase = true) -> "CY"
-                p.safeCountry.contains("Gürcistan", ignoreCase = true) || p.safeCountry.contains("Georgia", ignoreCase = true) -> "GE"
-                p.safeCountry.contains("Karadağ", ignoreCase = true) || p.safeCountry.contains("Montenegro", ignoreCase = true) -> "ME"
-                p.safeCountry.contains("Zanzibar", ignoreCase = true) || p.safeCountry.contains("Tanzanya", ignoreCase = true) -> "TZ"
-                p.safeCountry.contains("Yunanistan", ignoreCase = true) || p.safeCountry.contains("Greece", ignoreCase = true) -> "GR"
-                p.safeCountry.contains("Çin", ignoreCase = true) || p.safeCountry.contains("China", ignoreCase = true) -> "CN"
-                p.safeCountry.contains("Abhazya", ignoreCase = true) -> "AB"
-                else -> "TR"
-            }
-
-            val cCountryName = when (cCode) {
-                "EG" -> "Mısır"
-                "TH" -> "Tayland"
-                "VN" -> "Vietnam"
-                "AE" -> "BAE (Dubai)"
-                "RU" -> "Rusya"
-                "MV" -> "Maldivler"
-                "SC" -> "Seyşeller"
-                "LK" -> "Sri Lanka"
-                "MU" -> "Mauritius"
-                "ID" -> "Endonezya (Bali)"
-                "CY" -> "Kıbrıs"
-                "GE" -> "Gürcistan"
-                "ME" -> "Karadağ"
-                "TZ" -> "Zanzibar"
-                "GR" -> "Yunanistan"
-                "CN" -> "Çin"
-                "AB" -> "Abhazya"
-                else -> "Türkiye"
-            }
-
-            offers.add(
-                PublicHotelOffer(
-                    id = p.id,
-                    hotelName = p.safeHotelName.ifBlank { p.safeTourName.ifBlank { "Operatör Ürünü" } },
-                    location = "${p.safeRegion.ifBlank { "Antalya" }}, $cCountryName",
-                    stars = if (p.safeHotelCategory > 0) p.safeHotelCategory else 5,
-                    description = p.safeHotelName + " - Operatör Yükleme Verisi.",
-                    minPrice = baseP,
-                    maxPrice = p.customPriceOverride ?: (baseP * 1.15),
-                    imageUrl = p.safePictureUrl.ifBlank { "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800" },
-                    operatorName = opName,
-                    roomType = rType,
-                    mealType = mType,
-                    flightCode = fCode,
-                    nights = if (p.nights > 0) p.nights else 7,
-                    currency = p.safeCurrency.ifBlank { "USD" },
-                    countryCode = cCode,
-                    agencyPrices = listOf(
-                        AgencyPriceOption(
-                            agencyId = "AGN-${p.operatorId}",
-                            agencyName = opName,
-                            operatorName = opName,
-                            roomType = rType,
-                            boardType = mType,
-                            price = baseP,
-                            isBestDeal = true
-                        )
-                    )
-                )
-            )
+            offers.add(p.toPublicHotelOffer())
         }
 
-        // 3. Veritabanından gelen veriler varsa direkt kullan, yoksa fallback yap
-        val finalOffers = if (offers.isNotEmpty()) offers else getInitialDefaultOffers()
-        dbProducts = groupOffersByHotelName(finalOffers.distinctBy { it.id })
+        // 3. Yalnızca veritabanından çekilen gerçek verileri kullan
+        dbProducts = groupOffersByHotelName(offers.distinctBy { it.id })
         isLoadingProducts = false
     }
 
@@ -1952,7 +1323,7 @@ fun GlobalWebPublicScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Filtrele:",
+                                        text = AppLanguageManager.translate("Filtrele:"),
                                         style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                                     )
 
@@ -3010,7 +2381,7 @@ fun GlobalWebPublicScreen(
                                                                         verticalAlignment = Alignment.CenterVertically
                                                                     ) {
                                                                         Text(
-                                                                            text = "📍 ${dealHotel.location}",
+                                                                            text = "📍 ${AppLanguageManager.translate(dealHotel.location)}",
                                                                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp),
                                                                             maxLines = 1
                                                                         )
@@ -3144,7 +2515,6 @@ fun GlobalWebPublicScreen(
                         }
                     }
                 }
-            }
             }
 
             // ── 🌟 HİZMETLERİMİZ (OUR SERVICES - FOOTER ÜSTÜ 6'LI KURUMSAL SEKSİYON) ──
@@ -3308,6 +2678,30 @@ fun GlobalWebPublicScreen(
                             singleLine = true
                         )
 
+                        // Beni Hatırla Seçeneği
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable { rememberAgencyCredentials = !rememberAgencyCredentials }
+                                .padding(vertical = 2.dp)
+                        ) {
+                            Checkbox(
+                                checked = rememberAgencyCredentials,
+                                onCheckedChange = { rememberAgencyCredentials = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Color(0xFF0F5A56),
+                                    uncheckedColor = Color(0xFFCBD5E1)
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Beni Hatırla (Bilgilerimi bu cihazda sakla)",
+                                style = TourOSTypography.BodyMedium.copy(color = Color(0xFF334155), fontSize = 13.sp)
+                            )
+                        }
+
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Row(
@@ -3329,6 +2723,18 @@ fun GlobalWebPublicScreen(
                                         coroutineScope.launch {
                                             val res = authRepository.signInWithEmail(agencyEmailInput.trim(), agencyPasswordInput.trim())
                                             if (res.isSuccess) {
+                                                if (rememberAgencyCredentials) {
+                                                    com.mgacreative.touros.utils.LocalAuthStorage.saveCredentials(
+                                                        com.mgacreative.touros.utils.SavedAuthCredentials(
+                                                            email = agencyEmailInput.trim(),
+                                                            password = agencyPasswordInput.trim(),
+                                                            agencyCode = agencyCodeInput.trim(),
+                                                            rememberMe = true
+                                                        )
+                                                    )
+                                                } else {
+                                                    com.mgacreative.touros.utils.LocalAuthStorage.clearCredentials()
+                                                }
                                                 showAgencyLoginModal = false
                                                 agencyLoginError = null
                                                 userMode = "Acente"
@@ -3725,6 +3131,7 @@ fun GlobalWebPublicScreen(
             }
         }
     }
+}
 }
 
 // ── ⚡ DİKEY LİSTE ARAMA SONUÇLARI SEKSİYONU (HIZLI FIRSATLAR SATIR STİLİ) ──────────
@@ -4455,18 +3862,20 @@ fun HorizontalHotelCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = if (isFlightCard) Color(0xFFEFF6FF) else Color(0xFFFEF3C7)
-                    ) {
-                        Text(
-                            text = if (isFlightCard) AppLanguageManager.translate("Direkt Uçuş") else "Starway Award",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                            style = TourOSTypography.Caption.copy(color = if (isFlightCard) Color(0xFF1D4ED8) else Color(0xFFD97706), fontWeight = FontWeight.Bold, fontSize = 9.sp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                    if (isFlightCard) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFEFF6FF)
+                        ) {
+                            Text(
+                                text = AppLanguageManager.translate("Direkt Uçuş"),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.Bold, fontSize = 9.sp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 
@@ -4496,17 +3905,34 @@ fun HorizontalHotelCard(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFFEFF6FF)
-                    ) {
-                        Text(
-                            text = if (isFlightCard) "20 kg Bagaj" else hotel.flightCode,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+
+                    if (isFlightCard) {
+                        val baggageText = if (hotel.baggageKg > 0) "${hotel.baggageKg} kg ${AppLanguageManager.translate("Bagaj")}" else AppLanguageManager.translate("El Bagajı")
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFEFF6FF)
+                        ) {
+                            Text(
+                                text = baggageText,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    } else if (hotel.flightCode.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFEFF6FF)
+                        ) {
+                            Text(
+                                text = hotel.flightCode,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
                     }
                 }
 
@@ -4532,8 +3958,13 @@ fun HorizontalHotelCard(
                 }
 
                 // Lokasyon & Tur / Uçuş Bilgisi
+                val flightDepartureInfo = if (hotel.departureCity.isNotBlank()) {
+                    "${AppLanguageManager.translate(hotel.departureCity)} ${AppLanguageManager.translate("Kalkışlı")} · ${AppLanguageManager.translate("Ekonomi Sınıfı")} · ${AppLanguageManager.translate("Gidiş-Dönüş")}"
+                } else {
+                    "${AppLanguageManager.translate("Direkt Uçuş")} · ${AppLanguageManager.translate("Ekonomi Sınıfı")} · ${AppLanguageManager.translate("Gidiş-Dönüş")}"
+                }
                 Text(
-                    text = if (isFlightCard) AppLanguageManager.translate("Moskova Kalkışlı · Ekonomi Sınıfı · Gidiş-Dönüş") else "$publicDestinationText · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${hotel.mealType}",
+                    text = if (isFlightCard) flightDepartureInfo else "${AppLanguageManager.translate(publicDestinationText)} · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${hotel.mealType}",
                     style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -4541,20 +3972,29 @@ fun HorizontalHotelCard(
 
                 HorizontalDivider(color = Color(0xFFF1F5F9))
 
-                // ── MÜŞTERİNİN İSTEDİĞİ EN DÜŞÜK VE EN YÜKSEK FİYAT ALANI ──
+                // ── GERÇEK FİYAT VE TEKLİF ALANI ──
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("${AppLanguageManager.translate("En Düşük Fiyat")} :", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold, fontSize = 10.sp))
-                            Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.minPrice, decimals = false)} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("${AppLanguageManager.translate("En Yüksek Fiyat")}:", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 10.sp))
-                            Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.maxPrice, decimals = false)} ${if (hotel.currency == "RUB") "RUB" else "₺"}", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
+                        val currSymbol = if (hotel.currency == "RUB") "RUB" else "₺"
+                        val hasMultiPrice = hotel.maxPrice > hotel.minPrice && hotel.agencyPrices.size > 1
+                        if (hasMultiPrice) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("${AppLanguageManager.translate("En Düşük Fiyat")} :", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.minPrice, decimals = false)} $currSymbol", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("${AppLanguageManager.translate("En Yüksek Fiyat")}:", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.maxPrice, decimals = false)} $currSymbol", style = TourOSTypography.Caption.copy(color = Color(0xFFDC2626), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp))
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("${AppLanguageManager.translate("Fiyat")} :", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.Bold, fontSize = 10.sp))
+                                Text("${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(hotel.minPrice, decimals = false)} $currSymbol", style = TourOSTypography.Caption.copy(color = Color(0xFF16A34A), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp))
+                            }
                         }
                     }
 
@@ -4823,90 +4263,93 @@ fun OurServicesSection(
                     }
                 }
 
-                // 6'lı Kart Grid Düzeni (3 Kolon x 2 Satır)
-                val services = companySettings?.getEffectiveServiceCards() ?: listOf(
-                    com.mgacreative.touros.domain.model.ServiceCardItem("1", "Paket Turlar / Tour Packages", "Gezginler için özel seçilmiş her şey dahil paket tur seçenekleri ve rehberli geziler.", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800", "PACKAGE_TOUR"),
-                    com.mgacreative.touros.domain.model.ServiceCardItem("2", "Otel Rezervasyonları / Hotel Reservations", "En uygun fiyat garantili seçkin 5 yıldızlı oteller, tatil köyleri ve ayrıcalıklı konaklama.", "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800", "HOTEL"),
-                    com.mgacreative.touros.domain.model.ServiceCardItem("3", "Macera Turları / Adventure Tours", "Safari, trekking, kültür turları ve heyecan dolu özel tatil rotaları.", "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800", "ADVENTURE"),
-                    com.mgacreative.touros.domain.model.ServiceCardItem("4", "Seyahat Desteği / Travel Assistance", "Sorunsuz bir seyahat deneyimi için 7/24 canlı müşteri desteği ve acente danışmanlığı.", "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800", "ASSISTANCE"),
-                    com.mgacreative.touros.domain.model.ServiceCardItem("5", "Uçuş Rezervasyonu / Flight Booking", "Hızlı, uygun fiyatlı yurt içi ve yurt dışı charter ve tarifeli uçuş biletleri.", "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800", "FLIGHT"),
-                    com.mgacreative.touros.domain.model.ServiceCardItem("6", "Mavi Yolculuk & Cruise / Cruise Trips", "Lüks cruise gemileri ve büyüleyici koyları keşfedeceğiniz mavi yolculuk paketleri.", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800", "CRUISE")
-                )
+                // 6'lı Kart Grid Düzeni (3 Kolon x 2 Satır) - Şimdilik UI'da gizlendi
+                val showServiceCardsGrid = false
+                if (showServiceCardsGrid) {
+                    val services = companySettings?.getEffectiveServiceCards() ?: listOf(
+                        com.mgacreative.touros.domain.model.ServiceCardItem("1", "Paket Turlar / Tour Packages", "Gezginler için özel seçilmiş her şey dahil paket tur seçenekleri ve rehberli geziler.", "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800", "PACKAGE_TOUR"),
+                        com.mgacreative.touros.domain.model.ServiceCardItem("2", "Otel Rezervasyonları / Hotel Reservations", "En uygun fiyat garantili seçkin 5 yıldızlı oteller, tatil köyleri ve ayrıcalıklı konaklama.", "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800", "HOTEL"),
+                        com.mgacreative.touros.domain.model.ServiceCardItem("3", "Macera Turları / Adventure Tours", "Safari, trekking, kültür turları ve heyecan dolu özel tatil rotaları.", "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=800", "ADVENTURE"),
+                        com.mgacreative.touros.domain.model.ServiceCardItem("4", "Seyahat Desteği / Travel Assistance", "Sorunsuz bir seyahat deneyimi için 7/24 canlı müşteri desteği ve acente danışmanlığı.", "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800", "ASSISTANCE"),
+                        com.mgacreative.touros.domain.model.ServiceCardItem("5", "Uçuş Rezervasyonu / Flight Booking", "Hızlı, uygun fiyatlı yurt içi ve yurt dışı charter ve tarifeli uçuş biletleri.", "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800", "FLIGHT"),
+                        com.mgacreative.touros.domain.model.ServiceCardItem("6", "Mavi Yolculuk & Cruise / Cruise Trips", "Lüks cruise gemileri ve büyüleyici koyları keşfedeceğiniz mavi yolculuk paketleri.", "https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=800", "CRUISE")
+                    )
 
-                // 2 Satırlı Grid (Her Satırda 3 Kart)
-                Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                    services.chunked(3).forEach { rowItems ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(20.dp)
-                        ) {
-                            rowItems.forEach { service ->
-                                val targetUrl = if (!service.hotelName.isNullOrBlank()) {
-                                    "HOTEL_TOURS:${service.hotelName}"
-                                } else {
-                                    service.targetUrl.ifBlank { service.hotelId?.let { "HOTEL_TOURS:$it" } ?: service.id }
-                                }
-                                Surface(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(175.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .clickable { onSelectService(targetUrl) },
-                                    color = Color(0xFF0D5653), // Screenshot ile Birebir Koyu Teal
-                                    shadowElevation = 6.dp
-                                ) {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        val imgUrl = service.imageUrl.trim()
-                                        if (imgUrl.isNotBlank()) {
-                                            AsyncImage(
-                                                model = imgUrl,
-                                                contentDescription = service.title,
-                                                modifier = Modifier.fillMaxSize(),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                            // Dark Overlay Gradient
-                                            Box(
+                    // 2 Satırlı Grid (Her Satırda 3 Kart)
+                    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                        services.chunked(3).forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(20.dp)
+                            ) {
+                                rowItems.forEach { service ->
+                                    val targetUrl = if (!service.hotelName.isNullOrBlank()) {
+                                        "HOTEL_TOURS:${service.hotelName}"
+                                    } else {
+                                        service.targetUrl.ifBlank { service.hotelId?.let { "HOTEL_TOURS:$it" } ?: service.id }
+                                    }
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(175.dp)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .clickable { onSelectService(targetUrl) },
+                                        color = Color(0xFF0D5653), // Screenshot ile Birebir Koyu Teal
+                                        shadowElevation = 6.dp
+                                    ) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            val imgUrl = service.imageUrl.trim()
+                                            if (imgUrl.isNotBlank()) {
+                                                AsyncImage(
+                                                    model = imgUrl,
+                                                    contentDescription = service.title,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                                // Dark Overlay Gradient
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .background(
+                                                            androidx.compose.ui.graphics.Brush.verticalGradient(
+                                                                colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.85f))
+                                                            )
+                                                        )
+                                                )
+                                            }
+
+                                            Column(
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .background(
-                                                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                                                            colors = listOf(Color.Black.copy(alpha = 0.45f), Color.Black.copy(alpha = 0.85f))
-                                                        )
-                                                    )
-                                            )
-                                        }
-
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .padding(20.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Column(
+                                                    .padding(20.dp),
                                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                verticalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text(
-                                                    text = service.title,
-                                                    style = TourOSTypography.TitleMedium.copy(
-                                                        color = Color.White,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 14.sp
-                                                    ),
-                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                                )
-                                                Text(
-                                                    text = service.subtitle,
-                                                    style = TourOSTypography.Caption.copy(
-                                                        color = Color(0xFFE2E8F0),
-                                                        fontSize = 11.sp,
-                                                        lineHeight = 15.sp
-                                                    ),
-                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                    maxLines = 3,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
+                                                Column(
+                                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Text(
+                                                        text = service.title,
+                                                        style = TourOSTypography.TitleMedium.copy(
+                                                            color = Color.White,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 14.sp
+                                                        ),
+                                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                                    )
+                                                    Text(
+                                                        text = service.subtitle,
+                                                        style = TourOSTypography.Caption.copy(
+                                                            color = Color(0xFFE2E8F0),
+                                                            fontSize = 11.sp,
+                                                            lineHeight = 15.sp
+                                                        ),
+                                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                        maxLines = 3,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                }
                                             }
                                         }
                                     }

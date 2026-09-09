@@ -65,134 +65,134 @@ fun HierarchicalDestinationPickerDialog(
     val flightAirportDestinations = remember {
         listOf(
             // TÜRKİYE HAVALİMANLARI
-            DestinationItem("air_ayt", "Antalya Havalimanı (AYT)", "Аэропорт Анталья", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Antalya, Belek, Kemer, Side, Lara"),
-            DestinationItem("air_gzp", "Alanya Gazipaşa Havalimanı (GZP)", "Аэропорт Газипаша / Аланья", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "GZP", "Alanya, Okurcalar, Mahmutlar"),
-            DestinationItem("air_bjv", "Milas-Bodrum Havalimanı (BJV)", "Аэропорт Милас-Бодрум", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Bodrum, Yalıkavak, Torba, Gümbet"),
-            DestinationItem("air_dlm", "Dalaman Havalimanı (DLM)", "Аэропорт Даламан", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "DLM", "Marmaris, Fethiye, Ölüdeniz, Göcek"),
-            DestinationItem("air_adb", "İzmir Adnan Menderes (ADB)", "Аэропорт Измир", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Çeşme, Alaçatı, Kuşadası"),
-            DestinationItem("air_ist", "İstanbul Havalimanı (IST)", "Международный аэропорт Стамбул", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "İstanbul Avrupa Yakası"),
-            DestinationItem("air_saw", "İstanbul Sabiha Gökçen (SAW)", "Аэропорт Сабиха Гёкчен", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "SAW", "İstanbul Anadolu Yakası"),
+            DestinationItem("air_ayt", "Antalya Havalimanı (AYT)", "Аэропорт Анталья", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Анталья, Белек, Кемер, Сиде, Лара"),
+            DestinationItem("air_gzp", "Alanya Gazipaşa Havalimanı (GZP)", "Аэропорт Газипаша / Аланья", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "GZP", "Аланья, Окурджалар, Махмутлар"),
+            DestinationItem("air_bjv", "Milas-Bodrum Havalimanı (BJV)", "Аэропорт Милас-Бодрум", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Бодрум, Ялыкавак, Торба, Гюмбет"),
+            DestinationItem("air_dlm", "Dalaman Havalimanı (DLM)", "Аэропорт Даламан", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "DLM", "Мармарис, Фетхие, Олюдениз, Гёчек"),
+            DestinationItem("air_adb", "İzmir Adnan Menderes (ADB)", "Аэропорт Измир", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Чешме, Алачаты, Кушадасы"),
+            DestinationItem("air_ist", "İstanbul Havalimanı (IST)", "Международный аэропорт Стамбул", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "Европейская часть Стамбула"),
+            DestinationItem("air_saw", "İstanbul Sabiha Gökçen (SAW)", "Аэропорт Сабиха Гёкчен", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "SAW", "Азиатская часть Стамбула"),
 
             // MISIR HAVALİMANLARI
-            DestinationItem("air_ssh", "Şarm El-Şeyh Havalimanı (SSH)", "Аэропорт Шарм-эль-Шейх", "Mısır", "Mısır", "🇪🇬", DestinationLevel.CITY, "SSH", "Naama Bay, Nabq, Ras Um Sid"),
-            DestinationItem("air_hrg", "Hurgada Havalimanı (HRG)", "Аэропорт Хургада", "Mısır", "Mısır", "🇪🇬", DestinationLevel.CITY, "HRG", "El Gouna, Makadi Bay, Sahl Hasheesh"),
+            DestinationItem("air_ssh", "Şarm El-Şeyh Havalimanı (SSH)", "Аэропорт Шарм-эль-Шейх", "Mısır", "Mısır", "🇪🇬", DestinationLevel.CITY, "SSH", "Наама Бей, Набк, Рас Ум Сид"),
+            DestinationItem("air_hrg", "Hurgada Havalimanı (HRG)", "Аэропорт Хургада", "Mısır", "Mısır", "🇪🇬", DestinationLevel.CITY, "HRG", "Эль-Гуна, Макади Бей, Сахл Хашиш"),
 
             // BAE HAVALİMANLARI
-            DestinationItem("air_dxb", "Dubai Uluslararası Havalimanı (DXB)", "Международный аэропорт Дубай", "BAE", "BAE", "🇦🇪", DestinationLevel.CITY, "DXB", "Dubai Marina, Palm Jumeirah, Downtown"),
-            DestinationItem("air_auh", "Abu Dhabi Uluslararası (AUH)", "Международный аэропорт Абу-Даби", "BAE", "BAE", "🇦🇪", DestinationLevel.CITY, "AUH", "Saadiyat Island, Yas Island"),
+            DestinationItem("air_dxb", "Dubai Uluslararası Havalimanı (DXB)", "Международный аэропорт Дубай", "BAE", "BAE", "🇦🇪", DestinationLevel.CITY, "DXB", "Дубай Марина, Пальм Джумейра, Даунтаун"),
+            DestinationItem("air_auh", "Abu Dhabi Uluslararası (AUH)", "Международный аэропорт Абу-Даби", "BAE", "BAE", "🇦🇪", DestinationLevel.CITY, "AUH", "Остров Саадият, Остров Яс"),
 
             // TAYLAND HAVALİMANLARI
-            DestinationItem("air_hkt", "Phuket Uluslararası Havalimanı (HKT)", "Международный аэропорт Пхукет", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "HKT", "Patong, Karon, Kata, Bang Tao"),
-            DestinationItem("air_bkk", "Bangkok Suvarnabhumi (BKK)", "Международный аэропорт Суварнабхуми", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "BKK", "Bangkok Şehir Merkezi"),
-            DestinationItem("air_utp", "U-Tapao Pattaya (UTP)", "Аэропорт У-Тапао / Паттайя", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "UTP", "Pattaya, Jomtien"),
-            DestinationItem("air_usm", "Koh Samui Havalimanı (USM)", "Аэропорт Самуи", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "USM", "Chaweng, Lamai"),
+            DestinationItem("air_hkt", "Phuket Uluslararası Havalimanı (HKT)", "Международный аэропорт Пхукет", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "HKT", "Патонг, Карон, Ката, Банг Тао"),
+            DestinationItem("air_bkk", "Bangkok Suvarnabhumi (BKK)", "Международный аэропорт Суварнабхуми", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "BKK", "Центр Бангкока"),
+            DestinationItem("air_utp", "U-Tapao Pattaya (UTP)", "Аэропорт У-Тапао / Паттайя", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "UTP", "Паттайя, Джомтьен"),
+            DestinationItem("air_usm", "Koh Samui Havalimanı (USM)", "Аэропорт Самуи", "Tayland", "Tayland", "🇹🇭", DestinationLevel.CITY, "USM", "Чавенг, Ламай"),
 
             // VİETNAM HAVALİMANLARI
-            DestinationItem("air_dad", "Da Nang Uluslararası (DAD)", "Международный аэропорт Дананг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "DAD", "Da Nang, Hoi An"),
-            DestinationItem("air_pqc", "Phu Quoc Uluslararası (PQC)", "Международный аэропорт Фукуок", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "PQC", "Phu Quoc Adası"),
-            DestinationItem("air_cxr", "Cam Ranh / Nha Trang (CXR)", "Аэропорт Камрань / Нячанг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "CXR", "Nha Trang Sahili"),
+            DestinationItem("air_dad", "Da Nang Uluslararası (DAD)", "Международный аэропорт Дананг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "DAD", "Дананг, Хойан"),
+            DestinationItem("air_pqc", "Phu Quoc Uluslararası (PQC)", "Международный аэропорт Фукуок", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "PQC", "Остров Фукуок"),
+            DestinationItem("air_cxr", "Cam Ranh / Nha Trang (CXR)", "Аэропорт Камрань / Нячанг", "Vietnam", "Vietnam", "🇻🇳", DestinationLevel.CITY, "CXR", "Побережье Нячанга"),
 
             // MALDİVLER HAVALİMANLARI
-            DestinationItem("air_mle", "Male Velana Uluslararası (MLE)", "Международный аэропорт Мале", "Maldivler", "Maldivler", "🇲🇻", DestinationLevel.CITY, "MLE", "Hulhumale, Kuzey ve Güney Atolleri"),
+            DestinationItem("air_mle", "Male Velana Uluslararası (MLE)", "Международный аэропорт Мале", "Maldivler", "Maldivler", "🇲🇻", DestinationLevel.CITY, "MLE", "Хулхумале, Северный и Южный атоллы"),
 
             // SRİ LANKA HAVALİMANLARI
-            DestinationItem("air_cmb", "Colombo Bandaranaike (CMB)", "Международный аэропорт Коломбо", "Sri Lanka", "Sri Lanka", "🇱🇰", DestinationLevel.CITY, "CMB", "Colombo, Bentota, Negombo"),
+            DestinationItem("air_cmb", "Colombo Bandaranaike (CMB)", "Международный аэропорт Коломбо", "Sri Lanka", "Sri Lanka", "🇱🇰", DestinationLevel.CITY, "CMB", "Коломбо, Бентота, Негомбо"),
 
             // SEYŞELLER HAVALİMANLARI
-            DestinationItem("air_sez", "Seyşeller Uluslararası (SEZ)", "Международный аэропорт Сейшелы", "Seyşeller", "Seyşeller", "🇸🇨", DestinationLevel.CITY, "SEZ", "Mahe Adası, Praslin"),
+            DestinationItem("air_sez", "Seyşeller Uluslararası (SEZ)", "Международный аэропорт Сейшелы", "Seyşeller", "Seyşeller", "🇸🇨", DestinationLevel.CITY, "SEZ", "Остров Маэ, Праслин"),
 
             // ENDONEZYA (BALİ)
-            DestinationItem("air_dps", "Bali Ngurah Rai / Denpasar (DPS)", "Международный аэропорт Денпасар", "Endonezya (Bali)", "Endonezya (Bali)", "🇮🇩", DestinationLevel.CITY, "DPS", "Kuta, Seminyak, Nusa Dua, Ubud"),
+            DestinationItem("air_dps", "Bali Ngurah Rai / Denpasar (DPS)", "Международный аэропорт Денпасар", "Endonezya (Bali)", "Endonezya (Bali)", "🇮🇩", DestinationLevel.CITY, "DPS", "Кута, Семиньяк, Нуса-Дуа, Убуд"),
 
             // KIBRIS
-            DestinationItem("air_ecn", "Ercan Havalimanı (ECN)", "Аэропорт Эрджан", "Kıbrıs", "Kıbrıs", "🇨🇾", DestinationLevel.CITY, "ECN", "Girne, Lefkoşa, Gazimağusa"),
+            DestinationItem("air_ecn", "Ercan Havalimanı (ECN)", "Аэропорт Эрджан", "Kıbrıs", "Kıbrıs", "🇨🇾", DestinationLevel.CITY, "ECN", "Кирения, Никосия, Фамагуста"),
 
             // GÜRCİSTAN
-            DestinationItem("air_bus", "Batum Havalimanı (BUS)", "Международный аэропорт Батуми", "Gürcistan", "Gürcistan", "🇬🇪", DestinationLevel.CITY, "BUS", "Batum Sahil & Merkez"),
-            DestinationItem("air_tbs", "Tiflis Uluslararası (TBS)", "Международный аэропорт Тбилиси", "Gürcistan", "Gürcistan", "🇬🇪", DestinationLevel.CITY, "TBS", "Tiflis Şehir"),
+            DestinationItem("air_bus", "Batum Havalimanı (BUS)", "Международный аэропорт Батуми", "Gürcistan", "Gürcistan", "🇬🇪", DestinationLevel.CITY, "BUS", "Батуми побережье и центр"),
+            DestinationItem("air_tbs", "Tiflis Uluslararası (TBS)", "Международный аэропорт Тбилиси", "Gürcistan", "Gürcistan", "🇬🇪", DestinationLevel.CITY, "TBS", "Тбилиси центр"),
 
             // KARADAĞ
-            DestinationItem("air_tiv", "Tivat Havalimanı (TIV)", "Аэропорт Тиват", "Karadağ", "Karadağ", "🇲🇪", DestinationLevel.CITY, "TIV", "Budva, Kotor, Tivat Marina"),
+            DestinationItem("air_tiv", "Tivat Havalimanı (TIV)", "Аэропорт Тиват", "Karadağ", "Karadağ", "🇲🇪", DestinationLevel.CITY, "TIV", "Будва, Котор, Тиват Марина"),
 
             // RUSYA HAVALİMANLARI
-            DestinationItem("air_aer", "Soçi Adler Havalimanı (AER)", "Международный аэропорт Сочи", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "AER", "Soçi, Adler, Krasnaya Polyana")
+            DestinationItem("air_aer", "Soçi Adler Havalimanı (AER)", "Международный аэропорт Сочи", "Rusya", "Rusya", "🇷🇺", DestinationLevel.CITY, "AER", "Сочи, Адлер, Красная Поляна")
         )
     }
 
     val generalDestinations = remember {
         listOf(
             // TÜRKİYE
-            DestinationItem("tr_all", "Türkiye (Tüm Bölgeler)", "Турция (Все регионы)", null, "Türkiye", "🇹🇷", DestinationLevel.COUNTRY, null, "Tüm Türkiye turları ve otelleri"),
+            DestinationItem("tr_all", "Türkiye (Tüm Bölgeler)", "Турция (Все регионы)", null, "Türkiye", "🇹🇷", DestinationLevel.COUNTRY, null, "Все туры и отели Турции"),
             
             // ANTALYA
-            DestinationItem("tr_ayt", "Antalya (Tüm Bölge)", "Анталья (Все курорты)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Lara, Belek, Side, Kemer, Alanya"),
-            DestinationItem("tr_ayt_belek", "Belek / Boğazkent", "Белек / Богазкент", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Lüks Resort & Golf Otelleri"),
-            DestinationItem("tr_ayt_lara", "Lara / Kundu", "Лара / Кунду", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Havalimanına En Yakın Sahil Bandı"),
-            DestinationItem("tr_ayt_side", "Side / Manavgat", "Сиде / Манавгат", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Tarihi Yarımada & Kum Plajlar"),
-            DestinationItem("tr_ayt_kemer", "Kemer / Beldibi / Tekirova", "Кемер / Бельдиби / Текирова", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Dağ & Deniz Manzaralı Tesisler"),
-            DestinationItem("tr_ayt_alanya", "Alanya / Okurcalar / Mahmutlar", "Аланья / Окурджалар / Махмутlar", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "GZP", "Kleopatra Plajı & Kalabalık Merkez"),
-            DestinationItem("tr_ayt_cirali", "Çıralı / Olimpos / Kaş", "Чиралы / Олимпос / Каш", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Butik & Doğa Otelleri"),
+            DestinationItem("tr_ayt", "Antalya (Tüm Bölge)", "Анталья (Все курорты)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "AYT", "Лара, Белек, Сиде, Кемер, Аланья"),
+            DestinationItem("tr_ayt_belek", "Belek / Boğazkent", "Белек / Богазкент", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Люкс резорт и гольф-отели"),
+            DestinationItem("tr_ayt_lara", "Lara / Kundu", "Лара / Кунду", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Ближайшее побережье к аэропорту"),
+            DestinationItem("tr_ayt_side", "Side / Manavgat", "Сиде / Манавгат", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Исторический полуостров и песчаные пляжи"),
+            DestinationItem("tr_ayt_kemer", "Kemer / Beldibi / Tekirova", "Кемер / Бельдиби / Текирова", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "AYT", "Отели с видом на горы и море"),
+            DestinationItem("tr_ayt_alanya", "Alanya / Okurcalar / Mahmutlar", "Аланья / Окурджалар / Махмутлар", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "GZP", "Пляж Клеопатры и центр курорта"),
+            DestinationItem("tr_ayt_cirali", "Çıralı / Olimpos / Kaş", "Чиралы / Олимпос / Каш", "Antalya", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Бутик-отели и природа"),
 
             // MUĞLA / EGE
-            DestinationItem("tr_mugla", "Muğla (Tüm Ege)", "Эгейское побережье (Мугла)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Bodrum, Marmaris, Fethiye, Datça"),
-            DestinationItem("tr_bjv_bodrum", "Bodrum (Yalıkavak, Torba, Gümbet)", "Бодрум (Ялыкавак, Торба, Гюмбет)", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "BJV", "Gece Hayatı & Marinalar"),
-            DestinationItem("tr_dlm_marmaris", "Marmaris / İçmeler / Turunç", "Мармарис / Ичмелер / Турунч", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Koylar & Çam Ormanları"),
-            DestinationItem("tr_dlm_fethiye", "Fethiye / Ölüdeniz / Göcek", "Фетхие / Олюдениз / Гёчек", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Mavi Yolculuk & Yamaç Paraşütü"),
-            DestinationItem("tr_dlm_datca", "Datça", "Датча", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Sakin Koylar & Taş Evler"),
+            DestinationItem("tr_mugla", "Muğla (Tüm Ege)", "Эгейское побережье (Мугла)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "BJV", "Бодрум, Мармарис, Фетхие, Датча"),
+            DestinationItem("tr_bjv_bodrum", "Bodrum (Yalıkavak, Torba, Gümbet)", "Бодрум (Ялыкавак, Торба, Гюмбет)", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "BJV", "Ночная жизнь и марины"),
+            DestinationItem("tr_dlm_marmaris", "Marmaris / İçmeler / Turunç", "Мармарис / Ичмелер / Турунч", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Бухты и хвойные леса"),
+            DestinationItem("tr_dlm_fethiye", "Fethiye / Ölüdeniz / Göcek", "Фетхие / Олюдениз / Гёчек", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Морские круизы и параглайдинг"),
+            DestinationItem("tr_dlm_datca", "Datça", "Датча", "Muğla", "Türkiye", "🏖️", DestinationLevel.RESORT, "DLM", "Тихие бухты и каменные виллы"),
 
             // İZMİR
-            DestinationItem("tr_izmir", "İzmir (Tüm Bölge)", "Измир (Чешме, Кушадасы)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Çeşme, Alaçatı, Kuşadası"),
-            DestinationItem("tr_adb_cesme", "Çeşme / Alaçatı", "Чешме / Алачаты", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Rüzgar Sörfü & Butik Taş Oteller"),
-            DestinationItem("tr_adb_kusadasi", "Kuşadası / Selçuk", "Кушадасы / Сельчук", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Efes Antik Kenti & Plajlar"),
+            DestinationItem("tr_izmir", "İzmir (Tüm Bölge)", "Измир (Чешме, Кушадасы)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "ADB", "Чешме, Алачаты, Кушадасы"),
+            DestinationItem("tr_adb_cesme", "Çeşme / Alaçatı", "Чешме / Алачаты", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Виндсерфинг и бутик-отели"),
+            DestinationItem("tr_adb_kusadasi", "Kuşadası / Selçuk", "Кушадасы / Сельчук", "İzmir", "Türkiye", "🏖️", DestinationLevel.RESORT, "ADB", "Античный Эфес и пляжи"),
 
             // İSTANBUL & KAPADOKYA
-            DestinationItem("tr_ist", "İstanbul (Tüm Şehir)", "Стамбул (Все районы)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "Sultanahmet, Taksim, Boğaz"),
-            DestinationItem("tr_nav", "Kapadokya (Göreme / Ürgüp)", "Каппадокия (Гёреме / Ургюп)", "Nevşehir", "Türkiye", "🎈", DestinationLevel.RESORT, "NAV", "Balon Turları & Mağara Oteller"),
+            DestinationItem("tr_ist", "İstanbul (Tüm Şehir)", "Стамбул (Все районы)", "Türkiye", "Türkiye", "🇹🇷", DestinationLevel.CITY, "IST", "Султанахмет, Таксим, Босфор"),
+            DestinationItem("tr_nav", "Kapadokya (Göreme / Ürgüp)", "Каппадокия (Гёреме / Ургюп)", "Nevşehir", "Türkiye", "🎈", DestinationLevel.RESORT, "NAV", "Полеты на воздушных шарах и пещерные отели"),
 
             // MISIR
-            DestinationItem("eg_all", "Mısır (Tüm Bölgeler)", "Египет (Все курорты)", null, "Mısır", "🇪🇬", DestinationLevel.COUNTRY, null, "Kızıldeniz & Nil Nehri Turları"),
-            DestinationItem("eg_ssh", "Şarm El-Şeyh (Naama / Nabq)", "Шарм-эль-Шейх (Наама / Набк)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "SSH", "Dalış Merkezleri & Mercan Resifleri"),
-            DestinationItem("eg_hrg", "Hurgada (El Gouna / Makadi)", "Хургада (Эль-Гуна / Макади)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "HRG", "Kum Plajlar & Su Sporları"),
+            DestinationItem("eg_all", "Mısır (Tüm Bölgeler)", "Египет (Все курорты)", null, "Mısır", "🇪🇬", DestinationLevel.COUNTRY, null, "Красное море и туры по Нилу"),
+            DestinationItem("eg_ssh", "Şarm El-Şeyh (Naama / Nabq)", "Шарм-эль-Шейх (Наама / Набк)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "SSH", "Дайвинг-центры и коралловые рифы"),
+            DestinationItem("eg_hrg", "Hurgada (El Gouna / Makadi)", "Хургада (Эль-Гуна / Макади)", "Mısır", "Mısır", "🏖️", DestinationLevel.RESORT, "HRG", "Песчаные пляжи и водные виды спорта"),
 
             // BAE
-            DestinationItem("ae_all", "Birleşik Arap Emirlikleri", "ОАЭ (Все эмираты)", null, "BAE", "🇦🇪", DestinationLevel.COUNTRY, null, "Dubai, Abu Dhabi, Sharjah"),
-            DestinationItem("ae_dxb", "Dubai (Marina, Palm, Downtown)", "Дубай (Марина, Пальм, Даунтаун)", "BAE", "BAE", "🏙️", DestinationLevel.CITY, "DXB", "Lüks Oteller & Çöl Safarisi"),
-            DestinationItem("ae_auh", "Abu Dhabi (Saadiyat, Yas)", "Абу-Даби (Саадият, Яс)", "BAE", "BAE", "🏖️", DestinationLevel.CITY, "AUH", "Louvre & Tema Parklar"),
+            DestinationItem("ae_all", "Birleşik Arap Emirlikleri", "ОАЭ (Все эмираты)", null, "BAE", "🇦🇪", DestinationLevel.COUNTRY, null, "Дубай, Абу-Даби, Шарджа"),
+            DestinationItem("ae_dxb", "Dubai (Marina, Palm, Downtown)", "Дубай (Марина, Пальм, Даунтаун)", "BAE", "BAE", "🏙️", DestinationLevel.CITY, "DXB", "Люкс отели и сафари в пустыне"),
+            DestinationItem("ae_auh", "Abu Dhabi (Saadiyat, Yas)", "Абу-Даби (Саадият, Яс)", "BAE", "BAE", "🏖️", DestinationLevel.CITY, "AUH", "Лувр и тематические парки"),
 
             // TAYLAND
-            DestinationItem("th_all", "Tayland (Tüm Bölgeler)", "Таиланд (Все курорты)", null, "Tayland", "🇹🇭", DestinationLevel.COUNTRY, null, "Phuket, Pattaya, Bangkok, Koh Samui"),
-            DestinationItem("th_hkt", "Phuket (Patong, Karon, Kata)", "Пхукет (Патонг, Карон, Ката)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "HKT", "Tropikal Ada & Plaj Kulüpleri"),
-            DestinationItem("th_utp", "Pattaya (Jomtien, Naklua)", "Паттайя (Джомтьен, Наклуа)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "UTP", "Eğlence, Gece Hayatı & Su Sporları"),
-            DestinationItem("th_bkk", "Bangkok (Sukhumvit, Silom)", "Бангкок", "Tayland", "Tayland", "🏙️", DestinationLevel.CITY, "BKK", "Tapınaklar & Alışveriş"),
-            DestinationItem("th_usm", "Koh Samui (Chaweng)", "Самуи (Чавенг)", "Tayland", "Tayland", "🏝️", DestinationLevel.RESORT, "USM", "Palmiye Plajları & Lüks Villalar"),
+            DestinationItem("th_all", "Tayland (Tüm Bölgeler)", "Таиланд (Все курорты)", null, "Tayland", "🇹🇭", DestinationLevel.COUNTRY, null, "Пхукет, Паттайя, Бангкок, Самуи"),
+            DestinationItem("th_hkt", "Phuket (Patong, Karon, Kata)", "Пхукет (Патонг, Карон, Ката)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "HKT", "Тропический остров и пляжные клубы"),
+            DestinationItem("th_utp", "Pattaya (Jomtien, Naklua)", "Паттайя (Джомтьен, Наклуа)", "Tayland", "Tayland", "🏖️", DestinationLevel.RESORT, "UTP", "Развлечения, ночная жизнь и водный спорт"),
+            DestinationItem("th_bkk", "Bangkok (Sukhumvit, Silom)", "Бангкок", "Tayland", "Tayland", "🏙️", DestinationLevel.CITY, "BKK", "Храмы и шопинг"),
+            DestinationItem("th_usm", "Koh Samui (Chaweng)", "Самуи (Чавенг)", "Tayland", "Tayland", "🏝️", DestinationLevel.RESORT, "USM", "Пальмовые пляжи и роскошные виллы"),
 
             // MALDİVLER
-            DestinationItem("mv_all", "Maldivler (Tüm Atoller)", "Мальдивы (Все атоллы)", null, "Maldivler", "🇲🇻", DestinationLevel.COUNTRY, "MLE", "Su Üstü Villaları & Mercan Resifleri"),
-            DestinationItem("mv_mle", "Male & Kuzey Atolü", "Мале и Северный Атолл", "Maldivler", "Maldivler", "🏝️", DestinationLevel.RESORT, "MLE", "Lüks Resort Adaları"),
+            DestinationItem("mv_all", "Maldivler (Tüm Atoller)", "Мальдивы (Все атоллы)", null, "Maldivler", "🇲🇻", DestinationLevel.COUNTRY, "MLE", "Виллы на воде и коралловые рифы"),
+            DestinationItem("mv_mle", "Male & Kuzey Atolü", "Мале и Северный Атолл", "Maldivler", "Maldivler", "🏝️", DestinationLevel.RESORT, "MLE", "Люкс резорт острова"),
 
             // SEYŞELLER
-            DestinationItem("sc_all", "Seyşeller (Mahe / Praslin)", "Сейшелы (Маэ / Праслин)", null, "Seyşeller", "🇸🇨", DestinationLevel.COUNTRY, "SEZ", "Tropik Cennet & Granit Sahilleri"),
+            DestinationItem("sc_all", "Seyşeller (Mahe / Praslin)", "Сейшелы (Маэ / Праслин)", null, "Seyşeller", "🇸🇨", DestinationLevel.COUNTRY, "SEZ", "Тропический рай и гранитные скалы"),
 
             // SRİ LANKA
-            DestinationItem("lk_all", "Sri Lanka (Tüm Bölgeler)", "Шри-Ланка (Все курорты)", null, "Sri Lanka", "🇱🇰", DestinationLevel.COUNTRY, "CMB", "Bentota, Hikkaduwa, Kandy"),
+            DestinationItem("lk_all", "Sri Lanka (Tüm Bölgeler)", "Шри-Ланка (Все курорты)", null, "Sri Lanka", "🇱🇰", DestinationLevel.COUNTRY, "CMB", "Бентота, Хиккадува, Канди"),
 
             // ENDONEZYA (BALİ)
-            DestinationItem("id_all", "Endonezya (Bali)", "Индонезия (Бали)", null, "Endonezya (Bali)", "🇮🇩", DestinationLevel.COUNTRY, "DPS", "Kuta, Seminyak, Ubud"),
+            DestinationItem("id_all", "Endonezya (Bali)", "Индонезия (Бали)", null, "Endonezya (Bali)", "🇮🇩", DestinationLevel.COUNTRY, "DPS", "Кута, Семиньяк, Убуд"),
 
             // KIBRIS
-            DestinationItem("cy_all", "Kıbrıs (Girne / Gazimağusa)", "Кипр (Все курорты)", null, "Kıbrıs", "🇨🇾", DestinationLevel.COUNTRY, "ECN", "Akdeniz Plajları & Kumarhaneler"),
+            DestinationItem("cy_all", "Kıbrıs (Girne / Gazimağusa)", "Кипр (Все курорты)", null, "Kıbrıs", "🇨🇾", DestinationLevel.COUNTRY, "ECN", "Средиземноморские пляжи и казино"),
 
             // GÜRCİSTAN
-            DestinationItem("ge_all", "Gürcistan (Batum / Tiflis)", "Грузия (Батуми / Тбилиси)", null, "Gürcistan", "🇬🇪", DestinationLevel.COUNTRY, "BUS", "Karadeniz Sahili & Gastronomi"),
+            DestinationItem("ge_all", "Gürcistan (Batum / Tiflis)", "Грузия (Батуми / Тбилиси)", null, "Gürcistan", "🇬🇪", DestinationLevel.COUNTRY, "BUS", "Черноморское побережье и гастрономия"),
 
             // KARADAĞ
-            DestinationItem("me_all", "Karadağ (Budva / Kotor)", "Черногория (Будва / Котор)", null, "Karadağ", "🇲🇪", DestinationLevel.COUNTRY, "TIV", "Adriyatik Kıyıları & Fiyortlar"),
+            DestinationItem("me_all", "Karadağ (Budva / Kotor)", "Черногория (Будва / Котор)", null, "Karadağ", "🇲🇪", DestinationLevel.COUNTRY, "TIV", "Адриатическое побережье и фьорды"),
 
             // VİETNAM
-            DestinationItem("vn_all", "Vietnam (Tüm Bölgeler)", "Вьетнам (Все курорты)", null, "Vietnam", "🇻🇳", DestinationLevel.COUNTRY, null, "Da Nang, Phu Quoc, Nha Trang"),
-            DestinationItem("vn_dad", "Da Nang / Hoi An", "Дананг / Хойан", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "DAD", "Mermer Dağları & Altın Köprü"),
-            DestinationItem("vn_pqc", "Phu Quoc (Long Beach)", "Фукуок (Лонг Бич)", "Vietnam", "Vietnam", "🏝️", DestinationLevel.RESORT, "PQC", "Tropikal Ada & Gün Batımı Kasabası"),
-            DestinationItem("vn_cxr", "Nha Trang (Tran Phu)", "Нячанг (Чан Фу)", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "CXR", "Akdeniz Havasında Asya Sahili")
+            DestinationItem("vn_all", "Vietnam (Tüm Bölgeler)", "Вьетнам (Все курорты)", null, "Vietnam", "🇻🇳", DestinationLevel.COUNTRY, null, "Дананг, Фукуок, Нячанг"),
+            DestinationItem("vn_dad", "Da Nang / Hoi An", "Дананг / Хойан", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "DAD", "Мраморные горы и Золотой мост"),
+            DestinationItem("vn_pqc", "Phu Quoc (Long Beach)", "Фукуок (Лонг Бич)", "Vietnam", "Vietnam", "🏝️", DestinationLevel.RESORT, "PQC", "Тропический остров и Сансет-Таун"),
+            DestinationItem("vn_cxr", "Nha Trang (Tran Phu)", "Нячанг (Чан Фу)", "Vietnam", "Vietnam", "🏖️", DestinationLevel.RESORT, "CXR", "Азиатское побережье со средиземноморской атмосферой")
         )
     }
 
@@ -243,19 +243,19 @@ fun HierarchicalDestinationPickerDialog(
     val countryTabs = remember(baseDestinations) {
         val availableCountries = baseDestinations.map { it.countryName }.distinct()
         val allTabs = listOf(
-            "ALL" to "🌍 Tüm Ülkeler / Все страны",
-            "Türkiye" to "🇹🇷 Türkiye / Турция",
-            "Mısır" to "🇪🇬 Mısır / Египет",
-            "BAE" to "🇦🇪 BAE / ОАЭ",
-            "Tayland" to "🇹🇭 Tayland / Таиланд",
-            "Maldivler" to "🇲🇻 Maldivler / Мальдивы",
-            "Seyşeller" to "🇸🇨 Seyşeller / Сейшелы",
-            "Sri Lanka" to "🇱🇰 Sri Lanka / Шри-Ланка",
-            "Endonezya (Bali)" to "🇮🇩 Bali / Бали",
-            "Kıbrıs" to "🇨🇾 Kıbrıs / Кипр",
-            "Gürcistan" to "🇬🇪 Gürcistan / Грузия",
-            "Karadağ" to "🇲🇪 Karadağ / Черногория",
-            "Vietnam" to "🇻🇳 Vietnam / Вьетнам"
+            "ALL" to "🌍 Все страны",
+            "Türkiye" to "🇹🇷 Турция",
+            "Mısır" to "🇪🇬 Египет",
+            "BAE" to "🇦🇪 ОАЭ",
+            "Tayland" to "🇹🇭 Таиланд",
+            "Maldivler" to "🇲🇻 Мальдивы",
+            "Seyşeller" to "🇸🇨 Сейшелы",
+            "Sri Lanka" to "🇱🇰 Шри-Ланка",
+            "Endonezya (Bali)" to "🇮🇩 Бали",
+            "Kıbrıs" to "🇨🇾 Кипр",
+            "Gürcistan" to "🇬🇪 Грузия",
+            "Karadağ" to "🇲🇪 Черногория",
+            "Vietnam" to "🇻🇳 Вьетнам"
         )
         allTabs.filter { it.first == "ALL" || availableCountries.any { c -> c.equals(it.first, ignoreCase = true) } }
     }
@@ -285,11 +285,11 @@ fun HierarchicalDestinationPickerDialog(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = customTitle ?: "🌍 КУДА ВЫ ХОТИТЕ ПОЕХАТЬ? / DESTİNASYON SEÇİMİ",
+                            text = customTitle ?: "🌍 КУДА ВЫ ХОТИТЕ ПОЕХАТЬ?",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         )
                         Text(
-                            text = if (allowedAirportCodes != null) "Sadece Aktif Uçuş Destinasyonları Gösteriliyor" else "1. Ülke → 2. Şehir → 3. Alt Belde / Resort Seçimi",
+                            text = if (allowedAirportCodes != null) "Активные направления полетов" else "1. Страна → 2. Город → 3. Курорт / Отели",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         )
                     }
@@ -377,9 +377,9 @@ fun HierarchicalDestinationPickerDialog(
                         }
 
                         val badgeText = when (item.level) {
-                            DestinationLevel.COUNTRY -> "ÜLKE / СТРАНА"
-                            DestinationLevel.CITY -> "ŞEHİR / ГОРОД"
-                            DestinationLevel.RESORT -> "RESORT / КУРОРТ"
+                            DestinationLevel.COUNTRY -> "СТРАНА"
+                            DestinationLevel.CITY -> "ГОРОД"
+                            DestinationLevel.RESORT -> "КУРОРТ"
                             else -> ""
                         }
 
@@ -420,7 +420,7 @@ fun HierarchicalDestinationPickerDialog(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = if (item.nameRu.isNotBlank()) "${item.name} · ${item.nameRu}" else item.name,
+                                                text = if (item.nameRu.isNotBlank()) item.nameRu else item.name,
                                                 style = TourOSTypography.BodyMedium.copy(
                                                     fontWeight = if (item.level == DestinationLevel.COUNTRY || item.level == DestinationLevel.CITY) FontWeight.Bold else FontWeight.SemiBold,
                                                     color = Color(0xFF0F172A),
@@ -476,3 +476,4 @@ fun HierarchicalDestinationPickerDialog(
         }
     }
 }
+

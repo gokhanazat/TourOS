@@ -1,5 +1,6 @@
 package com.mgacreative.touros.ui.screens
 
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -147,9 +148,9 @@ fun UserListScreen(
                     is UserListUiState.Success -> {
                         if (state.users.isEmpty()) {
                             TourOSEmptyState(
-                                title = "Kullanıcı Bulunamadı",
-                                description = "Kriterlerinize uygun aktif kullanıcı bulunmuyor.",
-                                actionButtonText = "+ Yeni Kullanıcı Davet Et",
+                                title = AppLanguageManager.translate("Kullanıcı Bulunamadı"),
+                                description = AppLanguageManager.translate("Kriterlerinize uygun aktif kullanıcı bulunmuyor."),
+                                actionButtonText = AppLanguageManager.translate("+ Yeni Kullanıcı Davet Et"),
                                 onActionClick = onNavigateToInviteUser
                             )
                         } else {

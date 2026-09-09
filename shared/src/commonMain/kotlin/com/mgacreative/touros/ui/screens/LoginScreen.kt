@@ -62,14 +62,37 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var agencyCode by remember { mutableStateOf("") }
+    var rememberMe by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf("ACENTE") } // "ACENTE" or "ADMIN"
     var localValidationError by remember { mutableStateOf<String?>(null) }
 
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        val saved = com.mgacreative.touros.utils.LocalAuthStorage.loadCredentials()
+        if (saved != null && saved.rememberMe) {
+            email = saved.email
+            password = saved.password
+            agencyCode = saved.agencyCode
+            rememberMe = true
+        }
+    }
+
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
             val user = (uiState as AuthUiState.Success).user
+            if (rememberMe) {
+                com.mgacreative.touros.utils.LocalAuthStorage.saveCredentials(
+                    com.mgacreative.touros.utils.SavedAuthCredentials(
+                        email = email.trim(),
+                        password = password,
+                        agencyCode = agencyCode.trim(),
+                        rememberMe = true
+                    )
+                )
+            } else {
+                com.mgacreative.touros.utils.LocalAuthStorage.clearCredentials()
+            }
             onLoginSuccess(user.role)
             viewModel.resetState()
         }
@@ -205,11 +228,33 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(TourOSSpacing.small))
 
-                // Forgot Password Link
-                Box(
+                // Remember Me & Forgot Password Row
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.CenterEnd
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clickable { rememberMe = !rememberMe }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        androidx.compose.material3.Checkbox(
+                            checked = rememberMe,
+                            onCheckedChange = { rememberMe = it },
+                            colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                checkedColor = TourOSColors.Primary,
+                                uncheckedColor = TourOSColors.Border
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Beni Hatırla",
+                            style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontSize = 13.sp)
+                        )
+                    }
+
                     Text(
                         text = "Şifremi Unuttum?",
                         style = TourOSTypography.Label.copy(color = TourOSColors.Secondary),

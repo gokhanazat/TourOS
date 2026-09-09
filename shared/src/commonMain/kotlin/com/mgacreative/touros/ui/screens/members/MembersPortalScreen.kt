@@ -2385,7 +2385,7 @@ private fun LiveBookingsSection(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "📍 $inferredDest",
+                                    text = "📍 ${AppLanguageManager.translate(inferredDest, selectedLang)}",
                                     fontSize = 11.sp,
                                     color = Color(0xFF0284C7),
                                     fontWeight = FontWeight.SemiBold
@@ -2732,7 +2732,7 @@ private fun TravelHistorySection(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 Text(
-                                    text = "📍 $inferredDest",
+                                    text = "📍 ${AppLanguageManager.translate(inferredDest, selectedLang)}",
                                     fontSize = 11.sp,
                                     color = Color(0xFF0284C7),
                                     fontWeight = FontWeight.SemiBold

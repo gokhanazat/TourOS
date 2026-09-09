@@ -130,11 +130,11 @@ fun RussianDepartureCityPickerDialog(
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = customTitle ?: "🇷🇺 ГОРОД ВЫЛЕТА / KALKIŞ ŞEHRİ",
+                            text = customTitle ?: "🇷🇺 ГОРОД ВЫЛЕТА",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         )
                         Text(
-                            text = if (allowedAirportCodes != null) "Sadece Aktif Uçuş Olan Kalkış Noktaları" else "Откуда вы летите? (Rusya Kalkış Noktası)",
+                            text = if (allowedAirportCodes != null) "Активные пункты вылета" else "Откуда вы летите?",
                             style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         )
                     }
@@ -171,11 +171,18 @@ fun RussianDepartureCityPickerDialog(
                 if (searchQuery.isBlank()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
-                            text = "⭐ Популярные города (Popüler Kalkışlar):",
+                            text = "⭐ Популярные города:",
                             style = TourOSTypography.Caption.copy(color = Color(0xFF475569), fontWeight = FontWeight.Bold)
                         )
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            items(defaultRussianDepartureCities.filter { it.isPopular }.take(6)) { popCity ->
+                            items(defaultRussianDepartureCities.filter { it.isPopular }.take(7)) { popCity ->
+                                val chipText = when (popCity.airportCode) {
+                                    "MOW" -> "Москва (Все)"
+                                    "SVO" -> "Шереметьево"
+                                    "VKO" -> "Внуково"
+                                    "DME" -> "Домодедово"
+                                    else -> popCity.nameRu.substringBefore(" (")
+                                }
                                 Surface(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(14.dp))
@@ -187,7 +194,7 @@ fun RussianDepartureCityPickerDialog(
                                     color = Color(0xFFF8FAFC)
                                 ) {
                                     Text(
-                                        text = popCity.nameRu.substringBefore(" ("),
+                                        text = chipText,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                         style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = Color(0xFF0F5A56))
                                     )
@@ -205,7 +212,7 @@ fun RussianDepartureCityPickerDialog(
                         modifier = Modifier.fillMaxWidth().weight(1f),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Город не найден / Eşleşen Rusya kalkış şehri bulunamadı.", style = TourOSTypography.BodyMedium, color = Color(0xFF94A3B8))
+                        Text("Город не найден.", style = TourOSTypography.BodyMedium, color = Color(0xFF94A3B8))
                     }
                 } else {
                     LazyColumn(
@@ -240,7 +247,7 @@ fun RussianDepartureCityPickerDialog(
                                         Text("🛫", fontSize = 18.sp)
                                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                             Text(
-                                                text = "${city.nameRu} (${city.nameTr})",
+                                                text = city.nameRu,
                                                 style = TourOSTypography.BodyMedium.copy(
                                                     fontWeight = FontWeight.Bold,
                                                     color = Color(0xFF0F172A),

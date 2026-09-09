@@ -187,9 +187,9 @@ fun HotelContractScreen(
                         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                             if (filteredContracts.isEmpty()) {
                                 TourOSEmptyState(
-                                    title = "Kontrat Bulunamadı",
-                                    description = "Bu filtreye ait kontrat kaydı bulunamadı.",
-                                    actionButtonText = "+ Yeni Kontrat Ekle",
+                                    title = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Kontrat Bulunamadı"),
+                                    description = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Bu filtreye ait kontrat kaydı bulunamadı."),
+                                    actionButtonText = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("+ Yeni Kontrat Ekle"),
                                     onActionClick = { viewModel.openNewContractForm() }
                                 )
                             } else {

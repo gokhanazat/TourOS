@@ -39,7 +39,8 @@ data class FlightOption(
     val inboundDuration: String = "4s 25d",
     val baggageKg: Int = 20,
     val handBaggageKg: Int = 8,
-    val priceDeltaRub: Double = 0.0
+    val priceDeltaRub: Double = 0.0,
+    val operatorName: String = ""
 )
 
 data class ExtraService(
@@ -242,25 +243,73 @@ class B2BTourSearchViewModel(
             if (target.contains(query) || query.contains(target)) return true
 
             // Eş anlamlı havaalanı ve şehir kodları eşleşmeleri
-            val isTargetMoscow = target.contains("moskova") || target.contains("moscow") || target.contains("москва") || target.contains("svo") || target.contains("vko") || target.contains("dme") || target.contains("zia")
-            val isQueryMoscow = query.contains("moskova") || query.contains("moscow") || query.contains("москва") || query.contains("svo") || query.contains("vko") || query.contains("dme") || query.contains("zia")
+            val isTargetMoscow = target.contains("moskova") || target.contains("moscow") || target.contains("москва") || target.contains("svo") || target.contains("vko") || target.contains("dme") || target.contains("zia") || target.contains("mow")
+            val isQueryMoscow = query.contains("moskova") || query.contains("moscow") || query.contains("москва") || query.contains("svo") || query.contains("vko") || query.contains("dme") || query.contains("zia") || query.contains("mow")
             if (isTargetMoscow && isQueryMoscow) return true
 
             val isTargetSpb = target.contains("petersburg") || target.contains("петербург") || target.contains("питер") || target.contains("led")
             val isQuerySpb = query.contains("petersburg") || query.contains("петербург") || query.contains("питер") || query.contains("led")
             if (isTargetSpb && isQuerySpb) return true
 
-            val isTargetIst = target.contains("istanbul") || target.contains("istanbul") || target.contains("ist") || target.contains("saw") || target.contains("стамбул")
-            val isQueryIst = query.contains("istanbul") || query.contains("istanbul") || query.contains("ist") || query.contains("saw") || query.contains("стамбул")
+            val isTargetIst = target.contains("istanbul") || target.contains("ist") || target.contains("saw") || target.contains("стамбул")
+            val isQueryIst = query.contains("istanbul") || query.contains("ist") || query.contains("saw") || query.contains("стамбул")
             if (isTargetIst && isQueryIst) return true
 
             val isTargetKzn = target.contains("kazan") || target.contains("казань") || target.contains("kzn")
             val isQueryKzn = query.contains("kazan") || query.contains("казань") || query.contains("kzn")
             if (isTargetKzn && isQueryKzn) return true
 
+            val isTargetYek = target.contains("yekaterinburg") || target.contains("ekaterinburg") || target.contains("екатеринбург") || target.contains("svx")
+            val isQueryYek = query.contains("yekaterinburg") || query.contains("ekaterinburg") || query.contains("екатеринбург") || query.contains("svx")
+            if (isTargetYek && isQueryYek) return true
+
+            val isTargetNov = target.contains("novosibirsk") || target.contains("новосибирск") || target.contains("ovb")
+            val isQueryNov = query.contains("novosibirsk") || query.contains("новосибирск") || query.contains("ovb")
+            if (isTargetNov && isQueryNov) return true
+
+            val isTargetSam = target.contains("samara") || target.contains("самара") || target.contains("kuf")
+            val isQuerySam = query.contains("samara") || query.contains("самара") || query.contains("kuf")
+            if (isTargetSam && isQuerySam) return true
+
+            val isTargetUfa = target.contains("ufa") || target.contains("уфа")
+            val isQueryUfa = query.contains("ufa") || query.contains("уфа")
+            if (isTargetUfa && isQueryUfa) return true
+
+            val isTargetNiz = target.contains("nizhny") || target.contains("нижний") || target.contains("goj")
+            val isQueryNiz = query.contains("nizhny") || query.contains("нижний") || query.contains("goj")
+            if (isTargetNiz && isQueryNiz) return true
+
+            val isTargetChe = target.contains("chelyabinsk") || target.contains("челябинск") || target.contains("cek")
+            val isQueryChe = query.contains("chelyabinsk") || query.contains("челябинск") || query.contains("cek")
+            if (isTargetChe && isQueryChe) return true
+
+            val isTargetKra = target.contains("krasnoyarsk") || target.contains("красноярск") || target.contains("kja")
+            val isQueryKra = query.contains("krasnoyarsk") || query.contains("красноярск") || query.contains("kja")
+            if (isTargetKra && isQueryKra) return true
+
             val isTargetAntalya = target.contains("antalya") || target.contains("ayt") || target.contains("анталья")
             val isQueryAntalya = query.contains("antalya") || query.contains("ayt") || query.contains("анталья")
             if (isTargetAntalya && isQueryAntalya) return true
+
+            val isTargetBod = target.contains("bodrum") || target.contains("бодрум") || target.contains("bjv")
+            val isQueryBod = query.contains("bodrum") || query.contains("бодрум") || query.contains("bjv")
+            if (isTargetBod && isQueryBod) return true
+
+            val isTargetDal = target.contains("dalaman") || target.contains("даламан") || target.contains("dlm")
+            val isQueryDal = query.contains("dalaman") || query.contains("даламан") || query.contains("dlm")
+            if (isTargetDal && isQueryDal) return true
+
+            val isTargetIzm = target.contains("izmir") || target.contains("измир") || target.contains("adb")
+            val isQueryIzm = query.contains("izmir") || query.contains("измир") || query.contains("adb")
+            if (isTargetIzm && isQueryIzm) return true
+
+            val isTargetAnk = target.contains("ankara") || target.contains("анкара") || target.contains("esb")
+            val isQueryAnk = query.contains("ankara") || query.contains("анкара") || query.contains("esb")
+            if (isTargetAnk && isQueryAnk) return true
+
+            val isTargetSoc = target.contains("sochi") || target.contains("сочи") || target.contains("aer")
+            val isQuerySoc = query.contains("sochi") || query.contains("сочи") || query.contains("aer")
+            if (isTargetSoc && isQuerySoc) return true
 
             return false
         }
@@ -886,137 +935,14 @@ data class QuotaCheckResultDto(
     fun selectProductForBooking(product: UnifiedProductEntity) {
         selectedProduct.value = product
         
-        val airline = product.airlineName.ifBlank { "Charter Flight" }
-        val flightNo = product.flightNumber.ifBlank { "CH-${(1000..9999).random()}" }
-        val depCity = product.departureCity.ifBlank { "Kalkış Şehri" }
-        val arrCity = product.region.ifBlank { "Varış Bölgesi" }
-        val bagKg = if (product.baggageKg > 0) product.baggageKg else 20
-
-        val flights = listOf(
-            FlightOption(
-                id = "fl-${product.id}-1",
-                outboundAirline = airline,
-                outboundFlightNumber = flightNo,
-                outboundDeparturePort = "$depCity 02:05",
-                outboundArrivalPort = "$arrCity 06:45",
-                outboundDepartureTime = "02:05",
-                outboundArrivalTime = "06:45",
-                outboundDuration = "4s 40d",
-                inboundAirline = airline,
-                inboundFlightNumber = "${flightNo}R",
-                inboundDeparturePort = "$arrCity 18:40",
-                inboundArrivalPort = "$depCity 23:05",
-                inboundDepartureTime = "18:40",
-                inboundArrivalTime = "23:05",
-                inboundDuration = "4s 25d",
-                baggageKg = bagKg,
-                handBaggageKg = 8,
-                priceDeltaRub = 0.0
-            ),
-            FlightOption(
-                id = "fl-${product.id}-2",
-                outboundAirline = "Turkish Airlines (THY)",
-                outboundFlightNumber = "TK-3701",
-                outboundDeparturePort = "$depCity 07:30",
-                outboundArrivalPort = "$arrCity 11:50",
-                outboundDepartureTime = "07:30",
-                outboundArrivalTime = "11:50",
-                outboundDuration = "4s 20d",
-                inboundAirline = "Turkish Airlines (THY)",
-                inboundFlightNumber = "TK-3702",
-                inboundDeparturePort = "$arrCity 20:15",
-                inboundArrivalPort = "$depCity 00:40",
-                inboundDepartureTime = "20:15",
-                inboundArrivalTime = "00:40",
-                inboundDuration = "4s 25d",
-                baggageKg = 23,
-                handBaggageKg = 8,
-                priceDeltaRub = 4200.0
-            ),
-            FlightOption(
-                id = "fl-${product.id}-3",
-                outboundAirline = "Pegasus Airlines",
-                outboundFlightNumber = "PC-2014",
-                outboundDeparturePort = "$depCity 10:15",
-                outboundArrivalPort = "$arrCity 14:40",
-                outboundDepartureTime = "10:15",
-                outboundArrivalTime = "14:40",
-                outboundDuration = "4s 25d",
-                inboundAirline = "Pegasus Airlines",
-                inboundFlightNumber = "PC-2015",
-                inboundDeparturePort = "$arrCity 16:30",
-                inboundArrivalPort = "$depCity 20:50",
-                inboundDepartureTime = "16:30",
-                inboundArrivalTime = "20:50",
-                inboundDuration = "4s 20d",
-                baggageKg = 20,
-                handBaggageKg = 8,
-                priceDeltaRub = 1800.0
-            ),
-            FlightOption(
-                id = "fl-${product.id}-4",
-                outboundAirline = "Aeroflot",
-                outboundFlightNumber = "SU-2134",
-                outboundDeparturePort = "$depCity 14:00",
-                outboundArrivalPort = "$arrCity 18:25",
-                outboundDepartureTime = "14:00",
-                outboundArrivalTime = "18:25",
-                outboundDuration = "4s 25d",
-                inboundAirline = "Aeroflot",
-                inboundFlightNumber = "SU-2135",
-                inboundDeparturePort = "$arrCity 11:20",
-                inboundArrivalPort = "$depCity 15:45",
-                inboundDepartureTime = "11:20",
-                inboundArrivalTime = "15:45",
-                inboundDuration = "4s 25d",
-                baggageKg = 23,
-                handBaggageKg = 10,
-                priceDeltaRub = 5600.0
-            ),
-            FlightOption(
-                id = "fl-${product.id}-5",
-                outboundAirline = "Nordwind Airlines",
-                outboundFlightNumber = "N4-5821",
-                outboundDeparturePort = "$depCity 23:45",
-                outboundArrivalPort = "$arrCity 04:15",
-                outboundDepartureTime = "23:45",
-                outboundArrivalTime = "04:15",
-                outboundDuration = "4s 30d",
-                inboundAirline = "Nordwind Airlines",
-                inboundFlightNumber = "N4-5822",
-                inboundDeparturePort = "$arrCity 05:30",
-                inboundArrivalPort = "$depCity 09:55",
-                inboundDepartureTime = "05:30",
-                inboundArrivalTime = "09:55",
-                inboundDuration = "4s 25d",
-                baggageKg = 20,
-                handBaggageKg = 8,
-                priceDeltaRub = -1500.0
-            ),
-            FlightOption(
-                id = "fl-${product.id}-6",
-                outboundAirline = "SunExpress",
-                outboundFlightNumber = "XQ-9012",
-                outboundDeparturePort = "$depCity 18:20",
-                outboundArrivalPort = "$arrCity 22:45",
-                outboundDepartureTime = "18:20",
-                outboundArrivalTime = "22:45",
-                outboundDuration = "4s 25d",
-                inboundAirline = "SunExpress",
-                inboundFlightNumber = "XQ-9013",
-                inboundDeparturePort = "$arrCity 08:40",
-                inboundArrivalPort = "$depCity 13:05",
-                inboundDepartureTime = "08:40",
-                inboundArrivalTime = "13:05",
-                inboundDuration = "4s 25d",
-                baggageKg = 20,
-                handBaggageKg = 8,
-                priceDeltaRub = 2300.0
-            )
-        )
-
-        availableFlightOptions.value = flights
-        selectedFlightOption.value = flights.first()
+        if (product.flightNumber.isNotBlank()) {
+            val flights = getOperatorFlightOptionsForProduct(product)
+            availableFlightOptions.value = flights
+            selectedFlightOption.value = flights.firstOrNull()
+        } else {
+            availableFlightOptions.value = emptyList()
+            selectedFlightOption.value = null
+        }
 
         val paxCount = (adults.value + childs.value).coerceAtLeast(1)
 
@@ -1355,4 +1281,283 @@ data class QuotaCheckResultDto(
         }
     }
 
+    private fun getOperatorFlightOptionsForProduct(product: UnifiedProductEntity): List<FlightOption> {
+        val op = product.safeOperatorName.lowercase()
+        val depCity = product.departureCity.ifBlank { "Moskova" }
+        val arrCity = product.region.ifBlank { "Antalya" }
+        val bagKg = if (product.baggageKg > 0) product.baggageKg else 20
+
+        val candidateFlights = mutableListOf<FlightOption>()
+
+        // Paketin asıl uçuşu her zaman 1. sırada (0 RUB fark ile dahil)
+        if (product.flightNumber.isNotBlank()) {
+            val airline = product.airlineName.ifBlank { 
+                when {
+                    op.contains("pegas") -> "Nordwind Airlines"
+                    op.contains("anex") -> "Azur Air"
+                    op.contains("coral") || op.contains("odeon") || op.contains("sunmar") -> "SunExpress"
+                    op.contains("fun") || op.contains("tui") -> "Red Wings"
+                    op.contains("aeroflot") || op.contains("biblio") -> "Aeroflot"
+                    else -> "Pegasus Airlines"
+                }
+            }
+            val mainFlightNo = product.flightNumber
+            val returnFlightNo = if (mainFlightNo.endsWith("R", ignoreCase = true)) mainFlightNo else "${mainFlightNo}R"
+
+            candidateFlights.add(
+                FlightOption(
+                    id = "fl-${product.id}-main",
+                    outboundAirline = airline,
+                    outboundFlightNumber = mainFlightNo,
+                    outboundDeparturePort = "$depCity 02:05",
+                    outboundArrivalPort = "$arrCity 06:45",
+                    outboundDepartureTime = "02:05",
+                    outboundArrivalTime = "06:45",
+                    outboundDuration = "4s 40d",
+                    inboundAirline = airline,
+                    inboundFlightNumber = returnFlightNo,
+                    inboundDeparturePort = "$arrCity 18:40",
+                    inboundArrivalPort = "$depCity 23:05",
+                    inboundDepartureTime = "18:40",
+                    inboundArrivalTime = "23:05",
+                    inboundDuration = "4s 25d",
+                    baggageKg = bagKg,
+                    handBaggageKg = 8,
+                    priceDeltaRub = 0.0,
+                    operatorName = product.safeOperatorName
+                )
+            )
+        }
+
+        // Operatöre özel alternatif uçuşlar (Sadece seçilen operatörün anlaşmalı uçuşları)
+        when {
+            op.contains("pegas") -> {
+                if (!candidateFlights.any { it.outboundFlightNumber.contains("N4-5821") }) {
+                    candidateFlights.add(
+                        FlightOption(
+                            id = "fl-${product.id}-pegas-1",
+                            outboundAirline = "Nordwind Airlines",
+                            outboundFlightNumber = "N4-5821",
+                            outboundDeparturePort = "$depCity 23:45",
+                            outboundArrivalPort = "$arrCity 04:15",
+                            outboundDepartureTime = "23:45",
+                            outboundArrivalTime = "04:15",
+                            outboundDuration = "4s 30d",
+                            inboundAirline = "Nordwind Airlines",
+                            inboundFlightNumber = "N4-5822",
+                            inboundDeparturePort = "$arrCity 05:30",
+                            inboundArrivalPort = "$depCity 09:55",
+                            inboundDepartureTime = "05:30",
+                            inboundArrivalTime = "09:55",
+                            inboundDuration = "4s 25d",
+                            baggageKg = 20,
+                            handBaggageKg = 8,
+                            priceDeltaRub = 0.0,
+                            operatorName = product.safeOperatorName
+                        )
+                    )
+                }
+                candidateFlights.add(
+                    FlightOption(
+                        id = "fl-${product.id}-pegas-2",
+                        outboundAirline = "Nordwind Airlines (Konfor)",
+                        outboundFlightNumber = "N4-5825",
+                        outboundDeparturePort = "$depCity 10:15",
+                        outboundArrivalPort = "$arrCity 14:40",
+                        outboundDepartureTime = "10:15",
+                        outboundArrivalTime = "14:40",
+                        outboundDuration = "4s 25d",
+                        inboundAirline = "Nordwind Airlines (Konfor)",
+                        inboundFlightNumber = "N4-5826",
+                        inboundDeparturePort = "$arrCity 16:30",
+                        inboundArrivalPort = "$depCity 20:50",
+                        inboundDepartureTime = "16:30",
+                        inboundArrivalTime = "20:50",
+                        inboundDuration = "4s 20d",
+                        baggageKg = 25,
+                        handBaggageKg = 10,
+                        priceDeltaRub = 1800.0,
+                        operatorName = product.safeOperatorName
+                    )
+                )
+            }
+            op.contains("anex") -> {
+                if (!candidateFlights.any { it.outboundFlightNumber.contains("ZF-8881") }) {
+                    candidateFlights.add(
+                        FlightOption(
+                            id = "fl-${product.id}-anex-1",
+                            outboundAirline = "Azur Air",
+                            outboundFlightNumber = "ZF-8881",
+                            outboundDeparturePort = "$depCity 03:30",
+                            outboundArrivalPort = "$arrCity 08:10",
+                            outboundDepartureTime = "03:30",
+                            outboundArrivalTime = "08:10",
+                            outboundDuration = "4s 40d",
+                            inboundAirline = "Azur Air",
+                            inboundFlightNumber = "ZF-8882",
+                            inboundDeparturePort = "$arrCity 19:15",
+                            inboundArrivalPort = "$depCity 23:45",
+                            inboundDepartureTime = "19:15",
+                            inboundArrivalTime = "23:45",
+                            inboundDuration = "4s 30d",
+                            baggageKg = 20,
+                            handBaggageKg = 8,
+                            priceDeltaRub = 0.0,
+                            operatorName = product.safeOperatorName
+                        )
+                    )
+                }
+                candidateFlights.add(
+                    FlightOption(
+                        id = "fl-${product.id}-anex-2",
+                        outboundAirline = "Southwind Airlines",
+                        outboundFlightNumber = "2S-101",
+                        outboundDeparturePort = "$depCity 11:00",
+                        outboundArrivalPort = "$arrCity 15:30",
+                        outboundDepartureTime = "11:00",
+                        outboundArrivalTime = "15:30",
+                        outboundDuration = "4s 30d",
+                        inboundAirline = "Southwind Airlines",
+                        inboundFlightNumber = "2S-102",
+                        inboundDeparturePort = "$arrCity 17:00",
+                        inboundArrivalPort = "$depCity 21:30",
+                        inboundDepartureTime = "17:00",
+                        inboundArrivalTime = "21:30",
+                        inboundDuration = "4s 30d",
+                        baggageKg = 20,
+                        handBaggageKg = 8,
+                        priceDeltaRub = 2100.0,
+                        operatorName = product.safeOperatorName
+                    )
+                )
+            }
+            op.contains("coral") || op.contains("sunmar") || op.contains("odeon") -> {
+                if (!candidateFlights.any { it.outboundFlightNumber.contains("XQ-9012") }) {
+                    candidateFlights.add(
+                        FlightOption(
+                            id = "fl-${product.id}-coral-1",
+                            outboundAirline = "SunExpress",
+                            outboundFlightNumber = "XQ-9012",
+                            outboundDeparturePort = "$depCity 18:20",
+                            outboundArrivalPort = "$arrCity 22:45",
+                            outboundDepartureTime = "18:20",
+                            outboundArrivalTime = "22:45",
+                            outboundDuration = "4s 25d",
+                            inboundAirline = "SunExpress",
+                            inboundFlightNumber = "XQ-9013",
+                            inboundDeparturePort = "$arrCity 08:40",
+                            inboundArrivalPort = "$depCity 13:05",
+                            inboundDepartureTime = "08:40",
+                            inboundArrivalTime = "13:05",
+                            inboundDuration = "4s 25d",
+                            baggageKg = 20,
+                            handBaggageKg = 8,
+                            priceDeltaRub = 0.0,
+                            operatorName = product.safeOperatorName
+                        )
+                    )
+                }
+                candidateFlights.add(
+                    FlightOption(
+                        id = "fl-${product.id}-coral-2",
+                        outboundAirline = "Pegasus Airlines",
+                        outboundFlightNumber = "PC-2014",
+                        outboundDeparturePort = "$depCity 10:15",
+                        outboundArrivalPort = "$arrCity 14:40",
+                        outboundDepartureTime = "10:15",
+                        outboundArrivalTime = "14:40",
+                        outboundDuration = "4s 25d",
+                        inboundAirline = "Pegasus Airlines",
+                        inboundFlightNumber = "PC-2015",
+                        inboundDeparturePort = "$arrCity 16:30",
+                        inboundArrivalPort = "$depCity 20:50",
+                        inboundDepartureTime = "16:30",
+                        inboundArrivalTime = "20:50",
+                        inboundDuration = "4s 20d",
+                        baggageKg = 20,
+                        handBaggageKg = 8,
+                        priceDeltaRub = 1800.0,
+                        operatorName = product.safeOperatorName
+                    )
+                )
+            }
+            op.contains("fun") || op.contains("tui") -> {
+                if (!candidateFlights.any { it.outboundFlightNumber.contains("WZ-3091") }) {
+                    candidateFlights.add(
+                        FlightOption(
+                            id = "fl-${product.id}-fun-1",
+                            outboundAirline = "Red Wings",
+                            outboundFlightNumber = "WZ-3091",
+                            outboundDeparturePort = "$depCity 04:10",
+                            outboundArrivalPort = "$arrCity 08:40",
+                            outboundDepartureTime = "04:10",
+                            outboundArrivalTime = "08:40",
+                            outboundDuration = "4s 30d",
+                            inboundAirline = "Red Wings",
+                            inboundFlightNumber = "WZ-3092",
+                            inboundDeparturePort = "$arrCity 20:00",
+                            inboundArrivalPort = "$depCity 00:30",
+                            inboundDepartureTime = "20:00",
+                            inboundArrivalTime = "00:30",
+                            inboundDuration = "4s 30d",
+                            baggageKg = 20,
+                            handBaggageKg = 8,
+                            priceDeltaRub = 0.0,
+                            operatorName = product.safeOperatorName
+                        )
+                    )
+                }
+                candidateFlights.add(
+                    FlightOption(
+                        id = "fl-${product.id}-fun-2",
+                        outboundAirline = "Pegasus Airlines",
+                        outboundFlightNumber = "PC-1822",
+                        outboundDeparturePort = "$depCity 13:20",
+                        outboundArrivalPort = "$arrCity 17:45",
+                        outboundDepartureTime = "13:20",
+                        outboundArrivalTime = "17:45",
+                        outboundDuration = "4s 25d",
+                        inboundAirline = "Pegasus Airlines",
+                        inboundFlightNumber = "PC-1823",
+                        inboundDeparturePort = "$arrCity 19:30",
+                        inboundArrivalPort = "$depCity 23:55",
+                        inboundDepartureTime = "19:30",
+                        inboundArrivalTime = "23:55",
+                        inboundDuration = "4s 25d",
+                        baggageKg = 20,
+                        handBaggageKg = 8,
+                        priceDeltaRub = 2300.0,
+                        operatorName = product.safeOperatorName
+                    )
+                )
+            }
+            op.contains("biblio") || op.contains("aeroflot") -> {
+                candidateFlights.add(
+                    FlightOption(
+                        id = "fl-${product.id}-afl-1",
+                        outboundAirline = "Aeroflot",
+                        outboundFlightNumber = "SU-2134",
+                        outboundDeparturePort = "$depCity 14:00",
+                        outboundArrivalPort = "$arrCity 18:25",
+                        outboundDepartureTime = "14:00",
+                        outboundArrivalTime = "18:25",
+                        outboundDuration = "4s 25d",
+                        inboundAirline = "Aeroflot",
+                        inboundFlightNumber = "SU-2135",
+                        inboundDeparturePort = "$arrCity 11:20",
+                        inboundArrivalPort = "$depCity 15:45",
+                        inboundDepartureTime = "11:20",
+                        inboundArrivalTime = "15:45",
+                        inboundDuration = "4s 25d",
+                        baggageKg = 23,
+                        handBaggageKg = 10,
+                        priceDeltaRub = 0.0,
+                        operatorName = product.safeOperatorName
+                    )
+                )
+            }
+        }
+
+        return candidateFlights
+    }
 }
