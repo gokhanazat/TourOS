@@ -117,6 +117,7 @@ val useCaseModule = module {
     factory { UpdateRolePermissionsUseCase(get()) }
     factory { GetUsersUseCase(get()) }
     factory { ToggleUserStatusUseCase(get()) }
+    factory { com.mgacreative.touros.domain.usecase.UpdateUserRolesUseCase(get()) }
     factory { CreateOrUpdateTourUseCase(get()) }
     factory { GetToursUseCase(get()) }
     factory { GetTourDetailUseCase(get()) }
@@ -171,7 +172,7 @@ val viewModelModule = module {
     factory { ForgotPasswordViewModel(get()) }
     factory { InviteUserViewModel(get()) }
     factory { PermissionMatrixViewModel(get()) }
-    factory { UserListViewModel(get(), get(), get()) }
+    factory { UserListViewModel(get(), get(), get(), get()) }
     factory { TourFormViewModel(get(), get(), get(), get(), get()) }
     factory { TourListViewModel(get(), get(), get()) }
     factory { TourMediaGalleryViewModel(get(), get()) }
@@ -207,6 +208,10 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.AdminDataManagementViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminDeploymentViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminAgencyLedgerViewModel(get()) }
+
+    // 🤖 AI Assistant Modülü (İzole - Mevcut koda dokunmaz)
+    single { com.mgacreative.touros.ai.service.YandexGptService() }
+    single { com.mgacreative.touros.ai.viewmodel.AIAssistantViewModel(get(), get()) }
 }
 
 /**

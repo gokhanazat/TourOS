@@ -19,6 +19,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -26,6 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -63,6 +72,7 @@ fun UserListScreen(
     viewModel: UserListViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
 
     Scaffold(
         topBar = {
@@ -71,7 +81,7 @@ fun UserListScreen(
                 subtitle = "Şirket kullanıcılarını listeleyin, arayın ve durumlarını yönetin",
                 actions = {
                     TourOSButton(
-                        text = "+ Kullanıcı Davet Et",
+                        text = AppLanguageManager.translate("+ Kullanıcı Davet Et", currentLanguage.code),
                         onClick = onNavigateToInviteUser,
                         variant = TourOSButtonVariant.PRIMARY
                     )
@@ -106,7 +116,7 @@ fun UserListScreen(
                     TourOSTextField(
                         value = successState?.searchQuery ?: "",
                         onValueChange = { viewModel.onSearchQueryChanged(it) },
-                        placeholder = "🔍 İsim veya e-posta ile ara...",
+                        placeholder = AppLanguageManager.translate("🔍 İsim veya e-posta ile ara...", currentLanguage.code),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -118,8 +128,8 @@ fun UserListScreen(
                                 val selectedRole = UserRole.entries.firstOrNull { it.displayName == label }
                                 viewModel.onRoleFilterSelected(selectedRole)
                             },
-                            itemLabel = { it },
-                            label = "Rol Filtresi"
+                            itemLabel = { AppLanguageManager.translate(it, currentLanguage.code) },
+                            label = AppLanguageManager.translate("Rol Filtresi", currentLanguage.code)
                         )
                     }
                 }
@@ -135,27 +145,27 @@ fun UserListScreen(
 
                 when (val state = uiState) {
                     is UserListUiState.Loading -> {
-                        TourOSLoadingIndicator(message = "Kullanıcılar yükleniyor...")
+                        TourOSLoadingIndicator(message = AppLanguageManager.translate("Kullanıcılar yükleniyor...", currentLanguage.code))
                     }
                     is UserListUiState.Error -> {
                         TourOSEmptyState(
-                            title = "Bir Hata Oluştu",
+                            title = AppLanguageManager.translate("Bir Hata Oluştu", currentLanguage.code),
                             description = state.message,
-                            actionButtonText = "Yeniden Dene",
+                            actionButtonText = AppLanguageManager.translate("Yeniden Dene", currentLanguage.code),
                             onActionClick = { viewModel.onSearchQueryChanged("") }
                         )
                     }
                     is UserListUiState.Success -> {
                         if (state.users.isEmpty()) {
                             TourOSEmptyState(
-                                title = AppLanguageManager.translate("Kullanıcı Bulunamadı"),
-                                description = AppLanguageManager.translate("Kriterlerinize uygun aktif kullanıcı bulunmuyor."),
-                                actionButtonText = AppLanguageManager.translate("+ Yeni Kullanıcı Davet Et"),
+                                title = AppLanguageManager.translate("Kullanıcı Bulunamadı", currentLanguage.code),
+                                description = AppLanguageManager.translate("Kriterlerinize uygun aktif kullanıcı bulunmuyor.", currentLanguage.code),
+                                actionButtonText = AppLanguageManager.translate("+ Yeni Kullanıcı Davet Et", currentLanguage.code),
                                 onActionClick = onNavigateToInviteUser
                             )
                         } else {
                             val userColumns = listOf(
-                                TourOSColumn<User>(title = "KULLANICI", weight = 2.5f) { user ->
+                                TourOSColumn<User>(title = AppLanguageManager.translate("KULLANICI", currentLanguage.code), weight = 2.5f) { user ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         UserAvatar(name = user.fullName)
                                         Spacer(modifier = Modifier.width(TourOSSpacing.medium))
@@ -165,14 +175,32 @@ fun UserListScreen(
                                         }
                                     }
                                 },
-                                TourOSColumn<User>(title = "ROL", weight = 1.5f) { user ->
-                                    TourOSStatusBadge(
-                                        text = user.role.displayName,
-                                        backgroundColor = TourOSColors.PrimaryContainer,
-                                        textColor = TourOSColors.Primary
-                                    )
+                                TourOSColumn<User>(title = AppLanguageManager.translate("ROL", currentLanguage.code), weight = 2.0f) { user ->
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                            .clickable { viewModel.onEditRolesClicked(user) }
+                                            .padding(vertical = 4.dp, horizontal = 6.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            user.roles.forEach { role ->
+                                                TourOSStatusBadge(
+                                                    text = AppLanguageManager.translate(role.displayName, currentLanguage.code),
+                                                    backgroundColor = TourOSColors.PrimaryContainer,
+                                                    textColor = TourOSColors.Primary
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "✏️",
+                                            style = TourOSTypography.Caption
+                                        )
+                                    }
                                 },
-                                TourOSColumn<User>(title = "DURUM", weight = 1.2f) { user ->
+                                TourOSColumn<User>(title = AppLanguageManager.translate("DURUM", currentLanguage.code), weight = 1.2f) { user ->
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Switch(
                                             checked = user.isActive,
@@ -184,7 +212,7 @@ fun UserListScreen(
                                         )
                                         Spacer(modifier = Modifier.width(TourOSSpacing.small))
                                         Text(
-                                            text = if (user.isActive) "Aktif" else "Pasif",
+                                            text = if (user.isActive) AppLanguageManager.translate("Aktif", currentLanguage.code) else AppLanguageManager.translate("Pasif", currentLanguage.code),
                                             style = TourOSTypography.BodyMedium.copy(
                                                 color = if (user.isActive) TourOSColors.Success else TourOSColors.TextDisabled
                                             )
@@ -215,11 +243,25 @@ fun UserListScreen(
                                                 }
                                             }
 
-                                            TourOSStatusBadge(
-                                                text = user.role.displayName,
-                                                backgroundColor = TourOSColors.PrimaryContainer,
-                                                textColor = TourOSColors.Primary
-                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                                                    .clickable { viewModel.onEditRolesClicked(user) }
+                                                    .padding(2.dp)
+                                            ) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                                    user.roles.forEach { role ->
+                                                        TourOSStatusBadge(
+                                                            text = AppLanguageManager.translate(role.displayName, currentLanguage.code),
+                                                            backgroundColor = TourOSColors.PrimaryContainer,
+                                                            textColor = TourOSColors.Primary
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(text = "✏️", style = TourOSTypography.Caption)
+                                            }
                                         }
 
                                         Row(
@@ -228,7 +270,7 @@ fun UserListScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = if (user.isActive) "Hesap Durumu: Aktif" else "Hesap Durumu: Pasif",
+                                                text = if (user.isActive) AppLanguageManager.translate("Hesap Durumu: Aktif", currentLanguage.code) else AppLanguageManager.translate("Hesap Durumu: Pasif", currentLanguage.code),
                                                 style = TourOSTypography.BodyMedium.copy(
                                                     color = if (user.isActive) TourOSColors.Success else TourOSColors.Error
                                                 )
@@ -248,6 +290,148 @@ fun UserListScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        val successState = uiState as? UserListUiState.Success
+        if (successState?.editingRolesUser != null) {
+            EditRolesDialog(
+                user = successState.editingRolesUser,
+                currentLanguageCode = currentLanguage.code,
+                onDismiss = { viewModel.onEditRolesClicked(null) },
+                onSave = { newRoles ->
+                    viewModel.updateUserRoles(successState.editingRolesUser, newRoles)
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditRolesDialog(
+    user: User,
+    currentLanguageCode: String,
+    onDismiss: () -> Unit,
+    onSave: (List<UserRole>) -> Unit
+) {
+    var selectedRoles by remember(user) { mutableStateOf(user.roles.toSet()) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        TourOSCard(
+            modifier = Modifier
+                .widthIn(min = 340.dp, max = 460.dp)
+                .padding(TourOSSpacing.medium),
+            backgroundColor = TourOSColors.Background,
+            borderColor = TourOSColors.Border,
+            contentPadding = TourOSSpacing.large
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(
+                        text = AppLanguageManager.translate("Rolleri Düzenle", currentLanguageCode),
+                        style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${user.fullName} • ${user.email}",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
+                }
+
+                HorizontalDivider(color = TourOSColors.Divider, thickness = TourOSSpacing.borderWidth)
+
+                Text(
+                    text = AppLanguageManager.translate("Kullanıcıya atanacak rolleri seçin:", currentLanguageCode),
+                    style = TourOSTypography.BodyMedium.copy(
+                        color = TourOSColors.TextPrimary,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                    )
+                )
+
+                Text(
+                    text = AppLanguageManager.translate("Birden fazla rol seçilebilir.", currentLanguageCode),
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xxSmall),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    UserRole.entries.forEach { role ->
+                        val isChecked = selectedRoles.contains(role)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    selectedRoles = if (isChecked) {
+                                        selectedRoles - role
+                                    } else {
+                                        selectedRoles + role
+                                    }
+                                }
+                                .padding(vertical = 4.dp, horizontal = 6.dp)
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { checked ->
+                                    selectedRoles = if (checked) {
+                                        selectedRoles + role
+                                    } else {
+                                        selectedRoles - role
+                                    }
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = TourOSColors.Primary
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(TourOSSpacing.small))
+                            Text(
+                                text = AppLanguageManager.translate(role.displayName, currentLanguageCode),
+                                style = TourOSTypography.BodyMedium.copy(
+                                    color = if (isChecked) TourOSColors.Primary else TourOSColors.TextPrimary,
+                                    fontWeight = if (isChecked) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
+                                )
+                            )
+                        }
+                    }
+                }
+
+                if (selectedRoles.isEmpty()) {
+                    Text(
+                        text = AppLanguageManager.translate("En az bir rol seçilmelidir", currentLanguageCode),
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.Error)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TourOSButton(
+                        text = AppLanguageManager.translate("İptal", currentLanguageCode),
+                        onClick = onDismiss,
+                        variant = TourOSButtonVariant.TERTIARY
+                    )
+                    Spacer(modifier = Modifier.width(TourOSSpacing.small))
+                    TourOSButton(
+                        text = AppLanguageManager.translate("Kaydet", currentLanguageCode),
+                        onClick = {
+                            if (selectedRoles.isNotEmpty()) {
+                                onSave(selectedRoles.toList())
+                            }
+                        },
+                        variant = TourOSButtonVariant.PRIMARY,
+                        enabled = selectedRoles.isNotEmpty()
+                    )
                 }
             }
         }

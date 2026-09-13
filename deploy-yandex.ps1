@@ -22,7 +22,7 @@ $remotePath = "/var/www/axileto.com"
 $localPath = "webApp\build\dist\wasmJs\productionExecutable\*"
 
 Write-Host "[2/3] Dosyalar Yandex sunucusuna aktariliyor ($serverIp)..." -ForegroundColor Yellow
-
+ssh -o StrictHostKeyChecking=no -i "$sshKey" "ubuntu@$serverIp" "sudo chown -R ubuntu:ubuntu $remotePath"
 scp -o StrictHostKeyChecking=no -i "$sshKey" -r $localPath "ubuntu@${serverIp}:${remotePath}/"
 
 if ($LASTEXITCODE -ne 0) {

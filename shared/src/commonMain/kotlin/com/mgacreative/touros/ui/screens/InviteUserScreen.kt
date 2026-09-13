@@ -39,6 +39,7 @@ import com.mgacreative.touros.ui.components.TourOSDropdown
 import com.mgacreative.touros.ui.components.TourOSStatusBadge
 import com.mgacreative.touros.ui.components.TourOSTextField
 import com.mgacreative.touros.ui.components.TourOSTopBar
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
@@ -63,9 +64,13 @@ fun InviteUserScreen(
     onNavigateBack: () -> Unit = {},
     viewModel: InviteUserViewModel = koinViewModel()
 ) {
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var selectedRole by remember { mutableStateOf(UserRole.TOUR_OPERATOR) }
+    var selectedRoles by remember { mutableStateOf(setOf(UserRole.TOUR_OPERATOR)) }
+    var selectedMenus by remember {
+        mutableStateOf(setOf("B2B_SALES", "TOUR_OPERATOR", "ACCOUNTING", "ANALYTICS", "LOCAL", "SETTINGS"))
+    }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -85,7 +90,7 @@ fun InviteUserScreen(
                 subtitle = "Ekibinize e-posta ile davet gönderin ve bekleyen davetleri izleyin",
                 navigationIcon = {
                     TourOSButton(
-                        text = "← Geri",
+                        text = "← ${AppLanguageManager.translate("Geri", currentLanguage.code)}",
                         onClick = onNavigateBack,
                         variant = TourOSButtonVariant.TERTIARY
                     )
@@ -108,7 +113,7 @@ fun InviteUserScreen(
                 verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
                 Text(
-                    text = "Bekleyen Davetler (${pendingInvitations.size})",
+                    text = "${AppLanguageManager.translate("Bekleyen Davetler")} (${pendingInvitations.size})",
                     style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                 )
 
@@ -137,13 +142,13 @@ fun InviteUserScreen(
                                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                                     )
                                     Text(
-                                        text = "Rol: ${invitation.role.displayName} • ${invitation.sentAt}",
+                                        text = "Rol: ${AppLanguageManager.translate(invitation.role.displayName)} • ${invitation.sentAt}",
                                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextDisabled)
                                     )
                                 }
 
                                 TourOSStatusBadge(
-                                    text = "Bekliyor",
+                                    text = AppLanguageManager.translate("Bekliyor"),
                                     backgroundColor = TourOSColors.WarningContainer,
                                     textColor = TourOSColors.Warning
                                 )
@@ -176,11 +181,11 @@ fun InviteUserScreen(
                     contentPadding = TourOSSpacing.xLarge
                 ) {
                     Text(
-                        text = "Yeni Davet Gönder",
+                        text = AppLanguageManager.translate("Yeni Davet Gönder"),
                         style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                     )
                     Text(
-                        text = "Kullanıcıya e-posta ile davet bağlantısı iletilecektir.",
+                        text = AppLanguageManager.translate("Kullanıcıya e-posta ile davet bağlantısı iletilecektir."),
                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                     )
 
@@ -224,7 +229,7 @@ fun InviteUserScreen(
                     TourOSTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        label = "Ad Soyad",
+                        label = AppLanguageManager.translate("Ad Soyad"),
                         placeholder = "Örn: Canan Yıldız",
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -234,32 +239,124 @@ fun InviteUserScreen(
                     TourOSTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = "E-posta Adresi",
+                        label = AppLanguageManager.translate("E-posta Adresi"),
                         placeholder = "canan@touros.com",
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
-                    TourOSDropdown(
-                        items = UserRole.entries,
-                        selectedItem = selectedRole,
-                        onItemSelected = { selectedRole = it },
-                        itemLabel = { it.displayName },
-                        label = "Kullanıcı Rolü",
-                        modifier = Modifier.fillMaxWidth()
+                    // Kullanıcı Rolleri (Çoklu Seçim)
+                    Text(
+                        text = AppLanguageManager.translate("Kullanıcı Rolleri", currentLanguage.code),
+                        style = TourOSTypography.TitleSmall.copy(color = TourOSColors.TextPrimary)
                     )
+                    Spacer(modifier = Modifier.height(TourOSSpacing.xxSmall))
+                    Text(
+                        text = AppLanguageManager.translate("Birden fazla rol seçilebilir.", currentLanguage.code),
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
+                    Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(TourOSSpacing.xxSmall),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        UserRole.entries.forEach { role ->
+                            val isChecked = selectedRoles.contains(role)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = TourOSSpacing.xxSmall)
+                            ) {
+                                androidx.compose.material3.Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { checked ->
+                                        selectedRoles = if (checked) {
+                                            selectedRoles + role
+                                        } else {
+                                            if (selectedRoles.size > 1) selectedRoles - role else selectedRoles
+                                        }
+                                    },
+                                    colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                        checkedColor = TourOSColors.Primary
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(TourOSSpacing.small))
+                                Text(
+                                    text = AppLanguageManager.translate(role.displayName, currentLanguage.code),
+                                    style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                    // İzin Verilen Menüler (Erişim Kısıtlaması)
+                    Text(
+                        text = AppLanguageManager.translate("Erişebileceği Menüler:", currentLanguage.code),
+                        style = TourOSTypography.TitleSmall.copy(color = TourOSColors.TextPrimary)
+                    )
+                    Spacer(modifier = Modifier.height(TourOSSpacing.xxSmall))
+                    Text(
+                        text = AppLanguageManager.translate("İşaretlenmeyen menüler kullanıcının sol menüsünde gizlenir.", currentLanguage.code),
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
+                    Spacer(modifier = Modifier.height(TourOSSpacing.small))
+
+                    val availableMenuOptions = remember {
+                        listOf(
+                            "B2B_SALES" to "B2B Satış & Rezervasyon",
+                            "TOUR_OPERATOR" to "Tur Operatörü & PNR",
+                            "ACCOUNTING" to "Muhasebe & Cari Hesap",
+                            "ANALYTICS" to "Analitik & Raporlar",
+                            "PREMIUM" to "Premium (OTA & Entegrasyon)",
+                            "LOCAL" to "Yerel Tur & Otel",
+                            "SETTINGS" to "Ayarlar & Dil"
+                        )
+                    }
+
+                    availableMenuOptions.forEach { (key, title) ->
+                        val isChecked = selectedMenus.contains(key)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = TourOSSpacing.xxSmall)
+                        ) {
+                            androidx.compose.material3.Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { checked ->
+                                    if (checked) {
+                                        selectedMenus = selectedMenus + key
+                                    } else {
+                                        selectedMenus = selectedMenus - key
+                                    }
+                                },
+                                colors = androidx.compose.material3.CheckboxDefaults.colors(
+                                    checkedColor = TourOSColors.Primary
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(TourOSSpacing.small))
+                            Text(
+                                text = AppLanguageManager.translate(title, currentLanguage.code),
+                                style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(TourOSSpacing.xxLarge))
 
                     TourOSButton(
-                        text = "Davet Gönder ✉️",
+                        text = AppLanguageManager.translate("Davet Gönder ✉️", currentLanguage.code),
                         onClick = {
-                            viewModel.inviteUser(email, selectedRole, fullName)
+                            viewModel.inviteUser(email, selectedRoles.first(), fullName)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         variant = TourOSButtonVariant.PRIMARY,
-                        enabled = email.isNotBlank() && fullName.isNotBlank(),
+                        enabled = email.isNotBlank() && fullName.isNotBlank() && selectedRoles.isNotEmpty(),
                         isLoading = uiState is InviteUserUiState.Loading
                     )
                 }

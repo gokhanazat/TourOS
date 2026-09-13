@@ -7,6 +7,7 @@ import com.mgacreative.touros.domain.model.UserRole
 import com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase
 import com.mgacreative.touros.domain.usecase.GetUsersUseCase
 import com.mgacreative.touros.domain.usecase.ToggleUserStatusUseCase
+import com.mgacreative.touros.domain.usecase.UpdateUserRolesUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +19,8 @@ sealed interface UserListUiState {
         val users: List<User>,
         val searchQuery: String = "",
         val selectedRoleFilter: UserRole? = null,
-        val activeOnlyFilter: Boolean = false
+        val activeOnlyFilter: Boolean = false,
+        val editingRolesUser: User? = null
     ) : UserListUiState
     data class Error(val message: String) : UserListUiState
 }
@@ -26,7 +28,8 @@ sealed interface UserListUiState {
 class UserListViewModel(
     private val getUsersUseCase: GetUsersUseCase,
     private val toggleUserStatusUseCase: ToggleUserStatusUseCase,
-    private val getCurrentUserUseCase: GetCurrentUserUseCase
+    private val getCurrentUserUseCase: GetCurrentUserUseCase,
+    private val updateUserRolesUseCase: UpdateUserRolesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UserListUiState>(UserListUiState.Loading)
@@ -89,6 +92,24 @@ class UserListViewModel(
         viewModelScope.launch {
             toggleUserStatusUseCase(user.id, !user.isActive)
                 .onSuccess {
+                    fetchFilteredUsers()
+                }
+        }
+    }
+
+    fun onEditRolesClicked(user: User?) {
+        val current = _uiState.value
+        if (current is UserListUiState.Success) {
+            _uiState.value = current.copy(editingRolesUser = user)
+        }
+    }
+
+    fun updateUserRoles(user: User, newRoles: List<UserRole>) {
+        if (newRoles.isEmpty()) return
+        viewModelScope.launch {
+            updateUserRolesUseCase(user.id, newRoles)
+                .onSuccess {
+                    onEditRolesClicked(null)
                     fetchFilteredUsers()
                 }
         }

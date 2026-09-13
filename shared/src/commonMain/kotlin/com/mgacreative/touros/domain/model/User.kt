@@ -12,8 +12,10 @@ data class User(
     val email: String,
     val fullName: String = "",
     val role: UserRole = UserRole.CUSTOMER,
+    val roles: List<UserRole> = listOf(role),
     val tenantId: String? = null,
     val avatarUrl: String? = null,
     val isActive: Boolean = true,
-    val isEmailVerified: Boolean = false
+    val isEmailVerified: Boolean = false,
+    val allowedMenuKeys: List<String>? = null
 )

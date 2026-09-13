@@ -8,6 +8,8 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.add
 
 import com.mgacreative.touros.data.util.isValidUuid
 
@@ -28,11 +30,17 @@ class UserRepositoryImpl(
                 .decodeList<UserEntity>()
 
             entities.map { entity ->
+                val primaryRole = UserRole.fromString(entity.roleId ?: "CUSTOMER")
+                val parsedRoles = entity.roles?.mapNotNull { roleStr ->
+                    UserRole.entries.firstOrNull { it.name.equals(roleStr, ignoreCase = true) }
+                }?.distinct()?.ifEmpty { null } ?: listOf(primaryRole)
+
                 User(
                     id = entity.id,
                     email = entity.email,
                     fullName = entity.fullName ?: "",
-                    role = UserRole.fromString(entity.roleId ?: "CUSTOMER"),
+                    role = primaryRole,
+                    roles = parsedRoles,
                     tenantId = entity.tenantId,
                     avatarUrl = entity.avatarUrl,
                     isActive = entity.isActive
@@ -55,9 +63,17 @@ class UserRepositoryImpl(
     }
 
     override suspend fun updateUserRole(userId: String, newRole: UserRole): Result<Unit> {
+        return updateUserRoles(userId, listOf(newRole))
+    }
+
+    override suspend fun updateUserRoles(userId: String, newRoles: List<UserRole>): Result<Unit> {
         return runCatching {
+            val primaryRole = newRoles.firstOrNull() ?: UserRole.CUSTOMER
             val payload = buildJsonObject {
-                put("role_id", newRole.name)
+                put("role_id", primaryRole.name)
+                putJsonArray("roles") {
+                    newRoles.forEach { add(it.name) }
+                }
             }
             supabaseClient.postgrest.from("users").update(payload) {
                 filter {

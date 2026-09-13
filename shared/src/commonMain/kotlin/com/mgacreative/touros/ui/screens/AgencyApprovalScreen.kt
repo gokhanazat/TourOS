@@ -81,7 +81,15 @@ data class RegisteredAgencyDto(
     val agency_code: String = "",
     val is_active: Boolean = true,
     val status: String = "ACTIVE",
-    val created_at: String = ""
+    val created_at: String = "",
+    val max_staff_limit: Int = 3,
+    val active_staff_count: Long = 1
+)
+
+@Serializable
+data class UpdateAgencyStaffLimitParams(
+    val p_company_id: String,
+    val p_max_staff_limit: Int
 )
 
 @Serializable
@@ -123,6 +131,7 @@ fun AgencyApprovalScreen() {
     var agencyToDelete by remember { mutableStateOf<PendingAgencyDto?>(null) }
 
     val inputCodes = remember { mutableStateMapOf<String, String>() }
+    val staffLimitInputs = remember { mutableStateMapOf<String, String>() }
 
     fun refreshAllData() {
         scope.launch {
@@ -149,6 +158,9 @@ fun AgencyApprovalScreen() {
                 // 3. Kayıtlı acenteleri çek
                 val registered = supabase.postgrest.rpc("get_registered_agencies").decodeList<RegisteredAgencyDto>()
                 registeredAgencies = registered
+                registered.forEach { agency ->
+                    staffLimitInputs[agency.company_id] = agency.max_staff_limit.toString()
+                }
 
             } catch (e: Exception) {
                 errorMsg = "Veriler yüklenirken hata oluştu: ${e.message}"
@@ -499,6 +511,60 @@ fun AgencyApprovalScreen() {
                                         text = "Kayıt Tarihi: ${agency.created_at.take(10)} | Durum: Aktif Acente",
                                         style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                                     )
+                                }
+
+                                // Kullanıcı / Eleman Kotası Yönetim Alanı
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "Aktif Kullanıcı: ${agency.active_staff_count} / ${agency.max_staff_limit}",
+                                            style = TourOSTypography.Caption.copy(
+                                                color = if (agency.active_staff_count >= agency.max_staff_limit) TourOSColors.Warning else TourOSColors.Primary
+                                            )
+                                        )
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.xxSmall))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                        ) {
+                                            TourOSTextField(
+                                                value = staffLimitInputs[agency.company_id] ?: agency.max_staff_limit.toString(),
+                                                onValueChange = { newVal ->
+                                                    if (newVal.all { it.isDigit() } && newVal.length <= 3) {
+                                                        staffLimitInputs[agency.company_id] = newVal
+                                                    }
+                                                },
+                                                placeholder = "Kullanıcı",
+                                                modifier = Modifier.width(105.dp).height(44.dp)
+                                            )
+                                            TourOSButton(
+                                                text = "Kaydet",
+                                                onClick = {
+                                                    val limit = staffLimitInputs[agency.company_id]?.toIntOrNull() ?: agency.max_staff_limit
+                                                    scope.launch {
+                                                        try {
+                                                            supabase.postgrest.rpc(
+                                                                "update_agency_staff_limit",
+                                                                UpdateAgencyStaffLimitParams(
+                                                                    p_company_id = agency.company_id,
+                                                                    p_max_staff_limit = limit
+                                                                )
+                                                            )
+                                                            notificationMsg = "✅ ${agency.agency_name} kullanıcı sayısı $limit olarak güncellendi."
+                                                            refreshAllData()
+                                                        } catch (e: Exception) {
+                                                            errorMsg = "Kullanıcı sayısı güncellenirken hata: ${e.message}"
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.height(44.dp),
+                                                variant = TourOSButtonVariant.SECONDARY
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

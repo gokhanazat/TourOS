@@ -10,4 +10,5 @@ interface UserRepository {
     suspend fun getUsersForTenant(tenantId: String): Result<List<User>>
     suspend fun toggleUserActiveStatus(userId: String, isActive: Boolean): Result<Unit>
     suspend fun updateUserRole(userId: String, newRole: UserRole): Result<Unit>
+    suspend fun updateUserRoles(userId: String, newRoles: List<UserRole>): Result<Unit>
 }

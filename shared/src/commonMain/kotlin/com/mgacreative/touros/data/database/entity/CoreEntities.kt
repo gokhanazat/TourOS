@@ -99,6 +99,7 @@ data class UserEntity(
     val phone: String? = null,
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("role_id") val roleId: String? = null,
+    @SerialName("roles") val roles: List<String>? = null,
     @SerialName("is_active") val isActive: Boolean = true,
     @SerialName("tenant_id") val tenantId: String = "",
     @SerialName("created_at") val createdAt: String = "",

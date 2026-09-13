@@ -1,6 +1,9 @@
 package com.mgacreative.touros.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -14,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.mgacreative.touros.ui.theme.TourOSColors
+import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +50,15 @@ fun <T> TourOSDropdown(
 
         ExposedDropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            containerColor = TourOSColors.Background,
+            modifier = Modifier
+                .background(TourOSColors.Background)
+                .border(
+                    TourOSSpacing.borderWidth,
+                    TourOSColors.Border,
+                    RoundedCornerShape(TourOSSpacing.cornerRadius)
+                )
         ) {
             items.forEach { item ->
                 DropdownMenuItem(
@@ -56,6 +68,7 @@ fun <T> TourOSDropdown(
                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary)
                         )
                     },
+                    modifier = Modifier.background(TourOSColors.Background),
                     onClick = {
                         onItemSelected(item)
                         expanded = false
