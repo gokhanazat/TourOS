@@ -58,17 +58,10 @@ data class AIAgentDecision(
  */
 class YandexGptService(
     private val httpClient: HttpClient = HttpClient(),
-    private val apiKey: String = YANDEX_API_KEY,
-    private val folderId: String = "b1guqqj8nrc72tvmj6un"
+    private val folderId: String = "b1guqqj8nrc72tvmj6un",
+    private val endpoint: String = "https://axileto.com/api/yandex-gpt"
 ) {
-    companion object {
-        private const val K1 = "AQVN1SAU24oA"
-        private const val K2 = "-0RImvAzOoi2z"
-        private const val K3 = "CGnK31Xp5DMOobh"
-        val YANDEX_API_KEY = K1 + K2 + K3
-    }
     private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-    private val endpoint = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
 
     private val systemPrompt = """
         Ты опытный, доброжелательный и заботливый персональный онлайн-турагент платформы TourOS.
@@ -132,8 +125,6 @@ class YandexGptService(
         var decision = try {
             val responseText = httpClient.post(endpoint) {
                 contentType(ContentType.Application.Json)
-                header("Authorization", "Api-Key $apiKey")
-                header("x-folder-id", folderId)
                 setBody(json.encodeToString(YandexGptRequest.serializer(), payload))
             }.bodyAsText()
 
