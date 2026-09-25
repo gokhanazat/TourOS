@@ -36,6 +36,12 @@ Use the run button in your IDE's editor gutter, or run tests using Gradle tasks:
   - JS target: `./gradlew :shared:jsTest`
 - iOS tests: `./gradlew :shared:iosSimulatorArm64Test`
 
+
+```mermaid
+graph TD
+    App1[Kullanıcı Arayüzü] --> SharedLib[Ortak Modül]
+    SharedLib --> Backend[(Veritabanı)]
+```
 ---
 
 Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html),
