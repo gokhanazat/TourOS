@@ -1,0 +1,8 @@
+[sqlfluff]
+dialect = postgres
+templater = raw
+large_file_skip_byte_limit = 0
+rules = core
+
+[sqlfluff:rules:references.quoting]
+ignore_words = None

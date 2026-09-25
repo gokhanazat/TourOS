@@ -59,3 +59,27 @@ jobs:
           path: |
             **/build/reports/tests/
             **/build/test-results/
+
+  validate-database-migrations:
+    name: Validate Database Migrations (Static Analysis)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install SQLFluff
+        run: pip install sqlfluff
+
+      - name: Make validation script executable
+        run: chmod +x database/validate-migrations.sh
+
+      - name: Validate Changed Migrations (SQLFluff Postgres Dialect)
+        run: ./database/validate-migrations.sh
