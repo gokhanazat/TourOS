@@ -45,6 +45,32 @@ jobs:
       - name: Run Regression & Unit Tests
         run: ./gradlew test --no-daemon
 
+      - name: Run i18n Translation Integrity Tests
+        run: ./gradlew :shared:jvmTest --tests "com.mgacreative.touros.ui.localization.I18nTranslationKeysTest" --no-daemon
+
+      - name: Run Live Operator Integration Tests (Tourvisor REST & Samo SOAP)
+        env:
+          TOURVISOR_API_URL: ${{ secrets.TOURVISOR_API_URL || 'http://tourvisor.ru/xml/list.php' }}
+          TOURVISOR_AUTH_LOGIN: ${{ secrets.TOURVISOR_AUTH_LOGIN || 'Mabit23@gmail.com' }}
+          TOURVISOR_AUTH_PASS: ${{ secrets.TOURVISOR_AUTH_PASS || 'FFytMvSU0ZHr' }}
+          SAMO_SOAP_ENDPOINT: ${{ secrets.SAMO_SOAP_ENDPOINT || 'https://samo.ru' }}
+          SAMO_AUTH_USER: ${{ secrets.SAMO_AUTH_USER || 'Mabit23@gmail.com' }}
+          SAMO_AUTH_PASS: ${{ secrets.SAMO_AUTH_PASS || 'FFytMvSU0ZHr' }}
+        run: ./gradlew :shared:jvmTest --tests "com.mgacreative.touros.integration.OperatorLiveIntegrationTest" --no-daemon
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E Booking Flow Tests
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL || 'https://axileto.com' }}
+        run: npm run test:e2e
+
       - name: Static Code Analysis (Ktlint Check)
         uses: ScaCap/action-ktlint@master
         with:

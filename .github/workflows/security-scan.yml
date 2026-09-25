@@ -1,0 +1,61 @@
+name: DAST Security Scan (OWASP ZAP)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Güvenlik taraması yapılacak hedef URL (örn: https://axileto.com)'
+        required: false
+        type: string
+        default: 'https://axileto.com'
+      scan_type:
+        description: 'Tarama Derinliği (baseline / full)'
+        required: false
+        type: choice
+        options:
+          - baseline
+          - full
+        default: baseline
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+jobs:
+  zap-security-scan:
+    name: Run OWASP ZAP DAST Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: OWASP ZAP Baseline Security Scan
+        if: ${{ github.event.inputs.scan_type == 'baseline' || github.event.inputs.scan_type == '' }}
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: ${{ github.event.inputs.target_url || 'https://axileto.com' }}
+          artifact_name: zap-baseline-report
+          allow_issue_writing: false
+
+      - name: OWASP ZAP Full Security Scan
+        if: ${{ github.event.inputs.scan_type == 'full' }}
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: ${{ github.event.inputs.target_url || 'https://axileto.com' }}
+          artifact_name: zap-full-report
+          allow_issue_writing: false
+
+      - name: Upload Security Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-security-audit-report
+          path: |
+            report_html.html
+            report_md.md
+            report_json.json
+            zap*.html
