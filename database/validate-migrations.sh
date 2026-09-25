@@ -51,12 +51,12 @@ done
 
 echo "✅ PostgreSQL servisi hazır ve erişilebilir."
 
-# 3. Rollerin ve Çekirdek Eklentilerin Başlatılması (init-roles.sql)
-INIT_ROLES_FILE="$SCRIPT_DIR/init-roles.sql"
-if [ -f "$INIT_ROLES_FILE" ]; then
-    echo "🛠️  Sistem rolleri ve eklentileri yükleniyor: $(basename "$INIT_ROLES_FILE")"
-    psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$INIT_ROLES_FILE" > /dev/null
-    echo "✅ Sistem rolleri ve eklentileri başarıyla yüklendi."
+# 3. Resmi Supabase Auth DDL ve Rollerin Yüklenmesi (Zero Mock)
+OFFICIAL_AUTH_FILE="$SCRIPT_DIR/official-supabase-auth.sql"
+if [ -f "$OFFICIAL_AUTH_FILE" ]; then
+    echo "🛠️  Resmi Supabase Auth DDL ve Sistem Rolleri yükleniyor: $(basename "$OFFICIAL_AUTH_FILE")"
+    psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -v ON_ERROR_STOP=1 -f "$OFFICIAL_AUTH_FILE" > /dev/null
+    echo "✅ Resmi Supabase Auth şeması ve fonksiyonları (auth.users, auth.uid, auth.jwt) başarıyla yüklendi."
 fi
 
 # 4. Migration Dosyalarının Sırayla Koşturulması

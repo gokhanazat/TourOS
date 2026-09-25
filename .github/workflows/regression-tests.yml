@@ -85,6 +85,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up Supabase CLI (Official)
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
       - name: Install PostgreSQL Client & SQLFluff
         run: |
           sudo apt-get update
