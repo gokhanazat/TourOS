@@ -18,6 +18,9 @@ concurrency:
 
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: "--max-old-space-size=8192"
@@ -61,7 +64,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        continue-on-error: true
 
       - name: Deploy to Cloudflare Pages (Optional)
         if: ${{ env.CLOUDFLARE_API_TOKEN != '' }}
@@ -80,9 +82,3 @@ jobs:
           REMOTE_USER: "ubuntu"
           TARGET: "/var/www/axileto.com"
           SCRIPT_AFTER: "sudo chmod -R 755 /var/www/axileto.com"
-
-
-
-
-
-
