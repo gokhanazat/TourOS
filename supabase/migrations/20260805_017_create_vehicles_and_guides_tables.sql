@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
 );
 
 CREATE INDEX IF NOT EXISTS idx_vehicles_tenant ON public.vehicles(tenant_id);
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS capacity INT NOT NULL DEFAULT 46;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS driver_name TEXT;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS driver_phone TEXT;
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- 2. GUIDES (REHBERLER) TABLOSU
 CREATE TABLE IF NOT EXISTS public.guides (
@@ -34,6 +38,11 @@ CREATE TABLE IF NOT EXISTS public.guides (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by      UUID
 );
+
+-- Kolonların önceden oluşturulmuş tabloda da var olmasını garantiye al
+ALTER TABLE public.guides ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'Müsait';
+ALTER TABLE public.guides ADD COLUMN IF NOT EXISTS badge_number TEXT;
+ALTER TABLE public.guides ADD COLUMN IF NOT EXISTS languages TEXT[] DEFAULT ARRAY['Türkçe'];
 
 CREATE INDEX IF NOT EXISTS idx_guides_tenant ON public.guides(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_guides_status ON public.guides(tenant_id, status);
