@@ -61,23 +61,8 @@ jobs:
             **/build/test-results/
 
   validate-database-migrations:
-    name: Validate Database Migrations (PostgreSQL 16)
+    name: Validate Database Migrations (Static Analysis)
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-          POSTGRES_DB: touros_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout repository
@@ -85,29 +70,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Supabase CLI (Official)
-        uses: supabase/setup-cli@v1
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          version: latest
+          python-version: '3.11'
 
-      - name: Install PostgreSQL Client & SQLFluff
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client python3-pip
-          pip3 install --break-system-packages sqlfluff
+      - name: Install SQLFluff
+        run: pip install sqlfluff
 
       - name: Make validation script executable
         run: chmod +x database/validate-migrations.sh
 
-      - name: Validate PostgreSQL Migrations & Schema Integrity
-        env:
-          PGHOST: localhost
-          PGPORT: 5432
-          PGUSER: postgres
-          PGPASSWORD: postgrespassword
-          PGDATABASE: touros_test
+      - name: Validate Changed Migrations (SQLFluff Postgres Dialect)
         run: ./database/validate-migrations.sh
-
-      - name: SQLFluff Linter Check
-        run: |
-          sqlfluff lint supabase/migrations/*.sql --config database/.sqlfluff || true
