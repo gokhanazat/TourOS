@@ -383,19 +383,19 @@ private fun DiscountCommissionStepContent(
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.large
             ) {
-                Text(text = "İndirim Kodu / Promosyon Kuponu", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("İndirim Kodu / Promosyon Kuponu"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
                 Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TourOSTextField(
                         value = codeInput,
                         onValueChange = { codeInput = it },
-                        placeholder = "Örn: PROMO10, VIP1000",
+                        placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: PROMO10, VIP1000"),
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(TourOSSpacing.medium))
                     TourOSButton(
-                        text = "Uygula",
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Uygula"),
                         onClick = { viewModel.applyCoupon(codeInput) },
                         variant = TourOSButtonVariant.SECONDARY
                     )

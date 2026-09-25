@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mgacreative.touros.domain.model.CanonicalOperator
 import com.mgacreative.touros.domain.model.DataFeedSource
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -143,11 +144,21 @@ private fun AdminDataManagementSection(
             )
         }
 
-        // DATA BESLEME LİSTESİ
+        // DATA BESLEME & OPERATÖR LİSTESİ
         LazyColumn(
             modifier = Modifier.fillMaxSize().weight(1f),
             verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
         ) {
+            // OPERATÖR FİLTRE VE EŞLEŞTİRME KARTI (Yalnızca Seçili 9 Operatör)
+            item(key = "canonical_operators_filter_card") {
+                ActiveCanonicalOperatorsCard(
+                    operators = uiState.operators,
+                    onToggleOperator = { opId, isActive ->
+                        viewModel.toggleOperatorActive(opId, isActive)
+                    }
+                )
+            }
+
             items(uiState.feedSources, key = { it.id }) { source ->
                 DataFeedSourceCardItem(
                     source = source,
@@ -155,7 +166,8 @@ private fun AdminDataManagementSection(
                     onDelete = { sourcePendingDelete = source },
                     onToggleLive = { isLive -> viewModel.toggleLiveStatus(source.id, isLive) },
                     onTestConnection = { viewModel.testConnection(source) },
-                    onManualSync = { viewModel.manualSyncNow(source.id) }
+                    onManualSync = { viewModel.manualSyncNow(source.id) },
+                    onUpdateSeasonMode = { mode -> viewModel.updateSeasonMode(source.id, mode) }
                 )
             }
         }
@@ -209,6 +221,108 @@ private fun AdminDataManagementSection(
     }
 }
 
+// ─── OPERATÖR FİLTRE & EŞLEŞTİRME KARTI (9 KANONİK OPERATÖR) ───────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ActiveCanonicalOperatorsCard(
+    operators: List<CanonicalOperator>,
+    onToggleOperator: (Int, Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TourOSCard(
+        modifier = modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.Surface,
+        contentPadding = TourOSSpacing.large
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🎯", fontSize = 20.sp)
+                        Text(
+                            "Tur Operatörü Havuz & Arama Filtresi",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        "Yalnızca seçili operatörlerin turları çekilir ve arama ekranlarında listelenir. İsim uyuşmazlıkları (Alias) otomatik standartlaştırılır.",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                    )
+                }
+
+                val activeCount = operators.count { it.isActive }
+                TourOSStatusBadge(
+                    text = "$activeCount / ${operators.size} Operatör Aktif",
+                    backgroundColor = if (activeCount > 0) TourOSColors.SuccessContainer else TourOSColors.SecondaryContainer,
+                    textColor = if (activeCount > 0) TourOSColors.Success else TourOSColors.Secondary
+                )
+            }
+
+            HorizontalDivider(color = TourOSColors.Divider)
+
+            // 9 Operatör Seçim Butonları / Çipleri
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
+                verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+            ) {
+                operators.forEach { op ->
+                    val isActive = op.isActive
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(TourOSSpacing.cornerRadius))
+                            .clickable { onToggleOperator(op.id, !isActive) },
+                        shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                        color = if (isActive) TourOSColors.PrimaryContainer else TourOSColors.SurfaceVariant.copy(alpha = 0.5f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isActive) TourOSColors.Primary else TourOSColors.Divider
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                if (isActive) "☑️" else "⬜",
+                                fontSize = 14.sp
+                            )
+                            Column {
+                                Text(
+                                    op.canonicalName,
+                                    style = TourOSTypography.Label.copy(
+                                        color = if (isActive) TourOSColors.Primary else TourOSColors.TextSecondary,
+                                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                )
+                                op.tourvisorCode?.let { code ->
+                                    Text(
+                                        "TV Code: $code",
+                                        style = TourOSTypography.Caption.copy(
+                                            color = if (isActive) TourOSColors.Primary.copy(alpha = 0.7f) else TourOSColors.TextSecondary.copy(alpha = 0.7f),
+                                            fontSize = 9.sp
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ─── DATA BESLEME KARTI BİLEŞENİ ──────────────────────────────────────────────
 
 @Composable
@@ -218,7 +332,8 @@ private fun DataFeedSourceCardItem(
     onDelete: () -> Unit,
     onToggleLive: (Boolean) -> Unit,
     onTestConnection: () -> Unit,
-    onManualSync: () -> Unit
+    onManualSync: () -> Unit,
+    onUpdateSeasonMode: (String) -> Unit
 ) {
     TourOSCard(
         modifier = Modifier.fillMaxWidth(),
@@ -250,12 +365,22 @@ private fun DataFeedSourceCardItem(
                     }
                 }
 
-                // CANLI / BEKLEMEDE ROZETİ
-                TourOSStatusBadge(
-                    text = if (source.isLive) "🟢 CANLI DEVREDE" else "🟡 HAZIR / BEKLEMEDE",
-                    backgroundColor = if (source.isLive) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer.copy(alpha = 0.5f),
-                    textColor = if (source.isLive) TourOSColors.Success else TourOSColors.Primary
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small), verticalAlignment = Alignment.CenterVertically) {
+                    // SEZON MODU ROZETİ
+                    val isHighSeason = source.seasonMode == "HIGH_SEASON"
+                    TourOSStatusBadge(
+                        text = if (isHighSeason) "🔥 YÜKSEK SEZON (4 Sa)" else "🟢 DÜŞÜK SEZON (Günde 1)",
+                        backgroundColor = if (isHighSeason) TourOSColors.WarningContainer else TourOSColors.SuccessContainer,
+                        textColor = if (isHighSeason) TourOSColors.Warning else TourOSColors.Success
+                    )
+
+                    // CANLI / BEKLEMEDE ROZETİ
+                    TourOSStatusBadge(
+                        text = if (source.isLive) "🟢 CANLI DEVREDE" else "🟡 HAZIR / BEKLEMEDE",
+                        backgroundColor = if (source.isLive) TourOSColors.SuccessContainer else TourOSColors.PrimaryContainer.copy(alpha = 0.5f),
+                        textColor = if (source.isLive) TourOSColors.Success else TourOSColors.Primary
+                    )
+                }
             }
 
             HorizontalDivider(color = TourOSColors.Divider)
@@ -266,31 +391,73 @@ private fun DataFeedSourceCardItem(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Envanter Ayrıştırma:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("Envanter & Çekim:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text(
-                        "⚡ Tam Envanter (Tur, Otel, Uçuş)",
+                        "⚡ %100 Tam Paket (Yandex Staging)",
                         style = TourOSTypography.Label.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("Sorgu / Sync Sıklığı:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                    Text("Otomatik Periyot:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
                     Text(
                         when (source.syncInterval) {
                             "10_MIN" -> "⚡ Her 10 Dakika"
                             "30_MIN" -> "⏱️ Her 30 Dakika"
                             "1_HOUR" -> "🕒 Saatte Bir (1 Sa)"
+                            "4_HOUR" -> "🔥 4 Saatte Bir"
                             "6_HOUR" -> "🕕 6 Saatte Bir"
-                            "24_HOUR" -> "🌙 Günde Bir (Gece)"
+                            "24_HOUR" -> "🌙 Günde Bir (Gece 03:00)"
                             else -> "🖐️ Sadece Manuel"
                         },
-                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary, fontWeight = FontWeight.SemiBold)
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text("Son Veri Çekimi:", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(source.lastSyncedAt, style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary))
+                    Text(
+                        "${source.lastSyncedAt} (${source.syncedRecordCount} Tur)",
+                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary)
+                    )
+                }
+            }
+
+            // HIZLI SEZON SEÇİM ÇUBUĞU
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(TourOSColors.SurfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
+                    .padding(horizontal = TourOSSpacing.medium, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Sezonluk Otomatik Çekim Modu:",
+                    style = TourOSTypography.Caption.copy(fontWeight = FontWeight.Bold, color = TourOSColors.TextPrimary)
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                    OutlinedButton(
+                        onClick = { onUpdateSeasonMode("LOW_SEASON") },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (source.seasonMode != "HIGH_SEASON") TourOSColors.SuccessContainer.copy(alpha = 0.5f) else Color.Transparent
+                        ),
+                        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("🟢 Düşük Sezon (Günde 1 Gece)", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { onUpdateSeasonMode("HIGH_SEASON") },
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (source.seasonMode == "HIGH_SEASON") TourOSColors.WarningContainer.copy(alpha = 0.5f) else Color.Transparent
+                        ),
+                        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("🔥 Yüksek Sezon (4 Saatte 1)", fontSize = 11.sp)
+                    }
                 }
             }
 
@@ -345,12 +512,11 @@ private fun DataFeedSourceCardItem(
                         Text("🔌 Bağlantıyı Test Et", fontSize = 12.sp)
                     }
 
-                    OutlinedButton(
+                    TourOSButton(
+                        text = if (source.syncRequested) "⏳ Kuyrukta..." else "⚡ Şimdi %100 Çek",
                         onClick = onManualSync,
-                        shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
-                    ) {
-                        Text("⚡ Şimdi Datayı Çek", fontSize = 12.sp)
-                    }
+                        variant = TourOSButtonVariant.PRIMARY
+                    )
 
                     TourOSButton(
                         text = "⚙️ API Yapılandır",

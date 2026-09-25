@@ -9,6 +9,7 @@ import com.mgacreative.touros.domain.model.Booking
 import com.mgacreative.touros.domain.model.BookingItem
 import com.mgacreative.touros.domain.model.BookingStatus
 import com.mgacreative.touros.domain.model.Passenger
+import com.mgacreative.touros.domain.model.TourOperatorConfig
 import com.mgacreative.touros.domain.repository.BookingRepository
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -61,11 +62,14 @@ data class PassengerInfo(
     var firstName: String = "",
     var lastName: String = "",
     var birthDate: String = "",
-    var citizenship: String = "Türkiye",
-    var documentType: String = "Pasaport",
+    var citizenship: String = "Россия",
+    var documentType: String = "Загранпаспорт",
     var passportSeries: String = "",
     var passportNumber: String = "",
+    var documentIssueDate: String = "",
     var documentExpiryDate: String = "",
+    var documentIssuedBy: String = "",
+    var birthCountry: String = "Россия",
     var isPayer: Boolean = false,
     var phone: String = "",
     var email: String = "",
@@ -152,97 +156,8 @@ class B2BTourSearchViewModel(
             arrFilter: String = "",
             countryFilter: String = ""
         ): List<UnifiedProductEntity> {
-            val dateStr = targetDate.ifBlank { "02.09.2026" }
-            val rawFlights = listOf(
-                // ✈️ Moskova (SVO / DME / VKO) -> Antalya (AYT)
-                Triple("Moskova", "Antalya", "TK-3701") to Triple("Turkish Airlines", "Moskova (SVO) - Antalya (AYT) Uçuş Seferi", 240.0),
-                Triple("Moskova", "Antalya", "TK-3705") to Triple("Turkish Airlines", "Moskova (VKO) - Antalya (AYT) Sabah Seferi", 260.0),
-                Triple("Moskova", "Antalya", "N4-5821") to Triple("Nordwind Airlines", "Moskova (DME) - Antalya (AYT) Direk Charter", 185.0),
-                Triple("Moskova", "Antalya", "N4-5825") to Triple("Nordwind Airlines", "Moskova (SVO) - Antalya (AYT) Gece Charter Seferi", 175.0),
-                Triple("Moskova", "Antalya", "SU-2140") to Triple("Aeroflot", "Moskova (SVO) - Antalya (AYT) Tarifeli Sefer", 230.0),
-                Triple("Moskova", "Antalya", "PC-1822") to Triple("Pegasus Airlines", "Moskova (DME) - Antalya (AYT) Direkt Uçuş", 195.0),
-                Triple("Moskova", "Antalya", "2S-101") to Triple("Southwind Airlines", "Moskova (VKO) - Antalya (AYT) Charter Seferi", 180.0),
-                Triple("Moskova", "Antalya", "WZ-3091") to Triple("Red Wings", "Moskova (DME) - Antalya (AYT) Direkt Sefer", 190.0),
-
-                // ✈️ Moskova -> İstanbul (IST / SAW)
-                Triple("Moskova", "İstanbul", "SU-2134") to Triple("Aeroflot", "Moskova (SVO) - İstanbul (IST) Tarifeli Uçuş", 210.0),
-                Triple("Moskova", "İstanbul", "TK-1984") to Triple("Turkish Airlines", "Moskova (VKO) - İstanbul (IST) Konfor Seferi", 255.0),
-                Triple("Moskova", "İstanbul", "PC-1880") to Triple("Pegasus Airlines", "Moskova (DME) - İstanbul (SAW) Direkt Uçuş", 170.0),
-
-                // ✈️ Moskova -> Bodrum / Dalaman
-                Triple("Moskova", "Bodrum", "TK-3940") to Triple("Turkish Airlines", "Moskova (VKO) - Bodrum (BJV) Seferi", 270.0),
-                Triple("Moskova", "Dalaman", "N4-5931") to Triple("Nordwind Airlines", "Moskova (SVO) - Dalaman (DLM) Charter", 205.0),
-
-                // ✈️ Moskova -> Dubai / BAE
-                Triple("Moskova", "Dubai", "FZ-921") to Triple("Flydubai", "Moskova (VKO) - Dubai (DXB) Direkt Sefer", 310.0),
-                Triple("Moskova", "Dubai", "EK-121") to Triple("Emirates", "Moskova (DME) - Dubai (DXB) Tarifeli Uçuş", 420.0),
-
-                // ✈️ Moskova -> Mısır (Sharm / Hurgada)
-                Triple("Moskova", "Şarm El-Şeyh", "SU-2200") to Triple("Aeroflot", "Moskova (SVO) - Sharm El Sheikh (SSH) Seferi", 290.0),
-                Triple("Moskova", "Hurgada", "N4-5855") to Triple("Nordwind Airlines", "Moskova (DME) - Hurgada (HRG) Charter", 260.0),
-
-                // ✈️ Saint Petersburg (LED) -> Antalya / İstanbul
-                Triple("Saint Petersburg", "Antalya", "TK-3980") to Triple("Turkish Airlines", "Saint Petersburg (LED) - Antalya (AYT) Seferi", 275.0),
-                Triple("Saint Petersburg", "Antalya", "SU-270") to Triple("Aeroflot", "Saint Petersburg (LED) - Antalya (AYT) Tarifeli", 260.0),
-                Triple("Saint Petersburg", "Antalya", "PC-4022") to Triple("Pegasus Airlines", "Saint Petersburg (LED) - Antalya (AYT) Uçuş", 220.0),
-
-                // ✈️ Kazan / Yekaterinburg / Novosibirsk -> Antalya
-                Triple("Kazan", "Antalya", "N4-6012") to Triple("Nordwind Airlines", "Kazan (KZN) - Antalya (AYT) Direkt Charter", 215.0),
-                Triple("Kazan", "Antalya", "2S-304") to Triple("Southwind Airlines", "Kazan (KZN) - Antalya (AYT) Charter Seferi", 210.0),
-                Triple("Yekaterinburg", "Antalya", "N4-7701") to Triple("Nordwind Airlines", "Yekaterinburg (SVX) - Antalya (AYT) Seferi", 245.0),
-                Triple("Yekaterinburg", "Antalya", "WZ-4022") to Triple("Red Wings", "Yekaterinburg (SVX) - Antalya (AYT) Seferi", 235.0),
-                Triple("Novosibirsk", "Antalya", "S7-3802") to Triple("S7 Airlines", "Novosibirsk (OVB) - Antalya (AYT) Direkt Sefer", 295.0),
-
-                // ✈️ Türkiye İçi & Türkiye Çıkışlı (İstanbul / İzmir / Ankara -> Antalya / Bodrum)
-                Triple("İstanbul", "Antalya", "PC-2014") to Triple("Pegasus Airlines", "İstanbul (SAW) - Antalya (AYT) Direkt Uçuş", 85.0),
-                Triple("İstanbul", "Antalya", "TK-2412") to Triple("Turkish Airlines", "İstanbul (IST) - Antalya (AYT) Sabah Seferi", 110.0),
-                Triple("İstanbul", "Bodrum", "PC-5540") to Triple("Pegasus Airlines", "İstanbul (SAW) - Bodrum (BJV) Direkt Uçuş", 90.0),
-                Triple("İzmir", "Antalya", "XQ-504") to Triple("SunExpress", "İzmir (ADB) - Antalya (AYT) Direkt Uçuş", 75.0),
-                Triple("Ankara", "Antalya", "TK-7012") to Triple("AJet / THY", "Ankara (ESB) - Antalya (AYT) Direkt Uçuş", 80.0)
-            )
-
-            val photoPool = listOf(
-                "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=800",
-                "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800",
-                "https://images.unsplash.com/photo-1506015391300-4802dc74de2e?w=800",
-                "https://images.unsplash.com/photo-1519074069444-1ba4eff56b61?w=800",
-                "https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800",
-                "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=800"
-            )
-
-            return rawFlights.mapIndexed { idx, (route, meta) ->
-                val (dep, arr, fNum) = route
-                val (airline, name, baseEur) = meta
-                val isChar = fNum.startsWith("N4-") || fNum.startsWith("2S-") || fNum.startsWith("WZ-")
-                val country = when (arr) {
-                    "Dubai" -> "BAE"
-                    "Şarm El-Şeyh", "Hurgada" -> "Mısır"
-                    "Phuket", "Bangkok" -> "Tayland"
-                    "Soçi", "Moskova", "St. Petersburg" -> "Rusya"
-                    else -> "Türkiye"
-                }
-
-                UnifiedProductEntity(
-                    id = "flight-dyn-$dateStr-${fNum.lowercase()}-$idx",
-                    productType = "FLIGHT",
-                    tourName = "$name ($dateStr)",
-                    operatorName = if (isChar) "Charter & Tur Seferi" else airline,
-                    departureCity = dep,
-                    departureDate = dateStr,
-                    country = country,
-                    countryCode = if (country == "Türkiye") "TR" else if (country == "Mısır") "EG" else if (country == "BAE") "AE" else "RU",
-                    region = arr,
-                    flightNumber = fNum,
-                    airlineName = airline,
-                    isCharter = isChar,
-                    isDirectFlight = true,
-                    baggageKg = if (airline.contains("Turkish") || airline.contains("Aeroflot")) 23 else 20,
-                    price = baseEur,
-                    currency = "EUR",
-                    pictureUrl = photoPool[idx % photoPool.size],
-                    isInstantConfirmation = true
-                )
-            }
+            // ✈️ BİLGİ: Hardcoded uçuş verileri kaldırılmıştır. Tüm uçuşlar Yandex Cloud PostgreSQL (marketplace_products / flight_schedules) üzerinden %100 dinamik olarak çekilmektedir.
+            return emptyList()
         }
 
         fun isDepartureMatchingText(targetDeparture: String, selectedDeparture: String): Boolean {
@@ -331,7 +246,46 @@ class B2BTourSearchViewModel(
         }
 
         fun isDepartureMatching(item: UnifiedProductEntity, departure: String): Boolean {
-            return isDepartureMatchingText(item.departureCity, departure)
+            val depCityTarget = "${item.departureCity} ${item.flightNumber} ${item.tourName} ${item.hotelName}".trim()
+            return isDepartureMatchingText(depCityTarget, departure)
+        }
+
+        fun hasAirport(destinationText: String): Boolean {
+            val d = destinationText.lowercase().trim()
+            if (d.isBlank() || d.startsWith("tüm") || d.startsWith("все") || d == "all") return false
+
+            // Açık IATA kodları ve havalimanı anahtar kelimeleri
+            val explicitAirportPatterns = listOf(
+                "ayt", "gzp", "bjv", "dlm", "ist", "saw", "adb", "esb", "tzx", "ada",
+                "svo", "vko", "dme", "zia", "led", "aer", "kzn", "svx", "ovb", "kuf", "ufa",
+                "dxb", "dwc", "auh", "shj", "ssh", "hrg", "cai", "hkt", "bkk", "dmk", "utp",
+                "havalimanı", "havalimani", "airport", "аэропорт"
+            )
+            if (explicitAirportPatterns.any { d.contains(it) }) return true
+
+            // Havalimanı OLMAYAN, yalnızca otel / tatil beldesi olan yerler
+            val nonAirportResorts = listOf(
+                "kemer", "belek", "side", "manavgat", "beldibi", "göynük", "goynuk", "tekirova",
+                "kiriş", "kiris", "çamyuva", "camyuva", "kundu", "boğazkent", "bogazkent", "kadriye",
+                "çolaklı", "colakli", "kumköy", "kumkoy", "sorgun", "titreyengöl", "titreyengol",
+                "okurcalar", "mahmutlar", "avsallar", "konaklı", "konakli", "ölüdeniz", "oludeniz",
+                "göcek", "gocek", "marmaris", "fethiye", "yalıkavak", "yalikavak", "turgutreis",
+                "gümbet", "gumbet", "torba", "bitez", "çeşme", "cesme", "alaçatı", "alacati",
+                "makadi", "el gouna", "nabq", "naama", "patong", "karon", "kata", "chaweng"
+            )
+            if (nonAirportResorts.any { d.contains(it) }) {
+                return false
+            }
+
+            // Doğrudan havalimanı barındıran şehir ve merkezler
+            val airportCities = listOf(
+                "antalya", "alanya", "bodrum", "dalaman", "istanbul", "izmir", "ankara", "trabzon", "adana",
+                "moskova", "moscow", "москва", "petersburg", "петербург", "soçi", "sochi", "сочи", "kazan", "казань",
+                "yekaterinburg", "екатеринбург", "novosibirsk", "новосибирск", "samara", "самара", "ufa", "уфа",
+                "dubai", "дубай", "abu dhabi", "абу-даби", "şarm", "sharm", "шарм", "hurgada", "hurghada", "хургада",
+                "phuket", "пхукет", "bangkok", "бангкок"
+            )
+            return airportCities.any { d.contains(it) }
         }
 
         fun isDestinationMatchingText(targetText: String, selectedDest: String): Boolean {
@@ -373,8 +327,9 @@ class B2BTourSearchViewModel(
                     destLower.contains("ayt") || destLower.contains("bjv") || destLower.contains("dlm") || destLower.contains("gzp") || destLower.contains("adb") || destLower.contains("ist") || destLower.contains("saw")
 
             if (isTargetTurkey) {
-                // Kesinlikle Türkiye kontrolü (Tayland / Mısır otelleri 'side' kelimesi içerse bile elenir)
-                if (!isCountryMatching(item, "TR")) return false
+                val isFlightItem = item.safeProductType.uppercase() == "FLIGHT" || item.flightNumber.isNotBlank()
+                // Kesinlikle Türkiye kontrolü (Uçuş seferleri IATA kodları ve Türkiye varış noktalarıyla doğrudan eşleşir)
+                if (!isFlightItem && !isCountryMatching(item, "TR")) return false
 
                 if (destLower.contains("belek") || destLower.contains("белек")) return geoText.contains("belek") || geoText.contains("белек") || geoText.contains("boğazkent") || geoText.contains("kadriye") || geoText.contains("ayt")
                 if (destLower.contains("kemer") || destLower.contains("кемер")) return geoText.contains("kemer") || geoText.contains("кемер") || geoText.contains("beldibi") || geoText.contains("göynük") || geoText.contains("tekirova") || geoText.contains("kiriş") || geoText.contains("çamyuva") || geoText.contains("ayt")
@@ -385,7 +340,15 @@ class B2BTourSearchViewModel(
                 if (destLower.contains("marmaris") || destLower.contains("мармарис") || destLower.contains("fethiye") || destLower.contains("фетхие") || destLower.contains("dlm") || destLower.contains("dalaman")) return geoText.contains("marmaris") || geoText.contains("мармарис") || geoText.contains("fethiye") || geoText.contains("фетхие") || geoText.contains("dlm") || geoText.contains("dalaman") || geoText.contains("ölüdeniz") || geoText.contains("göcek")
                 if (destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("чешме") || destLower.contains("adb") || destLower.contains("izmir") || destLower.contains("измир")) return geoText.contains("çeşme") || geoText.contains("cesme") || geoText.contains("alaçatı") || geoText.contains("adb") || geoText.contains("izmir") || geoText.contains("измир")
                 if (destLower.contains("antalya") || destLower.contains("анталья") || destLower.contains("ayt")) {
-                    return geoText.contains("antalya") || geoText.contains("анталья") || geoText.contains("ayt") || geoText.contains("belek") || geoText.contains("kemer") || geoText.contains("lara") || geoText.contains("side") || geoText.contains("alanya")
+                    return geoText.contains("antalya") || geoText.contains("анталья") || geoText.contains("ayt") || 
+                           geoText.contains("belek") || geoText.contains("белек") || 
+                           geoText.contains("kemer") || geoText.contains("кемер") || 
+                           geoText.contains("lara") || geoText.contains("лара") || 
+                           geoText.contains("kundu") || geoText.contains("кунду") || 
+                           geoText.contains("side") || geoText.contains("сиде") || 
+                           geoText.contains("alanya") || geoText.contains("аланья") ||
+                           geoText.contains("manavgat") || geoText.contains("манавгат") ||
+                           geoText.contains("bogazkent") || geoText.contains("богазкент")
                 }
                 return true
             }
@@ -495,53 +458,70 @@ class B2BTourSearchViewModel(
             val geoText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion}".lowercase().trim()
 
             return when (code) {
-                "TR", "TÜRKIYE", "TURKEY", "ТУРЦИЯ" -> itemCode == "TR" || geoText.contains("türkiye") || geoText.contains("turkey") || geoText.contains("турция") ||
-                        geoText.contains("antalya") || geoText.contains("belek") || geoText.contains("kemer") || geoText.contains("lara") ||
-                        geoText.contains("alanya") || geoText.contains("side") || geoText.contains("bodrum") || geoText.contains("marmaris") ||
-                        geoText.contains("fethiye") || geoText.contains("çeşme") || geoText.contains("белек") ||
-                        geoText.contains("кемер") || geoText.contains("анталья") || geoText.contains("аланья") || geoText.contains("сиде") ||
-                        geoText.contains("бодрум") || geoText.contains("мармарис") || geoText.contains("фетхие") || (geoText.contains("istanbul") && !geoText.contains("sharm") && !geoText.contains("dubai"))
+                "TR", "TÜRKIYE", "TURKEY", "ТУРЦИЯ" -> {
+                    val isForeign = geoText.contains("хайнань") || geoText.contains("hainan") || geoText.contains("sanya") || geoText.contains("санья") ||
+                            geoText.contains("гагра") || geoText.contains("пицунда") || geoText.contains("гудаут") || geoText.contains("сухум") || geoText.contains("abhazya") || geoText.contains("абхазия") ||
+                            geoText.contains("нячанг") || geoText.contains("фукуок") || geoText.contains("дананг") || geoText.contains("фантьет") || geoText.contains("ханой") || geoText.contains("vietnam") || geoText.contains("вьетнам") ||
+                            geoText.contains("дубай") || geoText.contains("dubai") || geoText.contains("шарджа") || geoText.contains("абу-даби") || geoText.contains("фуджейра") || geoText.contains("оаэ") || geoText.contains("bae") ||
+                            geoText.contains("пхукет") || geoText.contains("паттайя") || geoText.contains("бангкок") || geoText.contains("краби") || geoText.contains("самуи") || geoText.contains("tayland") || geoText.contains("thailand") ||
+                            geoText.contains("шарм") || geoText.contains("хургада") || geoText.contains("марса алам") || geoText.contains("египет") || geoText.contains("egypt") || geoText.contains("mısır") ||
+                            geoText.contains("мальдив") || geoText.contains("maldiv") || geoText.contains("maldives") ||
+                            geoText.contains("сочи") || geoText.contains("петербург") || geoText.contains("москва") || geoText.contains("калининград") || geoText.contains("россия") || geoText.contains("rusya") ||
+                            geoText.contains("бали") || geoText.contains("bali") || geoText.contains("занзибар") || geoText.contains("zanzibar") || geoText.contains("шри-ланка") || geoText.contains("sri lanka") ||
+                            geoText.contains("кипр") || geoText.contains("cyprus") || geoText.contains("грузия") || geoText.contains("georgia") || geoText.contains("батуми") || geoText.contains("черногория") || geoText.contains("montenegro") ||
+                            geoText.contains("маврикий") || geoText.contains("mauritius") || geoText.contains("сейшел") || geoText.contains("seychelles")
+                    if (isForeign) return false
+                    itemCode == "TR" || geoText.contains("türkiye") || geoText.contains("turkey") || geoText.contains("турция") ||
+                            geoText.contains("antalya") || geoText.contains("ayt") || geoText.contains("belek") || geoText.contains("kemer") || geoText.contains("lara") ||
+                            geoText.contains("alanya") || geoText.contains("gzp") || geoText.contains("side") || geoText.contains("bodrum") || geoText.contains("bjv") || geoText.contains("marmaris") ||
+                            geoText.contains("fethiye") || geoText.contains("dlm") || geoText.contains("çeşme") || geoText.contains("adb") || geoText.contains("izmir") ||
+                            geoText.contains("белек") || geoText.contains("кемер") || geoText.contains("анталья") || geoText.contains("аланья") || geoText.contains("сиде") ||
+                            geoText.contains("бодрум") || geoText.contains("мармарис") || geoText.contains("фетхие") || geoText.contains("ist") || geoText.contains("saw") || (geoText.contains("istanbul") && !geoText.contains("sharm") && !geoText.contains("dubai"))
+                }
                 "EG", "MISIR", "EGYPT", "ЕГИПЕТ" -> itemCode == "EG" || geoText.contains("mısır") || geoText.contains("egypt") || geoText.contains("египет") ||
                         geoText.contains("şarm") || geoText.contains("sharm") || geoText.contains("hurgada") || geoText.contains("hurghada") ||
                         geoText.contains("el gouna") || geoText.contains("makadi") || geoText.contains("шарм") || geoText.contains("хургада") ||
-                        geoText.contains("эль гуна") || geoText.contains("макади")
+                        geoText.contains("эль гуна") || geoText.contains("макади") || geoText.contains("марса алам") || geoText.contains("дахаб")
                 "TH", "TAYLAND", "THAILAND", "ТАИЛАНД", "ТАЙЛАНД" -> itemCode == "TH" || geoText.contains("tayland") || geoText.contains("thailand") || geoText.contains("таиланд") || geoText.contains("тайланд") ||
                         geoText.contains("phuket") || geoText.contains("pattaya") || geoText.contains("bangkok") || geoText.contains("samui") ||
                         geoText.contains("krabi") || geoText.contains("пхукет") || geoText.contains("паттайя") || geoText.contains("бангкок") ||
-                        geoText.contains("самуи") || geoText.contains("краби")
+                        geoText.contains("самуи") || geoText.contains("краби") || geoText.contains("као лак")
                 "VN", "VIETNAM", "ВЬЕТНАМ" -> itemCode == "VN" || geoText.contains("vietnam") || geoText.contains("вьетнам") ||
                         geoText.contains("da nang") || geoText.contains("phu quoc") || geoText.contains("nha trang") || geoText.contains("hoi an") ||
-                        geoText.contains("дананг") || geoText.contains("фукуок") || geoText.contains("нячанг") || geoText.contains("хойан")
+                        geoText.contains("дананг") || geoText.contains("фукуок") || geoText.contains("нячанг") || geoText.contains("хойан") ||
+                        geoText.contains("фантьет") || geoText.contains("ханой") || geoText.contains("вунг тау") || geoText.contains("камрань")
                 "AE", "BAE", "DUBAI", "UAE", "ОАЭ" -> itemCode == "AE" || geoText.contains("bae") || geoText.contains("dubai") || geoText.contains("uae") || geoText.contains("оаэ") ||
                         geoText.contains("дубай") || geoText.contains("abu dhabi") || geoText.contains("абу-даби") || geoText.contains("sharjah") ||
-                        geoText.contains("шарджа") || geoText.contains("jumeirah")
+                        geoText.contains("шарджа") || geoText.contains("jumeirah") || geoText.contains("фуджейра") || geoText.contains("аджман") || geoText.contains("умм аль кувейн")
                 "RU", "RUSYA", "RUSSIA", "РОССИЯ" -> itemCode == "RU" || geoText.contains("rusya") || geoText.contains("russia") || geoText.contains("россия") ||
                         geoText.contains("moskova") || geoText.contains("moscow") || geoText.contains("москва") ||
                         geoText.contains("sochi") || geoText.contains("сочи") || geoText.contains("st. petersburg") || geoText.contains("петербург") ||
-                        geoText.contains("kazan") || geoText.contains("казань")
+                        geoText.contains("kazan") || geoText.contains("казань") || geoText.contains("калининград")
                 "MV", "MALDIVLER", "MALDIVES", "МАЛЬДИВЫ" -> itemCode == "MV" || geoText.contains("maldiv") || geoText.contains("maldives") || geoText.contains("мальдив") ||
                         geoText.contains("male") || geoText.contains("мале") || geoText.contains("atoll") || geoText.contains("атолл")
                 "CY", "KIBRIS", "CYPRUS", "КИПР" -> itemCode == "CY" || geoText.contains("kıbrıs") || geoText.contains("cyprus") || geoText.contains("кипр") ||
-                        geoText.contains("girne") || geoText.contains("kyrenia") || geoText.contains("lefkoşa") || geoText.contains("nicosia") || geoText.contains("magusa") || geoText.contains("bafra") || geoText.contains("гирне") || geoText.contains("никосия")
+                        geoText.contains("girne") || geoText.contains("kyrenia") || geoText.contains("lefkoşa") || geoText.contains("nicosia") || geoText.contains("magusa") || geoText.contains("bafra") || geoText.contains("гирне") || geoText.contains("никосия") ||
+                        geoText.contains("айя напа") || geoText.contains("ларнака") || geoText.contains("пафос") || geoText.contains("протарас") || geoText.contains("лимассол")
                 "GE", "GÜRCISTAN", "GURCISTAN", "GEORGIA", "ГРУЗИЯ" -> itemCode == "GE" || geoText.contains("gürcistan") || geoText.contains("gurcistan") || geoText.contains("georgia") || geoText.contains("грузия") ||
-                        geoText.contains("batum") || geoText.contains("batumi") || geoText.contains("батуми") || geoText.contains("tbilisi") || geoText.contains("tiflis") || geoText.contains("тбилиси")
+                        geoText.contains("batum") || geoText.contains("batumi") || geoText.contains("батуми") || geoText.contains("tbilisi") || geoText.contains("tiflis") || geoText.contains("тбилиси") || geoText.contains("гудаури") || geoText.contains("бакуриани")
                 "SC", "SEYSELLER", "ŞEYŞELLER", "SEYCHELLES", "СЕЙШЕЛЫ" -> itemCode == "SC" || geoText.contains("seyşel") || geoText.contains("seysel") || geoText.contains("seychelles") || geoText.contains("сейшел") ||
-                        geoText.contains("mahe") || geoText.contains("маэ") || geoText.contains("praslin") || geoText.contains("праслин")
+                        geoText.contains("mahe") || geoText.contains("маэ") || geoText.contains("praslin") || geoText.contains("праслин") || geoText.contains("ла диг") || geoText.contains("la digue")
                 "LK", "SRI LANKA", "ŞRİ LANKA", "ШРИ-ЛАНКА" -> itemCode == "LK" || geoText.contains("sri lanka") || geoText.contains("srilanka") || geoText.contains("шри-ланка") || geoText.contains("шри ланка") ||
-                        geoText.contains("colombo") || geoText.contains("коломбо") || geoText.contains("bentota") || geoText.contains("бентота")
+                        geoText.contains("colombo") || geoText.contains("коломбо") || geoText.contains("bentota") || geoText.contains("бентота") || geoText.contains("канди") || geoText.contains("галле")
                 "MU", "MAURITIUS", "MAVRİKIY", "МАВРИКИЙ" -> itemCode == "MU" || geoText.contains("mauritius") || geoText.contains("маврикий") ||
-                        geoText.contains("port louis") || geoText.contains("порт-луи")
+                        geoText.contains("port louis") || geoText.contains("порт-луи") || geoText.contains("grand baie") || geoText.contains("flic")
                 "ID", "ENDONEZYA", "INDONESIA", "ИНДОНЕЗИЯ" -> itemCode == "ID" || geoText.contains("endonezya") || geoText.contains("indonesia") || geoText.contains("индонезия") ||
-                        geoText.contains("bali") || geoText.contains("бали") || geoText.contains("ubud") || geoText.contains("убуд")
-                "TZ", "ZANZIBAR", "TANZANIA", "ТАНЗАНИЯ" -> itemCode == "TZ" || geoText.contains("zanzibar") || geoText.contains("занзибар") || geoText.contains("tanzania") || geoText.contains("танзания")
+                        geoText.contains("bali") || geoText.contains("бали") || geoText.contains("ubud") || geoText.contains("убуд") || geoText.contains("kuta") || geoText.contains("кута") || geoText.contains("seminyak") || geoText.contains("семиньяк")
+                "TZ", "ZANZIBAR", "TANZANIA", "ТАНЗАНИЯ" -> itemCode == "TZ" || geoText.contains("zanzibar") || geoText.contains("занзибар") || geoText.contains("tanzania") || geoText.contains("танзания") ||
+                        geoText.contains("nungwi") || geoText.contains("нунгви") || geoText.contains("kendwa") || geoText.contains("кендва")
                 "ME", "KARADAG", "KARADAĞ", "MONTENEGRO", "ЧЕРНОГОРИЯ" -> itemCode == "ME" || geoText.contains("karadağ") || geoText.contains("karadag") || geoText.contains("montenegro") || geoText.contains("черногория") ||
-                        geoText.contains("budva") || geoText.contains("будва") || geoText.contains("kotor") || geoText.contains("котор") || geoText.contains("tivat") || geoText.contains("тиват")
+                        geoText.contains("budva") || geoText.contains("будва") || geoText.contains("kotor") || geoText.contains("котор") || geoText.contains("tivat") || geoText.contains("тиват") || geoText.contains("herceg novi") || geoText.contains("герцег-нови")
                 "GR", "YUNANISTAN", "GREECE", "ГРЕЦИЯ" -> itemCode == "GR" || geoText.contains("yunanistan") || geoText.contains("greece") || geoText.contains("греция") ||
-                        geoText.contains("rodos") || geoText.contains("rhodes") || geoText.contains("родос") || geoText.contains("girit") || geoText.contains("crete") || geoText.contains("крит")
+                        geoText.contains("rodos") || geoText.contains("rhodes") || geoText.contains("родос") || geoText.contains("girit") || geoText.contains("crete") || geoText.contains("крит") || geoText.contains("афины") || geoText.contains("халкидики")
                 "CN", "ÇIN", "CIN", "CHINA", "КИТАЙ" -> itemCode == "CN" || geoText.contains("çin") || geoText.contains("cin") || geoText.contains("china") || geoText.contains("китай") ||
-                        geoText.contains("hainan") || geoText.contains("хайнань") || geoText.contains("sanya") || geoText.contains("санья")
+                        geoText.contains("hainan") || geoText.contains("хайнань") || geoText.contains("sanya") || geoText.contains("санья") || geoText.contains("пекин") || geoText.contains("beijing") || geoText.contains("гуанчжоу") || geoText.contains("гонконг") || geoText.contains("дадунхай")
                 "AB", "ABHAZYA", "ABKHAZIA", "АБХАЗИЯ" -> itemCode == "AB" || geoText.contains("abhazya") || geoText.contains("abkhazia") || geoText.contains("абхазия") ||
-                        geoText.contains("gagra") || geoText.contains("гагра") || geoText.contains("pitsunda") || geoText.contains("пицунда")
+                        geoText.contains("gagra") || geoText.contains("гагра") || geoText.contains("pitsunda") || geoText.contains("пицунда") || geoText.contains("гудаут") || geoText.contains("gudaut") || geoText.contains("сухум") || geoText.contains("новый афон")
                 else -> geoText.contains(countryCodeOrName.lowercase()) || code.contains(itemCode)
             }
         }
@@ -562,28 +542,57 @@ class B2BTourSearchViewModel(
                 "marmaris" -> listOf("marmaris", "мармарис")
                 "fethiye" -> listOf("fethiye", "фетхие")
                 "çeşme", "cesme" -> listOf("çeşme", "cesme", "чешме")
-                "şarm el-şeyh", "sharm el-sheikh" -> listOf("şarm", "sharm", "шарм")
-                "hurgada", "hurghada" -> listOf("hurgada", "hurghada", "хургада")
-                "el gouna" -> listOf("el gouna", "gouna", "эль гуна", "эль-гуна")
-                "makadi bay" -> listOf("makadi", "макади")
-                "phuket" -> listOf("phuket", "пхукет", "patong", "патонг", "karon", "карон", "kata", "ката")
-                "pattaya" -> listOf("pattaya", "паттайя")
-                "bangkok" -> listOf("bangkok", "бангкок")
-                "koh samui", "samui" -> listOf("samui", "самуи")
-                "krabi" -> listOf("krabi", "краби")
-                "nha trang" -> listOf("nha trang", "nhatrang", "нячанг")
-                "hoi an" -> listOf("hoi an", "hoian", "хойан")
-                "dubai marina" -> listOf("dubai", "marina", "дубай")
+                "şarm el-şeyh", "sharm el-sheikh", "шарм-эль-шейх" -> listOf("şarm", "sharm", "шарм")
+                "hurgada", "hurghada", "хургада" -> listOf("hurgada", "hurghada", "хургада")
+                "el gouna", "эль гуна" -> listOf("el gouna", "gouna", "эль гуна", "эль-гуна")
+                "makadi bay", "макади" -> listOf("makadi", "макади")
+                "phuket", "пхукет" -> listOf("phuket", "пхукет", "patong", "патонг", "karon", "карон", "kata", "ката")
+                "pattaya", "паттайя" -> listOf("pattaya", "паттайя")
+                "bangkok", "бангкок" -> listOf("bangkok", "бангкок")
+                "koh samui", "samui", "самуи" -> listOf("samui", "самуи")
+                "krabi", "краби" -> listOf("krabi", "краби")
+                "nha trang", "нячанг" -> listOf("nha trang", "nhatrang", "нячанг")
+                "phu quoc", "фукуок" -> listOf("phu quoc", "фукуок")
+                "da nang", "дананг" -> listOf("da nang", "дананг")
+                "hoi an", "хойан" -> listOf("hoi an", "hoian", "хойан")
+                "hainan", "хайнань" -> listOf("hainan", "хайнань")
+                "sanya", "санья" -> listOf("sanya", "санья")
+                "pekin", "пекин", "beijing" -> listOf("pekin", "пекин", "beijing")
+                "gagra", "гагра", "гагрский район" -> listOf("gagra", "гагра", "гагр")
+                "pitsunda", "пицунда" -> listOf("pitsunda", "пицунда")
+                "gudauta", "гудаута" -> listOf("gudauta", "гудаут")
+                "sohum", "сухум", "сухумский район" -> listOf("sohum", "сухум", "sukhum")
+                "айя напа", "ayia napa" -> listOf("айя напа", "ayia napa", "напа")
+                "ларнака", "larnaca", "larnaka" -> listOf("ларнака", "larnaca", "larnaka")
+                "пафос", "paphos", "pafos" -> listOf("пафос", "paphos", "pafos")
+                "маэ", "маэ о.", "mahe" -> listOf("mahe", "маэ")
+                "праслин", "праслин о.", "praslin" -> listOf("praslin", "праслин")
+                "батуми", "batumi", "batum" -> listOf("batumi", "batum", "батум")
+                "тбилиси", "tbilisi", "tiflis" -> listOf("tbilisi", "tiflis", "тбилис")
+                "коломбо", "colombo" -> listOf("colombo", "коломбо")
+                "бентота", "bentota" -> listOf("bentota", "бентота")
+                "порт-луи", "port louis" -> listOf("port louis", "порт-луи")
+                "бали", "bali" -> listOf("bali", "бали")
+                "убуд", "ubud" -> listOf("ubud", "убуд")
+                "занзибар", "zanzibar" -> listOf("zanzibar", "занзибар")
+                "нунгви", "nungwi" -> listOf("nungwi", "нунгви")
+                "будва", "budva" -> listOf("budva", "будва")
+                "котор", "kotor" -> listOf("kotor", "котор")
+                "тиват", "tivat" -> listOf("tivat", "тиват")
+                "родос", "rhodes", "rodos" -> listOf("rhodes", "rodos", "родос")
+                "крит", "crete", "girit" -> listOf("crete", "girit", "крит")
+                "dubai marina", "дубай" -> listOf("dubai", "marina", "дубай")
                 "palm jumeirah" -> listOf("palm", "jumeirah", "пальм")
                 "downtown" -> listOf("downtown", "даунтаун")
-                "abu dhabi" -> listOf("abu dhabi", "абу-даби")
-                "moskova" -> listOf("moskova", "moscow", "москва")
-                "st. petersburg" -> listOf("petersburg", "петербург", "питер")
-                "sochi" -> listOf("sochi", "сочи")
-                "kazan" -> listOf("kazan", "казань")
+                "abu dhabi", "абу-даби" -> listOf("abu dhabi", "абу-даби")
+                "шарджа", "sharjah" -> listOf("sharjah", "шарджа")
+                "moskova", "москва" -> listOf("moskova", "moscow", "москва")
+                "st. petersburg", "санкт-петербург" -> listOf("petersburg", "петербург", "питер")
+                "sochi", "сочи" -> listOf("sochi", "сочи")
+                "kazan", "казань" -> listOf("kazan", "казань")
                 else -> listOf(s)
             }
-            return synonyms.any { geoText.contains(it) }
+            return synonyms.any { geoText.contains(it) || it.contains(item.region.lowercase()) }
         }
     }
 
@@ -645,16 +654,21 @@ data class QuotaCheckResultDto(
 )
 
     fun performSearch(companyId: String? = null, forceRefresh: Boolean = false) {
-        // ⚡ 0 MS ANLIK ÖNBELLEK ÇIKIŞI: Eğer ürün havuzu bellekte varsa anında ekrana bas
+        val currentCat = selectedCategory.value.uppercase()
+        val isTargetingFlights = currentCat == "FLIGHTS" || currentCat == "FLIGHT"
+
+        // ⚡ 0 MS ANLIK ÖNBELLEK ÇIKIŞI: Eğer ürün havuzu bellekte varsa ve aranan kategoriyi içeriyorsa ekrana bas
         globalCachedCombined?.let { cached ->
             val filtered = filterProducts(cached)
-            _uiState.value = B2BTourSearchUiState.Success(
-                allProducts = cached,
-                filteredProducts = filtered,
-                totalFoundCount = filtered.size
-            )
-            globalCachedMetadata?.let { searchFilterMetadata.value = it }
-            if (!forceRefresh) return
+            if (filtered.isNotEmpty() || (!isTargetingFlights && !forceRefresh)) {
+                _uiState.value = B2BTourSearchUiState.Success(
+                    allProducts = cached,
+                    filteredProducts = filtered,
+                    totalFoundCount = filtered.size
+                )
+                globalCachedMetadata?.let { searchFilterMetadata.value = it }
+                if (!forceRefresh && filtered.isNotEmpty()) return
+            }
         }
 
         viewModelScope.launch {
@@ -713,9 +727,40 @@ data class QuotaCheckResultDto(
 
             var items = emptyList<UnifiedProductEntity>()
             runCatching {
-                supabaseClient.postgrest["marketplace_products"]
-                    .select()
-                    .decodeList<UnifiedProductEntity>()
+                if (isTargetingFlights) {
+                    supabaseClient.postgrest["marketplace_products"]
+                        .select {
+                            filter {
+                                eq("product_type", "FLIGHT")
+                            }
+                            range(0, 300)
+                        }
+                        .decodeList<UnifiedProductEntity>()
+                } else {
+                    val tours = runCatching {
+                        supabaseClient.postgrest["marketplace_products"]
+                            .select {
+                                filter {
+                                    eq("product_type", "PACKAGE_TOUR")
+                                }
+                                range(0, 300)
+                            }
+                            .decodeList<UnifiedProductEntity>()
+                    }.getOrDefault(emptyList())
+
+                    val flights = runCatching {
+                        supabaseClient.postgrest["marketplace_products"]
+                            .select {
+                                filter {
+                                    eq("product_type", "FLIGHT")
+                                }
+                                range(0, 300)
+                            }
+                            .decodeList<UnifiedProductEntity>()
+                    }.getOrDefault(emptyList())
+
+                    tours + flights
+                }
             }.onSuccess { list ->
                 items = list
             }.onFailure { err ->
@@ -775,15 +820,36 @@ data class QuotaCheckResultDto(
                 }
             }
 
-            // Canlı DB (marketplace_products) ve yerel ürünleri birleştir
+            // Canlı Yandex DB (marketplace_products) ve yerel ürünleri birleştir (%100 dinamik)
             val memoryItems = AgencyProductPublishingViewModel.getPersistentProducts()
-            val combined = (items + localHotelProducts + localTourProducts + memoryItems).distinctBy { it.id }
+            val rawCombined = (items + localHotelProducts + localTourProducts + memoryItems).distinctBy { it.id }
+
+            // KESİN KURAL: Arama ve listelerde YALNIZCA izin verilen 9 Kanonik Tur Operatörü yer alır.
+            // Diğer operatörler veya tanımsızlar arama sonuçlarından tamamen elenir.
+            val combined = rawCombined.mapNotNull { item ->
+                val pType = item.safeProductType.uppercase()
+                val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
+                                   item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
+                                   item.hotelName.startsWith("Uçuş:", ignoreCase = true) || 
+                                   item.hotelName.startsWith("✈️", ignoreCase = true) ||
+                                   (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
+                if (isPureFlight) {
+                    item
+                } else {
+                    val canonicalOp = TourOperatorConfig.resolveCanonicalOperatorName(item.operatorName)
+                    if (canonicalOp != null) {
+                        item.copy(operatorName = canonicalOp)
+                    } else {
+                        null // 9 TO DIŞINDAKİ TÜM OPERATÖRLERİ ARAMA VE VERİDEN ÇIKAR
+                    }
+                }
+            }
             val filtered = filterProducts(combined)
 
             val dbDepartureCities = combined.map { it.departureCity }.filter { it.isNotBlank() && it != "Yerel Otel" }.distinct().sorted()
             val dbCountries = combined.map { it.country }.filter { it.isNotBlank() }.distinct().sorted()
             val dbRegions = combined.map { it.region }.filter { it.isNotBlank() }.distinct().sorted()
-            val dbOperators = combined.map { it.operatorName }.filter { it.isNotBlank() }.distinct().sorted()
+            val dbOperators = TourOperatorConfig.ALLOWED_OPERATOR_NAMES
             val dbCurrencies = combined.map { it.currency }.filter { it.isNotBlank() }.distinct().sorted()
 
             searchFilterMetadata.value = SearchFilterMetadataDto(
@@ -818,13 +884,20 @@ data class QuotaCheckResultDto(
 
         return list.filter { item ->
             val pType = item.safeProductType.uppercase()
-            val isPureFlight = pType == "FLIGHT" || item.airlineName.isNotBlank() || item.flightNumber.startsWith("TK-") || item.flightNumber.startsWith("N4-") || item.flightNumber.startsWith("SU-") || item.flightNumber.startsWith("PC-") || item.tourName.startsWith("Uçuş:", ignoreCase = true) || item.hotelName.startsWith("Uçuş:", ignoreCase = true) || item.hotelName.startsWith("✈️", ignoreCase = true)
+            val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
+                               item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
+                               item.hotelName.startsWith("Uçuş:", ignoreCase = true) || 
+                               item.hotelName.startsWith("✈️", ignoreCase = true) ||
+                               (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
+            val isAllowedOp = isPureFlight || TourOperatorConfig.isAllowedOperator(item.operatorName)
+            if (!isAllowedOp) return@filter false
+
             val isPureHotel = (pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.operatorName.contains("Yerel Otel", ignoreCase = true)) && !isPureFlight && item.flightNumber.isBlank()
-            val isPackageTour = (pType == "PACKAGE_TOUR" || pType == "LOCAL_TOUR" || pType == "TOUR" || item.hasTransfer) && !isPureFlight && !isPureHotel
+            val isPackageTour = (pType == "PACKAGE_TOUR" || pType == "LOCAL_TOUR" || pType == "TOUR" || item.hasTransfer || (item.hotelName.isNotBlank() && item.flightNumber.isNotBlank())) && !isPureFlight && !isPureHotel
 
             val matchesCategory = when (cat) {
-                "TOURS", "PACKAGE_TOUR" -> isPackageTour
-                "HOTELS", "HOTEL" -> isPureHotel
+                "TOURS", "PACKAGE_TOUR" -> !isPureFlight && (isPackageTour || pType == "PACKAGE_TOUR" || pType == "TOUR" || pType == "LOCAL_TOUR" || pType == "ALL" || item.hasTransfer || item.hotelName.isNotBlank())
+                "HOTELS", "HOTEL" -> !isPureFlight && (isPureHotel || pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.hotelCategory >= 3 || item.hotelName.isNotBlank())
                 "FLIGHTS", "FLIGHT" -> isPureFlight
                 "LOCAL_TOURS" -> pType == "LOCAL_TOUR" || item.id.startsWith("local-tour-")
                 "LOCAL_HOTELS" -> pType == "LOCAL_HOTEL" || item.id.startsWith("local-hotel-")
@@ -832,6 +905,27 @@ data class QuotaCheckResultDto(
             }
 
             if (!matchesCategory) return@filter false
+
+            // KESİN KURAL: Yalnızca 9 Kanonik Tur Operatörüne ait ürünler aramada bulunabilir
+            if (!isPureFlight && !TourOperatorConfig.isAllowedOperator(item.operatorName)) {
+                return@filter false
+            }
+
+            // ✈️ UÇUŞ KESİN KURALLARI: Havaalanı olmayan yerlere uçuş gösterme & boş aramada sahte uçuş göstermeme
+            val isFlightMode = (cat == "FLIGHTS" || cat == "FLIGHT") || isPureFlight
+            if (isFlightMode) {
+                val isDepAll = dep.isBlank() || dep.equals("Tüm Kalkış Şehirleri", ignoreCase = true) || dep.equals("Все города", ignoreCase = true) || dep.equals("Все", ignoreCase = true) || dep.equals("ALL", ignoreCase = true)
+                val isDestAll = dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.equals("Все", ignoreCase = true) || dest.equals("ALL", ignoreCase = true)
+
+                // 1. Havaalanı olmayan tatil beldelerine (Kemer, Belek, Side, Alanya Mahmutlar vb.) uçuş gösterme
+                if (!isDestAll && dest.isNotBlank()) {
+                    if (!hasAirport(dest)) return@filter false
+                }
+                // 2. Uçuş sekmesinde hiçbir kalkış ve varış seçilmeden doğrudan uçuş listelenmesini engelle
+                if (cat == "FLIGHTS" || cat == "FLIGHT") {
+                    if (isDepAll && isDestAll) return@filter false
+                }
+            }
 
             val matchesSearch = q.isBlank() ||
                     item.hotelName.lowercase().contains(q) ||
@@ -841,9 +935,27 @@ data class QuotaCheckResultDto(
                     item.departureCity.lowercase().contains(q) ||
                     item.operatorName.lowercase().contains(q)
 
-            val matchesDest = isDestinationMatching(item, dest)
+            val matchesDest = dest.isBlank() || 
+                    dest.contains("Tüm", ignoreCase = true) || 
+                    dest.contains("Все", ignoreCase = true) || 
+                    dest.equals("ALL", ignoreCase = true) || 
+                    isDestinationMatching(item, dest) || 
+                    isDestinationMatchingText(
+                        targetText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion} ${item.safeHotelName} ${item.tourName} ${item.flightNumber}",
+                        selectedDest = dest
+                    )
+
             val matchesCountry = isCountryMatching(item, country)
-            val matchesDep = isDepartureMatching(item, dep)
+
+            val matchesDep = dep.isBlank() || 
+                    dep.contains("Tüm", ignoreCase = true) || 
+                    dep.contains("Все", ignoreCase = true) || 
+                    dep.equals("ALL", ignoreCase = true) || 
+                    isDepartureMatching(item, dep) || 
+                    isDepartureMatchingText(
+                        targetDeparture = "${item.departureCity} ${item.flightNumber} ${item.tourName} ${item.safeHotelName} ${item.region}",
+                        selectedDeparture = dep
+                    )
             val matchesStar = stars.isEmpty() || item.hotelCategory == 0 || stars.contains(item.hotelCategory)
             val matchesInstant = !isInstant || item.isInstantConfirmation
             val matchesPromo = !isPromo || item.isPromo
@@ -1167,23 +1279,35 @@ data class QuotaCheckResultDto(
 
             // 1. ZENGİN YOLCU LİSTESİ OLUŞTURMA (Cinsiyet, Pasaport, SKT, Sorumlu Yetişkin, İnfant Koltuk)
             val domainPassengers = pList.mapIndexed { idx, p ->
-                val fullName = "${p.firstName} ${p.lastName}".trim().ifBlank { "Turist ${idx + 1}" }
+                val fullName = "${p.firstName} ${p.lastName}".trim().ifBlank { "Турист ${idx + 1}" }
                 val extraInfo = buildString {
-                    if (p.isInfantSeatRequested) append(" • [✈️ İnfant Koltuğu Talep Edildi]")
-                    if (!p.isPayer) append(" • [👨‍👦 Çocuk Sorumlusu: Turist 1 (Yetişkin)]")
-                    if (p.citizenship.isNotBlank()) append(" • [Uyruk: ${p.citizenship}]")
-                    if (p.documentExpiryDate.isNotBlank()) append(" • [Pasaport SKT: ${p.documentExpiryDate}]")
+                    if (p.isInfantSeatRequested) append(" • [✈️ Место для инфанта]")
+                    if (!p.isPayer) append(" • [👨‍👦 Ответственный: Турист 1]")
+                    if (p.citizenship.isNotBlank()) append(" • [Гражданство: ${p.citizenship}]")
+                    if (p.birthCountry.isNotBlank()) append(" • [Страна рождения: ${p.birthCountry}]")
+                    if (p.documentIssuedBy.isNotBlank()) append(" • [Кем выдан: ${p.documentIssuedBy}]")
+                    if (p.documentExpiryDate.isNotBlank()) append(" • [Срок действия: ${p.documentExpiryDate}]")
                 }
                 Passenger(
                     id = generateUuid(),
                     bookingId = bookingId,
                     fullName = fullName,
-                    tcNo = p.passportSeries.ifBlank { "8492" },
-                    passportNo = p.passportNumber.ifBlank { "84920492" },
-                    birthDate = p.birthDate.ifBlank { "12.05.1985" },
-                    gender = if (p.gender == "MALE") "Bay (Мужской)" else "Bayan (Женский)",
-                    phone = p.phone.ifBlank { "+90 532 100 2030" },
-                    email = p.email.ifBlank { "ahmet@gmail.com" },
+                    firstName = p.firstName,
+                    lastName = p.lastName,
+                    tcNo = p.passportSeries,
+                    passportSeries = p.passportSeries,
+                    passportNo = p.passportNumber,
+                    birthDate = p.birthDate,
+                    gender = if (p.gender == "MALE") "Мужской" else "Женский",
+                    citizenship = p.citizenship,
+                    birthCountry = p.birthCountry,
+                    documentType = p.documentType,
+                    documentIssueDate = p.documentIssueDate,
+                    documentIssuedBy = p.documentIssuedBy,
+                    documentExpiryDate = p.documentExpiryDate,
+                    phone = p.phone,
+                    email = p.email,
+                    address = p.address,
                     isLead = p.isPayer,
                     notes = extraInfo
                 )

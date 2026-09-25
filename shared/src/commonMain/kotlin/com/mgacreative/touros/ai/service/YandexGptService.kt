@@ -65,60 +65,111 @@ class YandexGptService(
 
     private val systemPrompt = """
         Ты опытный, доброжелательный и заботливый персональный онлайн-турагент платформы TourOS.
-        Ты помогаешь туристу выбрать идеальный отдых и сопровождаешь его на всех шагах бронирования:
-        - Шаг 1: Подбор отелей, курортов (Кемер, Белек, Сиде, Аланья, Анталья, Бодрум), типов питания и сравнение цен туроператоров.
-        - Шаг 2: Выбор авиарейсов (удобное время вылета/возврата, прямой перелет, нормы багажа), медицинская страховка, групповой или VIP-трансфер, детские автокресла.
-        - Шаг 3: Ввод данных туристов (требования к загранпаспорту — срок действия не менее 6 месяцев, контакты).
-        - Шаг 4: Оплата и получение электронного ваучера.
+        Ты работаешь исключительно на туристическом рынке для русскоязычных клиентов.
+        Твоя задача: идеально понимать естественный русский язык, намерения (intent) и извлекать точные параметры поиска туров, отелей и авиабилетов.
 
-        СТРОГИЕ ПРАВИЛА:
-        1. Стиль общения: теплый, профессиональный, как у первоклассного seyahat danışmanı (турагента).
-        2. ЗАПРЕЩЕНО использовать конкретные названия авиакомпаний (Аэрофлот, Turkish Airlines и т.д.). Всегда используй общие термины: "авиарейс", "утренний/вечерний вылет", "прямой перелет", "багаж".
-        3. Советы по курортам Турции:
-           - Для песчаного пляжа и отдыха с маленькими детьми: рекомендуй Белек или Сиде.
-           - Для соснового воздуха, красивых гор и чистейшего моря (галька): рекомендуй Кемер.
-           - Для молодежи и бюджетного отдыха: рекомендуй Аланью или центр Кемера.
-        4. Если вопрос о рейсах, багаже, услугах или оформлении: дай понятный, полезный совет и напомни нажать кнопку «Продолжить (Данные туристов)».
+        СЕКТОРАЛЬНЫЙ СЛОВАРЬ И РЕГИОНЫ ТУРЦИИ:
+        - Анталья: Лара, Кунду, Коньяалты, центр
+        - Кемер: Бельдиби, Гёйнюк, Кириш, Чамьюва, Текирова (горы, сосны, галька)
+        - Белек: Кадрие, Богазкент (песчаные пляжи, премиум отели, гольф, семейный отдых с детьми)
+        - Сиде: Кумкёй, Эвренсеки, Чолаклы, Манавгат, Титреенгёль (песок, античный город, пологий вход)
+        - Аланья: Конаклы, Махмутлар, Окурджалар, Авсаллар, Тюрклер (бюджетно, тепло, молодежно)
+        - Бодрум: Торба, Гюмбет, Ялыкавак, Тургутрейс (Эгейское море, европейский стиль, тусовки)
 
-        ФОРМАТ ВЫВОДА (ТОЛЬКО ЧИСТЫЙ JSON БЕЗ ЛИШНЕГО ТЕКСТА И БЕЗ БЛОКОВ ```json):
+        КАТЕГОРИИ (category):
+        - "PACKAGE_TOUR" : Пакетный тур (перелет + отель + трансфер + страховка). Упоминания "тур", "путевка", "отдых", "пакет".
+        - "FLIGHT" : Только авиабилеты/перелет. Упоминания "билет", "рейс", "самолет", "перелет", "вылет", "авиа".
+        - "HOTEL" : Только проживание/отель. Упоминания "только отель", "номер", "гостиница", "без перелета", "проживание".
+        - "ALL" : Если тип не уточнен или общий поиск.
 
-        Если пользователь задает вопрос или просит совет:
-        {
-          "isGeneralQuestion": true,
-          "guidanceReplyRu": "Твой подробный, теплый и полезный ответ с практическими советами по выбору тура или оформлению.",
-          "searchParams": {}
-        }
+        ПРАВИЛА ИЗВЛЕЧЕНИЯ ПАРАМЕТРОВ:
+        1. Звездность: "5 звезд", "5*", "пятерка", "люкс", "luxury", "пять звезд" -> hotelStars: 5. "4 звезды", "4*", "четверка" -> hotelStars: 4.
+        2. Питание: "все включено", "AI", "all inclusive" -> boardType: "AI". "ультра все включено", "UAI", "ultra all inclusive" -> boardType: "UAI".
+        3. Состав: "на двоих", "вдвоем" -> adults: 2, children: 0. "с ребенком" -> adults: 2, children: 1 (или сколько указано). По умолчанию adults: 2.
+        4. Бюджет: "до 200 тысяч", "до 250к", "бюджет 150000" -> maxBudgetRub: числовое значение в рублях.
+        5. Недостающие данные (Slot-filling): Если запрос слишком короткий или размытый (например: "хочу отдохнуть", "подбери тур"), задай вежливый уточняющий вопрос в поле "missingInfoQuestionRu", но все равно предложи базовые параметры.
 
-        Если пользователь ищет туры/отели (например: "Белек 5 звезд", "Кемер на двоих", "тур в сентябре"):
+        ФОРМАТ ВЫВОДА (ТОЛЬКО ЧИСТЫЙ ВАЛИДНЫЙ JSON БЕЗ БЛОКОВ ```json И БЕЗ СИМВОЛОВ РАЗМЕТКИ):
+
+        Примеры работы (Few-Shot Examples):
+
+        Пример 1 (Пакетный тур):
+        Запрос: "пятерка в белеке на двоих все включено до 250 тысяч"
+        Ответ:
         {
           "isGeneralQuestion": false,
           "guidanceReplyRu": "",
           "searchParams": {
-            "departureCity": "Москва",
+            "category": "PACKAGE_TOUR",
             "destination": "Белек",
-            "startDate": "01.10.2026",
-            "endDate": "15.10.2026",
-            "nights": 7,
+            "hotelStars": 5,
+            "boardType": "AI",
             "adults": 2,
             "children": 0,
-            "hotelStars": 5,
-            "boardType": "UAI",
             "maxBudgetRub": 250000.0,
-            "isSeafront": false,
-            "isDirectFlight": true
+            "missingInfoQuestionRu": null
           }
         }
 
-        ВАЖНО: Если упомянуто количество звезд, hotelStars ДОЛЖЕН БЫТЬ этим числом.
+        Пример 2 (Авиабилеты):
+        Запрос: "билет из москвы в анталью на двоих прямой рейс"
+        Ответ:
+        {
+          "isGeneralQuestion": false,
+          "guidanceReplyRu": "",
+          "searchParams": {
+            "category": "FLIGHT",
+            "departureCity": "Москва",
+            "destination": "Анталья",
+            "adults": 2,
+            "children": 0,
+            "isDirectFlight": true,
+            "missingInfoQuestionRu": null
+          }
+        }
+
+        Пример 3 (Только отель):
+        Запрос: "только отель в кемере 5 звезд все включено"
+        Ответ:
+        {
+          "isGeneralQuestion": false,
+          "guidanceReplyRu": "",
+          "searchParams": {
+            "category": "HOTEL",
+            "destination": "Кемер",
+            "hotelStars": 5,
+            "boardType": "AI",
+            "adults": 2,
+            "children": 0,
+            "missingInfoQuestionRu": null
+          }
+        }
+
+        Пример 4 (Общий вопрос / совет):
+        Запрос: "куда лучше поехать с ребенком 3 лет чтобы был песочный пляж?"
+        Ответ:
+        {
+          "isGeneralQuestion": true,
+          "guidanceReplyRu": "Для отдыха с трехлетним малышом идеально подойдут курорты Белек и Сиде. Здесь широкие песчаные пляжи с очень пологим и безопасным входом в море, а трансфер из аэропорта Антальи занимает всего 30-40 минут. Большинство отелей предлагают детское меню, баночное питание, коляски и мелкие бассейны с навесами от солнца. Подобрать для вас отличный отель в Белеке или Сиде?",
+          "searchParams": {
+            "category": "ALL"
+          }
+        }
     """.trimIndent()
 
-    suspend fun analyzeAndExecute(userMessageRu: String): Pair<AIAgentDecision, String> {
+    suspend fun analyzeAndExecute(userMessageRu: String, activeCategory: String = "ALL"): Pair<AIAgentDecision, String> {
+        val userPromptWithCategory = if (activeCategory != "ALL") {
+            "[Выбранный пользователем режим фильтра: $activeCategory]\n$userMessageRu"
+        } else {
+            userMessageRu
+        }
+
         val payload = YandexGptRequest(
             modelUri = "gpt://$folderId/yandexgpt-lite/latest",
-            completionOptions = CompletionOptions(stream = false, temperature = 0.2, maxTokens = "500"),
+            completionOptions = CompletionOptions(stream = false, temperature = 0.2, maxTokens = "600"),
             messages = listOf(
                 YandexMessage(role = "system", text = systemPrompt),
-                YandexMessage(role = "user", text = userMessageRu)
+                YandexMessage(role = "user", text = userPromptWithCategory)
             )
         )
 
@@ -131,59 +182,27 @@ class YandexGptService(
             val gptResponse = json.decodeFromString(YandexGptResponse.serializer(), responseText)
             val rawOutput = gptResponse.result?.alternatives?.firstOrNull()?.message?.text ?: "{}"
             val cleanJson = rawOutput.replace("```json", "").replace("```", "").trim()
-            json.decodeFromString(AIAgentDecision.serializer(), cleanJson)
+            val parsed = json.decodeFromString<AIAgentDecision>(cleanJson)
+            
+            // Eğer kullanıcı UI'dan özel bir kategori seçtiyse onu koru
+            if (activeCategory != "ALL" && parsed.searchParams.category == "ALL") {
+                parsed.copy(searchParams = parsed.searchParams.copy(category = activeCategory))
+            } else {
+                parsed
+            }
         } catch (e: Exception) {
-            // Hata olursa varsayılan arama kararına düş
-            AIAgentDecision(isGeneralQuestion = false, searchParams = AITourSearchParams())
+            // Hata durumunda güvenli arama parametreleri
+            AIAgentDecision(isGeneralQuestion = false, searchParams = AITourSearchParams(category = activeCategory))
         }
 
-        // Eğer soru değil de aramaysa, deterministik korumaları çalıştır
-        if (!decision.isGeneralQuestion) {
-            val guardedParams = applyHeuristicFallbacks(decision.searchParams, userMessageRu)
-            decision = decision.copy(searchParams = guardedParams)
-        }
-
+        // Slot filling veya soru varsa yanıtı zenginleştir
         val debugTr = if (decision.isGeneralQuestion) {
-            "Kullanıcı Sorusu Yanıtlandı / Rehberlik Yapıldı"
+            "Kullanıcı Sorusu Yanıtlandı / Danışmanlık Yapıldı"
         } else {
             generateDebugSummaryTr(decision.searchParams)
         }
 
         return Pair(decision, debugTr)
-    }
-
-    private fun applyHeuristicFallbacks(current: AITourSearchParams, text: String): AITourSearchParams {
-        val t = text.lowercase()
-        var dest = current.destination
-        var stars = current.hotelStars
-        var adults = current.adults
-
-        // 1. Yıldız Kontrolü
-        if (stars == null || stars == 0) {
-            if (t.contains("5-звезд") || t.contains("5 звезд") || t.contains("5*") || t.contains("5 yıldız") || t.contains("пять звезд")) {
-                stars = 5
-            } else if (t.contains("4-звезд") || t.contains("4 звезд") || t.contains("4*") || t.contains("4 yıldız")) {
-                stars = 4
-            }
-        }
-
-        // 2. Destinasyon Kontrolü
-        if (dest.isBlank() || dest.equals("Antalya", ignoreCase = true)) {
-            when {
-                t.contains("белек") || t.contains("belek") -> dest = "Белек"
-                t.contains("кемер") || t.contains("kemer") -> dest = "Кемер"
-                t.contains("сиде") || t.contains("side") -> dest = "Сиде"
-                t.contains("алань") || t.contains("alanya") -> dest = "Аланья"
-                t.contains("бодрум") || t.contains("bodrum") -> dest = "Бодрум"
-                t.contains("анталья") || t.contains("antalya") -> dest = "Анталья"
-            }
-        }
-
-        return current.copy(
-            destination = dest,
-            hotelStars = stars,
-            adults = if (adults <= 0) 2 else adults
-        )
     }
 
     private fun generateDebugSummaryTr(params: AITourSearchParams): String {
@@ -195,7 +214,8 @@ class YandexGptService(
         parts.add("${params.adults} Yetişkin" + if (params.children > 0) ", ${params.children} Çocuk" else "")
         if (params.boardType != null) parts.add("Konsept: ${params.boardType}")
         if (params.maxBudgetRub != null) parts.add("Bütçe: ${params.maxBudgetRub.toInt()} RUB")
+        if (!params.missingInfoQuestionRu.isNullOrBlank()) parts.add("Soru/Açıklama Var")
 
-        return parts.joinToString(" | ")
+        return if (parts.isEmpty()) "Genel Arama" else parts.joinToString(" | ")
     }
 }

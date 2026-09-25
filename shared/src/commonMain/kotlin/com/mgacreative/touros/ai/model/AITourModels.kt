@@ -20,6 +20,8 @@ data class AITourSearchParams(
     val maxBudgetRub: Double? = null,
     val isSeafront: Boolean = false,
     val isDirectFlight: Boolean = true,
+    val category: String = "ALL", // "ALL", "PACKAGE_TOUR", "FLIGHT", "HOTEL"
+    val tripType: String = "ONE_WAY", // "ONE_WAY", "ROUND_TRIP"
     val missingInfoQuestionRu: String? = null
 )
 

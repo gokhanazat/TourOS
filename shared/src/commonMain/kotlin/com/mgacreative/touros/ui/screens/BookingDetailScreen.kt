@@ -18,6 +18,7 @@ import com.mgacreative.touros.domain.model.BookingStatus
 import com.mgacreative.touros.domain.model.BookingStatusLog
 import com.mgacreative.touros.ui.viewmodel.BookingDetailUiState
 import com.mgacreative.touros.ui.viewmodel.BookingDetailViewModel
+import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
@@ -37,7 +38,14 @@ fun BookingDetailScreen(
         viewModel.loadBooking(bookingId)
     }
 
+    val success = uiState as? BookingDetailUiState.Success
+    val templateEngine = remember { com.mgacreative.touros.domain.engine.VoucherContractTemplateEngine() }
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Surface(tonalElevation = 2.dp) {
                 Row(
@@ -48,29 +56,42 @@ fun BookingDetailScreen(
                         Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("‹ Geri"), fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    val success = uiState as? BookingDetailUiState.Success
                     if (success != null) {
-                        val templateEngine = remember { com.mgacreative.touros.domain.engine.VoucherContractTemplateEngine() }
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            OutlinedButton(
+                                onClick = {
+                                    val textToCopy = templateEngine.buildTourOperatorClipboardText(success.booking, success.booking.passengers)
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(textToCopy))
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("✅ Данные туристов скопированы в буфер обмена для ТО!")
+                                    }
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text("📋 Скопировать для ТО")
+                            }
+                            Button(
+                                onClick = {
+                                    val html = templateEngine.buildRussianOperatorRequestDocument(success.booking, success.booking.passengers)
+                                    com.mgacreative.touros.utils.DocumentPrinter.printOrSaveHtml(html, "Operator_${success.booking.bookingCode}")
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text("🏢 Заявка ТО (Печать / PDF)")
+                            }
                             Button(
                                 onClick = {
                                     val html = templateEngine.buildRussianContractDocument(success.booking, success.booking.passengers)
                                     com.mgacreative.touros.utils.DocumentPrinter.printOrSaveHtml(html, "Contract_${success.booking.bookingCode}")
                                 },
                                 shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                             ) {
-                                Text("📄 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Sözleşme (Договор)"))
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    val html = templateEngine.buildRussianOperatorRequestDocument(success.booking, success.booking.passengers)
-                                    com.mgacreative.touros.utils.DocumentPrinter.printOrSaveHtml(html, "Operator_${success.booking.bookingCode}")
-                                },
-                                shape = RoundedCornerShape(8.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                            ) {
-                                Text("🏢 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TO Talep Formu"))
+                                Text("📄 Договор")
                             }
                         }
                     }
@@ -259,7 +280,7 @@ private fun BookingDetailContent(
                         OutlinedTextField(
                             value = pnrInputText,
                             onValueChange = { pnrInputText = it },
-                            placeholder = { Text("Örn: PEGAS-1029 / CP-98765", fontSize = 12.sp) },
+                            placeholder = { Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: PEGAS-1029 / CP-98765"), fontSize = 12.sp) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -268,7 +289,7 @@ private fun BookingDetailContent(
                             shape = RoundedCornerShape(8.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56), contentColor = Color.White)
                         ) {
-                            Text("PNR Kaydet & Değişmez Kod Yap", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PNR Kaydet & Değişmez Kod Yap"), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -385,7 +406,28 @@ private fun PassengersAndServicesTab(booking: Booking) {
         item {
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("👥 Yolcu Listesi & Pasaport Detayları (${booking.passengers.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    val templateEngine = remember { com.mgacreative.touros.domain.engine.VoucherContractTemplateEngine() }
+                    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+                    var showCopiedBadge by remember { mutableStateOf(false) }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("👥 Список туристов / Yolcu Listesi (${booking.passengers.size})", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        OutlinedButton(
+                            onClick = {
+                                val text = templateEngine.buildTourOperatorClipboardText(booking, booking.passengers)
+                                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(text))
+                                showCopiedBadge = true
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                        ) {
+                            Text(if (showCopiedBadge) "✓ Скопировано!" else "📋 Скопировать для ТО", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (booking.passengers.isEmpty()) {
@@ -396,27 +438,69 @@ private fun PassengersAndServicesTab(booking: Booking) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                    .padding(10.dp),
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                    .padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "👤 Turist ${idx + 1}: ${pass.fullName} ${if (pass.isLead) "⭐ (Sipariş Veren / Lead)" else ""}",
+                                        text = "👤 Турист ${idx + 1}: ${pass.fullName} ${if (pass.isLead) "⭐ [ЗАКАЗЧИК / LEAD]" else ""}",
                                         fontWeight = FontWeight.Bold,
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     if (!pass.gender.isNullOrBlank()) {
-                                        Text(text = pass.gender ?: "", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.primaryContainer,
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = pass.gender ?: "",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
                                     }
                                 }
 
-                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    if (!pass.passportNo.isNullOrBlank()) Text("Pasaport No: ${pass.passportNo}", style = MaterialTheme.typography.bodySmall)
-                                    if (!pass.birthDate.isNullOrBlank()) Text("Doğum Tarihi: ${pass.birthDate}", style = MaterialTheme.typography.bodySmall)
+                                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Text("Гражданство: ${pass.citizenship ?: "Россия"}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                                    if (!pass.birthCountry.isNullOrBlank()) {
+                                        Text("Страна рождения: ${pass.birthCountry}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    if (!pass.birthDate.isNullOrBlank()) {
+                                        Text("Дата рожд.: ${pass.birthDate}", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                }
+
+                                val docSeriesNo = listOfNotNull(pass.passportSeries, pass.passportNo).filter { it.isNotBlank() }.joinToString(" ")
+                                if (docSeriesNo.isNotBlank()) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        Text("Паспорт: $docSeriesNo", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                                        if (!pass.documentIssueDate.isNullOrBlank()) {
+                                            Text("Выдан: ${pass.documentIssueDate}", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        if (!pass.documentExpiryDate.isNullOrBlank()) {
+                                            Text("Действителен до: ${pass.documentExpiryDate}", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                    }
+                                }
+
+                                if (!pass.documentIssuedBy.isNullOrBlank()) {
+                                    Text("Кем выдан: ${pass.documentIssuedBy}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+
+                                if (!pass.phone.isNullOrBlank() || !pass.email.isNullOrBlank()) {
+                                    Text("Контакты: ${listOfNotNull(pass.phone, pass.email).joinToString(" • ")}", style = MaterialTheme.typography.bodySmall)
+                                }
+
+                                if (!pass.address.isNullOrBlank()) {
+                                    Text("Адрес: ${pass.address}", style = MaterialTheme.typography.bodySmall)
                                 }
 
                                 if (!pass.notes.isNullOrBlank()) {

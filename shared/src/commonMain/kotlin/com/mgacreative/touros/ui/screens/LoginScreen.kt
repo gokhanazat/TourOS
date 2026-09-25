@@ -45,6 +45,12 @@ import com.mgacreative.touros.ui.theme.TourOSTypography
 import com.mgacreative.touros.ui.viewmodel.AuthUiState
 import com.mgacreative.touros.ui.viewmodel.AuthViewModel
 import org.koin.compose.viewmodel.koinViewModel
+import touros.shared.generated.resources.Res
+import touros.shared.generated.resources.axileto_logo_white
+import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import com.mgacreative.touros.ui.localization.AppLanguageManager
 
 /**
  * TourOS 0.3 Tasarım Sistemine tam uyumlu Giriş Ekranı.
@@ -67,6 +73,7 @@ fun LoginScreen(
     var localValidationError by remember { mutableStateOf<String?>(null) }
 
     val uiState by viewModel.uiState.collectAsState()
+    val currentLanguage by AppLanguageManager.currentLanguage.collectAsState()
 
     LaunchedEffect(Unit) {
         val saved = com.mgacreative.touros.utils.LocalAuthStorage.loadCredentials()
@@ -79,8 +86,9 @@ fun LoginScreen(
     }
 
     LaunchedEffect(uiState) {
-        if (uiState is AuthUiState.Success) {
-            val user = (uiState as AuthUiState.Success).user
+        val state = uiState
+        if (state is AuthUiState.Success) {
+            localValidationError = null
             if (rememberMe) {
                 com.mgacreative.touros.utils.LocalAuthStorage.saveCredentials(
                     com.mgacreative.touros.utils.SavedAuthCredentials(
@@ -93,20 +101,17 @@ fun LoginScreen(
             } else {
                 com.mgacreative.touros.utils.LocalAuthStorage.clearCredentials()
             }
-            onLoginSuccess(user.role)
+            onLoginSuccess(state.user.role)
             viewModel.resetState()
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(TourOSColors.Surface),
-        contentAlignment = Alignment.Center
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = TourOSColors.Surface
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 440.dp)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(TourOSSpacing.large),
@@ -114,7 +119,9 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center
         ) {
             TourOSCard(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .widthIn(max = 440.dp)
+                    .fillMaxWidth(),
                 backgroundColor = TourOSColors.Background,
                 borderColor = TourOSColors.Border,
                 contentPadding = TourOSSpacing.xxLarge
@@ -126,28 +133,35 @@ fun LoginScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(54.dp)
                             .clip(RoundedCornerShape(TourOSSpacing.cornerRadiusSmall))
                             .background(TourOSColors.Primary),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "T",
-                            style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.OnPrimary)
+                        androidx.compose.foundation.Image(
+                            painter = painterResource(Res.drawable.axileto_logo_white),
+                            contentDescription = "Axileto Logo",
+                            modifier = Modifier
+                                .padding(6.dp)
+                                .fillMaxSize(),
+                            contentScale = ContentScale.Fit
                         )
                     }
 
                     Spacer(modifier = Modifier.height(TourOSSpacing.medium))
 
                     Text(
-                        text = "TourOS",
-                        style = TourOSTypography.DisplaySmall.copy(color = TourOSColors.Primary)
+                        text = "Axileto",
+                        style = TourOSTypography.DisplaySmall.copy(
+                            color = TourOSColors.Primary,
+                            fontWeight = FontWeight.Bold
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(TourOSSpacing.xSmall))
 
                     Text(
-                        text = "Sistem & Admin Giriş Paneli",
+                        text = AppLanguageManager.translate("Sistem & Admin Giriş Paneli", currentLanguage.code),
                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                     )
                 }
@@ -158,9 +172,9 @@ fun LoginScreen(
                 val activeErrorMsg = localValidationError ?: (uiState as? AuthUiState.Error)?.let {
                     val rawMsg = it.message
                     if (rawMsg.contains("invalid_credentials") || rawMsg.contains("grant_type") || rawMsg.contains("Headers:")) {
-                        "E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
+                        AppLanguageManager.translate("E-posta adresi veya şifre hatalı. Lütfen bilgilerinizi kontrol edip tekrar deneyin.", currentLanguage.code)
                     } else {
-                        rawMsg
+                        AppLanguageManager.translate(rawMsg, currentLanguage.code)
                     }
                 }
 
@@ -194,8 +208,8 @@ fun LoginScreen(
                         email = it
                         localValidationError = null 
                     },
-                    label = "E-posta Adresi",
-                    placeholder = "ornek@touros.com",
+                    label = AppLanguageManager.translate("E-posta Adresi", currentLanguage.code),
+                    placeholder = "ornek@axileto.com",
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -207,7 +221,7 @@ fun LoginScreen(
                         password = it
                         localValidationError = null
                     },
-                    label = "Şifre",
+                    label = AppLanguageManager.translate("Şifre", currentLanguage.code),
                     placeholder = "••••••••",
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth()
@@ -221,8 +235,8 @@ fun LoginScreen(
                         agencyCode = it
                         localValidationError = null
                     },
-                    label = "Acente Kodu (B2B SaaS)",
-                    placeholder = "Örn: AGN-8492 / ACT-001",
+                    label = AppLanguageManager.translate("Acente Kodu (B2B SaaS)", currentLanguage.code),
+                    placeholder = AppLanguageManager.translate("Örn: AGN-8492 / ACT-001", currentLanguage.code),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -250,13 +264,13 @@ fun LoginScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "Beni Hatırla",
+                            text = AppLanguageManager.translate("Beni Hatırla", currentLanguage.code),
                             style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextPrimary, fontSize = 13.sp)
                         )
                     }
 
                     Text(
-                        text = "Şifremi Unuttum?",
+                        text = AppLanguageManager.translate("Şifremi Unuttum?", currentLanguage.code),
                         style = TourOSTypography.Label.copy(color = TourOSColors.Secondary),
                         modifier = Modifier.clickable { onNavigateToForgotPassword() }
                     )
@@ -266,12 +280,12 @@ fun LoginScreen(
 
                 // Primary Submit Button
                 TourOSButton(
-                    text = "Giriş Yap",
+                    text = AppLanguageManager.translate("Giriş Yap", currentLanguage.code),
                     onClick = {
                         localValidationError = null
                         val isSuperAdmin = email.trim().equals("gkhnazat@gmail.com", ignoreCase = true)
                         if (!isSuperAdmin && agencyCode.isBlank()) {
-                            localValidationError = "Acente girişi için lütfen yöneticiniz tarafından atanan Acente Kodunu giriniz."
+                            localValidationError = AppLanguageManager.translate("Acente girişi için lütfen yöneticiniz tarafından atanan Acente Kodunu giriniz.", currentLanguage.code)
                             return@TourOSButton
                         }
                         viewModel.login(email, password, agencyCode)
@@ -291,11 +305,11 @@ fun LoginScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Hesabınız yok mu? ",
+                        text = AppLanguageManager.translate("Hesabınız yok mu? ", currentLanguage.code),
                         style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary)
                     )
                     Text(
-                        text = "Kayıt Ol",
+                        text = AppLanguageManager.translate("Kayıt Ol", currentLanguage.code),
                         style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Secondary),
                         modifier = Modifier.clickable { onNavigateToRegister() }
                     )

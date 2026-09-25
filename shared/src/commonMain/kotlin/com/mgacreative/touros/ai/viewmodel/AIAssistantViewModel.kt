@@ -17,10 +17,11 @@ import kotlinx.coroutines.launch
 data class AIAssistantUiState(
     val isOpen: Boolean = false,
     val isLoading: Boolean = false,
+    val selectedCategory: String = "ALL", // "ALL", "PACKAGE_TOUR", "FLIGHT", "HOTEL"
     val messages: List<AIAssistantMessage> = emptyList(),
     val currentSuggestedProducts: List<UnifiedProductEntity> = emptyList(),
     val currentGroupedHotels: List<com.mgacreative.touros.ai.model.AIGroupedHotelOffer> = emptyList(),
-    val isDebugPanelVisible: Boolean = true, // Geliştirici için Türkçe panel
+    val isDebugPanelVisible: Boolean = false, // Geliştirici için Türkçe panel
     val errorMessage: String? = null,
     val isCompactMode: Boolean = false // 2. ve 3. adımlarda true (%50 kompakt boyut)
 )
@@ -41,8 +42,8 @@ class AIAssistantViewModel(
         val welcomeMsg = AIAssistantMessage(
             id = "msg-welcome",
             sender = "AGENT",
-            textRu = "Здравствуйте! Я ваш персональный онлайн-турагент TourOS.\nНапишите, какой отдых вы планируете (курорт, даты, состав семьи, бюджет) или задайте любой вопрос по выбору тура и бронированию. С удовольствием помогу!",
-            debugTranslationTr = "Merhaba! Ben kişisel TourOS online seyahat danışmanınızım. Nasıl bir tatil planladığınızı yazın veya turlar ve rezervasyonla ilgili her şeyi danışabilirsiniz!"
+            textRu = "Здравствуйте! Я ваш персональный онлайн-турагент TourOS.\nВыберите категорию (Пакетные туры, Авиабилеты, Отели) или напишите свободный запрос на русском языке. Я подберу лучшие варианты и помогу забронировать!",
+            debugTranslationTr = "Merhaba! Ben kişisel TourOS online seyahat danışmanınızım. Kategori seçebilir veya serbest arama yapabilirsiniz (Paket tur, Uçak bileti, Otel)."
         )
         _uiState.value = _uiState.value.copy(messages = listOf(welcomeMsg))
     }
@@ -56,13 +57,20 @@ class AIAssistantViewModel(
     }
 
     /**
+     * Kategori haplarına (Pills) tıklandığında kategoriyi ayarlar
+     */
+    fun selectCategory(category: String) {
+        _uiState.value = _uiState.value.copy(selectedCategory = category)
+    }
+
+    /**
      * Sohbet geçmişini ve arama sonuçlarını temizler, yeni aramaya hazırlar.
      */
     fun clearChat() {
         val welcomeMsg = AIAssistantMessage(
             id = "msg-welcome-${currentTimeMillis()}",
             sender = "AGENT",
-            textRu = "Здравствуйте! Я ваш персональный онлайн-турагент TourOS.\nНапишите ваши пожелания по туру или задайте любой вопрос по бронированию!",
+            textRu = "Здравствуйте! Я ваш персональный онлайн-турагент TourOS.\nНапишите ваши пожелания по туру, авиабилету или отелю!",
             debugTranslationTr = "Sohbet sıfırlandı. Danışman yeni sorular için hazır."
         )
         _uiState.value = _uiState.value.copy(
@@ -83,6 +91,7 @@ class AIAssistantViewModel(
             textRu = userTextRu.trim()
         )
 
+        val activeCategory = _uiState.value.selectedCategory
         val updatedMessages = _uiState.value.messages + userMsg
         _uiState.value = _uiState.value.copy(
             messages = updatedMessages,
@@ -92,8 +101,8 @@ class AIAssistantViewModel(
 
         viewModelScope.launch {
             try {
-                // 1. YandexGPT'den Niyet ve Parametre Kararını Al
-                val (decision, debugTr) = yandexGptService.analyzeAndExecute(userTextRu)
+                // 1. YandexGPT'den Niyet ve Parametre Kararını Al (Aktif Kategori ile)
+                val (decision, debugTr) = yandexGptService.analyzeAndExecute(userTextRu, activeCategory)
 
                 // 2. Eğer kullanıcı genel bir soru sorduysa doğrudan cevap ver (Arama yapma)
                 if (decision.isGeneralQuestion && decision.guidanceReplyRu.isNotBlank()) {
@@ -119,17 +128,34 @@ class AIAssistantViewModel(
                 val matchedProducts = AITourSearchAdapter.filterProducts(cachedCatalog, params)
                 val groupedHotels = AITourSearchAdapter.groupProductsByHotel(matchedProducts).take(12)
 
-                val replyTextRu = if (groupedHotels.isNotEmpty()) {
-                    "Я нашел для вас ${groupedHotels.size} отличных отелей. Нажмите на отель, чтобы увидеть цены разных туроператоров, выберите удобный вариант и нажмите «Забронировать»:"
+                val replyTextRu = if (!params.missingInfoQuestionRu.isNullOrBlank()) {
+                    params.missingInfoQuestionRu
+                } else if (groupedHotels.isNotEmpty()) {
+                    when (params.category.uppercase()) {
+                        "FLIGHT" -> "Я нашел для вас ${groupedHotels.size} подходящих авиарейсов. Нажмите на рейс для просмотра деталей и перейдите к бронированию:"
+                        "HOTEL" -> "Я нашел для вас ${groupedHotels.size} отличных отелей. Выберите отель и нажмите «Забронировать номер»:"
+                        else -> "Я нашел для вас ${groupedHotels.size} отличных предложений. Нажмите на карточку, чтобы сравнить цены операторов и оформить бронирование:"
+                    }
                 } else {
-                    "К сожалению, по вашим критериям туров не найдено. Попробуйте изменить даты или увеличить бюджет."
+                    "К сожалению, по вашим критериям ничего не найдено. Попробуйте изменить параметры или выбрать другую категорию."
+                }
+
+                val categoryTr = when (params.category.uppercase()) {
+                    "FLIGHT" -> "Uçuş Arama"
+                    "HOTEL" -> "Sadece Otel"
+                    "PACKAGE_TOUR" -> "Paket Tur"
+                    else -> "Tüm Kategoriler"
                 }
 
                 val agentReplyMsg = AIAssistantMessage(
                     id = "msg-${currentTimeMillis()}-agent",
                     sender = "AGENT",
                     textRu = replyTextRu,
-                    debugTranslationTr = "Sonuç: ${groupedHotels.size} farklı otel bulundu. [${matchedProducts.size} toplam operatör teklifi] ($debugTr)",
+                    debugTranslationTr = if (!params.missingInfoQuestionRu.isNullOrBlank()) {
+                        "Eksik Bilgi Tamamlama Sorusu Soruldu ($debugTr)"
+                    } else {
+                        "Kategori: $categoryTr | Sonuç: ${groupedHotels.size} seçenek bulundu. [${matchedProducts.size} toplam teklif] ($debugTr)"
+                    },
                     extractedParams = params,
                     foundProductsCount = groupedHotels.size
                 )

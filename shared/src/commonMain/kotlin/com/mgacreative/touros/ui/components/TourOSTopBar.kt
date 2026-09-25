@@ -53,12 +53,12 @@ fun TourOSTopBar(
             title = {
                 Column {
                     Text(
-                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(title),
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(title, currentLanguage.code),
                         style = TourOSTypography.TitleLarge.copy(color = TourOSColors.TextPrimary)
                     )
                     if (!subtitle.isNullOrBlank()) {
                         Text(
-                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(subtitle),
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(subtitle, currentLanguage.code),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
                     }

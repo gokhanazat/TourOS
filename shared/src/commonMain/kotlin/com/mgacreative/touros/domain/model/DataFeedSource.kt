@@ -17,10 +17,14 @@ data class DataFeedSource(
     @SerialName("api_secret") val apiSecret: String = "",
     @SerialName("agency_code") val agencyCode: String = "",
     @SerialName("data_types") val dataTypes: List<String> = listOf("TOURS", "HOTELS"), // TOURS, HOTELS, FLIGHTS
-    @SerialName("sync_interval") val syncInterval: String = "MANUAL", // 10_MIN, 30_MIN, 1_HOUR, 6_HOUR, 24_HOUR, MANUAL
+    @SerialName("sync_interval") val syncInterval: String = "MANUAL", // 10_MIN, 30_MIN, 1_HOUR, 4_HOUR, 6_HOUR, 24_HOUR, MANUAL
+    @SerialName("season_mode") val seasonMode: String = "LOW_SEASON", // LOW_SEASON, HIGH_SEASON
+    @SerialName("sync_requested") val syncRequested: Boolean = false,
+    @SerialName("sync_requested_at") val syncRequestedAt: String? = null,
     @SerialName("is_live") val isLive: Boolean = false, // false = BEKLEMEDE (Hazır), true = CANLI DEVREDE
     @SerialName("last_synced_at") val lastSyncedAt: String = "Henüz Veri Çekilmedi",
     @SerialName("synced_record_count") val syncedRecordCount: Int = 0,
+    @SerialName("last_sync_duration_seconds") val lastSyncDurationSeconds: Int = 0,
     @SerialName("status_message") val statusMessage: String? = "Yapılandırıldı - Beklemede",
     @SerialName("created_at") val createdAt: String? = null
 )

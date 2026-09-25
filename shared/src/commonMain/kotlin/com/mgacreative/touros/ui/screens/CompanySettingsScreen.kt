@@ -26,7 +26,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
+
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -51,11 +53,13 @@ import com.mgacreative.touros.ui.components.TourOSButtonVariant
 import com.mgacreative.touros.ui.components.TourOSCard
 import com.mgacreative.touros.ui.components.TourOSLoadingIndicator
 import com.mgacreative.touros.ui.components.TourOSSnackbarHost
+import com.mgacreative.touros.ui.components.TourOSStatusBadge
 import com.mgacreative.touros.ui.components.TourOSTextField
 import com.mgacreative.touros.ui.components.TourOSTopBar
 import com.mgacreative.touros.ui.theme.TourOSColors
 import com.mgacreative.touros.ui.theme.TourOSSpacing
 import com.mgacreative.touros.ui.theme.TourOSTypography
+import androidx.compose.foundation.border
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Computer
@@ -64,10 +68,23 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Icon
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import com.mgacreative.touros.ui.viewmodel.CompanySettingsUiState
 import com.mgacreative.touros.ui.viewmodel.CompanySettingsViewModel
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
+
+@Serializable
+private data class CompanyAllowedModulesSettingsDto(
+    val allowed_modules: List<String> = listOf("B2B_SALES", "SETTINGS")
+)
 
 enum class SettingsCategory(val title: String, val icon: ImageVector) {
     GENEL("Genel", Icons.Default.Business),
@@ -93,10 +110,24 @@ fun CompanySettingsScreen(
     val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
+    val supabaseClient: SupabaseClient = koinInject()
     var selectedCategory by remember { mutableStateOf(SettingsCategory.GENEL) }
+    var isWebB2BAllowed by remember { mutableStateOf(false) }
 
     LaunchedEffect(companyId) {
         viewModel.loadSettings(companyId)
+        try {
+            val company = supabaseClient.postgrest["companies"]
+                .select(columns = Columns.list("allowed_modules")) {
+                    filter { eq("id", companyId) }
+                }.decodeSingleOrNull<CompanyAllowedModulesSettingsDto>()
+            val mods = company?.allowed_modules ?: emptyList()
+            isWebB2BAllowed = mods.contains("SUBDOMAIN") || mods.contains("WEB_B2B")
+        } catch (_: Exception) {
+            isWebB2BAllowed = false
+        }
     }
 
     LaunchedEffect(userMessage) {
@@ -363,7 +394,81 @@ fun CompanySettingsScreen(
                                     SettingsCategory.GENEL -> {
                                         Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Genel Firma Bilgileri"), style = TourOSTypography.TitleLarge)
                                         Text(text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Fatura ve resmi yazışmalarda görünecek kurum ve iletişim bilgileri."), style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary))
-                                        Spacer(modifier = Modifier.height(TourOSSpacing.large))
+                                        Spacer(modifier = Modifier.height(TourOSSpacing.medium))
+
+                                        // ── 🌐 WEB B2B MÜŞTERİ LİNKİ VE YETKİ KARTI ──
+                                        val refCode = settings.operatorCode?.trim()?.takeIf { it.isNotBlank() } ?: companyId
+                                        val shareableWebUrl = "https://axileto.com/?ref=$refCode"
+                                        TourOSCard(
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = TourOSSpacing.large),
+                                            backgroundColor = if (isWebB2BAllowed) TourOSColors.SurfaceVariant.copy(alpha = 0.5f) else TourOSColors.Surface
+                                        ) {
+                                            Column(modifier = Modifier.padding(TourOSSpacing.medium)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        Text(
+                                                            text = "🌐 Web B2B Müşteri Sayfası Linkiniz",
+                                                            style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold)
+                                                        )
+                                                        if (isWebB2BAllowed) {
+                                                            TourOSStatusBadge(text = "✅ AKTİF", backgroundColor = TourOSColors.SuccessContainer, textColor = TourOSColors.Success)
+                                                        } else {
+                                                            TourOSStatusBadge(text = "🔒 YÖNETİCİ YETKİSİ GEREKLİ", backgroundColor = TourOSColors.SurfaceVariant, textColor = TourOSColors.TextSecondary)
+                                                        }
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Text(
+                                                    text = if (isWebB2BAllowed)
+                                                        "Bu linki müşterilerinizle doğrudan paylaşabilirsiniz. Sayfa açıldığı anda adres çubuğundaki parametre gizlenir; ziyaretçiler sadece acentenizin kurumsal adını ve rezervasyon portalını görür."
+                                                    else
+                                                        "Web B2B modülü şu anda acenteniz için aktif değildir. Açılması için lütfen sistem yöneticiniz ile iletişime geçin.",
+                                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                                )
+                                                if (isWebB2BAllowed) {
+                                                    Spacer(modifier = Modifier.height(TourOSSpacing.small))
+                                                    Row(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(TourOSColors.Surface)
+                                                            .border(1.dp, TourOSColors.Border, RoundedCornerShape(8.dp))
+                                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = shareableWebUrl,
+                                                            style = TourOSTypography.BodyMedium.copy(fontWeight = FontWeight.SemiBold, color = TourOSColors.Primary),
+                                                            modifier = Modifier.weight(1f),
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        TourOSButton(
+                                                            text = "📋 Linki Kopyala",
+                                                            onClick = {
+                                                                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(shareableWebUrl))
+                                                                coroutineScope.launch {
+                                                                    snackbarHostState.showSnackbar("Web B2B müşteri linki panoya kopyalandı!")
+                                                                }
+                                                            },
+                                                            variant = TourOSButtonVariant.SECONDARY
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.height(6.dp))
+                                                    Text(
+                                                        text = "💡 Tam Maskeleme (Özel Domain): Dilerseniz kendi web adresinizi (örn: rezervasyon.acenteadi.com) sunucu IP adresimize (81.26.178.103) CNAME ile yönlendirerek axileto adı hiç geçmeden tam kurumsal domaininiz ile yayına alabilirsiniz.",
+                                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 11.sp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
 
                                         TourOSTextField(
                                             value = name,

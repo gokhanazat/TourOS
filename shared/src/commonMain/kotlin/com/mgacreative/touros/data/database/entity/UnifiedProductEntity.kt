@@ -35,6 +35,7 @@ data class UnifiedProductEntity(
     @SerialName("is_charter") val isCharter: Boolean = true,
     @SerialName("is_promo") val isPromo: Boolean = false,
     @SerialName("airline_name") val airlineName: String = "",
+    @SerialName("airline") val airline: String = "",
     @SerialName("flight_number") val flightNumber: String = "",
     @SerialName("baggage_kg") val baggageKg: Int = 20,
     @SerialName("picture_url") val pictureUrl: String? = null,

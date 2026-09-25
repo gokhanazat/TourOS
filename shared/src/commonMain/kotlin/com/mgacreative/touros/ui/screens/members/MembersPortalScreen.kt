@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import org.jetbrains.compose.resources.painterResource
 import touros.shared.generated.resources.Res
-import touros.shared.generated.resources.club_badge
+import touros.shared.generated.resources.club_loyalty_badge
 import touros.shared.generated.resources.club_banner
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -664,7 +664,7 @@ private fun AxiletoClubVipDashboardScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Image(
-                                    painter = painterResource(Res.drawable.club_badge),
+                                    painter = painterResource(Res.drawable.club_loyalty_badge),
                                     contentDescription = "Axileto Club",
                                     modifier = Modifier.size(215.dp),
                                     contentScale = androidx.compose.ui.layout.ContentScale.Fit
@@ -2374,7 +2374,7 @@ private fun LiveBookingsSection(
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = inferredHotel,
+                                text = AppLanguageManager.translate(inferredHotel, selectedLang),
                                 style = TourOSTypography.TitleMedium.copy(fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 15.sp),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -3509,7 +3509,7 @@ private fun AxiletoClubAuthScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Image(
-                    painter = painterResource(Res.drawable.club_badge),
+                    painter = painterResource(Res.drawable.club_loyalty_badge),
                     contentDescription = "Club",
                     modifier = Modifier.size(110.dp)
                 )

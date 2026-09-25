@@ -127,8 +127,13 @@ kotlin {
             implementation(libs.ktor.client.js)
         }
 
+        jvmTest.dependencies {
+            implementation(libs.junit)
+        }
+
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

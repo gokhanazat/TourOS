@@ -42,10 +42,19 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import com.mgacreative.touros.ui.localization.AppLanguageManager
-
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import com.mgacreative.touros.ui.components.TourOSNavGroup
 import com.mgacreative.touros.ui.components.TourOSNavSubGroup
+import kotlinx.serialization.Serializable
+
+@Serializable
+private data class CompanyAllowedModulesDto(
+    val allowed_modules: List<String> = listOf("B2B_SALES", "SETTINGS")
+)
 
 // ─── Global NavController CompositionLocal (Tüm sayfalarda Geri Dön ve Navigasyon için) ───
 val LocalNavController = androidx.compose.runtime.staticCompositionLocalOf<NavHostController?> { null }
@@ -354,6 +363,34 @@ private fun buildNavGroups(
         )
     }
 
+    // AXILETO CLUB GRUBU (Müşteri Sadakat & VIP Portalı)
+    if (isGroupAllowed("AXILETO_CLUB")) {
+        groups.add(
+            TourOSNavGroup(
+                categoryTitle = AppLanguageManager.translate("AXILETO CLUB"),
+                isCollapsible = true,
+                isInitiallyExpanded = false,
+                items = listOf(
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Club Portalı"),
+                        route = AxiletoMembersPortalRoute,
+                        isSelected = currentRoute?.contains("AxiletoMembersPortalRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Club Yönetimi"),
+                        route = ClubManagementRoute,
+                        isSelected = currentRoute?.contains("ClubManagementRoute") == true
+                    ),
+                    TourOSNavItem(
+                        title = AppLanguageManager.translate("Club Raporu"),
+                        route = ClubReportRoute,
+                        isSelected = currentRoute?.contains("ClubReportRoute") == true
+                    )
+                )
+            )
+        )
+    }
+
     if (isGroupAllowed("SETTINGS")) {
         groups.add(
             TourOSNavGroup(
@@ -393,6 +430,27 @@ fun AppNavigation() {
     val authRepository: AuthRepository = org.koin.compose.koinInject()
     val currentUser by authRepository.observeAuthState().collectAsState()
     val isSystemAdmin = currentUser?.email == "gkhnazat@gmail.com" || currentUser?.role?.name == "SYSTEM_ADMIN"
+    val supabaseClient: SupabaseClient = org.koin.compose.koinInject()
+    var companyAllowedModules by remember { mutableStateOf<List<String>?>(null) }
+
+    LaunchedEffect(currentUser?.tenantId, isSystemAdmin) {
+        if (isSystemAdmin) {
+            companyAllowedModules = null
+        } else {
+            val tId = currentUser?.tenantId
+            if (!tId.isNullOrBlank()) {
+                try {
+                    val company = supabaseClient.postgrest["companies"]
+                        .select(columns = Columns.list("allowed_modules")) {
+                            filter { eq("id", tId) }
+                        }.decodeSingleOrNull<CompanyAllowedModulesDto>()
+                    companyAllowedModules = company?.allowed_modules ?: listOf("B2B_SALES", "SETTINGS")
+                } catch (e: Exception) {
+                    companyAllowedModules = listOf("B2B_SALES", "SETTINGS")
+                }
+            }
+        }
+    }
 
     val isAuthOrPublicRoute = backStackEntry?.destination.isAuthOrPublicRoute()
     val isGuest = currentUser == null
@@ -402,6 +460,13 @@ fun AppNavigation() {
     // Sayfa Rehberi SADECE giriş yapmış kullanıcılarda ve iç sayfalarda gösterilir
     val showHelpAssistant = !isGuest && !currentRoute.isAdminOrPublicRoute()
     var isHelpDrawerOpen by remember { mutableStateOf(false) }
+
+    // Admin sayfalarında Türkçe (tr), Admin dışı tüm sayfalarda (Web, B2B, Rezervasyon) otomatik Rusça (ru)
+    LaunchedEffect(currentRoute, isSystemAdmin, showShell) {
+        val isAdminRoute = currentRoute?.let { r -> adminRoutePatterns.any { r.contains(it) } } ?: false
+        val isAdminContext = isAdminRoute || (isSystemAdmin && showShell)
+        AppLanguageManager.syncContextLanguage(isAdminContext)
+    }
 
     fun navigate(route: Any) {
         navController.navigate(route) {
@@ -415,12 +480,14 @@ fun AppNavigation() {
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
 
     androidx.compose.runtime.CompositionLocalProvider(LocalNavController provides navController) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        androidx.compose.runtime.key(currentLanguage.code) {
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val windowWidthClass = com.mgacreative.touros.ui.theme.getWindowWidthClass(maxWidth)
             val isExpanded = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.EXPANDED
             val isMedium = windowWidthClass == com.mgacreative.touros.ui.theme.WindowWidthClass.MEDIUM
-            val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin, currentUser?.allowedMenuKeys) { 
-                buildNavGroups(currentRoute, isSystemAdmin, currentUser?.allowedMenuKeys) 
+            val effectiveAllowedMenuKeys = if (isSystemAdmin) null else (companyAllowedModules ?: currentUser?.allowedMenuKeys ?: listOf("B2B_SALES", "SETTINGS"))
+            val navGroups = remember(currentRoute, currentLanguage, isSystemAdmin, effectiveAllowedMenuKeys) { 
+                buildNavGroups(currentRoute, isSystemAdmin, effectiveAllowedMenuKeys) 
             }
             val navItems = remember(navGroups) { navGroups.flatMap { it.allItems } }
 
@@ -596,6 +663,7 @@ fun AppNavigation() {
                     navController.navigate(B2BTourFlightServiceSelectionRoute(productId = productId))
                 }
             )
+        }
         }
     }
 }

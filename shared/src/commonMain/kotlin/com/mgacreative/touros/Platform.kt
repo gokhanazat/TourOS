@@ -6,6 +6,11 @@ interface Platform {
 
 expect fun getPlatform(): Platform
 expect fun getCurrentEpochMillis(): Long
+expect fun getWebQueryParameter(key: String): String?
+expect fun getWebAgencyIdentifier(): String?
+expect fun clearWebAgencyQueryFromUrl()
+expect fun setWebDocumentTitle(title: String)
+
 
 fun getTodayTriple(): Triple<Int, Int, Int> {
     val ms = getCurrentEpochMillis()

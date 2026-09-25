@@ -2,18 +2,23 @@ package com.mgacreative.touros.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.mgacreative.touros.domain.model.CanonicalOperator
 import com.mgacreative.touros.domain.model.DataFeedSource
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 data class AdminDataManagementUiState(
     val isLoading: Boolean = false,
     val feedSources: List<DataFeedSource> = emptyList(),
+    val operators: List<CanonicalOperator> = emptyList(),
     val selectedSourceForEdit: DataFeedSource? = null,
     val isTestingConnection: Boolean = false,
     val notificationMessage: String? = null,
@@ -39,10 +44,12 @@ class AdminDataManagementViewModel(
             agencyCode = "ALIMAR-15012",
             dataTypes = listOf("TOURS", "HOTELS", "FLIGHTS"),
             syncInterval = "24_HOUR",
+            seasonMode = "LOW_SEASON",
+            syncRequested = false,
             isLive = true,
             lastSyncedAt = "Günlük Senkronizasyon Ayarlandı",
             syncedRecordCount = 73,
-            statusMessage = "🟢 GÜNLÜK SENKRONİZASYON AKTİF (Tur, Otel, Uçuş • Günde 1 Defa)"
+            statusMessage = "🟢 OTOMATİK SENKRONİZASYON AKTİF (Düşük Sezon: Günde 1 • Yüksek Sezon: 4 Saatte 1)"
         ),
         DataFeedSource(
             id = "feed-001",
@@ -110,8 +117,21 @@ class AdminDataManagementViewModel(
         )
     )
 
+    private val defaultCanonicalOperators = listOf(
+        CanonicalOperator(1, "Bibloglobus", 18, listOf("bibloglobus", "biblio globus", "biblioglobus"), true, 1),
+        CanonicalOperator(2, "Anex", 13, listOf("anex", "anex tour"), true, 2),
+        CanonicalOperator(3, "Coral Travel", 11, listOf("coral", "coral travel"), true, 3),
+        CanonicalOperator(4, "Sunmar", 24, listOf("sunmar"), true, 4),
+        CanonicalOperator(5, "Fun&Sun (Ru)", 25, listOf("fun&sun", "fun and sun", "funsun"), true, 5),
+        CanonicalOperator(6, "Kazunion", 89, listOf("kazunion"), true, 6),
+        CanonicalOperator(7, "Loti", 94, listOf("loti"), true, 7),
+        CanonicalOperator(8, "Pegas Touristik", 12, listOf("pegas", "pegas touristik"), true, 8),
+        CanonicalOperator(9, "Интурист", 43, listOf("интурист", "intourist"), true, 9)
+    )
+
     init {
         loadDataFeeds()
+        loadCanonicalOperators()
     }
 
     fun loadDataFeeds() {
@@ -131,6 +151,45 @@ class AdminDataManagementViewModel(
                     feedSources = if (remoteList.isNotEmpty()) remoteList else defaultFeedSources
                 )
             }
+        }
+    }
+
+    fun loadCanonicalOperators() {
+        viewModelScope.launch {
+            val remoteOps = try {
+                supabaseClient.postgrest["canonical_operators"]
+                    .select {
+                        order("display_order", Order.ASCENDING)
+                    }
+                    .decodeList<CanonicalOperator>()
+            } catch (_: Exception) {
+                emptyList()
+            }
+
+            _uiState.update {
+                it.copy(
+                    operators = if (remoteOps.isNotEmpty()) remoteOps else defaultCanonicalOperators
+                )
+            }
+        }
+    }
+
+    fun toggleOperatorActive(operatorId: Int, isActive: Boolean) {
+        viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    operators = state.operators.map {
+                        if (it.id == operatorId) it.copy(isActive = isActive) else it
+                    }
+                )
+            }
+            try {
+                supabaseClient.postgrest["canonical_operators"].update(
+                    buildJsonObject { put("is_active", isActive) }
+                ) {
+                    filter { eq("id", operatorId) }
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -243,21 +302,73 @@ class AdminDataManagementViewModel(
 
     fun manualSyncNow(sourceId: String) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, notificationMessage = null) }
-            kotlinx.coroutines.delay(1500) // Veri çekme simülasyonu
-            val source = _uiState.value.feedSources.find { it.id == sourceId } ?: return@launch
-            val updated = source.copy(
-                lastSyncedAt = "Bugün (Manuel Çekildi)",
-                syncedRecordCount = 142,
-                statusMessage = "Son işlem: 142 tur & otel verisi başarıyla çekildi."
-            )
-            saveFeedSource(updated)
-            _uiState.update {
-                it.copy(
+            _uiState.update { it.copy(isLoading = true, notificationMessage = null, errorMessage = null) }
+            val source = _uiState.value.feedSources.find { it.id == sourceId } ?: run {
+                _uiState.update { it.copy(isLoading = false) }
+                return@launch
+            }
+
+            try {
+                // Yandex DB & Supabase üzerindeki trigger_feed_sync RPC fonksiyonunu tetikle
+                supabaseClient.postgrest.rpc(
+                    function = "trigger_feed_sync",
+                    parameters = buildJsonObject {
+                        put("p_source_id", sourceId)
+                    }
+                )
+            } catch (_: Exception) {
+                // Fallback: doğrudan data_feed_sources tablosunda sync_requested bayrağını güncelle
+                try {
+                    val updated = source.copy(
+                        syncRequested = true,
+                        statusMessage = "⚡ Senkronizasyon emri iletildi, Yandex Cloud Worker çalıştırılıyor..."
+                    )
+                    supabaseClient.postgrest["data_feed_sources"].upsert(updated)
+                } catch (_: Exception) {}
+            }
+
+            // UI State güncellemesi
+            _uiState.update { state ->
+                val current = state.feedSources.toMutableList()
+                val idx = current.indexOfFirst { it.id == sourceId }
+                if (idx >= 0) {
+                    current[idx] = current[idx].copy(
+                        syncRequested = true,
+                        statusMessage = "⚡ Senkronizasyon kuyrukta (Yandex Staging & Swap Aktif)"
+                    )
+                }
+                state.copy(
                     isLoading = false,
-                    notificationMessage = "⚡ '${source.sourceName}' kaynağından 142 adet veri başarıyla çekildi ve havuza aktarıldı."
+                    feedSources = current,
+                    notificationMessage = "🚀 '${source.sourceName}' için %100 tam veri senkronizasyonu Yandex Cloud Worker'a iletildi."
                 )
             }
+        }
+    }
+
+    fun updateSeasonMode(sourceId: String, newMode: String) {
+        viewModelScope.launch {
+            val source = _uiState.value.feedSources.find { it.id == sourceId } ?: return@launch
+            val newInterval = if (newMode == "HIGH_SEASON") "4_HOUR" else "24_HOUR"
+            val newStatusMsg = if (newMode == "HIGH_SEASON") {
+                "🔥 YÜKSEK SEZON MODU (Her 4 Saatte Bir %100 Otomatik Yenileme)"
+            } else {
+                "🟢 DÜŞÜK SEZON MODU (Günde 1 Kez Gece 03:00 Otomatik Yenileme)"
+            }
+            val updated = source.copy(
+                seasonMode = newMode,
+                syncInterval = newInterval,
+                statusMessage = newStatusMsg
+            )
+            saveFeedSource(updated)
+        }
+    }
+
+    fun updateSyncInterval(sourceId: String, interval: String) {
+        viewModelScope.launch {
+            val source = _uiState.value.feedSources.find { it.id == sourceId } ?: return@launch
+            val updated = source.copy(syncInterval = interval)
+            saveFeedSource(updated)
         }
     }
 

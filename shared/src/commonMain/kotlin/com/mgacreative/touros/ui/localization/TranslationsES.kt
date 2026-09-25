@@ -385,6 +385,7 @@ internal object TranslationsES {
             "4. TURİSTLER" to "4. TURISTAS",
             "Tüm Kalkış Şehirleri" to "Todas las Ciudades de Salida",
             "Tüm Destinasyonlar / Ülkeler" to "Todos los Destinos / Países",
+            "Tüm Destinasyonlar" to "Todos los Destinos",
             "Bugün" to "Hoy",
             "Bu Ay" to "Este Mes",
             "Detaylı Filtreler (Sahil, Beslenme, Yıldız, Puan, Otel & Donanım)" to "Filtros Detallados (Playa, Régimen, Estrellas, Puntuación, Hotel y Servicios)",

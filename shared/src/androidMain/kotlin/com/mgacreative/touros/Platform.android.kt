@@ -8,3 +8,7 @@ class AndroidPlatform : Platform {
 
 actual fun getPlatform(): Platform = AndroidPlatform()
 actual fun getCurrentEpochMillis(): Long = System.currentTimeMillis()
+actual fun getWebQueryParameter(key: String): String? = null
+actual fun getWebAgencyIdentifier(): String? = null
+actual fun clearWebAgencyQueryFromUrl() {}
+actual fun setWebDocumentTitle(title: String) {}

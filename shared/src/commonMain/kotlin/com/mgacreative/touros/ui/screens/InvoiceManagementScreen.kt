@@ -491,17 +491,7 @@ private fun RealTimePdfPreviewPanel(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        Column {
-                            Text(
-                                "TourOS Seyahat Acentası A.Ş.",
-                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary),
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                "Turizm & Seyahat Hizmetleri",
-                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                            )
-                        }
+                        Spacer(modifier = Modifier.weight(1f))
                         Column(horizontalAlignment = Alignment.End) {
                             Text(
                                 if (invoiceType == "purchase") com.mgacreative.touros.ui.localization.AppLanguageManager.translate("GİDER FATURASI") else com.mgacreative.touros.ui.localization.AppLanguageManager.translate("SATIŞ E-FATURASI"),
@@ -532,7 +522,7 @@ private fun RealTimePdfPreviewPanel(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                customerName.ifBlank { "[Unvan Girilmedi]" },
+                                customerName.ifBlank { com.mgacreative.touros.ui.localization.AppLanguageManager.translate("[Unvan Girilmedi]") },
                                 style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                                 fontWeight = FontWeight.Bold
                             )

@@ -185,10 +185,11 @@ fun SupplierExpenseScreen(
                         }
                     } else {
                         // 1. KPI Özet Borç Kartları
+                        val currencyLabel = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("TRY")
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                            SummaryCard("🏨 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel Borçları"), "${formatMoney(state.totalHotelDebt)} TRY", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
-                            SummaryCard("🚐 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç Borçları"), "${formatMoney(state.totalVehicleDebt)} TRY", TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
-                            SummaryCard("🚩 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber Borçları"), "${formatMoney(state.totalGuideDebt)} TRY", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
+                            SummaryCard("🏨 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Otel Borçları"), "${formatMoney(state.totalHotelDebt)} $currencyLabel", TourOSColors.PrimaryContainer, TourOSColors.Primary, Modifier.weight(1f))
+                            SummaryCard("🚐 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Araç Borçları"), "${formatMoney(state.totalVehicleDebt)} $currencyLabel", TourOSColors.SecondaryContainer, TourOSColors.Secondary, Modifier.weight(1f))
+                            SummaryCard("🚩 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Rehber Borçları"), "${formatMoney(state.totalGuideDebt)} $currencyLabel", TourOSColors.SuccessContainer, TourOSColors.Success, Modifier.weight(1f))
                         }
 
                         // 2. Kategori Filtre Çipleri

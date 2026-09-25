@@ -315,6 +315,7 @@ internal object TranslationsAR {
             "4. TURİSTLER" to "4. المسافرون",
             "Tüm Kalkış Şehirleri" to "جميع مدن المغادرة",
             "Tüm Destinasyonlar / Ülkeler" to "جميع الوجهات / الدول",
+            "Tüm Destinasyonlar" to "جميع الوجهات",
             "Bugün" to "اليوم",
             "Bu Ay" to "هذا الشهر",
             "Detaylı Filtreler (Sahil, Beslenme, Yıldız, Puan, Otel & Donanım)" to "فلاتر تفصيلية (الشاطئ، الوجبات، النجوم، التقييم، الفندق والمرافق)",

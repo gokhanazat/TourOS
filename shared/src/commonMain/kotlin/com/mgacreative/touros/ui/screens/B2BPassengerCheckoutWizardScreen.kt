@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mgacreative.touros.ui.components.*
 import com.mgacreative.touros.ui.localization.AppLanguageManager
 import com.mgacreative.touros.ui.theme.TourOSColors
@@ -210,58 +211,86 @@ private fun PassengerFormCardItem(
         contentPadding = TourOSSpacing.medium
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
-            // BAŞLIK VE CİNSİYET SEÇİMİ (GÖRSEL 5)
+            // BAŞLIK, SİPARİŞ VEREN VE FOTOĞRAF / OCR BUTONLARI (TO FORMATI)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "👤 ${AppLanguageManager.translate("Turist")} $paxIndex ${if (passenger.isPayer) "(${AppLanguageManager.translate("Sipariş Veren Müşteri")})" else ""}",
-                    style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                    fontWeight = FontWeight.Bold
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "👤 Туристы $paxIndex",
+                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                        fontWeight = FontWeight.Bold
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = passenger.isPayer,
+                            onCheckedChange = { onUpdatePassenger(passenger.copy(isPayer = it)) },
+                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
+                        )
+                        Text(
+                            text = "Является заказчиком",
+                            style = TourOSTypography.Caption.copy(fontWeight = FontWeight.SemiBold, color = TourOSColors.TextPrimary)
+                        )
+                    }
+                }
 
-                // CİNSİYET TOGGLE BUTONLARI (GÖRSEL 5 & 6)
-                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                // GALERİDEN SEÇ / FOTOĞRAF ÇEK BUTONLARI & CİNSİYET
+                Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = { /* OCR / Galeri */ },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text("📁 ВЫБРАТЬ ИЗ ГАЛЕРЕИ", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    OutlinedButton(
+                        onClick = { /* Kamera */ },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text("📷 СДЕЛАТЬ ФОТО", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                    // CİNSİYET SEÇİMİ
                     FilterChip(
                         selected = passenger.gender == "MALE",
                         onClick = { onUpdatePassenger(passenger.copy(gender = "MALE")) },
-                        label = { Text(AppLanguageManager.translate("Bay (Мужской)"), style = TourOSTypography.Caption) }
+                        label = { Text("Мужской", style = TourOSTypography.Caption.copy(fontWeight = if (passenger.gender == "MALE") FontWeight.Bold else FontWeight.Normal)) }
                     )
                     FilterChip(
                         selected = passenger.gender == "FEMALE",
                         onClick = { onUpdatePassenger(passenger.copy(gender = "FEMALE")) },
-                        label = { Text(AppLanguageManager.translate("Bayan (Женский)"), style = TourOSTypography.Caption) }
+                        label = { Text("Женский", style = TourOSTypography.Caption.copy(fontWeight = if (passenger.gender == "FEMALE") FontWeight.Bold else FontWeight.Normal)) }
                     )
                 }
             }
 
             HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
 
-            // FORM SATIRI 1: AD, SOYAD, DOĞUM TARİHİ
+            // ─── SATIR 1: ИМЯ, ФАМИЛИЯ, ДАТА РОЖДЕНИЯ ───
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
             ) {
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1.2f)) {
                     TourOSTextField(
                         value = passenger.firstName,
                         onValueChange = { onUpdatePassenger(passenger.copy(firstName = it.uppercase())) },
-                        label = AppLanguageManager.translate("Adı (Имя)"),
-                        placeholder = "",
+                        label = "ИМЯ (Adı)",
+                        placeholder = "IVAN",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1.2f)) {
                     TourOSTextField(
                         value = passenger.lastName,
                         onValueChange = { onUpdatePassenger(passenger.copy(lastName = it.uppercase())) },
-                        label = AppLanguageManager.translate("Soyadı (Фамилия)"),
-                        placeholder = "",
+                        label = "ФАМИЛИЯ (Soyadı)",
+                        placeholder = "IVANOV",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
                         ),
@@ -272,8 +301,8 @@ private fun PassengerFormCardItem(
                     TourOSTextField(
                         value = passenger.birthDate,
                         onValueChange = { onUpdatePassenger(passenger.copy(birthDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
-                        label = AppLanguageManager.translate("Doğum Tarihi (GG.AA.YYYY)"),
-                        placeholder = "GG.AA.YYYY",
+                        label = "ДАТА РОЖДЕНИЯ (Doğum Tarihi)",
+                        placeholder = "ДД.ММ.ГГГГ",
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                         ),
@@ -282,7 +311,7 @@ private fun PassengerFormCardItem(
                 }
             }
 
-            // FORM SATIRI 2: UYRUK, PASAPORT NO, GEÇERLİLİK
+            // ─── SATIR 2: ГРАЖДАНСТВО, ДОКУМЕНТ, СЕРИЯ, НОМЕР, ДАТА ВЫДАЧИ ───
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
@@ -291,11 +320,26 @@ private fun PassengerFormCardItem(
                     TourOSTextField(
                         value = passenger.citizenship,
                         onValueChange = { onUpdatePassenger(passenger.copy(citizenship = it.uppercase())) },
-                        label = AppLanguageManager.translate("Uyruk (Гражданство)"),
-                        placeholder = "",
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
-                        ),
+                        label = "ГРАЖДАНСТВО (Vatandaşlık)",
+                        placeholder = "Россия",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    TourOSTextField(
+                        value = passenger.documentType,
+                        onValueChange = { onUpdatePassenger(passenger.copy(documentType = it)) },
+                        label = "ДОКУМЕНТ (Belge)",
+                        placeholder = "Загранпаспорт",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Box(modifier = Modifier.weight(0.7f)) {
+                    TourOSTextField(
+                        value = passenger.passportSeries,
+                        onValueChange = { onUpdatePassenger(passenger.copy(passportSeries = it.uppercase())) },
+                        label = "СЕРИЯ (Seri)",
+                        placeholder = "51",
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -303,94 +347,91 @@ private fun PassengerFormCardItem(
                     TourOSTextField(
                         value = passenger.passportNumber,
                         onValueChange = { onUpdatePassenger(passenger.copy(passportNumber = it.uppercase())) },
-                        label = AppLanguageManager.translate("Pasaport No (Номер)"),
-                        placeholder = "",
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters
-                        ),
+                        label = "НОМЕР (No)",
+                        placeholder = "1234567",
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                Box(modifier = Modifier.weight(1f)) {
+                Box(modifier = Modifier.weight(1.1f)) {
                     TourOSTextField(
-                        value = passenger.documentExpiryDate,
-                        onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
-                        label = AppLanguageManager.translate("Son Geçerlilik (Срок действия)"),
-                        placeholder = "GG.AA.YYYY",
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                        ),
+                        value = passenger.documentIssueDate,
+                        onValueChange = { onUpdatePassenger(passenger.copy(documentIssueDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
+                        label = "ДАТА ВЫДАЧИ (Veriliş)",
+                        placeholder = "ДД.ММ.ГГГГ",
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
 
-            // FORM SATIRI 3: İLETİŞİM BİLGİLERİ (Sadece 1. Turist için)
-            if (passenger.isPayer) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        TourOSTextField(
-                            value = passenger.phone,
-                            onValueChange = { onUpdatePassenger(passenger.copy(phone = it)) },
-                            label = AppLanguageManager.translate("Telefon No"),
-                            placeholder = "+...",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1.5f)) {
-                        TourOSTextField(
-                            value = passenger.email,
-                            onValueChange = { onUpdatePassenger(passenger.copy(email = it)) },
-                            label = AppLanguageManager.translate("E-posta Adresi"),
-                            placeholder = "example@domain.com",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+            // ─── SATIR 3: СРОК ДЕЙСТВИЯ, КЕМ ВЫДАН, ТЕЛЕФОН, EMAIL ───
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                Column(modifier = Modifier.weight(1.1f)) {
+                    TourOSTextField(
+                        value = passenger.documentExpiryDate,
+                        onValueChange = { onUpdatePassenger(passenger.copy(documentExpiryDate = com.mgacreative.touros.utils.DateUtils.formatDateInput(it))) },
+                        label = "СРОК ДЕЙСТВИЯ (Bitiş)",
+                        placeholder = "ДД.ММ.ГГГГ",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        text = "Минимальный срок: +6 месяцев",
+                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary, fontSize = 9.sp)
+                    )
                 }
-            } else {
-                // ── GÖRSEL 6: ÇOCUK/BEBEK YOLCU ÖZEL ALANLARI ("Ответственный за ребенка") ──
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
-                        .padding(TourOSSpacing.small),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "👨‍👦 ${AppLanguageManager.translate("Çocuktan Sorumlu Yetişkin (Ответственный за ребенка)")}:",
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = AppLanguageManager.translate("Turist 1 (Yetişkin / Lead)"),
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                Box(modifier = Modifier.weight(1.2f)) {
+                    TourOSTextField(
+                        value = passenger.documentIssuedBy,
+                        onValueChange = { onUpdatePassenger(passenger.copy(documentIssuedBy = it)) },
+                        label = "КЕМ ВЫДАН (Veren Makam)",
+                        placeholder = "МВД 77001",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Box(modifier = Modifier.weight(1.1f)) {
+                    TourOSTextField(
+                        value = passenger.phone,
+                        onValueChange = { onUpdatePassenger(passenger.copy(phone = it)) },
+                        label = "НОМЕР ТЕЛЕФОНА (Telefon)",
+                        placeholder = "+7 999 123 45 67",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Box(modifier = Modifier.weight(1.2f)) {
+                    TourOSTextField(
+                        value = passenger.email,
+                        onValueChange = { onUpdatePassenger(passenger.copy(email = it)) },
+                        label = "ЭЛ. ПОЧТА СЧЕТА (E-posta)",
+                        placeholder = "tourist@mail.ru",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(
-                            checked = passenger.isInfantSeatRequested,
-                            onCheckedChange = { isChecked ->
-                                onUpdatePassenger(passenger.copy(isInfantSeatRequested = isChecked))
-                            },
-                            colors = CheckboxDefaults.colors(checkedColor = TourOSColors.Primary)
-                        )
-                        Text(
-                            text = AppLanguageManager.translate("İnfant İçin Uçakta Ayrı Koltuk"),
-                            style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                        )
-                    }
+            // ─── SATIR 4: СТРАНА РОЖДЕНИЯ, АДРЕС ───
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    TourOSTextField(
+                        value = passenger.birthCountry,
+                        onValueChange = { onUpdatePassenger(passenger.copy(birthCountry = it)) },
+                        label = "СТРАНА РОЖДЕНИЯ (Doğum Ülkesi)",
+                        placeholder = "Россия",
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                Box(modifier = Modifier.weight(2f)) {
+                    TourOSTextField(
+                        value = passenger.address,
+                        onValueChange = { onUpdatePassenger(passenger.copy(address = it)) },
+                        label = "АДРЕС (İkamet Adresi)",
+                        placeholder = "г. Москва, ул. Ленина, д. 10, кв. 5",
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }

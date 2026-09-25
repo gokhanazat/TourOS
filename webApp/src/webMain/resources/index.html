@@ -12,6 +12,43 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="dns-prefetch" href="https://supabase.co">
     <link type="text/css" rel="stylesheet" href="styles.css">
+    <style>
+        html.whitelabel-mode .loader-logo-wrapper { display: none !important; }
+    </style>
+    <script type="text/javascript">
+        try {
+            var urlParams = new URLSearchParams(window.location.search);
+            var ref = urlParams.get('agency') || urlParams.get('ref') || urlParams.get('b2b');
+            if (ref && ref.trim().length > 0) {
+                sessionStorage.setItem('touros_agency_ref', ref.trim());
+                try {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch(e) {}
+            }
+            var saved = sessionStorage.getItem('touros_agency_ref');
+            var host = window.location.hostname.toLowerCase();
+            var isCustomDomain = host && host !== 'axileto.com' && host !== 'www.axileto.com' && host !== 'localhost' && host !== '127.0.0.1';
+
+            if (ref || saved || isCustomDomain || window.location.pathname.indexOf('/a/') !== -1) {
+                document.documentElement.classList.add('whitelabel-mode');
+                document.title = 'Online Rezervasyon Portalı';
+                var hideBranding = function() {
+                    var logo = document.querySelector('.loader-logo-wrapper');
+                    if (logo) logo.style.display = 'none';
+                    var brand = document.querySelector('.brand-axileto');
+                    if (brand) brand.textContent = 'Online Rezervasyon';
+                    var sub = document.querySelector('.loader-subtitle');
+                    if (sub) sub.textContent = 'Rezervasyon Portalı Yükleniyor...';
+                };
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', hideBranding);
+                } else {
+                    hideBranding();
+                }
+            }
+        } catch(e) {}
+    </script>
+
 </head>
 <body style="margin: 0; padding: 0; width: 100vw; height: 100vh; overflow: hidden; background-color: #0F172A;">
     <div id="loader-screen">

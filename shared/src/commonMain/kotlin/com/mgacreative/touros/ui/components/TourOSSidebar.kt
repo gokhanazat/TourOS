@@ -146,7 +146,7 @@ fun TourOSSidebar(
                 ) {
                     Text("🌐", fontSize = 14.sp)
                     Text(
-                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web Sayfasına Dön"),
+                        text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Web Sayfasına Dön", currentLanguage.code),
                         style = TourOSTypography.BodyMedium.copy(
                             color = TourOSColors.Primary,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -188,7 +188,7 @@ fun TourOSSidebar(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(group.categoryTitle).uppercase(),
+                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(group.categoryTitle, currentLanguage.code).uppercase(),
                                 style = TourOSTypography.TitleMedium.copy(
                                     color = if (hasActiveChild) TourOSColors.Primary else TourOSColors.TextPrimary,
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
@@ -205,7 +205,7 @@ fun TourOSSidebar(
                         }
                     } else {
                         Text(
-                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(group.categoryTitle).uppercase(),
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(group.categoryTitle, currentLanguage.code).uppercase(),
                             style = TourOSTypography.TitleMedium.copy(
                                 color = TourOSColors.Primary,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold,
@@ -252,7 +252,7 @@ fun TourOSSidebar(
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Text(
-                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(subGroup.title),
+                                                text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(subGroup.title, currentLanguage.code),
                                                 style = TourOSTypography.BodyMedium.copy(
                                                     color = if (subHasActive) TourOSColors.Primary else Color(0xFF334155),
                                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -391,7 +391,7 @@ fun TourOSSidebar(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap"),
+                            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Çıkış Yap", currentLanguage.code),
                             style = TourOSTypography.Caption.copy(
                                 color = TourOSColors.Error,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -410,6 +410,7 @@ private fun RenderSidebarItem(
     item: TourOSNavItem,
     onItemSelect: (TourOSNavItem) -> Unit
 ) {
+    val currentLanguage by com.mgacreative.touros.ui.localization.AppLanguageManager.currentLanguage.collectAsState()
     val bg = if (item.isSelected) TourOSColors.PrimaryContainer else Color.Transparent
     val contentColor = if (item.isSelected) TourOSColors.Primary else TourOSColors.TextPrimary
 
@@ -428,7 +429,7 @@ private fun RenderSidebarItem(
             Spacer(modifier = Modifier.width(6.dp))
         }
         Text(
-            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.title),
+            text = com.mgacreative.touros.ui.localization.AppLanguageManager.translate(item.title, currentLanguage.code),
             style = TourOSTypography.BodyMedium.copy(
                 color = contentColor,
                 fontSize = 12.sp,

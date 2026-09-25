@@ -76,12 +76,12 @@ fun FinancialReportsScreen(
                     ) {
                         TourOSButton(
                             text = "📄 PDF",
-                            onClick = { exportNotification = "📄 PDF Finans Raporu (${state.selectedCurrency}) İndirildi!" },
+                            onClick = { exportNotification = "📄 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("PDF Finans Raporu İndirildi!") + " (${state.selectedCurrency})" },
                             variant = TourOSButtonVariant.SECONDARY
                         )
                         TourOSButton(
                             text = "📊 Excel",
-                            onClick = { exportNotification = "📊 Excel (CSV) Finans Raporu Dışa Aktarıldı!" },
+                            onClick = { exportNotification = "📊 " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Excel (CSV) Finans Raporu Dışa Aktarıldı!") },
                             variant = TourOSButtonVariant.PRIMARY
                         )
                     }

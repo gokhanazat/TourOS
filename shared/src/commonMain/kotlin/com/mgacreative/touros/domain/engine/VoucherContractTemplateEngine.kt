@@ -335,16 +335,31 @@ class VoucherContractTemplateEngine {
         val priceFormatted = "${booking.totalPrice} $currencySymbol"
 
         val passengerRows = effectivePassengers.mapIndexed { index, p ->
+            val leadBadge = if (p.isLead) "<br/><span style='color:#0284c7; font-size:9px; font-weight:bold;'>[ЗАКАЗЧИК]</span>" else ""
+            val docSeriesNum = listOfNotNull(p.passportSeries, p.passportNo).filter { it.isNotBlank() }.joinToString(" ")
+            val genderRu = when {
+                p.gender?.contains("MALE", ignoreCase = true) == true || p.gender?.contains("Bay", ignoreCase = true) == true || p.gender?.contains("Муж", ignoreCase = true) == true -> "Мужской"
+                p.gender?.contains("FEMALE", ignoreCase = true) == true || p.gender?.contains("Bayan", ignoreCase = true) == true || p.gender?.contains("Жен", ignoreCase = true) == true -> "Женский"
+                else -> p.gender ?: "—"
+            }
             """
             <tr>
                 <td style="text-align:center; font-weight:bold;">${index + 1}</td>
-                <td><strong>${p.fullName}</strong></td>
-                <td style="text-align:center;">${p.birthDate ?: "28.12.1974"}</td>
-                <td style="text-align:center;">${p.passportNo ?: "76№6635356"}</td>
-                <td style="text-align:center;">16.02.2032</td>
+                <td><strong>${p.fullName}</strong>$leadBadge</td>
+                <td style="text-align:center;">$genderRu</td>
+                <td style="text-align:center;">${p.birthDate ?: "—"}</td>
+                <td style="text-align:center;">${p.citizenship ?: "Россия"}</td>
+                <td style="text-align:center;"><strong>$docSeriesNum</strong></td>
+                <td style="text-align:center;">${p.documentIssueDate ?: "—"}</td>
+                <td style="text-align:center;">${p.documentExpiryDate ?: "—"}</td>
+                <td style="font-size:9px;">${p.documentIssuedBy ?: "—"}</td>
+                <td style="text-align:center;">${p.birthCountry ?: "Россия"}</td>
+                <td style="font-size:9px;">${listOfNotNull(p.phone, p.email, p.address).filter { it.isNotBlank() }.joinToString("<br/>")}</td>
             </tr>
             """.trimIndent()
         }.joinToString("\n")
+
+        val toTextData = buildTourOperatorClipboardText(booking, effectivePassengers)
 
         return """
             <!DOCTYPE html>
@@ -353,60 +368,76 @@ class VoucherContractTemplateEngine {
                 <meta charset="utf-8"/>
                 <title>Заявка Туроператору $bookingCode</title>
                 <style>
-                    @page { size: A4 portrait; margin: 12mm 15mm; }
-                    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11px; color: #111827; line-height: 1.35; margin: 0; padding: 15px; }
-                    .page { position: relative; min-height: 260mm; }
+                    @page { size: A4 landscape; margin: 10mm 12mm; }
+                    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10.5px; color: #111827; line-height: 1.35; margin: 0; padding: 15px; }
+                    .page { position: relative; min-height: 190mm; }
                     .text-right { text-align: right; }
                     .text-center { text-align: center; }
-                    .header-title { font-size: 12px; font-weight: bold; text-align: right; text-transform: uppercase; margin-bottom: 3px; color: #0369a1; }
-                    .header-sub { font-size: 10px; font-weight: bold; text-align: right; margin-bottom: 15px; }
-                    .section-title { font-size: 12px; font-weight: bold; text-align: center; text-transform: uppercase; margin: 12px 0 8px 0; background: #e0f2fe; padding: 6px; border-radius: 4px; }
+                    .header-title { font-size: 13px; font-weight: bold; text-align: right; text-transform: uppercase; margin-bottom: 3px; color: #0369a1; }
+                    .header-sub { font-size: 10.5px; font-weight: bold; text-align: right; margin-bottom: 12px; }
+                    .section-title { font-size: 11px; font-weight: bold; text-align: center; text-transform: uppercase; margin: 10px 0 6px 0; background: #e0f2fe; padding: 5px; border-radius: 4px; color: #0369a1; }
                     
-                    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-                    th, td { border: 1px solid #374151; padding: 5px 7px; font-size: 10.5px; vertical-align: top; }
-                    th { background-color: #f3f4f6; font-weight: bold; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+                    th, td { border: 1px solid #cbd5e1; padding: 4px 6px; font-size: 9.5px; vertical-align: top; }
+                    th { background-color: #f1f5f9; font-weight: bold; color: #1e293b; }
                     
-                    .signature-table td { border: none; padding: 8px 4px; font-size: 10.5px; }
-                    
-                    .footer-id { font-size: 8px; color: #6b7280; margin-top: 25px; display: flex; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 6px; }
-                    .btn-print { display: block; margin: 10px auto 20px auto; padding: 8px 24px; background: #0284c7; color: #fff; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; }
+                    .signature-table td { border: none; padding: 6px 4px; font-size: 10px; }
+                    .btn-container { display: flex; justify-content: center; gap: 12px; margin: 10px auto 16px auto; }
+                    .btn-print { padding: 8px 20px; background: #0284c7; color: #fff; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
+                    .btn-copy { padding: 8px 20px; background: #10b981; color: #fff; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; }
                     @media print { .no-print { display: none !important; } body { padding: 0; } }
                 </style>
+                <script>
+                    function copyToClipboard() {
+                        var text = document.getElementById('to-data-raw').innerText;
+                        navigator.clipboard.writeText(text).then(function() {
+                            alert('Данные туристов успешно скопированы! Теперь вы можете вставить их в форму на сайте туроператора.');
+                        });
+                    }
+                </script>
             </head>
             <body>
-                <div class="no-print text-center">
-                    <button class="btn-print" onclick="window.print()">🖨️ Распечатать / Сохранить в PDF (Yazdır / PDF Kaydet)</button>
+                <div class="no-print btn-container">
+                    <button class="btn-print" onclick="window.print()">🖨️ Распечатать / Сохранить в PDF</button>
+                    <button class="btn-copy" onclick="copyToClipboard()">📋 Скопировать данные для сайта ТО</button>
                 </div>
+                <div id="to-data-raw" style="display:none;">$toTextData</div>
 
-                <!-- ==================== TEK SAYFA: ЗАЯВКА ТУРОПЕРАТОРУ / ВАУЧЕР ==================== -->
+                <!-- ==================== ЗАЯВКА ТУРОПЕРАТОРУ / ВАУЧЕР ==================== -->
                 <div class="page">
                     <div class="header-title">ЗАЯВКА НА БРОНИРОВАНИЕ ТУРА / ВАУЧЕР ТУРОПЕРАТОРУ</div>
-                    <div class="header-sub">Номер заказа: $bookingCode • Дата: $requestDate</div>
+                    <div class="header-sub">Номер заявки: $bookingCode • Дата формирования: $requestDate</div>
 
-                    <div style="margin-bottom: 12px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px;">
+                    <div style="margin-bottom: 10px; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 6px;">
                         <table style="border: none; margin: 0;">
                             <tr style="border: none;">
                                 <td style="border: none; padding: 2px 0;"><strong>Туроператор:</strong> ${booking.operatorName.ifBlank { "Coral Travel / Anex Tour" }}</td>
                                 <td style="border: none; padding: 2px 0; text-align: right;"><strong>Отправитель (Агентство):</strong> $agencyName</td>
                             </tr>
                             <tr style="border: none;">
-                                <td style="border: none; padding: 2px 0;"><strong>PNR Туроператора:</strong> ${booking.operatorPnrCode ?: "В обработке / Ожидает подтверждения"}</td>
+                                <td style="border: none; padding: 2px 0;"><strong>Номер заявки / PNR в ТО:</strong> ${booking.operatorPnrCode ?: "В обработке / Ожидает подтверждения"}</td>
                                 <td style="border: none; padding: 2px 0; text-align: right;"><strong>Контакты:</strong> $agencyPhone • $agencyEmail</td>
                             </tr>
                         </table>
                     </div>
 
-                    <div class="section-title">СПИСОК ТУРИСТОВ (ПАССАЖИРЫ)</div>
+                    <div class="section-title">СПИСОК ТУРИСТОВ (ПАССАЖИРЫ РЕЙСА И ОТЕЛЯ)</div>
 
-                    <!-- Turist Tablosu -->
+                    <!-- Turist Tablosu (Rusça ve Eksiksiz) -->
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 25px;">№</th>
-                                <th>Ф.И.О (Латиница по загранпаспорту)</th>
-                                <th style="width: 95px;">Дата рождения</th>
-                                <th style="width: 110px;">№ ОЗП</th>
-                                <th style="width: 110px;">Действителен до</th>
+                                <th style="width: 20px;">№</th>
+                                <th>Ф.И.О (Латиница)</th>
+                                <th style="width: 55px;">Пол</th>
+                                <th style="width: 70px;">Дата рожд.</th>
+                                <th style="width: 70px;">Гражданство</th>
+                                <th style="width: 85px;">Серия и №</th>
+                                <th style="width: 70px;">Дата выдачи</th>
+                                <th style="width: 70px;">Срок действ.</th>
+                                <th>Кем выдан</th>
+                                <th style="width: 70px;">Страна рожд.</th>
+                                <th style="width: 140px;">Контакты / Адрес</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -567,5 +598,45 @@ class VoucherContractTemplateEngine {
             tenantId = tenantId,
             createdAt = "2026-08-26 11:30"
         )
+    }
+
+    fun buildTourOperatorClipboardText(booking: Booking, passengers: List<Passenger>): String {
+        val sb = StringBuilder()
+        sb.appendLine("=== ДАННЫЕ ДЛЯ ЗАЯВКИ ТУРОПЕРАТОРУ (${booking.operatorName.ifBlank { "ТУРОПЕРАТОР" }}) ===")
+        sb.appendLine("Заказ / Ref: #${booking.bookingCode}")
+        if (!booking.operatorPnrCode.isNullOrBlank()) {
+            sb.appendLine("PNR Туроператора: ${booking.operatorPnrCode}")
+        }
+        sb.appendLine("Отель: ${booking.productName}")
+        sb.appendLine("Даты: ${booking.checkInDate ?: booking.departureDate} - ${booking.checkOutDate ?: ""} (${booking.nights} ночей)")
+        sb.appendLine("Номер / Питание: ${booking.roomTypeName ?: "Стандарт"} / All Inclusive")
+        sb.appendLine()
+        sb.appendLine("--- СПИСОК ТУРИСТОВ (${passengers.size} чел.) ---")
+        passengers.forEachIndexed { index, p ->
+            val leadStr = if (p.isLead) " [ЗАКАЗЧИК / ОПЛАТИЛ]" else ""
+            val genderRu = when {
+                p.gender?.contains("MALE", ignoreCase = true) == true || p.gender?.contains("Bay", ignoreCase = true) == true || p.gender?.contains("Муж", ignoreCase = true) == true -> "Мужской"
+                p.gender?.contains("FEMALE", ignoreCase = true) == true || p.gender?.contains("Bayan", ignoreCase = true) == true || p.gender?.contains("Жен", ignoreCase = true) == true -> "Женский"
+                else -> p.gender ?: "—"
+            }
+            sb.appendLine("Турист ${index + 1}$leadStr:")
+            sb.appendLine("  Имя (Lat): ${p.firstName?.ifBlank { null } ?: p.fullName.split(" ").firstOrNull() ?: ""}")
+            sb.appendLine("  Фамилия (Lat): ${p.lastName?.ifBlank { null } ?: p.fullName.split(" ").drop(1).joinToString(" ")}")
+            sb.appendLine("  Пол: $genderRu")
+            sb.appendLine("  Дата рождения: ${p.birthDate ?: ""}")
+            sb.appendLine("  Гражданство: ${p.citizenship ?: "Россия"}")
+            sb.appendLine("  Документ: ${p.documentType ?: "Загранпаспорт"}")
+            sb.appendLine("  Серия: ${p.passportSeries ?: ""}")
+            sb.appendLine("  Номер: ${p.passportNo ?: ""}")
+            sb.appendLine("  Дата выдачи: ${p.documentIssueDate ?: ""}")
+            sb.appendLine("  Срок действия: ${p.documentExpiryDate ?: ""}")
+            sb.appendLine("  Кем выдан: ${p.documentIssuedBy ?: ""}")
+            sb.appendLine("  Страна рождения: ${p.birthCountry ?: "Россия"}")
+            if (!p.phone.isNullOrBlank()) sb.appendLine("  Телефон: ${p.phone}")
+            if (!p.email.isNullOrBlank()) sb.appendLine("  E-mail: ${p.email}")
+            if (!p.address.isNullOrBlank()) sb.appendLine("  Адрес: ${p.address}")
+            sb.appendLine()
+        }
+        return sb.toString()
     }
 }

@@ -237,15 +237,15 @@ fun DualMonthRangeDatePickerDialog(
                 HorizontalDivider(color = Color(0xFFE2E8F0))
 
                 // Esneklik Seçenekleri Barı (±1, ±2, ±3 Gün Esnek)
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    // 1. Esneklik Seçenekleri Çipleri (Ferah ve Kesintisiz)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f, fill = false)
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = "⚡ ${AppLanguageManager.translate("Esneklik")}:",
@@ -270,23 +270,21 @@ fun DualMonthRangeDatePickerDialog(
                                     style = TourOSTypography.Caption.copy(
                                         color = if (isSelected) Color.White else Color(0xFF334155),
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 11.sp
+                                        fontSize = 12.sp
                                     ),
                                     softWrap = false,
                                     maxLines = 1,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Action Buttons
+                    // 2. Alt Butonlar Satırı (İptal ve Uygula)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.wrapContentWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(
                             onClick = onDismiss,
@@ -300,6 +298,7 @@ fun DualMonthRangeDatePickerDialog(
                                 maxLines = 1
                             )
                         }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Button(
                             onClick = {
                                 val effectiveEnd = if (selEnd > 0) selEnd else selStart
@@ -312,8 +311,8 @@ fun DualMonthRangeDatePickerDialog(
                                 onDismiss()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F5A56)),
-                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
-                            modifier = Modifier.wrapContentWidth().defaultMinSize(minWidth = 90.dp)
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 10.dp),
+                            modifier = Modifier.wrapContentWidth().defaultMinSize(minWidth = 100.dp)
                         ) {
                             Text(
                                 text = AppLanguageManager.translate("Uygula"),

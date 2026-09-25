@@ -93,11 +93,11 @@ fun BookingListScreen(
     Scaffold(
         topBar = {
             TourOSTopBar(
-                title = AppLanguageManager.translate("Rezervasyon Yönetimi"),
-                subtitle = AppLanguageManager.translate("Tüm turların rezervasyon taleplerini ve durumlarını takip edin"),
+                title = AppLanguageManager.translate("Rezervasyon Yönetimi", currentLanguage.code),
+                subtitle = AppLanguageManager.translate("Tüm turların rezervasyon taleplerini ve durumlarını takip edin", currentLanguage.code),
                 actions = {
                     TourOSButton(
-                        text = AppLanguageManager.translate("+ Yeni Rezervasyon"),
+                        text = AppLanguageManager.translate("+ Yeni Rezervasyon", currentLanguage.code),
                         onClick = onNavigateToCreateBooking,
                         variant = TourOSButtonVariant.PRIMARY
                     )

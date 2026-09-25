@@ -47,13 +47,9 @@ const COUNTRY_MAP = {
 async function runMegaExpandedSync() {
     console.log('🚀 [Genişletilmiş Tüm Ülkeler Canlı Senkronizasyon Başlatıldı]...');
 
-    // Popüler Rusya Tur Operatör Grupları
+    // 9 Kanonik Operatör TourVisor Kodları
     const operatorBatches = [
-        '11,12,13,18,25', // Coral, Pegas, Anex, Biblioglobus, Fun&Sun
-        '21,23,27,40,43', // Panteon, Russian Express, Paks, ICS, Intourist
-        '58,62,66,78,89', // Evroport, Ambotis, Space Travel, China Travel, Kazunion
-        '96,118,134,143,161', // Premiera, Art Travel, Mercury, Planeta, OneTouch
-        '164,169,178,189,33'  // Lets Fly, TourPlatform, Crystal Bay, One Click, Amigo-S
+        '11,12,13,18,24,25,43,89,94' // Coral, Pegas, Anex, Bibloglobus, Sunmar, Fun&Sun, Intourist, Kazunion, Loti
     ];
 
     const destinations = [

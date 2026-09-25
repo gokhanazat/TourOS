@@ -22,10 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.Image
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import org.jetbrains.compose.resources.painterResource
+import touros.shared.generated.resources.Res
+import touros.shared.generated.resources.ai_agent_avatar
 import com.mgacreative.touros.ai.model.AIGroupedHotelOffer
 import com.mgacreative.touros.ai.model.AIAssistantMessage
 import com.mgacreative.touros.ai.viewmodel.AIAssistantViewModel
@@ -111,6 +115,18 @@ fun AIAssistantFloatingWidget(
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(Modifier.width(6.dp))
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Image(
+                                    painter = painterResource(Res.drawable.ai_agent_avatar),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                            Spacer(Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     "Онлайн-турагент TourOS (RU)",
@@ -151,18 +167,6 @@ fun AIAssistantFloatingWidget(
                                     Text("100%", color = if (windowWidth == 1080.dp) Color.Yellow else Color.White, fontSize = 11.sp)
                                 }
 
-                                // Debug Toggle Butonu
-                                IconButton(
-                                    onClick = { viewModel.toggleDebugPanel() },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Translate,
-                                        contentDescription = "Debug TR",
-                                        tint = if (uiState.isDebugPanelVisible) Color.Yellow else Color.White.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
 
                                 // 🧹 Sohbeti Temizle / Yeni Arama Butonu
                                 IconButton(
@@ -202,6 +206,111 @@ fun AIAssistantFloatingWidget(
 
                     // İçerik (Sadece pencere açıkken)
                     if (!isMinimized) {
+                        // 🏷️ KATEGORİ MODLARI (Pills: Paket turlar, Uçak biletleri, Oteller, Tümü)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF1F5F9))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val categories = listOf(
+                                Triple("ALL", "🌐 Все", "Tümü"),
+                                Triple("PACKAGE_TOUR", "🏖️ Пакетные туры", "Paket"),
+                                Triple("FLIGHT", "✈️ Авиабилеты", "Uçuş"),
+                                Triple("HOTEL", "🏨 Отели", "Otel")
+                            )
+
+                            categories.forEach { (catKey, labelRu, labelTr) ->
+                                val isSelected = uiState.selectedCategory == catKey
+                                Surface(
+                                    modifier = Modifier.clickable { viewModel.selectCategory(catKey) },
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = if (isSelected) TourOSColors.Primary else Color.White,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        if (isSelected) TourOSColors.Primary else Color(0xFFCBD5E1)
+                                    ),
+                                    shadowElevation = if (isSelected) 2.dp else 0.dp
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = labelRu,
+                                            fontSize = 11.5.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) Color.White else Color(0xFF334155)
+                                        )
+                                        if (uiState.isDebugPanelVisible) {
+                                            Spacer(Modifier.width(3.dp))
+                                            Text(
+                                                text = "($labelTr)",
+                                                fontSize = 9.sp,
+                                                color = if (isSelected) Color.White.copy(alpha = 0.8f) else Color(0xFF64748B)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // ⚡ KATEGORİYE ÖZEL HIZLI SORU ÇİPLERİ (Quick Prompts)
+                        val quickChips = when (uiState.selectedCategory) {
+                            "FLIGHT" -> listOf(
+                                Pair("Москва ➔ Анталья прямой рейс на двоих", "Moskova ➔ Antalya direkt uçuş"),
+                                Pair("Екатеринбург ➔ Бодрум билеты", "Yekaterinburg ➔ Bodrum biletler"),
+                                Pair("Санкт-Петербург ➔ Даламан туда-обратно", "St. Petersburg ➔ Dalaman gidiş-dönüş")
+                            )
+                            "HOTEL" -> listOf(
+                                Pair("Отель в Кемере 5 звезд все включено", "Kemer'de 5 yıldız her şey dahil otel"),
+                                Pair("Белек с песчаным пляжем для семьи", "Belek aile için kum plajlı otel"),
+                                Pair("Аланья бюджетный отель у моря", "Alanya denize sıfır uygun otel")
+                            )
+                            "PACKAGE_TOUR" -> listOf(
+                                Pair("Пятерка в Белеке все включено до 250 тысяч", "Belek 5* her şey dahil 250k altı"),
+                                Pair("Тур в Сиде на 7 ночей на двоих", "Side 7 gece iki kişi tur"),
+                                Pair("Семейный отдых с ребенком в Анталье", "Antalya çocuklu aile tatili")
+                            )
+                            else -> listOf(
+                                Pair("Тур в Белек 5 звезд все включено", "Belek 5* tur paketi"),
+                                Pair("Авиабилет в Анталью прямой рейс", "Antalya direkt uçak bileti"),
+                                Pair("Отель в Кемере с красивой природой", "Kemer doğa manzaralı otel")
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color(0xFFF8FAFC))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("💡", fontSize = 11.sp)
+                            quickChips.forEach { (chipTextRu, chipTextTr) ->
+                                Surface(
+                                    modifier = Modifier.clickable {
+                                        viewModel.sendMessage(chipTextRu)
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFEFF6FF),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFBFDBFE))
+                                ) {
+                                    Text(
+                                        text = chipTextRu,
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFF1E40AF),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        }
+
                         LazyColumn(
                             modifier = Modifier
                                 .weight(1f)
@@ -212,12 +321,17 @@ fun AIAssistantFloatingWidget(
                                 ChatMessageItem(msg, isDebugVisible = uiState.isDebugPanelVisible)
                             }
 
-                            // 🏨 GRUPLANMIŞ OTELLER (Aynı otel tek satır, altında operatör teklifleri)
+                            // 🏨 GRUPLANMIŞ OTELLER VEYA SEFERLER (Aynı ürün tek satır, altında operatör teklifleri)
                             if (uiState.currentGroupedHotels.isNotEmpty()) {
                                 item {
                                     Spacer(Modifier.height(4.dp))
+                                    val headerTitle = when (uiState.selectedCategory) {
+                                        "FLIGHT" -> "✈️ Найдено ${uiState.currentGroupedHotels.size} авиарейсов (нажмите для выбора тарифа):"
+                                        "HOTEL" -> "🏨 Найдено ${uiState.currentGroupedHotels.size} отелей (нажмите для выбора оператора):"
+                                        else -> "✨ Найдено ${uiState.currentGroupedHotels.size} вариантов (нажмите для выбора туроператора):"
+                                    }
                                     Text(
-                                        "✨ Найдено ${uiState.currentGroupedHotels.size} отелей (нажмите на отель для выбора туроператора):",
+                                        headerTitle,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp,
                                         color = TourOSColors.Primary,
@@ -310,35 +424,58 @@ fun AIAssistantFloatingWidget(
             }
         }
 
-        // 2. Yüzen Açma Butonu (Kişisel Danışman Kimliği & Şık Kapsül Buton)
+        // 2. Yüzen Açma Butonu (Sade Dairesel Avatar & Mikro AI Rozeti)
         if (!uiState.isOpen) {
-            Surface(
-                onClick = { viewModel.toggleChat() },
-                shape = RoundedCornerShape(28.dp),
-                color = TourOSColors.Primary,
-                shadowElevation = 10.dp,
-                border = androidx.compose.foundation.BorderStroke(1.5.dp, Color.White.copy(alpha = 0.35f)),
+            Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(end = 24.dp, bottom = 24.dp)
+                    .padding(end = 22.dp, bottom = 24.dp)
+                    .clickable { viewModel.toggleChat() }
             ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                // Ana Dairesel Avatar
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White,
+                    shadowElevation = 8.dp,
+                    border = androidx.compose.foundation.BorderStroke(2.dp, Color(0xFF0F5A56).copy(alpha = 0.4f)),
+                    modifier = Modifier.size(58.dp)
                 ) {
-                    Icon(
-                        Icons.Default.AutoAwesome,
-                        contentDescription = "Тур-консультант AI",
-                        tint = Color(0xFFFFD54F),
-                        modifier = Modifier.size(22.dp)
+                    Image(
+                        painter = painterResource(Res.drawable.ai_agent_avatar),
+                        contentDescription = "AI Danışman",
+                        contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
                     )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "Онлайн-турагент AI",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                }
+
+                // Sağ Alt Mikro "AI" + Çevrimiçi Rozeti
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF0F172A),
+                    border = androidx.compose.foundation.BorderStroke(1.2.dp, Color.White),
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .offset(x = 2.dp, y = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.5.dp)
+                                .background(Color(0xFF10B981), CircleShape)
+                        )
+                        Text(
+                            text = "AI",
+                            color = Color.White,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
                 }
             }
         }
@@ -650,6 +787,12 @@ private fun AIGroupedHotelCard(
                                         )
                                     }
                                     Spacer(Modifier.width(12.dp))
+                                    val isFlight = offer.safeProductType.uppercase().contains("FLIGHT") || offer.flightNumber.isNotBlank()
+                                    val buttonText = when {
+                                        isFlight -> "Выбрать рейс ➔"
+                                        offer.safeProductType.uppercase().contains("HOTEL") -> "Выбрать номер ➔"
+                                        else -> "Забронировать ➔"
+                                    }
                                     Button(
                                         onClick = { onSelectOffer(offer) },
                                         shape = RoundedCornerShape(8.dp),
@@ -661,7 +804,7 @@ private fun AIGroupedHotelCard(
                                         modifier = Modifier.height(34.dp)
                                     ) {
                                         Text(
-                                            text = "Забронировать ➔",
+                                            text = buttonText,
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White

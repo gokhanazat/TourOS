@@ -136,12 +136,21 @@ class BookingRepositoryImpl(
                     id = it.id ?: generateUuid(),
                     bookingId = it.bookingId ?: bookingRealId,
                     fullName = it.safeFullName,
+                    firstName = it.firstName,
+                    lastName = it.lastName,
                     tcNo = it.safeTcNo,
+                    passportSeries = it.passportSeries,
                     passportNo = it.safePassportNo,
                     birthDate = it.birthDate,
                     gender = it.gender,
+                    citizenship = it.citizenship,
+                    birthCountry = it.countryOfBirth,
+                    documentIssueDate = it.documentIssueDate,
+                    documentIssuedBy = it.documentIssuedBy,
+                    documentExpiryDate = it.documentExpireDate,
                     phone = it.phone,
                     email = it.email,
+                    address = it.address,
                     isLead = it.isLead ?: false,
                     notes = it.notes
                 )
@@ -220,6 +229,11 @@ class BookingRepositoryImpl(
                 put("currency", booking.currency.ifBlank { "TRY" })
                 put("pax_count", booking.paxCount)
                 put("status", booking.status.dbValue)
+                booking.productName?.takeIf { it.isNotBlank() }?.let { put("product_name", it) }
+                booking.departureDate?.takeIf { it.isNotBlank() }?.let { put("departure_date", it) }
+                booking.operatorName?.takeIf { it.isNotBlank() }?.let { put("operator_name", it) }
+                booking.roomTypeName?.takeIf { it.isNotBlank() }?.let { put("room_type_name", it) }
+                booking.bookingType?.takeIf { it.isNotBlank() }?.let { put("booking_type", it) }
                 if (richNotes.isNotBlank()) put("notes", richNotes)
                 put("tenant_id", validTenantId)
             }
@@ -274,19 +288,28 @@ class BookingRepositoryImpl(
                             put("id", if (p.id.isValidUuid()) p.id else generateUuid())
                             put("booking_id", validId)
                             put("full_name", p.fullName)
-                            put("first_name", fName)
-                            put("last_name", lName)
+                            val givenFirst = p.firstName?.takeIf { it.isNotBlank() } ?: fName
+                            val givenLast = p.lastName?.takeIf { it.isNotBlank() } ?: lName
+                            put("first_name", givenFirst)
+                            put("last_name", givenLast)
                             p.tcNo?.takeIf { it.isNotBlank() }?.let { put("tc_no", it) }
                             p.passportNo?.takeIf { it.isNotBlank() }?.let { put("passport_no", it) }
+                            p.passportSeries?.takeIf { it.isNotBlank() }?.let { put("passport_series", it) }
+                            p.citizenship?.takeIf { it.isNotBlank() }?.let { put("citizenship", it) }
+                            p.birthCountry?.takeIf { it.isNotBlank() }?.let { put("country_of_birth", it) }
                             val idNum = p.passportNo?.takeIf { it.isNotBlank() } ?: p.tcNo?.takeIf { it.isNotBlank() }
                             idNum?.let { put("id_number", it) }
                             formatToSqlDate(p.birthDate)?.let { put("birth_date", it) }
+                            formatToSqlDate(p.documentIssueDate)?.let { put("document_issue_date", it) }
+                            formatToSqlDate(p.documentExpiryDate)?.let { put("document_expire_date", it) }
+                            p.documentIssuedBy?.takeIf { it.isNotBlank() }?.let { put("document_issued_by", it) }
                             p.gender?.let { put("gender", it) }
                             put("passenger_type", if (p.isLead) "LEAD" else "ADULT")
                             p.phone?.takeIf { it.isNotBlank() }?.let { put("phone", it) }
                             p.email?.takeIf { it.isNotBlank() }?.let { put("email", it) }
+                            p.address?.takeIf { it.isNotBlank() }?.let { put("notes", "Adres: $it " + (p.notes ?: "")) }
                             put("is_lead", p.isLead)
-                            p.notes?.takeIf { it.isNotBlank() }?.let { put("notes", it) }
+                            p.notes?.takeIf { it.isNotBlank() }?.let { put("special_notes", it) }
                             put("tenant_id", validTenantId)
                         }
                     }
@@ -438,7 +461,7 @@ class BookingRepositoryImpl(
             entity.notes?.contains("Tarih: ") == true -> entity.notes.substringAfter("Tarih: ").substringBefore(" •").substringBefore("\n").trim()
             entity.notes?.contains("Kalkış: ") == true -> entity.notes.substringAfter("Kalkış: ").substringBefore(" •").substringBefore("\n").trim()
             entity.notes?.contains("Giriş: ") == true -> entity.notes.substringAfter("Giriş: ").substringBefore(" •").substringBefore("\n").trim()
-            else -> if (isHotel) (entity.checkInDate ?: "2026-09-01") else "2026-09-01"
+            else -> if (isHotel) (entity.checkInDate ?: "") else ""
         }
 
         val parsedRoomTypeName = when {

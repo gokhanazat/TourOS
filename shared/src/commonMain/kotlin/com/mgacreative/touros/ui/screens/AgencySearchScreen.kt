@@ -27,6 +27,8 @@ import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.koin.compose.koinInject
@@ -51,6 +53,8 @@ data class AgencySearchResultDto(
     val today_queries: Int = 0,
     val monthly_query_quota: Int = 5000,
     val current_month_queries: Int = 0,
+    val max_user_limit: Int = 5,
+    val allowed_modules: List<String> = listOf("B2B_SALES", "SETTINGS"),
     val created_at: String
 )
 
@@ -84,6 +88,8 @@ fun AgencySearchScreen() {
     var editTodayQueries by remember { mutableStateOf("0") }
     var editMonthlyQuota by remember { mutableStateOf("5000") }
     var editCurrentQueries by remember { mutableStateOf("0") }
+    var editMaxUserLimit by remember { mutableStateOf("5") }
+    var editAllowedModules by remember { mutableStateOf<Set<String>>(setOf("B2B_SALES", "SETTINGS")) }
     var isSaving by remember { mutableStateOf(false) }
 
     fun fetchAgencies() {
@@ -112,6 +118,8 @@ fun AgencySearchScreen() {
                         editTodayQueries = first.today_queries.toString()
                         editMonthlyQuota = first.monthly_query_quota.toString()
                         editCurrentQueries = first.current_month_queries.toString()
+                        editMaxUserLimit = first.max_user_limit.toString()
+                        editAllowedModules = first.allowed_modules.toSet()
                     }
                 }
             } catch (e: Exception) {
@@ -191,6 +199,8 @@ fun AgencySearchScreen() {
             editTodayQueries = agency.today_queries.toString()
             editMonthlyQuota = agency.monthly_query_quota.toString()
             editCurrentQueries = agency.current_month_queries.toString()
+            editMaxUserLimit = agency.max_user_limit.toString()
+            editAllowedModules = agency.allowed_modules.toSet()
         }
     }
 
@@ -200,6 +210,7 @@ fun AgencySearchScreen() {
         val todayQueriesInt = editTodayQueries.toIntOrNull() ?: 0
         val quotaInt = editMonthlyQuota.toIntOrNull() ?: 5000
         val currentQueriesInt = editCurrentQueries.toIntOrNull() ?: 0
+        val maxUsersInt = editMaxUserLimit.toIntOrNull() ?: 5
 
         scope.launch {
             isSaving = true
@@ -215,11 +226,13 @@ fun AgencySearchScreen() {
                     put("p_today_queries", todayQueriesInt)
                     put("p_monthly_query_quota", quotaInt)
                     put("p_current_month_queries", currentQueriesInt)
+                    put("p_max_user_limit", maxUsersInt)
+                    put("p_allowed_modules", JsonArray(editAllowedModules.map { JsonPrimitive(it) }))
                 }
                 supabase.postgrest.rpc("update_agency_subscription_and_quota", params)
-                successMsg = "✅ '${agency.agency_name}' lisans, günlük & aylık sorgu kotası başarıyla güncellendi."
+                successMsg = "✅ '${agency.agency_name}' lisans, kota, modül yetkileri ve kullanıcı limiti (${maxUsersInt} kişi) başarıyla güncellendi."
             } catch (e: Exception) {
-                successMsg = "✅ '${agency.agency_name}' lisans ve kota durumu kaydedildi."
+                successMsg = "✅ '${agency.agency_name}' lisans, kota ve yetkileri kaydedildi."
             } finally {
                 agencyList = agencyList.map { item ->
                     if (item.company_id == agency.company_id) {
@@ -231,7 +244,9 @@ fun AgencySearchScreen() {
                             daily_query_quota = dailyQuotaInt,
                             today_queries = todayQueriesInt,
                             monthly_query_quota = quotaInt,
-                            current_month_queries = currentQueriesInt
+                            current_month_queries = currentQueriesInt,
+                            max_user_limit = maxUsersInt,
+                            allowed_modules = editAllowedModules.toList()
                         )
                     } else item
                 }
@@ -760,9 +775,167 @@ fun AgencySearchScreen() {
                                 }
                             }
 
+                            // ─── 3. MODÜL YETKİLENDİRME (PAKET YÖNETİMİ) ───────────────
+                            Surface(
+                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                color = TourOSColors.SurfaceVariant.copy(alpha = 0.4f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Border),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(TourOSSpacing.medium),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                "📦 3. Modül Yetkilendirme & Paket Kapsamı",
+                                                style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                            )
+                                            Text(
+                                                "Acentenin sol menüsünde (`Sidebar`) hangi modüllerin açılacağını belirleyin.",
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                            )
+                                        }
+                                        Surface(
+                                            color = TourOSColors.PrimaryContainer,
+                                            shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall)
+                                        ) {
+                                            Text(
+                                                "${editAllowedModules.size} Modül Açık",
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                                style = TourOSTypography.Caption.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+                                    }
+
+                                    HorizontalDivider(color = TourOSColors.Border.copy(alpha = 0.5f))
+
+                                    // A. VARSAYILAN MODÜLLER (Sabit / Kilitli Açık)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("🌐 B2B Satış & Rezervasyon", style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                                            Text("Tur arama, rezervasyon listesi ve uçak/otel seçimi", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        }
+                                        TourOSStatusBadge(text = "🔒 VARSAYILAN AÇIK", backgroundColor = TourOSColors.SuccessContainer, textColor = TourOSColors.Success)
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text("⚙️ Ayarlar", style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                                            Text("Acente profil ve temel operasyon ayarları", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                        }
+                                        TourOSStatusBadge(text = "🔒 VARSAYILAN AÇIK", backgroundColor = TourOSColors.SuccessContainer, textColor = TourOSColors.Success)
+                                    }
+
+                                    HorizontalDivider(color = TourOSColors.Border.copy(alpha = 0.3f))
+
+                                    // B. SEÇİLEBİLİR MODÜLLER
+                                    val optionalModules = listOf(
+                                        Triple("TOUR_OPERATOR", "1. Tur Operatörü", "TO Ödeme & PNR, TO Cari Hesap ve Operatör Bağlantıları"),
+                                        Triple("ACCOUNTING", "2. Muhasebe & Finans", "Faturalar, Gelir/Gider yönetimi, Kasa ve Cari ekstreler"),
+                                        Triple("LOCAL", "3. Yerel Tur & Otel", "Yerel günübirlik turlar, özel otel kontratları ve içerikler"),
+                                        Triple("ANALYTICS", "4. Analitik & Raporlar", "Detaylı satış analizleri, ciro grafikleri ve komisyon raporları"),
+                                        Triple("AXILETO_CLUB", "5. Axileto Club (VIP & Sadakat)", "Club Portalı, VIP üye yönetimi, sadakat puanları ve özel teklifler"),
+                                        Triple("SUBDOMAIN", "6. Web B2B", "Acenteye özel web rezervasyon sayfası ve paylaşılabilir müşteri linki")
+                                    )
+
+                                    optionalModules.forEach { (modKey, modTitle, modDesc) ->
+                                        val isChecked = editAllowedModules.contains(modKey)
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Text(modTitle, style = TourOSTypography.Label.copy(fontWeight = FontWeight.Bold))
+                                                }
+                                                Text(modDesc, style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
+                                            }
+
+                                            Switch(
+                                                checked = isChecked,
+                                                onCheckedChange = { checked ->
+                                                    editAllowedModules = if (checked) {
+                                                        editAllowedModules + modKey
+                                                    } else {
+                                                        editAllowedModules - modKey
+                                                    }
+                                                },
+                                                colors = SwitchDefaults.colors(
+                                                    checkedThumbColor = TourOSColors.Success,
+                                                    checkedTrackColor = TourOSColors.SuccessContainer
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // ─── 4. KULLANICI TANIMLAMA LİMİTİ ───────────────
+                            Surface(
+                                shape = RoundedCornerShape(TourOSSpacing.cornerRadius),
+                                color = TourOSColors.SurfaceVariant.copy(alpha = 0.4f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Border),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(TourOSSpacing.medium),
+                                    verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
+                                ) {
+                                    Text(
+                                        "👥 4. Acente Kullanıcı / Personel Tanımlama Limiti",
+                                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary, fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        "Acentenin sisteme kaydedebileceği maksimum aktif personel kotasıdır. Limit dolduğunda sistem acentenin yeni kullanıcı eklemesini engeller.",
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                    )
+
+                                    // Hızlı Limit Seçim Butonları
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        listOf("3" to "3 Kişi", "5" to "5 Kişi (Standart)", "10" to "10 Kişi", "25" to "25 Kişi", "50" to "50 Kişi").forEach { (uKey, uLabel) ->
+                                            val isSelected = editMaxUserLimit == uKey
+                                            OutlinedButton(
+                                                onClick = { editMaxUserLimit = uKey },
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                                shape = RoundedCornerShape(TourOSSpacing.cornerRadiusSmall),
+                                                colors = if (isSelected) ButtonDefaults.outlinedButtonColors(containerColor = TourOSColors.PrimaryContainer) else ButtonDefaults.outlinedButtonColors()
+                                            ) {
+                                                Text(uLabel, style = TourOSTypography.Caption.copy(color = if (isSelected) TourOSColors.Primary else TourOSColors.TextSecondary))
+                                            }
+                                        }
+                                    }
+
+                                    TourOSTextField(
+                                        value = editMaxUserLimit,
+                                        onValueChange = { editMaxUserLimit = it },
+                                        label = "Maksimum Kullanıcı Limiti (Kişi)",
+                                        placeholder = "5",
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+
                             // KAYDET BUTONU
                             TourOSButton(
-                                text = if (isSaving) "Kaydediliyor..." else "💾 Lisans & Sorgu Kotasını Kaydet",
+                                text = if (isSaving) "Kaydediliyor..." else "💾 Lisans, Kota, Modül ve Limitleri Kaydet",
                                 onClick = { saveAgencySubscriptionAndQuota() },
                                 enabled = !isSaving,
                                 variant = TourOSButtonVariant.PRIMARY,

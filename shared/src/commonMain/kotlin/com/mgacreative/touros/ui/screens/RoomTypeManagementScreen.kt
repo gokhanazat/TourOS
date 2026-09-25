@@ -109,13 +109,13 @@ fun RoomTypeManagementScreen(
                     contentPadding = TourOSSpacing.large
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
-                        Text(text = "➕ Yeni Oda Tipi Tanımla", style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
+                        Text(text = "➕ " + com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Yeni Oda Tipi Tanımla"), style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Primary))
 
                         TourOSTextField(
                             value = formState.name,
                             onValueChange = { viewModel.updateFormName(it) },
-                            label = "Oda Tipi Adı",
-                            placeholder = "Örn: Deluxe Suite, Standart Çift Kişilik",
+                            label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Oda Tipi Adı"),
+                            placeholder = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Örn: Deluxe Suite, Standart Çift Kişilik"),
                             modifier = Modifier.fillMaxWidth()
                         )
 
@@ -126,7 +126,7 @@ fun RoomTypeManagementScreen(
                             TourOSTextField(
                                 value = formState.basePricePerNight,
                                 onValueChange = { viewModel.updateFormPrice(it) },
-                                label = "Gecelik Fiyat (₺)",
+                                label = com.mgacreative.touros.ui.localization.AppLanguageManager.translate("Gecelik Fiyat (₺)"),
                                 placeholder = "2500",
                                 modifier = Modifier.weight(1f)
                             )
