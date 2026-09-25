@@ -156,7 +156,7 @@ CREATE POLICY "tours_select" ON public.tours FOR SELECT
         AND (
             public.current_user_role() != 'GUIDE'
             OR id IN (
-                SELECT DISTINCT t.tour_id FROM public.departures d
+                SELECT DISTINCT d.tour_id FROM public.departures d
                 JOIN public.transfers t ON t.departure_id = d.id
                 WHERE t.guide_id = public.current_user_id()
             )
