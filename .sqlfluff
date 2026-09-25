@@ -2,5 +2,7 @@
 dialect = postgres
 templater = raw
 large_file_skip_byte_limit = 0
-exclude_rules = layout,capitalisation,LT01,LT02,LT03,LT04,LT05,LT06,LT07,LT08,LT09,LT10,LT11,LT12,CP01,CP02
-max_line_length = 0
+rules = core
+
+[sqlfluff:rules:references.quoting]
+ignore_words = None

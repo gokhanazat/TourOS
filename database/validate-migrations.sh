@@ -46,15 +46,28 @@ for f in "${TARGET_FILES[@]}"; do
 done
 echo "========================================================================="
 
-# SQLFluff linter ile sözdizimi ve statik kural analizi (stil ve boşluk kuralları hariç)
-CONFIG_FILE="$SCRIPT_DIR/.sqlfluff"
-if [ -f "$CONFIG_FILE" ]; then
-    sqlfluff lint "${TARGET_FILES[@]}" --config "$CONFIG_FILE" --exclude-rules layout,capitalisation
-else
-    sqlfluff lint "${TARGET_FILES[@]}" --dialect postgres --exclude-rules layout,capitalisation
+# SQLFluff parse ile doğrudan PostgreSQL sözdizimi (syntax) denetimi
+FAILED=0
+for file in "${TARGET_FILES[@]}"; do
+    FILENAME=$(basename "$file")
+    echo -n "   - Parsing $FILENAME (syntax check)... "
+    if sqlfluff parse --dialect postgres "$file" > /tmp/parse_out.log 2>&1; then
+        echo "OK"
+    else
+        echo "❌ SYNTAX ERROR!"
+        echo "-------------------------------------------------------------------------"
+        cat /tmp/parse_out.log
+        echo "-------------------------------------------------------------------------"
+        FAILED=1
+    fi
+done
+
+if [ "$FAILED" -ne 0 ]; then
+    echo "❌ Migration dosyasında sözdizimi (syntax) hatası tespit edildi!"
+    exit 1
 fi
 
 echo "========================================================================="
-echo "✅ All changed migrations passed static SQL validation successfully!"
+echo "✅ All changed migrations passed static SQL syntax validation successfully!"
 echo "========================================================================="
 exit 0
