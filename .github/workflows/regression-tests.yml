@@ -59,3 +59,50 @@ jobs:
           path: |
             **/build/reports/tests/
             **/build/test-results/
+
+  validate-database-migrations:
+    name: Validate Database Migrations (PostgreSQL 16)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: touros_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install PostgreSQL Client & SQLFluff
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client python3-pip
+          pip3 install --break-system-packages sqlfluff
+
+      - name: Make validation script executable
+        run: chmod +x database/validate-migrations.sh
+
+      - name: Validate PostgreSQL Migrations & Schema Integrity
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgrespassword
+          PGDATABASE: touros_test
+        run: ./database/validate-migrations.sh
+
+      - name: SQLFluff Linter Check
+        run: |
+          sqlfluff lint supabase/migrations/*.sql --config database/.sqlfluff || true
