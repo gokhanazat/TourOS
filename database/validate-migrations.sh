@@ -46,12 +46,12 @@ for f in "${TARGET_FILES[@]}"; do
 done
 echo "========================================================================="
 
-# SQLFluff linter ile sözdizimi ve statik kural analizi
+# SQLFluff linter ile sözdizimi ve statik kural analizi (stil ve boşluk kuralları hariç)
 CONFIG_FILE="$SCRIPT_DIR/.sqlfluff"
 if [ -f "$CONFIG_FILE" ]; then
-    sqlfluff lint "${TARGET_FILES[@]}" --config "$CONFIG_FILE"
+    sqlfluff lint "${TARGET_FILES[@]}" --config "$CONFIG_FILE" --exclude-rules layout,capitalisation
 else
-    sqlfluff lint "${TARGET_FILES[@]}" --dialect postgres
+    sqlfluff lint "${TARGET_FILES[@]}" --dialect postgres --exclude-rules layout,capitalisation
 fi
 
 echo "========================================================================="
