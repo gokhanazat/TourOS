@@ -137,6 +137,7 @@ fun B2BTourSearchDashboardScreen(
     var isDetailFilterExpanded by remember { mutableStateOf(true) }
     var b2bCurrentPage by remember { mutableStateOf(1) }
     var isSearchActive by remember { mutableStateOf(false) }
+    var showAgencyPopularCountries by remember { mutableStateOf(false) }
 
     if (showB2BDestinationPicker) {
         val isFlightTab = activeSearchTab == "FLIGHTS"
@@ -741,18 +742,54 @@ fun B2BTourSearchDashboardScreen(
                                     onRoundTripChange = { isRoundTrip = it },
                                     availableDepartureCities = dbDepartureCities,
                                     availableDestinations = dbDestinations,
-                                    onSearchClick = { 
-                                        viewModel.selectedCategory.value = activeSearchTab
-                                        viewModel.departureCity.value = departureCity
-                                        viewModel.selectedRegion.value = selectedRegion
-                                        viewModel.selectedStartDate.value = startDateText
-                                        viewModel.selectedEndDate.value = endDateText
-                                        viewModel.performSearch(forceRefresh = true) 
+                                    onSearchClick = {
+                                        // ORTAK ARAMA GİRİŞİ (Web vitrin ekranıyla birebir aynı fonksiyon)
+                                        viewModel.searchWithCriteria(
+                                            category = activeSearchTab,
+                                            departure = departureCity,
+                                            region = selectedRegion,
+                                            startDate = startDateText,
+                                            endDate = endDateText,
+                                            adultsCount = adults,
+                                            childAges = childrenAges
+                                        )
                                         isSearchActive = true
                                     },
                                     onResetFiltersClick = { resetAllFilters() },
                                     modifier = Modifier.fillMaxWidth()
                                 )
+
+                                // ── 🌍 POPÜLER ÜLKELER: Web vitrinle aynı ortak pencere ve aynı arama kuralları ──
+                                val popularCountriesLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                    "ru" -> "Популярные страны"
+                                    "en" -> "Popular countries"
+                                    "de" -> "Beliebte Länder"
+                                    else -> "Popüler Ülkeler"
+                                }
+                                TourOSButton(
+                                    text = "🌍 $popularCountriesLabel",
+                                    onClick = { showAgencyPopularCountries = true },
+                                    variant = TourOSButtonVariant.SECONDARY
+                                )
+                                if (showAgencyPopularCountries) {
+                                    val agencySupabaseClient: io.github.jan.supabase.SupabaseClient = org.koin.compose.koinInject()
+                                    PopularCountriesDiscoveryDialog(
+                                        allWorldCountries = ALL_WORLD_COUNTRIES,
+                                        dbProducts = emptyList(),
+                                        supabaseClient = agencySupabaseClient,
+                                        onHotelClick = { offer ->
+                                            viewModel.selectProductForBooking(offer.toUnifiedProductEntity())
+                                            showAgencyPopularCountries = false
+                                            activeStep = 2
+                                        },
+                                        onSelectAndBook = { offer ->
+                                            viewModel.selectProductForBooking(offer.toUnifiedProductEntity())
+                                            showAgencyPopularCountries = false
+                                            activeStep = 2
+                                        },
+                                        onDismiss = { showAgencyPopularCountries = false }
+                                    )
+                                }
                             }
                         }
 

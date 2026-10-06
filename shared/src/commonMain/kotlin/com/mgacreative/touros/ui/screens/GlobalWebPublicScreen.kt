@@ -1704,16 +1704,16 @@ fun GlobalWebPublicScreen(
                                 "HOTEL", "HOTELS" -> "HOTELS"
                                 else -> "TOURS"
                             }
-                            b2bTourSearchViewModel.selectedCategory.value = tab
-                            b2bTourSearchViewModel.departureCity.value = departureCity
-                            b2bTourSearchViewModel.selectedRegion.value = destinationCity
-                            b2bTourSearchViewModel.adults.value = adultsCount
-                            b2bTourSearchViewModel.childs.value = childrenCount
-                            b2bTourSearchViewModel.childrenAges.value = childrenAges
-                            b2bTourSearchViewModel.searchQuery.value = searchQuery
-                            b2bTourSearchViewModel.selectedStartDate.value = startDateText
-                            b2bTourSearchViewModel.selectedEndDate.value = endDateText
-                            b2bTourSearchViewModel.performSearch(forceRefresh = true)
+                            // ORTAK ARAMA GİRİŞİ (Acente ekranıyla birebir aynı fonksiyon)
+                            b2bTourSearchViewModel.searchWithCriteria(
+                                category = tab,
+                                departure = departureCity,
+                                region = destinationCity,
+                                startDate = startDateText,
+                                endDate = endDateText,
+                                adultsCount = adultsCount,
+                                childAges = childrenAges
+                            )
                             isInlineSearchActive = true
                         }
 
@@ -6040,33 +6040,33 @@ fun PopularCountriesDiscoveryDialog(
     var selectedCountryTab by remember { mutableStateOf("TR") } // Default to Turkey so tours are loaded immediately
     var selectedSubRegionFilter by remember { mutableStateOf<String?>("Tümü") }
 
-    var dynamicCountryProducts by remember { mutableStateOf<List<PublicHotelOffer>>(emptyList()) }
-    var isLoadingCountryProducts by remember { mutableStateOf(false) }
+    // ORTAK VERİ HAVUZU: Ana arama ve Acente aramasıyla aynı kaynak ve aynı kurallar (geçmiş tarihli paketler gelmez)
+    var countryPool by remember { mutableStateOf<List<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>>(emptyList()) }
+    var isLoadingCountryProducts by remember { mutableStateOf(true) }
 
-    LaunchedEffect(selectedCountryTab) {
-        if (selectedCountryTab != "ALL") {
-            isLoadingCountryProducts = true
-            runCatching {
-                supabaseClient.postgrest["marketplace_products"]
-                    .select {
-                        limit(10000)
-                        filter {
-                            eq("country_code", selectedCountryTab)
-                            neq("product_type", "FLIGHT")
-                        }
-                    }
-                    .decodeList<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>()
-            }.onSuccess { list ->
-                dynamicCountryProducts = list
-                    .filter { it.productType != "FLIGHT" && TourOperatorConfig.isAllowedOperator(it.operatorName) }
-                    .map { it.toPublicHotelOffer() }
-            }.onFailure {
-                dynamicCountryProducts = emptyList()
-            }
-            isLoadingCountryProducts = false
-        } else {
-            dynamicCountryProducts = emptyList()
+    // Pencere arama kriterleri (tarih seçilmezse gelecekteki tüm paketler)
+    var dialogDeparture by remember { mutableStateOf("") }
+    var dialogStartDate by remember { mutableStateOf("") }
+    var dialogEndDate by remember { mutableStateOf("") }
+    var dialogAdults by remember { mutableStateOf(2) }
+    var dialogChildAges by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var showDialogDeparturePicker by remember { mutableStateOf(false) }
+    var showDialogDatePicker by remember { mutableStateOf(false) }
+    var showDialogTouristPicker by remember { mutableStateOf(false) }
+    val dialogSearchViewModel: com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel = koinInject()
+
+    LaunchedEffect(Unit) {
+        isLoadingCountryProducts = true
+        runCatching {
+            com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.loadTourSearchPool(supabaseClient)
+        }.onSuccess { list ->
+            countryPool = list
+        }.onFailure {
+            if (it is kotlinx.coroutines.CancellationException) throw it
+            println("⚠️ Popüler ülkeler havuz yükleme hatası: ${it.message}")
+            countryPool = emptyList()
         }
+        isLoadingCountryProducts = false
     }
 
     val staticSubRegionsMap = remember {
@@ -6092,16 +6092,9 @@ fun PopularCountriesDiscoveryDialog(
         )
     }
 
-    val effectiveProductsPool = remember(dbProducts, dynamicCountryProducts, selectedCountryTab) {
-        val cleanDb = dbProducts.filter { it.category != "FLIGHT" && TourOperatorConfig.isAllowedOperator(it.operatorName) }
-        val cleanDynamic = dynamicCountryProducts.filter { it.category != "FLIGHT" && TourOperatorConfig.isAllowedOperator(it.operatorName) }
-        if (selectedCountryTab != "ALL" && cleanDynamic.isNotEmpty()) {
-            (cleanDynamic + cleanDb.filter { matchesSelectedCountry(it, selectedCountryTab) }).distinctBy { it.id }
-        } else if (selectedCountryTab != "ALL") {
-            cleanDb.filter { matchesSelectedCountry(it, selectedCountryTab) }
-        } else {
-            cleanDb
-        }
+    // Alt bölge çipleri için ortak havuzun ekran modeline çevrilmiş hali
+    val effectiveProductsPool = remember(countryPool) {
+        countryPool.map { it.toPublicHotelOffer() }
     }
 
     val turkishToRussianCityMap = remember {
@@ -6156,65 +6149,21 @@ fun PopularCountriesDiscoveryDialog(
         result
     }
 
-    val countryFilteredProducts = remember(effectiveProductsPool, selectedCountryTab, selectedSubRegionFilter) {
-        val filtered = effectiveProductsPool
-            .filter { it.category != "FLIGHT" && TourOperatorConfig.isAllowedOperator(it.operatorName) }
-            .filter { p ->
-                val matchCountry = matchesSelectedCountry(p, selectedCountryTab)
-                val loc = p.location.lowercase().trim()
-                val hName = p.hotelName.lowercase().trim()
-                val matchesSubRegion = if (selectedSubRegionFilter.isNullOrBlank() || selectedSubRegionFilter == "Tümü") true
-                else {
-                    val query = selectedSubRegionFilter!!.trim().lowercase()
-                    val translatedQuery = AppLanguageManager.translate(query).lowercase().trim()
-                    loc.contains(query) || hName.contains(query) || loc.contains(translatedQuery) || hName.contains(translatedQuery) ||
-                    when (query) {
-                        "antalya", "анталья", "анталия" -> 
-                            loc.contains("antalya") || loc.contains("анталья") || loc.contains("анталия") ||
-                            loc.contains("alanya") || loc.contains("аланья") ||
-                            loc.contains("kemer") || loc.contains("кемер") ||
-                            loc.contains("belek") || loc.contains("белек") ||
-                            loc.contains("side") || loc.contains("сиде") ||
-                            loc.contains("lara") || loc.contains("лара") ||
-                            loc.contains("kundu") || loc.contains("кунду") ||
-                            hName.contains("antalya") || hName.contains("анталья") ||
-                            p.description.contains("antalya", ignoreCase = true) || p.description.contains("анталья", ignoreCase = true)
-                        "alanya", "аланья" -> loc.contains("alanya") || loc.contains("аланья") || loc.contains("махмутлар") || loc.contains("конаклы") || loc.contains("алания") || hName.contains("alanya") || hName.contains("аланья")
-                        "belek", "белек" -> loc.contains("belek") || loc.contains("белек") || loc.contains("богазкент") || loc.contains("кадрие") || hName.contains("belek") || hName.contains("белек")
-                        "kemer", "кемер" -> loc.contains("kemer") || loc.contains("кемер") || loc.contains("бельдиби") || loc.contains("кириш") || loc.contains("текирова") || loc.contains("гейнюк") || loc.contains("чамьюва") || hName.contains("kemer") || hName.contains("кемер")
-                        "side", "сиде" -> loc.contains("side") || loc.contains("сиде") || loc.contains("кызылот") || loc.contains("манавгат") || loc.contains("чолаклы") || hName.contains("side") || hName.contains("сиде")
-                        "bodrum", "бодрум" -> loc.contains("bodrum") || loc.contains("бодрум") || loc.contains("гюмбет") || loc.contains("битез") || hName.contains("bodrum") || hName.contains("бодрум")
-                        "marmaris", "мармарис" -> loc.contains("marmaris") || loc.contains("мармарис") || loc.contains("ичмелер") || loc.contains("турунч") || hName.contains("marmaris") || hName.contains("мармарис")
-                        "fethiye", "фетхие" -> loc.contains("fethiye") || loc.contains("фетхие") || loc.contains("олюдениз") || hName.contains("fethiye") || hName.contains("фетхие")
-                        "st. petersburg", "санкт-петербург" -> loc.contains("petersburg") || loc.contains("петербург")
-                        "moskova", "москва" -> loc.contains("mosk") || loc.contains("моск")
-                        "istanbul", "стамбул" -> loc.contains("istanbul") || loc.contains("стамбул") || loc.contains("султанахмет") || loc.contains("фатих") || loc.contains("таксим") || loc.contains("лалели") || loc.contains("аксарай") || loc.contains("бейазит") || loc.contains("шишли") || loc.contains("бакыркёй") || hName.contains("istanbul") || hName.contains("стамбул")
-                        "kuşadası", "kusadasi", "кушадасы" -> loc.contains("kuşadası") || loc.contains("kusadasi") || loc.contains("кушадасы")
-                        "kapadokya", "cappadocia", "каппадокия" -> loc.contains("kapadokya") || loc.contains("cappadocia") || loc.contains("каппадокия") || loc.contains("гёреме") || loc.contains("goreme")
-                        "didim", "дидим" -> loc.contains("didim") || loc.contains("дидим")
-                        "çeşme", "cesme", "чешме" -> loc.contains("çeşme") || loc.contains("cesme") || loc.contains("чешме")
-                        "dalaman", "даламан" -> loc.contains("dalaman") || loc.contains("даламан")
-                        "hainan", "хайнань" -> loc.contains("hainan") || loc.contains("хайнань") || loc.contains("санья") || loc.contains("sanya")
-                        "gagra", "гагра" -> loc.contains("gagra") || loc.contains("гагра") || loc.contains("гагр")
-                        "pitsunda", "пицунда" -> loc.contains("pitsunda") || loc.contains("пицунда")
-                        "da nang", "дананг" -> loc.contains("da nang") || loc.contains("дананг")
-                        "nha trang", "нячанг" -> loc.contains("nha trang") || loc.contains("нячанг")
-                        "phu quoc", "фукуок" -> loc.contains("phu quoc") || loc.contains("фукуок")
-                        "dubai", "дубай" -> loc.contains("dubai") || loc.contains("дубай")
-                        "girne", "гирне" -> loc.contains("girne") || loc.contains("гирне") || loc.contains("kyrenia")
-                        "batum", "батуми" -> loc.contains("batum") || loc.contains("батуми") || loc.contains("batumi")
-                        "bali", "бали" -> loc.contains("bali") || loc.contains("бали")
-                        "zanzibar", "занзибар" -> loc.contains("zanzibar") || loc.contains("занзибар")
-                        "budva", "будва" -> loc.contains("budva") || loc.contains("будва")
-                        "rodos", "родос" -> loc.contains("rodos") || loc.contains("родос") || loc.contains("rhodes")
-                        "girit", "крит" -> loc.contains("girit") || loc.contains("крит") || loc.contains("crete")
-                        else -> false
-                    }
-                }
-
-                matchCountry && matchesSubRegion
-            }
-        groupOffersByHotelName(filtered)
+    // ORTAK ARAMA KURALLARI: Ülke, bölge, kalkış ve tarih filtresi ana arama / acente aramasıyla aynı fonksiyondan geçer
+    val countryFilteredProducts = remember(countryPool, selectedCountryTab, selectedSubRegionFilter, dialogDeparture, dialogStartDate, dialogEndDate) {
+        val subRegion = selectedSubRegionFilter?.takeIf { it.isNotBlank() && it != "Tümü" } ?: ""
+        val (matched, _) = com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.filterByCriteria(
+            countryPool,
+            com.mgacreative.touros.ui.viewmodel.TourSearchCriteria(
+                category = "TOURS",
+                departure = dialogDeparture,
+                region = subRegion,
+                country = selectedCountryTab,
+                startDate = dialogStartDate,
+                endDate = dialogEndDate
+            )
+        )
+        groupOffersByHotelName(matched.map { it.toPublicHotelOffer() })
     }
 
     val regionCategories = listOf(
@@ -6243,6 +6192,38 @@ fun PopularCountriesDiscoveryDialog(
             shadowElevation = 16.dp
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
+                // ── ORTAK SEÇİCİLER (ana arama çubuğuyla aynı pencereler) ──
+                if (showDialogDeparturePicker) {
+                    com.mgacreative.touros.ui.components.RussianDepartureCityPickerDialog(
+                        currentSelection = dialogDeparture,
+                        onCitySelected = { city ->
+                            dialogDeparture = "${city.nameRu} (${city.airportCode})"
+                            showDialogDeparturePicker = false
+                        },
+                        onDismiss = { showDialogDeparturePicker = false }
+                    )
+                }
+                if (showDialogDatePicker) {
+                    com.mgacreative.touros.ui.components.DualMonthRangeDatePickerDialog(
+                        initialStartDateText = dialogStartDate,
+                        initialEndDateText = dialogEndDate,
+                        onRangeSelected = { start, end, _, _ ->
+                            dialogStartDate = start
+                            dialogEndDate = end
+                            showDialogDatePicker = false
+                        },
+                        onDismiss = { showDialogDatePicker = false }
+                    )
+                }
+                if (showDialogTouristPicker) {
+                    com.mgacreative.touros.ui.components.UniversalTouristPickerDialog(
+                        adults = dialogAdults,
+                        childrenAges = dialogChildAges,
+                        onAdultsChange = { dialogAdults = it },
+                        onChildrenAgesChange = { dialogChildAges = it },
+                        onDismiss = { showDialogTouristPicker = false }
+                    )
+                }
                 // ── 1. DIALOG HEADER BAR ──
                 Row(
                     modifier = Modifier
@@ -6490,6 +6471,82 @@ fun PopularCountriesDiscoveryDialog(
                             }
                         }
                     }
+
+                    // Kalkış Şehri · Tarih Aralığı · Turist (tarih seçilmezse gelecekteki tüm paketler)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        Box(modifier = Modifier.weight(1.2f)) {
+                            com.mgacreative.touros.ui.components.TourOSTextField(
+                                value = dialogDeparture.ifBlank { AppLanguageManager.translate("Tüm Kalkış Şehirleri") },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = AppLanguageManager.translate("Nereden (Kalkış Şehri)"),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(modifier = Modifier.matchParentSize().clickable { showDialogDeparturePicker = true })
+                        }
+                        Box(modifier = Modifier.weight(1.3f)) {
+                            val allDatesLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Все даты"
+                                "en" -> "All dates"
+                                "de" -> "Alle Termine"
+                                else -> "Tüm tarihler"
+                            }
+                            val dateText = if (dialogStartDate.isNotBlank() && dialogEndDate.isNotBlank()) "$dialogStartDate — $dialogEndDate"
+                                else if (dialogStartDate.isNotBlank()) dialogStartDate
+                                else allDatesLabel
+                            com.mgacreative.touros.ui.components.TourOSTextField(
+                                value = dateText,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = AppLanguageManager.translate("Tarih Aralığı"),
+                                trailingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = null,
+                                        tint = Color(0xFF64748B),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(modifier = Modifier.matchParentSize().clickable { showDialogDatePicker = true })
+                        }
+                        Box(modifier = Modifier.weight(1f)) {
+                            val touristText = if (dialogChildAges.isEmpty()) {
+                                "$dialogAdults ${AppLanguageManager.translate("Yetişkin")}"
+                            } else {
+                                "$dialogAdults ${AppLanguageManager.translate("Yet")}, ${dialogChildAges.size} ${AppLanguageManager.translate("Çoc")}"
+                            }
+                            com.mgacreative.touros.ui.components.TourOSTextField(
+                                value = touristText,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = AppLanguageManager.translate("Turist"),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Box(modifier = Modifier.matchParentSize().clickable { showDialogTouristPicker = true })
+                        }
+                        if (dialogDeparture.isNotBlank() || dialogStartDate.isNotBlank()) {
+                            Text(
+                                text = "↺",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F5A56),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        dialogDeparture = ""
+                                        dialogStartDate = ""
+                                        dialogEndDate = ""
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 10.dp)
+                            )
+                        }
+                    }
                 }
 
                 HorizontalDivider(color = Color(0xFFE2E8F0))
@@ -6527,7 +6584,12 @@ fun PopularCountriesDiscoveryDialog(
                                 subtitle = "${AppLanguageManager.translate("Destinasyon:")} $translatedCName$subRegionLabel · ${AppLanguageManager.translate("Uçuş + Transfer + Otel Dahil")}",
                                 hotels = countryFilteredProducts,
                                 onHotelClick = onHotelClick,
-                                onSelectAndBook = onSelectAndBook
+                                onSelectAndBook = { offer ->
+                                    dialogSearchViewModel.adults.value = dialogAdults
+                                    dialogSearchViewModel.childrenAges.value = dialogChildAges
+                                    dialogSearchViewModel.childs.value = dialogChildAges.size
+                                    onSelectAndBook(offer)
+                                }
                             )
                         }
                     }

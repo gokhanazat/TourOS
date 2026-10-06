@@ -96,8 +96,9 @@ fun UniversalTourSearchBar(
                 val formatted = if (isFlightTab && destItem.airportCode != null) {
                     "${destItem.name.substringBefore(" Havalimanı").substringBefore(" Uluslararası")} (${destItem.airportCode})"
                 } else if (destItem.nameRu.isNotBlank()) {
-                    if (AppLanguageManager.currentLanguage.value.code == "ru") destItem.nameRu
-                    else "${destItem.name} (${destItem.nameRu})"
+                    // ORTAK KURAL: Veritabanı Rusça olduğu için arayüz dili ne olursa olsun aramaya Rusça ad gider.
+                    // (Eskiden Türkçe arayüzde "Kemer (Кемер)" gidiyordu; admin araması Rus müşterinin aramasından farklı olabiliyordu.)
+                    destItem.nameRu
                 } else {
                     destItem.name
                 }

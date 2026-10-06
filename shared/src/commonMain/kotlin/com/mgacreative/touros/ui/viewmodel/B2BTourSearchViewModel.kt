@@ -106,6 +106,21 @@ data class SearchFilterMetadataDto(
     val max_price: Double = 500000.0
 )
 
+/** Ortak arama kriteri: tüm arama ekranları aramayı bu nesneyle tarif eder. Boş tarih = gelecekteki tüm tarihler. */
+data class TourSearchCriteria(
+    val category: String = "TOURS",
+    val departure: String = "",
+    val region: String = "",
+    val country: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val query: String = "",
+    val stars: Set<Int> = emptySet(),
+    val mealTypes: Set<String> = emptySet(),
+    val instantOnly: Boolean = false,
+    val promoOnly: Boolean = false
+)
+
 sealed class B2BTourSearchUiState {
     data object Loading : B2BTourSearchUiState()
     data class Success(
@@ -132,6 +147,151 @@ class B2BTourSearchViewModel(
             globalCachedCombined = null
             globalCachedMetadata = null
             marketplaceCache.clear()
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // ORTAK ARAMA MOTORU: Web vitrin, Acente ekranı ve Popüler Ülkeler penceresi aynı kuralları kullanır.
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /** KESİN KURAL: Arama ve listelerde YALNIZCA izin verilen 9 Kanonik Tur Operatörü yer alır (saf uçuşlar hariç). */
+        fun applyCanonicalOperatorRule(raw: List<UnifiedProductEntity>): List<UnifiedProductEntity> = raw.mapNotNull { item ->
+            val pType = item.safeProductType.uppercase()
+            val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
+                               item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
+                               item.hotelName.startsWith("Uçuş:", ignoreCase = true) || 
+                               item.hotelName.startsWith("✈️", ignoreCase = true) ||
+                               (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
+            if (isPureFlight) {
+                item
+            } else {
+                val canonicalOp = TourOperatorConfig.resolveCanonicalOperatorName(item.operatorName)
+                if (canonicalOp != null) {
+                    item.copy(operatorName = canonicalOp)
+                } else {
+                    null // 9 TO DIŞINDAKİ TÜM OPERATÖRLERİ ARAMA VE VERİDEN ÇIKAR
+                }
+            }
+        }
+
+        /**
+         * Tur / Paket araması için ortak veri havuzu: ana aramayla aynı kaynak ve aynı operatör kuralı.
+         * Önbellekli yükleyiciyi kullanır (veri tekrar inmez); geçmiş tarihli ürünler sunucuda elenir.
+         */
+        suspend fun loadTourSearchPool(client: SupabaseClient): List<UnifiedProductEntity> {
+            val tours = fetchAllMarketplaceProducts(client, "PACKAGE_TOUR")
+            val memoryItems = AgencyProductPublishingViewModel.getPersistentProducts()
+            return applyCanonicalOperatorRule((tours + memoryItems).distinctBy { it.id })
+        }
+
+        /**
+         * ORTAK FİLTRE: Verilen kriterlere uyan ürünleri ve (sonuç yoksa) önerilecek en yakın kalkış tarihlerini döner.
+         * Kurallar daha önce filterProducts içindeydi; içerik birebir taşındı, sadece değerler kriter nesnesinden okunur.
+         */
+        fun filterByCriteria(list: List<UnifiedProductEntity>, criteria: TourSearchCriteria): Pair<List<UnifiedProductEntity>, List<String>> {
+            val q = criteria.query.trim().lowercase()
+            val stars = criteria.stars
+            val meals = criteria.mealTypes
+            val cat = criteria.category.uppercase()
+            val dest = criteria.region.trim()
+            val country = criteria.country.trim()
+            val dep = criteria.departure.trim()
+            val isInstant = criteria.instantOnly
+            val isPromo = criteria.promoOnly
+
+            val dateAlternatives = mutableSetOf<String>()
+            val result = list.filter { item ->
+                val pType = item.safeProductType.uppercase()
+                val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
+                                   item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
+                                   item.hotelName.startsWith("Uçuş:", ignoreCase = true) || 
+                                   item.hotelName.startsWith("✈️", ignoreCase = true) ||
+                                   (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
+                val isAllowedOp = isPureFlight || TourOperatorConfig.isAllowedOperator(item.operatorName)
+                if (!isAllowedOp) return@filter false
+
+                val isPureHotel = (pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.operatorName.contains("Yerel Otel", ignoreCase = true)) && !isPureFlight && item.flightNumber.isBlank()
+                val isPackageTour = (pType == "PACKAGE_TOUR" || pType == "LOCAL_TOUR" || pType == "TOUR" || item.hasTransfer || (item.hotelName.isNotBlank() && item.flightNumber.isNotBlank())) && !isPureFlight && !isPureHotel
+
+                val matchesCategory = when (cat) {
+                    "TOURS", "PACKAGE_TOUR" -> !isPureFlight && (isPackageTour || pType == "PACKAGE_TOUR" || pType == "TOUR" || pType == "LOCAL_TOUR" || pType == "ALL" || item.hasTransfer || item.hotelName.isNotBlank())
+                    "HOTELS", "HOTEL" -> !isPureFlight && (isPureHotel || pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.hotelCategory >= 3 || item.hotelName.isNotBlank())
+                    "FLIGHTS", "FLIGHT" -> isPureFlight
+                    "LOCAL_TOURS" -> pType == "LOCAL_TOUR" || item.id.startsWith("local-tour-")
+                    "LOCAL_HOTELS" -> pType == "LOCAL_HOTEL" || item.id.startsWith("local-hotel-")
+                    else -> true
+                }
+
+                if (!matchesCategory) return@filter false
+
+                // KESİN KURAL: Yalnızca 9 Kanonik Tur Operatörüne ait ürünler aramada bulunabilir
+                if (!isPureFlight && !TourOperatorConfig.isAllowedOperator(item.operatorName)) {
+                    return@filter false
+                }
+
+                // ✈️ UÇUŞ KESİN KURALLARI: Havaalanı olmayan yerlere uçuş gösterme & boş aramada sahte uçuş göstermeme
+                val isFlightMode = (cat == "FLIGHTS" || cat == "FLIGHT") || isPureFlight
+                if (isFlightMode) {
+                    val isDepAll = dep.isBlank() || dep.equals("Tüm Kalkış Şehirleri", ignoreCase = true) || dep.equals("Все города", ignoreCase = true) || dep.equals("Все", ignoreCase = true) || dep.equals("ALL", ignoreCase = true)
+                    val isDestAll = dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.equals("Все", ignoreCase = true) || dest.equals("ALL", ignoreCase = true)
+
+                    // 1. Havaalanı olmayan tatil beldelerine (Kemer, Belek, Side, Alanya Mahmutlar vb.) uçuş gösterme
+                    if (!isDestAll && dest.isNotBlank()) {
+                        if (!hasAirport(dest)) return@filter false
+                    }
+                    // 2. Uçuş sekmesinde hiçbir kalkış ve varış seçilmeden doğrudan uçuş listelenmesini engelle
+                    if (cat == "FLIGHTS" || cat == "FLIGHT") {
+                        if (isDepAll && isDestAll) return@filter false
+                    }
+                }
+
+                val matchesSearch = q.isBlank() ||
+                        item.hotelName.lowercase().contains(q) ||
+                        item.tourName.lowercase().contains(q) ||
+                        item.region.lowercase().contains(q) ||
+                        item.country.lowercase().contains(q) ||
+                        item.departureCity.lowercase().contains(q) ||
+                        item.operatorName.lowercase().contains(q)
+
+                // Sadece sıkı coğrafi eşleşme: gevşek metin eşleşmesi (otel/tur adı, uçuş no) başka bölgeleri sonuçlara geri sokuyordu
+                val matchesDest = isAllSelection(dest) || isDestinationMatching(item, dest)
+
+                val matchesCountry = isCountryMatching(item, country)
+
+                val matchesDate = isDateInRange(item, criteria.startDate, criteria.endDate)
+
+                val matchesDep = isAllSelection(dep) ||
+                        isDepartureMatching(item, dep) || 
+                        isDepartureMatchingText(
+                            targetDeparture = "${item.departureCity} ${item.flightNumber} ${item.tourName} ${item.safeHotelName} ${item.region}",
+                            selectedDeparture = dep
+                        )
+                val matchesStar = stars.isEmpty() || item.hotelCategory == 0 || stars.contains(item.hotelCategory)
+                val matchesInstant = !isInstant || item.isInstantConfirmation
+                val matchesPromo = !isPromo || item.isPromo
+
+                val matchesMeal = meals.isEmpty() || item.mealType.isBlank() || meals.any { m ->
+                    val lower = item.mealType.lowercase()
+                    when (m.uppercase()) {
+                        "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
+                        "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
+                        "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный pansiyon") || lower.contains("полный пансион")
+                        "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
+                        "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
+                        "RO" -> lower.contains("ro") || lower.contains("room only") || lower.contains("sadece oda") || lower.contains("bez pitaniya") || lower.contains("без питания")
+                        else -> lower.contains(m.lowercase())
+                    }
+                }
+
+                val matchesAllButDate = matchesSearch && matchesDest && matchesCountry && matchesDep && matchesStar && matchesMeal && matchesInstant && matchesPromo
+                if (matchesAllButDate && !matchesDate) {
+                    // Geçmiş tarihler zaten isDateInRange'den de geçemez; sadece bugün ve sonrası öneri olur
+                    toIsoDate(item.departureDate)?.takeIf { it >= com.mgacreative.touros.utils.DateUtils.getTodayIso() }?.let { dateAlternatives += it }
+                }
+                matchesAllButDate && matchesDate
+            }
+            // Sonuç yoksa: diğer tüm kriterlere uyan ama seçilen tarih aralığı dışında kalan en yakın kalkış tarihlerini öner
+            val nearest = if (result.isEmpty()) pickNearestDates(dateAlternatives, criteria.startDate) else emptyList()
+            return result to nearest
         }
 
         // Ortak marketplace_products önbelleği (acente + web ekranı aynı veriyi paylaşır, her aramada ~8000 satır yeniden inmez)
@@ -825,6 +985,37 @@ data class QuotaCheckResultDto(
     val current_month_queries: Int = 0
 )
 
+    /**
+     * ORTAK ARAMA GİRİŞİ: Web vitrin ekranı ve Acente ekranı "Ara" butonunda YALNIZCA bu fonksiyonu çağırır.
+     * Tüm arama parametreleri her aramada baştan yazılır; önceki aramadan veya diğer ekrandan kalan
+     * bir değer (ör. gizli otel adı metin filtresi) sonucu değiştiremez. Aynı kriter iki ekranda aynı sonucu verir.
+     */
+    fun searchWithCriteria(
+        category: String,
+        departure: String,
+        region: String,
+        startDate: String,
+        endDate: String,
+        adultsCount: Int,
+        childAges: List<Int>
+    ) {
+        selectedCategory.value = category
+        departureCity.value = departure
+        selectedRegion.value = region
+        destinationCountry.value = ""
+        selectedStartDate.value = startDate
+        selectedEndDate.value = endDate
+        adults.value = adultsCount
+        childrenAges.value = childAges
+        childs.value = childAges.size
+        searchQuery.value = ""
+        selectedStars.value = emptySet()
+        selectedMealTypes.value = emptySet()
+        isInstantConfirmationOnly.value = false
+        isPromoOnly.value = false
+        performSearch(forceRefresh = true)
+    }
+
     fun performSearch(companyId: String? = null, forceRefresh: Boolean = false) {
         val currentCat = selectedCategory.value.uppercase()
         val isTargetingFlights = currentCat == "FLIGHTS" || currentCat == "FLIGHT"
@@ -977,24 +1168,7 @@ data class QuotaCheckResultDto(
 
             // KESİN KURAL: Arama ve listelerde YALNIZCA izin verilen 9 Kanonik Tur Operatörü yer alır.
             // Diğer operatörler veya tanımsızlar arama sonuçlarından tamamen elenir.
-            val combined = rawCombined.mapNotNull { item ->
-                val pType = item.safeProductType.uppercase()
-                val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
-                                   item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
-                                   item.hotelName.startsWith("Uçuş:", ignoreCase = true) || 
-                                   item.hotelName.startsWith("✈️", ignoreCase = true) ||
-                                   (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
-                if (isPureFlight) {
-                    item
-                } else {
-                    val canonicalOp = TourOperatorConfig.resolveCanonicalOperatorName(item.operatorName)
-                    if (canonicalOp != null) {
-                        item.copy(operatorName = canonicalOp)
-                    } else {
-                        null // 9 TO DIŞINDAKİ TÜM OPERATÖRLERİ ARAMA VE VERİDEN ÇIKAR
-                    }
-                }
-            }
+            val combined = applyCanonicalOperatorRule(rawCombined)
             val filtered = filterProducts(combined)
 
             val dbDepartureCities = combined.map { it.departureCity }.filter { it.isNotBlank() && it != "Yerel Otel" }.distinct().sorted()
@@ -1023,111 +1197,26 @@ data class QuotaCheckResultDto(
     }
 
     private fun filterProducts(list: List<UnifiedProductEntity>): List<UnifiedProductEntity> {
-        val q = searchQuery.value.trim().lowercase()
-        val stars = selectedStars.value
-        val meals = selectedMealTypes.value
-        val cat = selectedCategory.value.uppercase()
-        val dest = selectedRegion.value.trim()
-        val country = destinationCountry.value.trim()
-        val dep = departureCity.value.trim()
-        val isInstant = isInstantConfirmationOnly.value
-        val isPromo = isPromoOnly.value
-
-        val dateAlternatives = mutableSetOf<String>()
-        val result = list.filter { item ->
-            val pType = item.safeProductType.uppercase()
-            val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
-                               item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
-                               item.hotelName.startsWith("Uçuş:", ignoreCase = true) || 
-                               item.hotelName.startsWith("✈️", ignoreCase = true) ||
-                               (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
-            val isAllowedOp = isPureFlight || TourOperatorConfig.isAllowedOperator(item.operatorName)
-            if (!isAllowedOp) return@filter false
-
-            val isPureHotel = (pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.operatorName.contains("Yerel Otel", ignoreCase = true)) && !isPureFlight && item.flightNumber.isBlank()
-            val isPackageTour = (pType == "PACKAGE_TOUR" || pType == "LOCAL_TOUR" || pType == "TOUR" || item.hasTransfer || (item.hotelName.isNotBlank() && item.flightNumber.isNotBlank())) && !isPureFlight && !isPureHotel
-
-            val matchesCategory = when (cat) {
-                "TOURS", "PACKAGE_TOUR" -> !isPureFlight && (isPackageTour || pType == "PACKAGE_TOUR" || pType == "TOUR" || pType == "LOCAL_TOUR" || pType == "ALL" || item.hasTransfer || item.hotelName.isNotBlank())
-                "HOTELS", "HOTEL" -> !isPureFlight && (isPureHotel || pType == "HOTEL" || pType == "LOCAL_HOTEL" || item.hotelCategory >= 3 || item.hotelName.isNotBlank())
-                "FLIGHTS", "FLIGHT" -> isPureFlight
-                "LOCAL_TOURS" -> pType == "LOCAL_TOUR" || item.id.startsWith("local-tour-")
-                "LOCAL_HOTELS" -> pType == "LOCAL_HOTEL" || item.id.startsWith("local-hotel-")
-                else -> true
-            }
-
-            if (!matchesCategory) return@filter false
-
-            // KESİN KURAL: Yalnızca 9 Kanonik Tur Operatörüne ait ürünler aramada bulunabilir
-            if (!isPureFlight && !TourOperatorConfig.isAllowedOperator(item.operatorName)) {
-                return@filter false
-            }
-
-            // ✈️ UÇUŞ KESİN KURALLARI: Havaalanı olmayan yerlere uçuş gösterme & boş aramada sahte uçuş göstermeme
-            val isFlightMode = (cat == "FLIGHTS" || cat == "FLIGHT") || isPureFlight
-            if (isFlightMode) {
-                val isDepAll = dep.isBlank() || dep.equals("Tüm Kalkış Şehirleri", ignoreCase = true) || dep.equals("Все города", ignoreCase = true) || dep.equals("Все", ignoreCase = true) || dep.equals("ALL", ignoreCase = true)
-                val isDestAll = dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.equals("Все", ignoreCase = true) || dest.equals("ALL", ignoreCase = true)
-
-                // 1. Havaalanı olmayan tatil beldelerine (Kemer, Belek, Side, Alanya Mahmutlar vb.) uçuş gösterme
-                if (!isDestAll && dest.isNotBlank()) {
-                    if (!hasAirport(dest)) return@filter false
-                }
-                // 2. Uçuş sekmesinde hiçbir kalkış ve varış seçilmeden doğrudan uçuş listelenmesini engelle
-                if (cat == "FLIGHTS" || cat == "FLIGHT") {
-                    if (isDepAll && isDestAll) return@filter false
-                }
-            }
-
-            val matchesSearch = q.isBlank() ||
-                    item.hotelName.lowercase().contains(q) ||
-                    item.tourName.lowercase().contains(q) ||
-                    item.region.lowercase().contains(q) ||
-                    item.country.lowercase().contains(q) ||
-                    item.departureCity.lowercase().contains(q) ||
-                    item.operatorName.lowercase().contains(q)
-
-            // Sadece sıkı coğrafi eşleşme: gevşek metin eşleşmesi (otel/tur adı, uçuş no) başka bölgeleri sonuçlara geri sokuyordu
-            val matchesDest = isAllSelection(dest) || isDestinationMatching(item, dest)
-
-            val matchesCountry = isCountryMatching(item, country)
-
-            val matchesDate = isDateInRange(item, selectedStartDate.value, selectedEndDate.value)
-
-            val matchesDep = isAllSelection(dep) ||
-                    isDepartureMatching(item, dep) || 
-                    isDepartureMatchingText(
-                        targetDeparture = "${item.departureCity} ${item.flightNumber} ${item.tourName} ${item.safeHotelName} ${item.region}",
-                        selectedDeparture = dep
-                    )
-            val matchesStar = stars.isEmpty() || item.hotelCategory == 0 || stars.contains(item.hotelCategory)
-            val matchesInstant = !isInstant || item.isInstantConfirmation
-            val matchesPromo = !isPromo || item.isPromo
-
-            val matchesMeal = meals.isEmpty() || item.mealType.isBlank() || meals.any { m ->
-                val lower = item.mealType.lowercase()
-                when (m.uppercase()) {
-                    "UAI" -> lower.contains("uai") || lower.contains("ultra") || lower.contains("ультра")
-                    "AI" -> lower.contains("ai") || lower.contains("all inclusive") || lower.contains("her şey") || lower.contains("все включено")
-                    "FB" -> lower.contains("fb") || lower.contains("full board") || lower.contains("tam pansiyon") || lower.contains("полный pansiyon") || lower.contains("полный пансион")
-                    "HB" -> lower.contains("hb") || lower.contains("half board") || lower.contains("yarım pansiyon") || lower.contains("полупансион")
-                    "BB" -> lower.contains("bb") || lower.contains("bed & breakfast") || lower.contains("oda kahvaltı") || lower.contains("завтрак") || lower.contains("breakfast")
-                    "RO" -> lower.contains("ro") || lower.contains("room only") || lower.contains("sadece oda") || lower.contains("bez pitaniya") || lower.contains("без питания")
-                    else -> lower.contains(m.lowercase())
-                }
-            }
-
-            val matchesAllButDate = matchesSearch && matchesDest && matchesCountry && matchesDep && matchesStar && matchesMeal && matchesInstant && matchesPromo
-            if (matchesAllButDate && !matchesDate) {
-                // Geçmiş tarihler zaten isDateInRange'den de geçemez; sadece bugün ve sonrası öneri olur
-                toIsoDate(item.departureDate)?.takeIf { it >= com.mgacreative.touros.utils.DateUtils.getTodayIso() }?.let { dateAlternatives += it }
-            }
-            matchesAllButDate && matchesDate
-        }
-        // Sonuç yoksa: diğer tüm kriterlere uyan ama seçilen tarih aralığı dışında kalan en yakın kalkış tarihlerini öner
-        nearestDepartureDates.value = if (result.isEmpty()) pickNearestDates(dateAlternatives, selectedStartDate.value) else emptyList()
+        // Kurallar ortak fonksiyonda (filterByCriteria). Burada sadece ViewModel'in güncel durumu kritere çevrilir.
+        val (result, nearest) = filterByCriteria(list, currentCriteria())
+        nearestDepartureDates.value = nearest
         return result
     }
+
+    /** ViewModel'deki güncel arama durumunu ortak arama kriterine çevirir. */
+    private fun currentCriteria() = TourSearchCriteria(
+        category = selectedCategory.value,
+        departure = departureCity.value,
+        region = selectedRegion.value,
+        country = destinationCountry.value,
+        startDate = selectedStartDate.value,
+        endDate = selectedEndDate.value,
+        query = searchQuery.value,
+        stars = selectedStars.value,
+        mealTypes = selectedMealTypes.value,
+        instantOnly = isInstantConfirmationOnly.value,
+        promoOnly = isPromoOnly.value
+    )
 
     fun selectProductById(productId: String) {
         if (productId.isBlank()) return
