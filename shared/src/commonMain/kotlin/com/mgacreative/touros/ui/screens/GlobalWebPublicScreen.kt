@@ -224,6 +224,10 @@ fun PublicHotelOffer.toUnifiedProductEntity(): com.mgacreative.touros.data.datab
         price = this.minPrice,
         currency = this.currency.ifBlank { "RUB" },
         nights = this.nights,
+        // Kalkış şehri ve tarihi aktarılır (tarih ISO yyyy-MM-dd). Eskiden aktarılmıyordu: uçuş kartı boş kalıyor,
+        // uçuş eşleştirmesi tarihsiz yapılıyor ve rezervasyona doğru tarih gidemiyordu.
+        departureCity = this.departureCity,
+        departureDate = com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.toIsoDate(this.departureDate),
         mealType = this.mealType,
         roomType = this.roomType,
         flightNumber = this.flightCode,
@@ -3169,6 +3173,16 @@ fun GlobalWebPublicScreen(
                                             formValidationError = AppLanguageManager.translate("Lütfen misafir adı ve telefon numarasını giriniz.")
                                             return@TourOSButton
                                         }
+                                        // Kalkış tarihi olmayan teklif için rezervasyon oluşturulmaz (uydurma tarih yazılmaz)
+                                        if (hotel.departureDate.isNullOrBlank()) {
+                                            formValidationError = when (AppLanguageManager.currentLanguage.value.code) {
+                                                "ru" -> "У этого предложения нет даты вылета, бронирование невозможно."
+                                                "en" -> "This offer has no departure date, a booking cannot be created."
+                                                "de" -> "Für dieses Angebot gibt es kein Abreisedatum, eine Buchung ist nicht möglich."
+                                                else -> "Bu teklifin kalkış tarihi yok, rezervasyon oluşturulamaz."
+                                            }
+                                            return@TourOSButton
+                                        }
                                         formValidationError = null
 
                                         coroutineScope.launch {
@@ -3204,7 +3218,7 @@ fun GlobalWebPublicScreen(
                                                 bookingType = if (isFlightBooking) "FLIGHT" else if (isLocalProd) "LOCAL_HOTEL" else "HOTEL",
                                                 roomTypeName = option.roomType,
                                                 operatorName = finalOperatorName,
-                                                departureDate = hotel.departureDate ?: "2026-08-21",
+                                                departureDate = hotel.departureDate.orEmpty(),
                                                 nights = hotel.nights,
                                                 totalPrice = option.price,
                                                 currency = hotel.currency.ifBlank { "RUB" },

@@ -294,21 +294,28 @@ def run_sync():
                         t_meal = t.get('mealrussian', t.get('meal', 'AI'))
                         t_room = t.get('room', 'Standard Room')
                         t_promo = (t.get('promo', 0) == 1)
+                        t_regular = int(t.get('regular', 0) or 0)
+                        # is_charter: regular=1 ise False (tarifeli), regular=0 ise True (charter). Tahmin yok.
+                        is_charter_val = (t_regular != 1)
 
-                        airline_cand = 'Charter'
-                        flight_no = 'Charter'
-                        if 'Red Wings' in t_tourname or 'WZ' in t_tourname:
-                            airline_cand = 'Red Wings'; flight_no = 'WZ-3011'
-                        elif 'Azur' in t_tourname or 'ZF' in t_tourname:
-                            airline_cand = 'Azur Air'; flight_no = 'ZF-8881'
-                        elif 'Nordwind' in t_tourname or 'N4' in t_tourname:
-                            airline_cand = 'Nordwind Airlines'; flight_no = 'N4-5821'
-                        elif 'Pegasus' in t_tourname or 'PC' in t_tourname:
-                            airline_cand = 'Pegasus Airlines'; flight_no = 'PC-2014'
-                        elif 'Turkish' in t_tourname or 'TK' in t_tourname:
-                            airline_cand = 'Turkish Airlines'; flight_no = 'TK-2114'
-                        elif 'Aeroflot' in t_tourname or 'SU' in t_tourname:
-                            airline_cand = 'Aeroflot'; flight_no = 'SU-2142'
+                        # flight_number: HER ZAMAN boş metin (''). TourVisor arama API'si uçuş numarası vermez.
+                        flight_no = ''
+
+                        # airline: Sadece tourname içinde havayolunun TAM adı açıkça geçiyorsa yazılır.
+                        # 'Charter' havayolu adı olarak ASLA yazılmaz. Eşleşmezse boş metin ('').
+                        airline_cand = ''
+                        if 'Aeroflot' in t_tourname:
+                            airline_cand = 'Aeroflot'
+                        elif 'Turkish Airlines' in t_tourname:
+                            airline_cand = 'Turkish Airlines'
+                        elif 'Pegasus' in t_tourname:
+                            airline_cand = 'Pegasus'
+                        elif 'Azur Air' in t_tourname:
+                            airline_cand = 'Azur Air'
+                        elif 'Nordwind' in t_tourname:
+                            airline_cand = 'Nordwind'
+                        elif 'Red Wings' in t_tourname:
+                            airline_cand = 'Red Wings'
 
                         products_batch.append({
                             'id': f"tv-{t_id}",
@@ -335,7 +342,7 @@ def run_sync():
                             'nights': t_nights,
                             'adults': t_adults,
                             'childs': t_childs,
-                            'is_charter': True,
+                            'is_charter': is_charter_val,
                             'is_promo': t_promo,
                             'airline': airline_cand,
                             'flight_number': flight_no,

@@ -576,6 +576,13 @@ fun B2BTourSearchDashboardScreen(
             // ── ADIM YÖNLENDİRME ÇUBUĞU (STEPPER NAVIGATION BAR) ─────────────────
             WizardStepHeaderBar(
                 currentStep = activeStep,
+                // Bu ekranda 3 sayfa var: 1) arama/otel, 2) uçuş + ekstra hizmetler, 3) turist bilgileri
+                stepLabels = when (AppLanguageManager.currentLanguage.value.code) {
+                    "ru" -> listOf("1. ОТЕЛЬ", "2. ПЕРЕЛЁТ И УСЛУГИ", "3. ТУРИСТЫ")
+                    "en" -> listOf("1. HOTEL", "2. FLIGHT & SERVICES", "3. TOURISTS")
+                    "de" -> listOf("1. HOTEL", "2. FLUG & LEISTUNGEN", "3. TOURISTEN")
+                    else -> listOf("1. OTEL", "2. UÇUŞ & HİZMETLER", "3. TURİSTLER")
+                },
                 onStepClick = { step ->
                     if (step == 1 || selectedProduct != null) {
                         activeStep = step
@@ -1096,7 +1103,7 @@ fun B2BTourSearchDashboardScreen(
                                         )
                                         val paxDesc = "$adults ADL" + (if (childrenAges.isNotEmpty()) " + ${childrenAges.size} CHD (${childrenAges.joinToString(",") { "${it}y" }})" else "")
                                         Text(
-                                            text = "${curProduct.departureDate ?: startDateText} (${curProduct.nights} ${AppLanguageManager.translate("Gece")})  ·  $paxDesc  ·  ${curProduct.region}",
+                                            text = "${curProduct.departureDate?.let { d -> B2BTourSearchViewModel.toIsoDate(d)?.let { B2BTourSearchViewModel.isoToDot(it) } ?: d } ?: "—"} (${curProduct.nights} ${AppLanguageManager.translate("Gece")})  ·  $paxDesc  ·  ${curProduct.region}",
                                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                                             fontWeight = FontWeight.SemiBold
                                         )
@@ -1114,6 +1121,11 @@ fun B2BTourSearchDashboardScreen(
                                         )
                                     }
                                 }
+                            }
+
+                            // UÇUŞ BİLGİSİ KARTI: seçilen ürünün kendi verisinden (tarih + güzergâh). Uydurma saat/uçuş no yok.
+                            if (!curProduct.productType.equals("HOTEL", ignoreCase = true) && !curProduct.productType.equals("LOCAL_HOTEL", ignoreCase = true)) {
+                                ProductFlightInfoCard(product = curProduct)
                             }
 
                             // UÇUŞ SEÇENEKLERİ (GÖRSEL 9 & 10)
@@ -1887,6 +1899,117 @@ private fun TourResultMatrixCard(
 
 // ─── UÇUŞ SEÇENEĞİ KART BİLEŞENİ (GÖRSEL 9 & 10) ───────────────────────────────
 
+/** Seçilen ürünün kendi verisinden uçuş özeti: gidiş/dönüş tarihi ve güzergâh. Saat ve uçuş numarası uydurulmaz. */
+@Composable
+private fun ProductFlightInfoCard(product: UnifiedProductEntity) {
+    val lang = AppLanguageManager.currentLanguage.value.code
+    val title = when (lang) {
+        "ru" -> "Информация о перелёте"
+        "en" -> "Flight information"
+        "de" -> "Fluginformationen"
+        else -> "Uçuş Bilgisi"
+    }
+    val pendingAll = when (lang) {
+        "ru" -> "Время вылета и номер рейса уточняются у туроператора"
+        "en" -> "Flight times and flight number will be confirmed by the tour operator"
+        "de" -> "Flugzeiten und Flugnummer werden vom Reiseveranstalter bestätigt"
+        else -> "Uçuş saati ve uçuş numarası operatör onayıyla bildirilecek"
+    }
+    val isPackage = !product.safeProductType.equals("FLIGHT", ignoreCase = true)
+    val depIso = B2BTourSearchViewModel.toIsoDate(product.departureDate)
+    val outDate = depIso?.let { B2BTourSearchViewModel.isoToDot(it) } ?: ""
+    val retDate = if (isPackage && depIso != null && product.nights > 0) {
+        val parts = depIso.split("-").mapNotNull { it.toIntOrNull() }
+        if (parts.size == 3) {
+            val (d, m, y) = com.mgacreative.touros.addDaysToTriple(Triple(parts[2], parts[1], parts[0]), product.nights)
+            "${d.toString().padStart(2, '0')}.${m.toString().padStart(2, '0')}.$y"
+        } else ""
+    } else ""
+    val from = product.departureCity.trim()
+    val to = product.region.ifBlank { product.country }.trim()
+    fun leg(prefix: String, date: String, a: String, b: String): String {
+        val items = mutableListOf<String>()
+        if (date.isNotBlank()) items += date
+        if (a.isNotBlank() || b.isNotBlank()) items += "$a ➔ $b".trim()
+        return "$prefix ${items.joinToString("  ·  ")}"
+    }
+
+    TourOSCard(
+        modifier = Modifier.fillMaxWidth(),
+        backgroundColor = TourOSColors.Surface,
+        contentPadding = TourOSSpacing.medium
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "✈️ $title",
+                style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = leg("🛫 ${AppLanguageManager.translate("GİDİŞ:")}", outDate, from, to),
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                fontWeight = FontWeight.SemiBold
+            )
+            if (isPackage) {
+                Text(
+                    text = leg("🛬 ${AppLanguageManager.translate("DÖNÜŞ:")}", retDate, to, from),
+                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Text(
+                text = "🕒 $pendingAll",
+                style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+            )
+        }
+    }
+}
+
+/** Uçuş bilgisi bilinmediğinde gösterilecek dürüst metin (arayüz diline göre). */
+private fun flightPendingLabel(): String = when (AppLanguageManager.currentLanguage.value.code) {
+    "ru" -> "Информация о рейсе уточняется у туроператора"
+    "en" -> "Flight details will be confirmed by the tour operator"
+    "de" -> "Flugdaten werden vom Reiseveranstalter bestätigt"
+    else -> "Uçuş bilgisi operatör onayıyla bildirilecek"
+}
+
+/** Saat bilinmediğinde gösterilecek dürüst metin (arayüz diline göre). */
+private fun flightTimePendingLabel(): String = when (AppLanguageManager.currentLanguage.value.code) {
+    "ru" -> "время уточняется у туроператора"
+    "en" -> "time to be confirmed by the operator"
+    "de" -> "Uhrzeit wird vom Veranstalter bestätigt"
+    else -> "saat operatör onayıyla bildirilecek"
+}
+
+/** Tek uçuş ayağının metni. Boş alanlar atlanır; saat/uçuş bilinmiyorsa uydurulmaz, bekleme metni yazılır. */
+private fun flightLegText(
+    prefix: String,
+    date: String,
+    airline: String,
+    flightNumber: String,
+    fromPort: String,
+    fromTime: String,
+    toPort: String,
+    toTime: String,
+    duration: String
+): String {
+    val parts = mutableListOf<String>()
+    if (date.isNotBlank()) parts += date
+    val flight = listOf(airline, flightNumber.takeIf { it.isNotBlank() }?.let { "($it)" } ?: "")
+        .filter { it.isNotBlank() }.joinToString(" ")
+    val hasFlight = flight.isNotBlank()
+    if (hasFlight) parts += flight
+    val from = listOf(fromPort, fromTime).filter { it.isNotBlank() }.joinToString(" ")
+    val to = listOf(toPort, toTime).filter { it.isNotBlank() }.joinToString(" ")
+    if (from.isNotBlank() || to.isNotBlank()) parts += "$from ➔ $to".trim()
+    if (duration.isNotBlank()) parts += "($duration)"
+    when {
+        !hasFlight -> parts += flightPendingLabel()
+        fromTime.isBlank() -> parts += flightTimePendingLabel()
+    }
+    return "$prefix ${parts.joinToString("  ·  ")}"
+}
+
 @Composable
 private fun FlightOptionCardItem(
     option: FlightOption,
@@ -1918,7 +2041,17 @@ private fun FlightOptionCardItem(
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                         Text(
-                            text = "🛫 ${AppLanguageManager.translate("GİDİŞ:")} ${option.outboundAirline} (${option.outboundFlightNumber})  ·  ${option.outboundDeparturePort} ➔ ${option.outboundArrivalPort} (${option.outboundDuration})",
+                            text = flightLegText(
+                                prefix = "🛫 ${AppLanguageManager.translate("GİDİŞ:")}",
+                                date = option.outboundDate,
+                                airline = option.outboundAirline,
+                                flightNumber = option.outboundFlightNumber,
+                                fromPort = option.outboundDeparturePort,
+                                fromTime = option.outboundDepartureTime,
+                                toPort = option.outboundArrivalPort,
+                                toTime = option.outboundArrivalTime,
+                                duration = option.outboundDuration
+                            ),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.SemiBold
                         )
@@ -1926,7 +2059,17 @@ private fun FlightOptionCardItem(
 
                     Row(horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                         Text(
-                            text = "🛬 ${AppLanguageManager.translate("DÖNÜŞ:")} ${option.inboundAirline} (${option.inboundFlightNumber})  ·  ${option.inboundDeparturePort} ➔ ${option.inboundArrivalPort} (${option.inboundDuration})",
+                            text = flightLegText(
+                                prefix = "🛬 ${AppLanguageManager.translate("DÖNÜŞ:")}",
+                                date = option.inboundDate,
+                                airline = option.inboundAirline,
+                                flightNumber = option.inboundFlightNumber,
+                                fromPort = option.inboundDeparturePort,
+                                fromTime = option.inboundDepartureTime,
+                                toPort = option.inboundArrivalPort,
+                                toTime = option.inboundArrivalTime,
+                                duration = option.inboundDuration
+                            ),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                             fontWeight = FontWeight.SemiBold
                         )

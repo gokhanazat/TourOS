@@ -319,13 +319,15 @@ fun B2BTourFlightServiceSelectionScreen(
 @Composable
 fun WizardStepHeaderBar(
     currentStep: Int,
-    onStepClick: ((Int) -> Unit)? = null
+    onStepClick: ((Int) -> Unit)? = null,
+    // Ekranın gerçek adım sayısına göre adım adları verilebilir. Verilmezse eski 4 adım gösterilir.
+    stepLabels: List<String> = listOf("1. OTEL", "2. UÇUŞ", "3. HİZMETLER", "4. TURİSTLER")
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(TourOSSpacing.small)
     ) {
-        listOf("1. OTEL", "2. UÇUŞ", "3. HİZMETLER", "4. TURİSTLER").forEachIndexed { idx, label ->
+        stepLabels.forEachIndexed { idx, label ->
             val stepNo = idx + 1
             val isCompleted = stepNo < currentStep
             val isCurrent = stepNo == currentStep
