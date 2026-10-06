@@ -234,6 +234,31 @@ fun PublicHotelOffer.toUnifiedProductEntity(): com.mgacreative.touros.data.datab
     )
 }
 
+fun normalizeDateToDDMMYYYY(rawDate: String?): String {
+    if (rawDate.isNullOrBlank()) return ""
+    val t = rawDate.trim()
+    val separator = if (t.contains("-")) "-" else if (t.contains(".")) "." else if (t.contains("/")) "/" else null
+    if (separator != null) {
+        val parts = t.split(separator)
+        if (parts.size == 3) {
+            if (parts[0].length == 4) {
+                // YYYY-MM-DD -> DD.MM.YYYY
+                val y = parts[0]
+                val m = parts[1].padStart(2, '0')
+                val d = parts[2].padStart(2, '0')
+                return "$d.$m.$y"
+            } else if (parts[2].length == 4) {
+                // DD-MM-YYYY -> DD.MM.YYYY
+                val d = parts[0].padStart(2, '0')
+                val m = parts[1].padStart(2, '0')
+                val y = parts[2]
+                return "$d.$m.$y"
+            }
+        }
+    }
+    return t
+}
+
 fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHotelOffer(): PublicHotelOffer {
     val baseP = this.safePrice.coerceAtLeast(100.0)
     val rawOp = this.safeOperatorName.ifBlank { "TourVisor" }
@@ -378,7 +403,7 @@ fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHot
         baggageKg = this.safeBaggageKg,
         departureCity = this.safeDepartureCity,
         countryCode = cCode,
-        departureDate = this.departureDate ?: "",
+        departureDate = normalizeDateToDDMMYYYY(this.departureDate),
         returnDate = calculatedReturnDate,
         agencyPrices = listOf(
             AgencyPriceOption(
@@ -390,8 +415,9 @@ fun com.mgacreative.touros.data.database.entity.UnifiedProductEntity.toPublicHot
                 price = baseP,
                 isBestDeal = true,
                 nights = if (this.nights > 0) this.nights else 7,
-                departureDate = this.departureDate ?: "",
-                returnDate = calculatedReturnDate ?: ""
+                departureDate = normalizeDateToDDMMYYYY(this.departureDate),
+                returnDate = calculatedReturnDate ?: "",
+                isPackageTour = mappedCat != "HOTEL"
             )
         )
     )
@@ -471,7 +497,8 @@ data class AgencyPriceOption(
     val isBestDeal: Boolean = false,
     val nights: Int = 0,
     val departureDate: String = "",
-    val returnDate: String = ""
+    val returnDate: String = "",
+    val isPackageTour: Boolean = true
 )
 
 fun getInitialDefaultOffers(): List<PublicHotelOffer> {
@@ -990,38 +1017,29 @@ fun GlobalWebPublicScreen(
             }
         }
 
-        // 1. Supabase 'marketplace_products' tablosundan yüklenen ürünleri çek (En uygun fiyatlı paket turlar ve uçuşlar)
-        val minProductDate = com.mgacreative.touros.utils.DateUtils.getFutureIso(7)
+        // 1. marketplace_products (Yandex DB) — ACENTE EKRANIYLA AYNI ORTAK KURAL:
+        //    tüm güncel kayıtlar sayfa sayfa çekilir (eski: en ucuz 500 tur + 301 uçuş), geçmiş tarihliler sunucuda elenir.
         runCatching {
-            supabaseClient.postgrest["marketplace_products"]
-                .select {
-                    filter {
-                        eq("product_type", "PACKAGE_TOUR")
-                        gte("departure_date", minProductDate)
-                    }
-                    order("price", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
-                    limit(500)
-                }
-                .decodeList<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>()
+            com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.fetchAllMarketplaceProducts(supabaseClient, "PACKAGE_TOUR")
         }.onSuccess { list ->
             list.filter { it.id.isNotBlank() && TourOperatorConfig.isAllowedOperator(it.operatorName) }.forEach { p ->
                 offers.add(p.toPublicHotelOffer())
             }
+        }.onFailure {
+            // Ekran kapanınca/yeniden çizilince iş iptal edilir: bu bir hata değildir, iptali yukarı ilet.
+            if (it is kotlinx.coroutines.CancellationException) throw it
+            println("⚠️ Web PACKAGE_TOUR yükleme hatası: ${it.message}")
         }
 
         runCatching {
-            supabaseClient.postgrest["marketplace_products"]
-                .select {
-                    filter {
-                        eq("product_type", "FLIGHT")
-                    }
-                    range(0, 300)
-                }
-                .decodeList<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>()
+            com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.fetchAllMarketplaceProducts(supabaseClient, "FLIGHT")
         }.onSuccess { list ->
             list.filter { it.id.isNotBlank() }.forEach { p ->
                 offers.add(p.toPublicHotelOffer())
             }
+        }.onFailure {
+            if (it is kotlinx.coroutines.CancellationException) throw it
+            println("⚠️ Web FLIGHT yükleme hatası: ${it.message}")
         }
 
         // 2. RAM'deki yüklenen operatör ürünlerini de ekle
@@ -1058,12 +1076,14 @@ fun GlobalWebPublicScreen(
             ""
         }
 
-        val destMatch = destinationToMatch.isBlank() || com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isDestinationMatchingText(
-            targetText = "${h.location} ${h.hotelName} ${h.description} ${h.countryCode} ${h.flightCode}",
-            selectedDest = destinationToMatch
+        // ACENTE EKRANIYLA AYNI ORTAK KURAL: sadece coğrafi alanlara (bölge/ülke) bakan sıkı eşleşme.
+        // (Eski gevşek eşleşme otel adı + açıklama içinde aradığı için başka bölgelerin otellerini de getiriyordu.)
+        val destMatch = destinationToMatch.isBlank() || com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isDestinationMatching(
+            h.toUnifiedProductEntity(),
+            destinationToMatch
         )
 
-        val depMatch = departureCity.isBlank() || departureCity.contains("Tüm", ignoreCase = true) || com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isDepartureMatchingText(
+        val depMatch = com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isAllSelection(departureCity) || com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.isDepartureMatchingText(
             targetDeparture = "${h.departureCity} ${h.flightCode} ${h.hotelName} ${h.location}",
             selectedDeparture = departureCity
         )
@@ -1937,6 +1957,22 @@ fun GlobalWebPublicScreen(
                                         text = emptyDescriptionText,
                                         style = TourOSTypography.BodyMedium.copy(color = Color(0xFF64748B)),
                                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+
+                                    // Seçilen tarihlerde tur yoksa: en yakın kalkış tarihleri önerisi (tıklanınca arama tarihi de güncellenir)
+                                    val nearestDates by b2bTourSearchViewModel.nearestDepartureDates.collectAsState()
+                                    NearestDepartureDatesSuggestion(
+                                        isoDates = nearestDates,
+                                        startDateText = startDateText,
+                                        endDateText = endDateText,
+                                        onDateSelected = { dotDate ->
+                                            startDateText = dotDate
+                                            endDateText = dotDate
+                                            b2bTourSearchViewModel.selectedStartDate.value = dotDate
+                                            b2bTourSearchViewModel.selectedEndDate.value = dotDate
+                                            b2bTourSearchViewModel.performSearch()
+                                        },
+                                        modifier = Modifier.padding(top = 8.dp)
                                     )
                                 }
                             }
@@ -3053,8 +3089,15 @@ fun GlobalWebPublicScreen(
                                 )
                             }
 
+                            val bookingCurrSymbol = when (hotel.currency.uppercase()) {
+                                "TRY" -> "₺"
+                                "USD" -> "$"
+                                "EUR" -> "€"
+                                else -> "₽"
+                            }
+
                             Text(
-                                text = "${AppLanguageManager.translate("Seçilen Acente:")} ${option.agencyName} • ${AppLanguageManager.translate("Operatör")}: ${option.operatorName}\n${AppLanguageManager.translate("Otel")}: ${hotel.hotelName} (${option.price.toInt()} ₺)",
+                                text = "${AppLanguageManager.translate("Seçilen Acente:")} ${option.agencyName} • ${AppLanguageManager.translate("Operatör")}: ${option.operatorName}\n${AppLanguageManager.translate("Otel")}: ${hotel.hotelName} (${option.price.toInt()} $bookingCurrSymbol)",
                                 style = TourOSTypography.BodyMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.SemiBold)
                             )
 
@@ -3164,7 +3207,7 @@ fun GlobalWebPublicScreen(
                                                 departureDate = hotel.departureDate ?: "2026-08-21",
                                                 nights = hotel.nights,
                                                 totalPrice = option.price,
-                                                currency = hotel.currency.ifBlank { "TRY" },
+                                                currency = hotel.currency.ifBlank { "RUB" },
                                                 status = BookingStatus.ONAYLANDI,
                                                 tenantId = safeTenantId,
                                                 items = listOf(
@@ -3249,8 +3292,15 @@ fun GlobalWebPublicScreen(
                                         text = hotel.hotelName,
                                         style = TourOSTypography.TitleLarge.copy(color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 20.sp)
                                     )
+                                    val modalCleanLoc = hotel.location
+                                        .replace("Rusya", "Россия", ignoreCase = true)
+                                        .replace("Russia", "Россия", ignoreCase = true)
+                                        .replace("Moskova", "Москва", ignoreCase = true)
+                                        .replace("Moscow", "Москва", ignoreCase = true)
+                                        .replace("Türkiye", "Турция", ignoreCase = true)
+                                        .replace("Turkey", "Турция", ignoreCase = true)
                                     Text(
-                                        text = "📍 ${AppLanguageManager.translate(hotel.location)} • ID: ${hotel.id}",
+                                        text = "📍 ${AppLanguageManager.translate(modalCleanLoc)} • ID: ${hotel.id}",
                                         style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 11.sp)
                                     )
                                 }
@@ -3289,7 +3339,7 @@ fun GlobalWebPublicScreen(
                             }
 
                             // ── AŞAĞI KAYDIRILABİLİR İNCE KOMPAKT OPERATÖR LİSTESİ (LAZYCOLUMN) ──
-                            val effectiveAgencyPrices = if (isWhitelabelAgencyMode && !resolvedAgencyId.isNullOrBlank()) {
+                            val rawAgencyPrices = if (isWhitelabelAgencyMode && !resolvedAgencyId.isNullOrBlank()) {
                                 listOf(
                                     AgencyPriceOption(
                                         agencyId = resolvedAgencyId!!,
@@ -3298,7 +3348,8 @@ fun GlobalWebPublicScreen(
                                         roomType = hotel.roomType.ifBlank { "Standart Oda" },
                                         boardType = hotel.mealType.ifBlank { "Her Şey Dahil" },
                                         price = hotel.minPrice,
-                                        isBestDeal = true
+                                        isBestDeal = true,
+                                        isPackageTour = hotel.category != "HOTEL"
                                     )
                                 )
                             } else if (hotel.agencyPrices.isNotEmpty()) {
@@ -3312,9 +3363,13 @@ fun GlobalWebPublicScreen(
                                         roomType = hotel.roomType.ifBlank { "Standard Room" },
                                         boardType = hotel.mealType.ifBlank { "Her Şey Dahil" },
                                         price = hotel.minPrice,
-                                        isBestDeal = true
+                                        isBestDeal = true,
+                                        isPackageTour = hotel.category != "HOTEL"
                                     )
                                 )
+                            }
+                            val effectiveAgencyPrices = rawAgencyPrices.distinctBy { 
+                                "${it.operatorName.trim().lowercase()}_${it.roomType.trim().lowercase()}_${it.boardType.trim().lowercase()}_${it.price.toInt()}" 
                             }
 
                             LazyColumn(
@@ -3340,8 +3395,8 @@ fun GlobalWebPublicScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            // Sol Bilgi: Acente/Operatör + Oda Tipi (İnce Satır)
-                                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                            // Sol Bilgi: Acente/Operatör + Paket Türü + Oda Tipi
+                                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                                     Text(
                                                         text = "🏢 ${option.agencyName}",
@@ -3357,9 +3412,31 @@ fun GlobalWebPublicScreen(
                                                             Text(AppLanguageManager.translate("En İyi Fiyat ⭐"), style = TourOSTypography.Caption.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp))
                                                         }
                                                     }
+                                                    val packageBadgeText = if (option.isPackageTour) AppLanguageManager.translate("Пакетный тур") else AppLanguageManager.translate("Только отель")
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(4.dp))
+                                                            .background(if (option.isPackageTour) Color(0xFFEFF6FF) else Color(0xFFFEF3C7))
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = if (option.isPackageTour) "✈️ $packageBadgeText" else "🏨 $packageBadgeText",
+                                                            style = TourOSTypography.Caption.copy(
+                                                                color = if (option.isPackageTour) Color(0xFF1D4ED8) else Color(0xFFB45309),
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 9.sp
+                                                            )
+                                                        )
+                                                    }
                                                 }
+                                                val cleanBoard = AppLanguageManager.translate(option.boardType)
+                                                val pkgDesc = if (option.isPackageTour) AppLanguageManager.translate("Перелет + Отель") else AppLanguageManager.translate("Без перелета")
+                                                val normDep = normalizeDateToDDMMYYYY(option.departureDate)
+                                                val normRet = normalizeDateToDDMMYYYY(option.returnDate)
+                                                val dateRangeText = if (normRet.isNotBlank() && normRet != normDep) "$normDep — $normRet" else normDep
+                                                val dateInfo = if (dateRangeText.isNotBlank()) " • 📅 $dateRangeText" else ""
                                                 Text(
-                                                    text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${option.roomType} (${option.boardType})",
+                                                    text = "${AppLanguageManager.translate("Operatör")}: ${option.operatorName} • ${option.roomType} ($cleanBoard) • $pkgDesc$dateInfo",
                                                     style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontSize = 10.sp),
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
@@ -3371,8 +3448,14 @@ fun GlobalWebPublicScreen(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
+                                                val optCurrSymbol = when (hotel.currency.uppercase()) {
+                                                    "TRY" -> "₺"
+                                                    "USD" -> "$"
+                                                    "EUR" -> "€"
+                                                    else -> "₽"
+                                                }
                                                 Text(
-                                                    text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} ${if (hotel.currency == "RUB") "RUB" else "₺"}",
+                                                    text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} $optCurrSymbol",
                                                     style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0284C7), fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
                                                 )
 
@@ -3925,8 +4008,8 @@ private fun HotelSearchResultAccordionCard(
                                 }
                             }
                             val tourDateRange = remember(hotel.departureDate, hotel.returnDate) {
-                                val dep = hotel.departureDate?.takeIf { it.isNotBlank() } ?: "02.09.2026"
-                                val ret = hotel.returnDate?.takeIf { it.isNotBlank() }
+                                val dep = normalizeDateToDDMMYYYY(hotel.departureDate).takeIf { it.isNotBlank() } ?: "02.09.2026"
+                                val ret = normalizeDateToDDMMYYYY(hotel.returnDate).takeIf { it.isNotBlank() }
                                 if (!ret.isNullOrBlank() && ret != dep) "$dep — $ret" else dep
                             }
                             Surface(
@@ -4040,8 +4123,21 @@ private fun HotelSearchResultAccordionCard(
                                     shape = RoundedCornerShape(4.dp),
                                     border = BorderStroke(0.5.dp, Color(0xFFBFDBFE))
                                 ) {
+                                    val count = hotel.agencyPrices.size
+                                    val optionLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                        "ru" -> {
+                                            when {
+                                                count % 100 in 11..19 -> "$count вариантов"
+                                                count % 10 == 1 -> "$count вариант"
+                                                count % 10 in 2..4 -> "$count варианта"
+                                                else -> "$count вариантов"
+                                            }
+                                        }
+                                        "en" -> if (count == 1) "1 option" else "$count options"
+                                        else -> "$count ${AppLanguageManager.translate("Farklı Seçenek")}"
+                                    }
                                     Text(
-                                        text = "🛏️ ${hotel.agencyPrices.size} ${AppLanguageManager.translate("Farklı Seçenek")}",
+                                        text = "🛏️ $optionLabel",
                                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                                         style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.Bold, fontSize = 10.5.sp),
                                         maxLines = 1
@@ -4221,7 +4317,9 @@ private fun HotelSearchResultAccordionCard(
                                     }
                                     if (option.departureDate.isNotBlank()) {
                                         Text("•", color = Color(0xFFCBD5E1), fontSize = 10.sp)
-                                        val optDates = if (option.returnDate.isNotBlank() && option.returnDate != option.departureDate) "${option.departureDate} — ${option.returnDate}" else option.departureDate
+                                        val normDep = normalizeDateToDDMMYYYY(option.departureDate)
+                                        val normRet = normalizeDateToDDMMYYYY(option.returnDate)
+                                        val optDates = if (normRet.isNotBlank() && normRet != normDep) "$normDep — $normRet" else normDep
                                         Text(
                                             text = "📅 $optDates",
                                             style = TourOSTypography.Caption.copy(color = Color(0xFF1E40AF), fontSize = 10.5.sp)
@@ -4247,8 +4345,14 @@ private fun HotelSearchResultAccordionCard(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    val rowCurr = when (hotel.currency.uppercase()) {
+                                        "TRY" -> "₺"
+                                        "USD" -> "$"
+                                        "EUR" -> "€"
+                                        else -> "₽"
+                                    }
                                     Text(
-                                        text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} ${hotel.currency}",
+                                        text = "${com.mgacreative.touros.domain.util.KmpCurrencyFormatter.formatAmount(option.price, decimals = false)} $rowCurr",
                                         style = TourOSTypography.TitleSmall.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                     )
 
@@ -4586,20 +4690,29 @@ fun HorizontalHotelCard(
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    } else if (hotel.flightCode.isNotBlank()) {
-                        val cleanFlightCode = hotel.flightCode
-                            .replace("FL-TV", "Charter", ignoreCase = true)
-                            .replace("Charter Airlines", "Charter", ignoreCase = true)
-                            .replace("Charter Charter", "Charter", ignoreCase = true)
-                            .trim()
+                    } else {
+                        val isPackage = hotel.category != "HOTEL" && (hotel.flightCode.isNotBlank() || hotel.agencyPrices.any { it.isPackageTour })
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFFEFF6FF)
+                            color = if (isPackage) Color(0xFFEFF6FF) else Color(0xFFFEF3C7)
                         ) {
+                            val chipText = if (isPackage) {
+                                val flightType = if (hotel.flightCode.contains("Charter", ignoreCase = true) || hotel.flightCode.contains("Чартер", ignoreCase = true)) {
+                                    AppLanguageManager.translate("Чартер")
+                                } else ""
+                                if (flightType.isNotBlank()) "${AppLanguageManager.translate("Пакетный тур")} · $flightType"
+                                else AppLanguageManager.translate("Пакетный тур")
+                            } else {
+                                AppLanguageManager.translate("Только отель")
+                            }
                             Text(
-                                text = AppLanguageManager.translate(cleanFlightCode),
+                                text = chipText,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                style = TourOSTypography.Caption.copy(color = Color(0xFF1D4ED8), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
+                                style = TourOSTypography.Caption.copy(
+                                    color = if (isPackage) Color(0xFF1D4ED8) else Color(0xFFB45309),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                ),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -4609,22 +4722,62 @@ fun HorizontalHotelCard(
 
                 val publicDestinationText = remember(hotel.location, hotel.hotelName) {
                     val loc = hotel.location.trim()
+                    val full = "$loc ${hotel.hotelName}".lowercase()
                     when {
-                        loc.contains("Kemer", ignoreCase = true) -> "🇹🇷 Турция · Antalya · Kemer"
-                        loc.contains("Belek", ignoreCase = true) -> "🇹🇷 Турция · Antalya · Belek"
-                        loc.contains("Lara", ignoreCase = true) || loc.contains("Kundu", ignoreCase = true) -> "🇹🇷 Турция · Antalya · Lara"
-                        loc.contains("Alanya", ignoreCase = true) -> "🇹🇷 Турция · Antalya · Alanya"
-                        loc.contains("Side", ignoreCase = true) || loc.contains("Manavgat", ignoreCase = true) || loc.contains("Çolaklı", ignoreCase = true) || loc.contains("Kumköy", ignoreCase = true) -> "🇹🇷 Турция · Antalya · Side"
-                        loc.contains("Bodrum", ignoreCase = true) -> "🇹🇷 Турция · Muğla · Bodrum"
-                        loc.contains("Marmaris", ignoreCase = true) -> "🇹🇷 Турция · Muğla · Marmaris"
-                        loc.contains("Fethiye", ignoreCase = true) -> "🇹🇷 Турция · Muğla · Fethiye"
-                        loc.contains("Moskova", ignoreCase = true) || loc.contains("Rusya", ignoreCase = true) -> "🇷🇺 Rusya · Moskova"
-                        loc.contains("Dubai", ignoreCase = true) || loc.contains("BAE", ignoreCase = true) -> "🇦🇪 BAE · Dubai"
-                        loc.contains("Şarm", ignoreCase = true) || loc.contains("Hurgada", ignoreCase = true) || loc.contains("Mısır", ignoreCase = true) -> "🇪🇬 Mısır · Şarm El-Şeyh"
-                        loc.contains("Phuket", ignoreCase = true) || loc.contains("Пхукет", ignoreCase = true) || loc.contains("Tayland", ignoreCase = true) -> "🇹🇭 Tayland · Phuket"
-                        loc.contains("Vietnam", ignoreCase = true) || loc.contains("Nha Trang", ignoreCase = true) -> "🇻🇳 Vietnam · Nha Trang"
+                        // Türkiye Destinasyonları
+                        full.contains("kemer") || full.contains("кемер") -> "Турция · Анталья · Кемер"
+                        full.contains("belek") || full.contains("белек") -> "Турция · Анталья · Белек"
+                        full.contains("lara") || full.contains("лара") || full.contains("kundu") || full.contains("кунду") -> "Турция · Анталья · Лара"
+                        full.contains("alanya") || full.contains("аланья") || full.contains("махмутлар") || full.contains("конаклы") -> "Турция · Анталья · Аланья"
+                        full.contains("side") || full.contains("сиде") || full.contains("manavgat") || full.contains("манавгат") || full.contains("çolaklı") || full.contains("kumköy") -> "Турция · Анталья · Сиде"
+                        full.contains("bodrum") || full.contains("бодрум") -> "Турция · Мугла · Бодрум"
+                        full.contains("marmaris") || full.contains("мармарис") -> "Турция · Мугла · Мармарис"
+                        full.contains("fethiye") || full.contains("фетхие") -> "Турция · Мугла · Фетхие"
+                        full.contains("istanbul") || full.contains("стамбул") -> "Турция · Стамбул"
+                        full.contains("antalya") || full.contains("анталья") -> "Турция · Анталья"
+
+                        // Rusya Destinasyonları (Şehir bazlı öncelik)
+                        full.contains("sochi") || full.contains("сочи") || full.contains("adler") || full.contains("адлер") || full.contains("лоо") || full.contains("лазаревск") || full.contains("красная поляна") -> "Россия · Сочи"
+                        full.contains("petersburg") || full.contains("петербург") || full.contains("питер") -> "Россия · Санкт-Петербург"
+                        full.contains("kazan") || full.contains("казань") -> "Россия · Казань"
+                        full.contains("kaliningrad") || full.contains("калининград") -> "Россия · Калининград"
+                        full.contains("yekaterinburg") || full.contains("екатеринбург") -> "Россия · Екатеринбург"
+                        full.contains("moskova") || full.contains("moscow") || full.contains("москва") -> "Россия · Москва"
+                        full.contains("rusya") || full.contains("россия") || full.contains("russia") -> "Россия · Москва"
+
+                        // BAE / Dubai
+                        full.contains("dubai") || full.contains("дубай") || full.contains("bae") || full.contains("оаэ") || full.contains("uae") -> "ОАЭ · Дубай"
+
+                        // Mısır
+                        full.contains("şarm") || full.contains("шарм") || full.contains("sharm") -> "Египет · Шарм-эль-Шейх"
+                        full.contains("hurgada") || full.contains("хургада") || full.contains("hurghada") -> "Египет · Хургада"
+                        full.contains("mısır") || full.contains("египет") || full.contains("egypt") -> "Египет"
+
+                        // Tayland
+                        full.contains("phuket") || full.contains("пхукет") -> "Таиланд · Пхукет"
+                        full.contains("pattaya") || full.contains("паттайя") -> "Таиланд · Паттайя"
+                        full.contains("bangkok") || full.contains("бангкок") -> "Таиланд · Бангкок"
+                        full.contains("tayland") || full.contains("таиланд") || full.contains("thailand") -> "Таиланд · Пхукет"
+
+                        // Vietnam
+                        full.contains("nha trang") || full.contains("нячанг") -> "Вьетнам · Нячанг"
+                        full.contains("phu quoc") || full.contains("фукуок") -> "Вьетнам · Фукуок"
+                        full.contains("vietnam") || full.contains("вьетнам") -> "Вьетнам · Нячанг"
+
                         loc.isNotBlank() -> loc
-                        else -> "🇹🇷 Турция · Antalya"
+                            .replace("Rusya", "Россия", ignoreCase = true)
+                            .replace("Russia", "Россия", ignoreCase = true)
+                            .replace("Moskova", "Москва", ignoreCase = true)
+                            .replace("Moscow", "Москва", ignoreCase = true)
+                            .replace("Mısır", "Египет", ignoreCase = true)
+                            .replace("Egypt", "Египет", ignoreCase = true)
+                            .replace("Tayland", "Таиланд", ignoreCase = true)
+                            .replace("Thailand", "Таиланд", ignoreCase = true)
+                            .replace("BAE", "ОАЭ", ignoreCase = true)
+                            .replace("UAE", "ОАЭ", ignoreCase = true)
+                            .replace("Türkiye", "Турция", ignoreCase = true)
+                            .replace("Turkey", "Турция", ignoreCase = true)
+                        else -> "Турция · Анталья"
                     }
                 }
 
@@ -4645,7 +4798,7 @@ fun HorizontalHotelCard(
                     "${AppLanguageManager.translate("Direkt Uçuş")} · ${AppLanguageManager.translate("Ekonomi Sınıfı")} · ${AppLanguageManager.translate("Gidiş-Dönüş")}"
                 }
                 Text(
-                    text = if (isFlightCard) flightDepartureInfo else "${AppLanguageManager.translate(publicDestinationText)} · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${hotel.mealType}",
+                    text = if (isFlightCard) flightDepartureInfo else "${AppLanguageManager.translate(publicDestinationText)} · ${hotel.nights} ${AppLanguageManager.translate("Gece")} · ${AppLanguageManager.translate(hotel.mealType)}",
                     style = TourOSTypography.Caption.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.SemiBold, fontSize = 10.sp),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -5124,8 +5277,8 @@ fun groupOffersByHotelName(rawOffers: List<PublicHotelOffer>): List<PublicHotelO
                                 agencyName = finalOp,
                                 operatorName = finalOp,
                                 nights = if (p.nights > 0) p.nights else item.nights,
-                                departureDate = p.departureDate.ifBlank { item.departureDate ?: "" },
-                                returnDate = p.returnDate.ifBlank { item.returnDate ?: "" }
+                                departureDate = normalizeDateToDDMMYYYY(p.departureDate.ifBlank { item.departureDate ?: "" }),
+                                returnDate = normalizeDateToDDMMYYYY(p.returnDate.ifBlank { item.returnDate ?: "" })
                             )
                         )
                     }
@@ -5144,8 +5297,8 @@ fun groupOffersByHotelName(rawOffers: List<PublicHotelOffer>): List<PublicHotelO
                             price = item.minPrice,
                             isBestDeal = false,
                             nights = item.nights,
-                            departureDate = item.departureDate ?: "",
-                            returnDate = item.returnDate ?: ""
+                            departureDate = normalizeDateToDDMMYYYY(item.departureDate ?: ""),
+                            returnDate = normalizeDateToDDMMYYYY(item.returnDate ?: "")
                         )
                     )
                 }
@@ -5153,7 +5306,7 @@ fun groupOffersByHotelName(rawOffers: List<PublicHotelOffer>): List<PublicHotelO
         }
 
         val distinctPrices = combinedAgencyPrices.distinctBy { 
-            "${it.operatorName}_${it.roomType}_${it.boardType}_${it.nights}_${it.departureDate}_${it.price.toInt()}" 
+            "${it.operatorName}_${it.roomType}_${it.boardType}_${it.nights}_${normalizeDateToDDMMYYYY(it.departureDate)}_${it.price.toInt()}" 
         }
 
         val minPrice = distinctPrices.minOfOrNull { it.price } ?: first.minPrice
@@ -6196,33 +6349,63 @@ fun PopularCountriesDiscoveryDialog(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        OutlinedTextField(
-                            value = countrySearchQuery,
-                            onValueChange = { countrySearchQuery = it },
-                            placeholder = { Text(AppLanguageManager.translate("Поиск страны..."), fontSize = 12.sp) },
-                            singleLine = true,
-                            leadingIcon = {
-                                Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
-                            },
-                            trailingIcon = {
+                        Surface(
+                            modifier = Modifier
+                                .width(240.dp)
+                                .height(38.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFCBD5E1))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = null,
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Box(
+                                    modifier = Modifier.weight(1f),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (countrySearchQuery.isBlank()) {
+                                        Text(
+                                            text = AppLanguageManager.translate("Поиск страны..."),
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF94A3B8),
+                                            maxLines = 1
+                                        )
+                                    }
+                                    androidx.compose.foundation.text.BasicTextField(
+                                        value = countrySearchQuery,
+                                        onValueChange = { countrySearchQuery = it },
+                                        singleLine = true,
+                                        textStyle = TourOSTypography.BodyMedium.copy(
+                                            color = Color(0xFF0F172A),
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                                 if (countrySearchQuery.isNotBlank()) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "Clear",
                                         tint = Color(0xFF94A3B8),
-                                        modifier = Modifier.size(14.dp).clickable { countrySearchQuery = "" }
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .clickable { countrySearchQuery = "" }
                                     )
                                 }
-                            },
-                            modifier = Modifier.width(220.dp).height(44.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color.White,
-                                unfocusedContainerColor = Color.White,
-                                focusedBorderColor = Color(0xFF0F5A56),
-                                unfocusedBorderColor = Color(0xFFCBD5E1)
-                            )
-                        )
+                            }
+                        }
                     }
 
                     // Ülke Çipleri Listesi (18 Canlı Ülke)

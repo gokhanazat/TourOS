@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.withLock
 import kotlin.random.Random
 
 data class FlightOption(
@@ -130,7 +131,13 @@ class B2BTourSearchViewModel(
         fun clearGlobalCache() {
             globalCachedCombined = null
             globalCachedMetadata = null
+            marketplaceCache.clear()
         }
+
+        // Ortak marketplace_products önbelleği (acente + web ekranı aynı veriyi paylaşır, her aramada ~8000 satır yeniden inmez)
+        private const val MARKETPLACE_CACHE_TTL_MS = 5 * 60 * 1000L // 5 dakika
+        private val marketplaceCacheMutex = kotlinx.coroutines.sync.Mutex()
+        private val marketplaceCache = mutableMapOf<String, Pair<kotlin.time.TimeMark, List<UnifiedProductEntity>>>()
 
         fun calculateMultiplier(adultsCount: Int, childAgesList: List<Int>, isFlight: Boolean = false): Double {
             val adultWeight = adultsCount.coerceAtLeast(1) * 1.0
@@ -160,9 +167,123 @@ class B2BTourSearchViewModel(
             return emptyList()
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        // ORTAK ARAMA KURALLARI (Acente B2B ekranı + Web vitrin ekranı aynı fonksiyonları kullanır)
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /**
+         * marketplace_products tablosundan verilen ürün tipindeki TÜM güncel kayıtları sayfa sayfa çeker.
+         * - Sabit limit yok (eski kod 301 / 500 kayıtla sınırlıydı).
+         * - Geçmiş tarihli ürünler sunucuda elenir (departure_date >= bugün).
+         * - Yandex sunucusundaki PostgREST (api.axileto.com) tek istekte sınırlı satır döndürdüğü için
+         *   boş sayfa gelene kadar okunur; sayfalar kaymasın diye id'ye göre sıralanır.
+         */
+        suspend fun fetchAllMarketplaceProducts(
+            client: SupabaseClient,
+            productType: String,
+            forceRefresh: Boolean = false
+        ): List<UnifiedProductEntity> = marketplaceCacheMutex.withLock {
+            // Aynı gün + aynı tip için 5 dk içinde tekrar çağrılırsa önbellekten döner.
+            // Mutex sayesinde iki ekran aynı anda isterse veri yalnızca bir kez iner.
+            val cacheKey = "$productType|${com.mgacreative.touros.utils.DateUtils.getTodayIso()}"
+            val cached = marketplaceCache[cacheKey]
+            if (!forceRefresh && cached != null && cached.first.elapsedNow().inWholeMilliseconds < MARKETPLACE_CACHE_TTL_MS) {
+                return@withLock cached.second
+            }
+            val fresh = loadAllMarketplaceProductsFromDb(client, productType)
+            marketplaceCache[cacheKey] = kotlin.time.TimeSource.Monotonic.markNow() to fresh
+            fresh
+        }
+
+        private suspend fun loadAllMarketplaceProductsFromDb(client: SupabaseClient, productType: String): List<UnifiedProductEntity> {
+            val pageSize = 1000L
+            val maxRows = 50_000L // sonsuz döngüye karşı güvenlik sınırı
+            val today = com.mgacreative.touros.utils.DateUtils.getTodayIso()
+            val all = mutableListOf<UnifiedProductEntity>()
+            var from = 0L
+            while (from < maxRows) {
+                val page = client.postgrest["marketplace_products"]
+                    .select {
+                        filter {
+                            eq("product_type", productType)
+                            gte("departure_date", today)
+                        }
+                        order("id", io.github.jan.supabase.postgrest.query.Order.ASCENDING)
+                        range(from, from + pageSize - 1)
+                    }
+                    .decodeList<UnifiedProductEntity>()
+                if (page.isEmpty()) break
+                all += page
+                // Sunucudaki max-rows ayarı 1000'den düşükse de çalışsın diye gelen satır sayısı kadar ilerle
+                from += page.size
+            }
+            println("📦 marketplace_products [$productType]: ${all.size} kayıt yüklendi (>= $today)")
+            return all
+        }
+
+        /** "dd.MM.yyyy", "yyyy-MM-dd" veya "yyyy-MM-ddTHH:mm..." biçimini "yyyy-MM-dd" yapar; çözülemezse null. */
+        fun toIsoDate(text: String?): String? {
+            val t = text?.trim().orEmpty()
+            if (t.isBlank()) return null
+            Regex("^(\\d{4})-(\\d{2})-(\\d{2})").find(t)?.let { return it.value }
+            Regex("^(\\d{1,2})[./](\\d{1,2})[./](\\d{4})").find(t)?.let { m ->
+                val (d, mo, y) = m.destructured
+                return "$y-${mo.padStart(2, '0')}-${d.padStart(2, '0')}"
+            }
+            return null
+        }
+
+        /** "yyyy-MM-dd" → "dd.MM.yyyy" (arama çubuğunun kullandığı biçim). */
+        fun isoToDot(iso: String): String {
+            val p = iso.take(10).split("-")
+            return if (p.size == 3) "${p[2]}.${p[1]}.${p[0]}" else iso
+        }
+
+        /** Aday tarihlerden, seçilen başlangıç tarihine en yakın en fazla [limit] tanesini kronolojik sırayla döner. */
+        fun pickNearestDates(candidates: Collection<String>, startText: String?, limit: Int = 5): List<String> {
+            if (candidates.isEmpty()) return emptyList()
+            fun dayNumber(iso: String): Int {
+                val p = iso.split("-").mapNotNull { it.toIntOrNull() }
+                return if (p.size == 3) p[0] * 372 + p[1] * 31 + p[2] else 0 // sıralama için yeterli yaklaşık gün numarası
+            }
+            val anchorIso = toIsoDate(startText) ?: com.mgacreative.touros.utils.DateUtils.getTodayIso()
+            val anchorDay = dayNumber(anchorIso)
+            return candidates.distinct()
+                .sortedBy { kotlin.math.abs(dayNumber(it) - anchorDay) }
+                .take(limit)
+                .sorted()
+        }
+
+        /**
+         * Tarih kuralı:
+         * 1) Geçmiş tarihli ürün gösterilmez.
+         * 2) Kullanıcı tarih aralığı seçtiyse sadece o aralıkta kalkan ürünler gösterilir.
+         * Kalkış tarihi olmayan ürünler (yerel otel/tur) elenmez.
+         */
+        fun isDateInRange(item: UnifiedProductEntity, startText: String?, endText: String?): Boolean {
+            val dep = toIsoDate(item.departureDate) ?: return true
+            if (dep < com.mgacreative.touros.utils.DateUtils.getTodayIso()) return false
+            val start = toIsoDate(startText)
+            val end = toIsoDate(endText)
+            if (start != null && dep < start) return false
+            if (end != null && dep > end) return false
+            return true
+        }
+
+        /**
+         * "Hepsi / Tümü" seçimi mi? Sadece metnin BAŞINDA aranır.
+         * (Eski kod "içeriyor mu" diye bakıyordu: "Москва (Все аэропорты)" içindeki "Все" yüzünden
+         *  Moskova seçimi "tüm kalkış şehirleri" sayılıyor, her şehirden kalkan turlar geliyordu.)
+         */
+        fun isAllSelection(text: String?): Boolean {
+            val l = text?.trim()?.lowercase().orEmpty()
+            return l.isBlank() || l == "all" || l.startsWith("tüm") || l.startsWith("hepsi") ||
+                    l.startsWith("все") || l.startsWith("всё") || l.startsWith("любой") || l.startsWith("любое")
+        }
+
         fun isDepartureMatchingText(targetDeparture: String, selectedDeparture: String): Boolean {
             val dep = selectedDeparture.trim()
-            if (dep.isBlank() || dep.equals("Tüm Kalkış Şehirleri", ignoreCase = true) || dep.startsWith("Tüm", ignoreCase = true) || dep.contains("Tüm", ignoreCase = true) || dep.contains("Hepsi", ignoreCase = true) || dep.equals("ALL", ignoreCase = true) || dep.startsWith("Все", ignoreCase = true) || dep.contains("Все", ignoreCase = true)) {
+            if (isAllSelection(dep)) {
                 return true
             }
             if (targetDeparture.isBlank() || targetDeparture.contains("Yerel", ignoreCase = true)) {
@@ -288,9 +409,46 @@ class B2BTourSearchViewModel(
             return airportCities.any { d.contains(it) }
         }
 
+        /**
+         * Rusça (Kiril) destinasyon adlarının Latin karşılıkları.
+         * Arayüz Rusça iken seçim "Кемер / Бельдиби / Текирова" gibi yalnızca Kiril gelir;
+         * eşleştirme kuralları Latin anahtar kelimeler kullandığı için bu adlar Latin karşılıklarıyla genişletilir.
+         */
+        private val cyrillicDestinationAliases = linkedMapOf(
+            // Türkiye
+            "турция" to "türkiye", "анталья" to "antalya", "кемер" to "kemer", "бельдиби" to "beldibi",
+            "текирова" to "tekirova", "гейнюк" to "göynük", "гёйнюк" to "göynük", "кириш" to "kiriş",
+            "чамьюва" to "çamyuva", "белек" to "belek", "богазкент" to "boğazkent", "кадрие" to "kadriye",
+            "лара" to "lara", "кунду" to "kundu", "сиде" to "side", "манавгат" to "manavgat",
+            "чолаклы" to "çolaklı", "кумкой" to "kumköy", "аланья" to "alanya", "махмутлар" to "mahmutlar",
+            "авсаллар" to "avsallar", "окурджалар" to "okurcalar", "конаклы" to "konaklı",
+            "бодрум" to "bodrum", "мармарис" to "marmaris", "фетхие" to "fethiye", "олюдениз" to "ölüdeniz",
+            "даламан" to "dalaman", "чешме" to "çeşme", "измир" to "izmir", "стамбул" to "istanbul",
+            "кушадасы" to "kuşadası", "дидим" to "didim",
+            // Mısır
+            "египет" to "egypt", "шарм" to "sharm", "хургада" to "hurghada", "эль гуна" to "el gouna",
+            "макади" to "makadi", "марса алам" to "marsa alam",
+            // Tayland
+            "таиланд" to "thailand", "тайланд" to "thailand", "пхукет" to "phuket", "паттайя" to "pattaya",
+            "бангкок" to "bangkok", "самуи" to "samui", "краби" to "krabi",
+            // BAE
+            "оаэ" to "uae", "дубай" to "dubai", "абу-даби" to "abu dhabi", "шарджа" to "sharjah",
+            // Vietnam
+            "вьетнам" to "vietnam", "нячанг" to "nha trang", "фукуок" to "phu quoc", "дананг" to "da nang",
+            // Rusya
+            "россия" to "russia", "сочи" to "sochi", "москва" to "moskova", "петербург" to "petersburg", "казань" to "kazan"
+        )
+
+        /** Seçilen destinasyonun küçük harfli halini Kiril → Latin karşılıklarıyla genişletir ("кемер" → "кемер / kemer"). */
+        fun expandDestinationAliases(destLower: String): String {
+            val extras = cyrillicDestinationAliases.filterKeys { destLower.contains(it) }.values.distinct()
+                .filter { !destLower.contains(it) }
+            return if (extras.isEmpty()) destLower else destLower + " / " + extras.joinToString(" / ")
+        }
+
         fun isDestinationMatchingText(targetText: String, selectedDest: String): Boolean {
             val dest = selectedDest.trim()
-            if (dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Tüm Varış Noktaları", ignoreCase = true) || dest.equals("Tüm", ignoreCase = true) || dest.equals("ALL", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.startsWith("Tüm", ignoreCase = true) || dest.startsWith("Все", ignoreCase = true)) {
+            if (isAllSelection(dest)) {
                 return true
             }
 
@@ -310,13 +468,19 @@ class B2BTourSearchViewModel(
 
         fun isDestinationMatching(item: UnifiedProductEntity, selectedDest: String): Boolean {
             val dest = selectedDest.trim()
-            if (dest.isBlank() || dest.equals("Tüm Destinasyonlar", ignoreCase = true) || dest.equals("Tüm Varış Noktaları", ignoreCase = true) || dest.equals("Tüm", ignoreCase = true) || dest.equals("ALL", ignoreCase = true) || dest.equals("Все направления", ignoreCase = true) || dest.startsWith("Tüm", ignoreCase = true) || dest.startsWith("Все", ignoreCase = true)) {
+            if (isAllSelection(dest)) {
                 return true
             }
 
-            val destLower = dest.lowercase()
-            // Sadece Coğrafi Alanlar (Ülke, Bölge, Alt Bölge) ve Uçuş Kodu / Havayolu
-            val geoText = "${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion} ${item.flightNumber} ${item.airlineName}".lowercase()
+            // Rusça seçimler ("Кемер / Бельдиби") Latin karşılıklarıyla genişletilir, böylece aynı kurallar her dilde çalışır
+            val destLower = expandDestinationAliases(dest.lowercase())
+            // Uçuş no / havayolu sadece saf uçuş ürünlerinde coğrafi metne eklenir.
+            // (Paket turlarda "VKO - AYT" gibi uçuş kodları tüm Antalya bölgelerini birbirine karıştırıyordu.)
+            val isPureFlightItem = item.safeProductType.uppercase() == "FLIGHT" || (item.hotelName.isBlank() && item.flightNumber.isNotBlank())
+            val geoText = buildString {
+                append("${item.country} ${item.countryName} ${item.countryCode} ${item.region} ${item.subRegion}")
+                if (isPureFlightItem) append(" ${item.flightNumber} ${item.airlineName}")
+            }.lowercase()
             val itemHotelLower = item.safeHotelName.lowercase()
 
             // 1. Türkiye Destinasyonları (Antalya, Kemer, Belek, Side, Alanya, Bodrum, Marmaris, AYT, BJV, DLM, GZP, ADB, IST)
@@ -324,18 +488,18 @@ class B2BTourSearchViewModel(
                     destLower.contains("antalya") || destLower.contains("belek") || destLower.contains("kemer") || destLower.contains("lara") ||
                     destLower.contains("side") || destLower.contains("alanya") || destLower.contains("bodrum") || destLower.contains("marmaris") ||
                     destLower.contains("fethiye") || destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("istanbul") ||
-                    destLower.contains("ayt") || destLower.contains("bjv") || destLower.contains("dlm") || destLower.contains("gzp") || destLower.contains("adb") || destLower.contains("ist") || destLower.contains("saw")
+                    destLower.contains("ayt") || destLower.contains("bjv") || destLower.contains("dlm") || destLower.contains("gzp") || destLower.contains("adb") || Regex("\\b(ist|saw)\\b").containsMatchIn(destLower)
 
             if (isTargetTurkey) {
                 val isFlightItem = item.safeProductType.uppercase() == "FLIGHT" || item.flightNumber.isNotBlank()
                 // Kesinlikle Türkiye kontrolü (Uçuş seferleri IATA kodları ve Türkiye varış noktalarıyla doğrudan eşleşir)
                 if (!isFlightItem && !isCountryMatching(item, "TR")) return false
 
-                if (destLower.contains("belek") || destLower.contains("белек")) return geoText.contains("belek") || geoText.contains("белек") || geoText.contains("boğazkent") || geoText.contains("kadriye") || geoText.contains("ayt")
-                if (destLower.contains("kemer") || destLower.contains("кемер")) return geoText.contains("kemer") || geoText.contains("кемер") || geoText.contains("beldibi") || geoText.contains("göynük") || geoText.contains("tekirova") || geoText.contains("kiriş") || geoText.contains("çamyuva") || geoText.contains("ayt")
-                if (destLower.contains("lara") || destLower.contains("лара")) return geoText.contains("lara") || geoText.contains("лара") || geoText.contains("kundu") || geoText.contains("ayt")
-                if (destLower.contains("side") || destLower.contains("сиде") || destLower.contains("manavgat")) return geoText.contains("side") || geoText.contains("сиде") || geoText.contains("manavgat") || geoText.contains("çolaklı") || geoText.contains("kumköy") || geoText.contains("sorgun") || geoText.contains("titreyengöl") || geoText.contains("ayt")
-                if (destLower.contains("alanya") || destLower.contains("аланья") || destLower.contains("gzp")) return geoText.contains("alanya") || geoText.contains("аланья") || geoText.contains("okurcalar") || geoText.contains("mahmutlar") || geoText.contains("avsallar") || geoText.contains("konaklı") || geoText.contains("gzp") || geoText.contains("ayt")
+                if (destLower.contains("belek") || destLower.contains("белек")) return geoText.contains("belek") || geoText.contains("белек") || geoText.contains("boğazkent") || geoText.contains("kadriye")
+                if (destLower.contains("kemer") || destLower.contains("кемер")) return geoText.contains("kemer") || geoText.contains("кемер") || geoText.contains("beldibi") || geoText.contains("göynük") || geoText.contains("tekirova") || geoText.contains("kiriş") || geoText.contains("çamyuva") || geoText.contains("goynuk") || geoText.contains("kiris") || geoText.contains("camyuva") || geoText.contains("бельдиби") || geoText.contains("гейнюк") || geoText.contains("гёйнюк") || geoText.contains("текирова") || geoText.contains("кириш") || geoText.contains("чамьюва") || geoText.contains("phaselis") || geoText.contains("фаселис")
+                if (destLower.contains("lara") || destLower.contains("лара")) return geoText.contains("lara") || geoText.contains("лара") || geoText.contains("kundu")
+                if (destLower.contains("side") || destLower.contains("сиде") || destLower.contains("manavgat")) return geoText.contains("side") || geoText.contains("сиде") || geoText.contains("manavgat") || geoText.contains("çolaklı") || geoText.contains("kumköy") || geoText.contains("sorgun") || geoText.contains("titreyengöl")
+                if (destLower.contains("alanya") || destLower.contains("аланья") || destLower.contains("gzp")) return geoText.contains("alanya") || geoText.contains("аланья") || geoText.contains("okurcalar") || geoText.contains("mahmutlar") || geoText.contains("avsallar") || geoText.contains("konaklı") || geoText.contains("gzp")
                 if (destLower.contains("bodrum") || destLower.contains("бодрум") || destLower.contains("bjv")) return geoText.contains("bodrum") || geoText.contains("бодрум") || geoText.contains("yalıkavak") || geoText.contains("torba") || geoText.contains("gümbet") || geoText.contains("bjv")
                 if (destLower.contains("marmaris") || destLower.contains("мармарис") || destLower.contains("fethiye") || destLower.contains("фетхие") || destLower.contains("dlm") || destLower.contains("dalaman")) return geoText.contains("marmaris") || geoText.contains("мармарис") || geoText.contains("fethiye") || geoText.contains("фетхие") || geoText.contains("dlm") || geoText.contains("dalaman") || geoText.contains("ölüdeniz") || geoText.contains("göcek")
                 if (destLower.contains("çeşme") || destLower.contains("cesme") || destLower.contains("чешме") || destLower.contains("adb") || destLower.contains("izmir") || destLower.contains("измир")) return geoText.contains("çeşme") || geoText.contains("cesme") || geoText.contains("alaçatı") || geoText.contains("adb") || geoText.contains("izmir") || geoText.contains("измир")
@@ -350,7 +514,12 @@ class B2BTourSearchViewModel(
                            geoText.contains("manavgat") || geoText.contains("манавгат") ||
                            geoText.contains("bogazkent") || geoText.contains("богазкент")
                 }
-                return true
+                // Ülke seviyesi seçim (Türkiye) → tüm TR ürünleri; aksi halde seçilen bölge adı coğrafi alanlarda geçmeli
+                if (destLower.contains("türkiye") || destLower.contains("turkey") || destLower.contains("турция")) return true
+                val trTokens = destLower.split('/', ',', '(', ')', '—', '-')
+                    .map { it.trim().lowercase() }
+                    .filter { it.length >= 3 }
+                return trTokens.any { geoText.contains(it) }
             }
 
             // 2. Mısır Destinasyonları (Şarm, Hurgada, SSH, HRG vb.)
@@ -421,7 +590,7 @@ class B2BTourSearchViewModel(
             val combinedText = "$geoText $itemHotelLower"
             if (combinedText.contains(destLower)) return true
 
-            val tokens = dest.split('/', ',', '(', ')', '—', '-')
+            val tokens = destLower.split('/', ',', '(', ')', '—', '-')
                 .map { it.trim().lowercase() }
                 .filter { it.length >= 3 && !it.startsWith("tüm") && !it.startsWith("все") }
 
@@ -592,7 +761,7 @@ class B2BTourSearchViewModel(
                 "kazan", "казань" -> listOf("kazan", "казань")
                 else -> listOf(s)
             }
-            return synonyms.any { geoText.contains(it) || it.contains(item.region.lowercase()) }
+            return synonyms.any { geoText.contains(it) || (item.region.isNotBlank() && it.contains(item.region.lowercase())) }
         }
     }
 
@@ -617,6 +786,9 @@ class B2BTourSearchViewModel(
     var isInstantConfirmationOnly = MutableStateFlow(false)
     var isPromoOnly = MutableStateFlow(false)
     var searchQuery = MutableStateFlow("")
+
+    /** Seçilen tarihlerde sonuç yoksa önerilecek en yakın kalkış tarihleri (yyyy-MM-dd, kronolojik). Sonuç varsa boştur. */
+    val nearestDepartureDates = MutableStateFlow<List<String>>(emptyList())
 
     // Seçili Tur / Rezervasyon Akışı State (Kullanıcı seçene kadar null)
     val selectedProduct = MutableStateFlow<UnifiedProductEntity?>(null)
@@ -728,36 +900,15 @@ data class QuotaCheckResultDto(
             var items = emptyList<UnifiedProductEntity>()
             runCatching {
                 if (isTargetingFlights) {
-                    supabaseClient.postgrest["marketplace_products"]
-                        .select {
-                            filter {
-                                eq("product_type", "FLIGHT")
-                            }
-                            range(0, 300)
-                        }
-                        .decodeList<UnifiedProductEntity>()
+                    fetchAllMarketplaceProducts(supabaseClient, "FLIGHT")
                 } else {
-                    val tours = runCatching {
-                        supabaseClient.postgrest["marketplace_products"]
-                            .select {
-                                filter {
-                                    eq("product_type", "PACKAGE_TOUR")
-                                }
-                                range(0, 300)
-                            }
-                            .decodeList<UnifiedProductEntity>()
-                    }.getOrDefault(emptyList())
+                    val tours = runCatching { fetchAllMarketplaceProducts(supabaseClient, "PACKAGE_TOUR") }
+                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; println("⚠️ PACKAGE_TOUR yükleme hatası: ${it.message}") }
+                        .getOrDefault(emptyList())
 
-                    val flights = runCatching {
-                        supabaseClient.postgrest["marketplace_products"]
-                            .select {
-                                filter {
-                                    eq("product_type", "FLIGHT")
-                                }
-                                range(0, 300)
-                            }
-                            .decodeList<UnifiedProductEntity>()
-                    }.getOrDefault(emptyList())
+                    val flights = runCatching { fetchAllMarketplaceProducts(supabaseClient, "FLIGHT") }
+                        .onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; println("⚠️ FLIGHT yükleme hatası: ${it.message}") }
+                        .getOrDefault(emptyList())
 
                     tours + flights
                 }
@@ -882,7 +1033,8 @@ data class QuotaCheckResultDto(
         val isInstant = isInstantConfirmationOnly.value
         val isPromo = isPromoOnly.value
 
-        return list.filter { item ->
+        val dateAlternatives = mutableSetOf<String>()
+        val result = list.filter { item ->
             val pType = item.safeProductType.uppercase()
             val isPureFlight = pType == "FLIGHT" || pType == "CHARTER" || pType == "FLIGHT_ONLY" || 
                                item.tourName.startsWith("Uçuş:", ignoreCase = true) || 
@@ -935,22 +1087,14 @@ data class QuotaCheckResultDto(
                     item.departureCity.lowercase().contains(q) ||
                     item.operatorName.lowercase().contains(q)
 
-            val matchesDest = dest.isBlank() || 
-                    dest.contains("Tüm", ignoreCase = true) || 
-                    dest.contains("Все", ignoreCase = true) || 
-                    dest.equals("ALL", ignoreCase = true) || 
-                    isDestinationMatching(item, dest) || 
-                    isDestinationMatchingText(
-                        targetText = "${item.country} ${item.countryName} ${item.region} ${item.subRegion} ${item.safeHotelName} ${item.tourName} ${item.flightNumber}",
-                        selectedDest = dest
-                    )
+            // Sadece sıkı coğrafi eşleşme: gevşek metin eşleşmesi (otel/tur adı, uçuş no) başka bölgeleri sonuçlara geri sokuyordu
+            val matchesDest = isAllSelection(dest) || isDestinationMatching(item, dest)
 
             val matchesCountry = isCountryMatching(item, country)
 
-            val matchesDep = dep.isBlank() || 
-                    dep.contains("Tüm", ignoreCase = true) || 
-                    dep.contains("Все", ignoreCase = true) || 
-                    dep.equals("ALL", ignoreCase = true) || 
+            val matchesDate = isDateInRange(item, selectedStartDate.value, selectedEndDate.value)
+
+            val matchesDep = isAllSelection(dep) ||
                     isDepartureMatching(item, dep) || 
                     isDepartureMatchingText(
                         targetDeparture = "${item.departureCity} ${item.flightNumber} ${item.tourName} ${item.safeHotelName} ${item.region}",
@@ -973,8 +1117,16 @@ data class QuotaCheckResultDto(
                 }
             }
 
-            matchesSearch && matchesDest && matchesCountry && matchesDep && matchesStar && matchesMeal && matchesInstant && matchesPromo
+            val matchesAllButDate = matchesSearch && matchesDest && matchesCountry && matchesDep && matchesStar && matchesMeal && matchesInstant && matchesPromo
+            if (matchesAllButDate && !matchesDate) {
+                // Geçmiş tarihler zaten isDateInRange'den de geçemez; sadece bugün ve sonrası öneri olur
+                toIsoDate(item.departureDate)?.takeIf { it >= com.mgacreative.touros.utils.DateUtils.getTodayIso() }?.let { dateAlternatives += it }
+            }
+            matchesAllButDate && matchesDate
         }
+        // Sonuç yoksa: diğer tüm kriterlere uyan ama seçilen tarih aralığı dışında kalan en yakın kalkış tarihlerini öner
+        nearestDepartureDates.value = if (result.isEmpty()) pickNearestDates(dateAlternatives, selectedStartDate.value) else emptyList()
+        return result
     }
 
     fun selectProductById(productId: String) {

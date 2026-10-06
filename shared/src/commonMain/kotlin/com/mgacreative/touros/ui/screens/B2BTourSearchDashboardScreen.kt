@@ -942,6 +942,22 @@ fun B2BTourSearchDashboardScreen(
                                                 style = TourOSTypography.BodyMedium.copy(color = TourOSColors.TextSecondary),
                                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                             )
+
+                                            // Seçilen tarihlerde tur yoksa: en yakın kalkış tarihleri önerisi (tıklanınca arama tarihi de güncellenir)
+                                            val nearestDates by viewModel.nearestDepartureDates.collectAsState()
+                                            NearestDepartureDatesSuggestion(
+                                                isoDates = nearestDates,
+                                                startDateText = startDateText,
+                                                endDateText = endDateText,
+                                                onDateSelected = { dotDate ->
+                                                    startDateText = dotDate
+                                                    endDateText = dotDate
+                                                    viewModel.selectedStartDate.value = dotDate
+                                                    viewModel.selectedEndDate.value = dotDate
+                                                    viewModel.performSearch()
+                                                },
+                                                modifier = Modifier.padding(top = 4.dp)
+                                            )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             TourOSButton(
                                                 text = AppLanguageManager.translate("Aramayı Temizle / Kapat ✕"),
