@@ -94,9 +94,10 @@ fun B2BPassengerCheckoutWizardScreen(
                             text = AppLanguageManager.translate("Rezervasyon Durumu"),
                             style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                         )
+                        // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Talepler operatöre elle girildiği için "anında onaylı" ifadesi yanlıştı
                         Text(
-                            text = "⚡ ${AppLanguageManager.translate("Anında Onaylı Operatör Kaydı")}",
-                            style = TourOSTypography.Label.copy(color = TourOSColors.Success),
+                            text = "Заявка — требует подтверждения туроператора",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.Warning),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -165,20 +166,23 @@ fun B2BPassengerCheckoutWizardScreen(
             onDismissRequest = { showSuccessModal = false },
             title = {
                 Text(
-                    text = "🎉 ${AppLanguageManager.translate("Rezervasyon Başarıyla Oluşturuldu!")}",
+                    text = "Заявка сохранена",
                     style = TourOSTypography.TitleMedium.copy(color = TourOSColors.Success),
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.small)) {
+                    // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Uydurma PNR yedek değeri kaldırıldı; kod yoksa satır gösterilmez
+                    if (createdPnrCode.isNotBlank()) {
+                        Text(
+                            text = "${AppLanguageManager.translate("PNR / Rezervasyon Kodu")}: $createdPnrCode",
+                            style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
-                        text = "${AppLanguageManager.translate("PNR / Rezervasyon Kodu")}: ${createdPnrCode.ifBlank { "B2B-PNR-100001" }}",
-                        style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = AppLanguageManager.translate("Turist bilgileri ve bilet konfirmasyonu operatör sistemine başarıyla aktarıldı."),
+                        text = "Внесите заявку в систему туроператора и дождитесь подтверждения.",
                         style = TourOSTypography.BodyMedium
                     )
                 }

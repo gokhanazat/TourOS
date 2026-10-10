@@ -1,0 +1,46 @@
+name: 500 VU Load & Stress Test (k6)
+
+on:
+  workflow_dispatch:
+    inputs:
+      smoke_test:
+        description: 'Hızlı doğrulama modu (Smoke Test: 1 VU, 5s)?'
+        required: false
+        type: boolean
+        default: false
+      target_url:
+        description: 'Test edilecek hedef URL'
+        required: false
+        type: string
+        default: 'https://axileto.com'
+
+jobs:
+  k6-load-test:
+    name: Run k6 500 VU Load Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup k6 CLI
+        uses: grafana/k6-action@v0.4.0
+
+      - name: Execute k6 Load Test
+        env:
+          SMOKE: ${{ github.event.inputs.smoke_test }}
+          TARGET_URL: ${{ github.event.inputs.target_url || 'https://axileto.com' }}
+          TOURVISOR_URL: 'http://tourvisor.ru/xml/list.php'
+          TOURVISOR_AUTH_LOGIN: ${{ secrets.TOURVISOR_AUTH_LOGIN || 'Mabit23@gmail.com' }}
+          TOURVISOR_AUTH_PASS: ${{ secrets.TOURVISOR_AUTH_PASS || 'FFytMvSU0ZHr' }}
+        run: |
+          k6 run load-test.js
+
+      - name: Upload Load Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-load-test-results
+          path: |
+            *.json
+            *.html

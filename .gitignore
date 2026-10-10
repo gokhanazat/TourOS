@@ -21,3 +21,11 @@ node_modules/
 dist/
 
 nginx-axileto.conf
+
+playwright-report/
+test-results/
+tools/
+zap-report.*
+report_*.html
+report_*.json
+report_*.md

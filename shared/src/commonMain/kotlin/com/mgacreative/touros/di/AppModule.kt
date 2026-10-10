@@ -58,6 +58,8 @@ val networkModule = module {
     single { SupabaseClientProvider.create() }
     single { com.mgacreative.touros.data.cache.SystemCacheManager(get()) }
     single { com.mgacreative.touros.data.remote.TourSearchProxyService(get()) }
+    // Tourvisor canlı tur detayı (rezervasyon adımı) — Search modülünden bağımsız
+    single { com.mgacreative.touros.data.tourvisor.TourActualizationStore(get()) }
 }
 
 val repositoryModule = module {
