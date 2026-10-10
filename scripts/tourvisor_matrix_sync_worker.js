@@ -17,8 +17,9 @@ const path = require('path');
 
 // TourVisor API Konfigürasyonu
 const TOURVISOR_CONFIG = {
-    authEmail: process.env.TOURVISOR_EMAIL || 'Mabit23@gmail.com',
-    authPass: process.env.TOURVISOR_PASS || 'FFytMvSU0ZHr',
+    // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Açık yazılı yedek giriş bilgileri kaldırıldı
+    authEmail: process.env.TOURVISOR_EMAIL || process.env.TV_AUTH_LOGIN || '',
+    authPass: process.env.TOURVISOR_PASS || process.env.TV_AUTH_PASS || '',
     baseUrl: 'http://tourvisor.ru/xml',
     requestDelayMs: 2500,        // IP rate limit koruması
     pollIntervalMs: 3000,        // Polling kontrol sıklığı

@@ -31,8 +31,9 @@ jobs:
           SMOKE: ${{ github.event.inputs.smoke_test }}
           TARGET_URL: ${{ github.event.inputs.target_url || 'https://axileto.com' }}
           TOURVISOR_URL: 'http://tourvisor.ru/xml/list.php'
-          TOURVISOR_AUTH_LOGIN: ${{ secrets.TOURVISOR_AUTH_LOGIN || 'Mabit23@gmail.com' }}
-          TOURVISOR_AUTH_PASS: ${{ secrets.TOURVISOR_AUTH_PASS || 'FFytMvSU0ZHr' }}
+          # [10.10.2026] Giriş bilgileri yalnızca GitHub Secrets'tan gelir (dosyada açık değer tutulmaz)
+          TOURVISOR_AUTH_LOGIN: ${{ secrets.TOURVISOR_AUTH_LOGIN }}
+          TOURVISOR_AUTH_PASS: ${{ secrets.TOURVISOR_AUTH_PASS }}
         run: |
           k6 run load-test.js
 

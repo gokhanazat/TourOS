@@ -70,7 +70,9 @@ fun B2BTourFlightServiceSelectionScreen(
     val dynamicMultiplier = remember(adults, childrenAges, isFlightOnly) {
         B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges, isFlightOnly)
     }
-    val basePrice = remember(product.price, dynamicMultiplier) { product.price * dynamicMultiplier }
+    // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatördeki güncel fiyat varsa taban fiyat odur (kayıtla aynı kural)
+    val tvLivePrice = rememberTourvisorLivePrice(product)
+    val basePrice = remember(product.price, tvLivePrice, dynamicMultiplier) { (tvLivePrice ?: product.price) * dynamicMultiplier }
     val flightDelta = selectedFlightOption?.priceDeltaRub ?: 0.0
 
     val currencyRateToProduct = remember(product.currency) {

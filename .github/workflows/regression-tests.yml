@@ -51,11 +51,12 @@ jobs:
       - name: Run Live Operator Integration Tests (Tourvisor REST & Samo SOAP)
         env:
           TOURVISOR_API_URL: ${{ secrets.TOURVISOR_API_URL || 'http://tourvisor.ru/xml/list.php' }}
-          TOURVISOR_AUTH_LOGIN: ${{ secrets.TOURVISOR_AUTH_LOGIN || 'Mabit23@gmail.com' }}
-          TOURVISOR_AUTH_PASS: ${{ secrets.TOURVISOR_AUTH_PASS || 'FFytMvSU0ZHr' }}
+          # [10.10.2026] Giriş bilgileri yalnızca GitHub Secrets'tan gelir (dosyada açık değer tutulmaz)
+          TOURVISOR_AUTH_LOGIN: ${{ secrets.TOURVISOR_AUTH_LOGIN }}
+          TOURVISOR_AUTH_PASS: ${{ secrets.TOURVISOR_AUTH_PASS }}
           SAMO_SOAP_ENDPOINT: ${{ secrets.SAMO_SOAP_ENDPOINT || 'https://samo.ru' }}
-          SAMO_AUTH_USER: ${{ secrets.SAMO_AUTH_USER || 'Mabit23@gmail.com' }}
-          SAMO_AUTH_PASS: ${{ secrets.SAMO_AUTH_PASS || 'FFytMvSU0ZHr' }}
+          SAMO_AUTH_USER: ${{ secrets.SAMO_AUTH_USER }}
+          SAMO_AUTH_PASS: ${{ secrets.SAMO_AUTH_PASS }}
         run: ./gradlew :shared:jvmTest --tests "com.mgacreative.touros.integration.OperatorLiveIntegrationTest" --no-daemon
 
       - name: Set up Node.js

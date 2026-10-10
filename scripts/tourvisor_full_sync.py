@@ -12,17 +12,30 @@ import urllib.parse
 import json
 import time
 import datetime
+import os
+import sys
 import psycopg2
 from psycopg2.extras import execute_batch
 
-AUTH_LOGIN = 'Mabit23@gmail.com'
-AUTH_PASS = 'FFytMvSU0ZHr'
+# [ONAYLI DEĞİŞİKLİK — 10.10.2026] Giriş bilgileri koddan kaldırıldı.
+# Değerler sunucudaki /etc/touros/tourvisor_actualize.env dosyasından gelir (canlı tur servisiyle ortak;
+# touros-sync-daemon.service → EnvironmentFile. tourvisor_daemon.py bu betiği alt süreç olarak çalıştırır,
+# ortam değişkenleri aktarılır). Şablon: scripts/tourvisor_actualize.env.example
+def _env(name, default=None):
+    value = os.environ.get(name, default)
+    if value is None or str(value).strip() == '':
+        print(f"[HATA] Ortam değişkeni eksik: {name} (/etc/touros/tourvisor_actualize.env)", flush=True)
+        sys.exit(1)
+    return value
 
-DB_HOST = '172.18.0.3'
-DB_PORT = 5432
-DB_NAME = 'postgres'
-DB_USER = 'postgres'
-DB_PASS = 'gGt5o1mMCgHMhPhFHYh0UgYcU6IgB2Lq'
+AUTH_LOGIN = _env('TV_AUTH_LOGIN')
+AUTH_PASS = _env('TV_AUTH_PASS')
+
+DB_HOST = _env('DB_HOST')
+DB_PORT = int(_env('DB_PORT', '5432'))
+DB_NAME = _env('DB_NAME', 'postgres')
+DB_USER = _env('DB_USER')
+DB_PASS = _env('DB_PASS')
 
 # Popüler Kalkış Şehirleri (TourVisor City ID -> Adı)
 CITIES = [
