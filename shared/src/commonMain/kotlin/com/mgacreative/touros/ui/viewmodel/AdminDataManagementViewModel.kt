@@ -39,8 +39,10 @@ class AdminDataManagementViewModel(
             providerType = "TOURVISOR",
             logoIcon = "🇷🇺",
             endpointUrl = "http://tourvisor.ru/xml/list.php",
-            apiKey = "Mabit23@gmail.com",
-            apiSecret = "FFytMvSU0ZHr",
+            // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Giriş bilgileri koddan kaldırıldı (web paketine derleniyordu).
+            // Gerçek değerler yalnızca sunucudaki /etc/touros/*.env dosyalarında tutulur.
+            apiKey = "",
+            apiSecret = "",
             agencyCode = "ALIMAR-15012",
             dataTypes = listOf("TOURS", "HOTELS", "FLIGHTS"),
             syncInterval = "24_HOUR",

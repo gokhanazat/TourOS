@@ -1,7 +1,8 @@
 const http = require('http');
 const fs = require('fs');
 
-const auth = 'authlogin=Mabit23%40gmail.com&authpass=FFytMvSU0ZHr';
+// [ONAYLI DEĞİŞİKLİK — 10.10.2026] Giriş bilgileri koddan kaldırıldı; TV_AUTH_LOGIN / TV_AUTH_PASS ortam değişkenlerinden gelir.
+const auth = `authlogin=${encodeURIComponent(process.env.TV_AUTH_LOGIN || '')}&authpass=${encodeURIComponent(process.env.TV_AUTH_PASS || '')}`;
 
 function get(url) {
     return new Promise((resolve, reject) => {

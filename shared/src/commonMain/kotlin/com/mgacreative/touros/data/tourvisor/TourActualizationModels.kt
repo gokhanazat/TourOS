@@ -53,6 +53,17 @@ data class TourActualizationDto(
         val visa = (visaCharge ?: 0.0) * pax
         return payments + visa
     }
+
+    /**
+     * Operatördeki güncel tur fiyatı (RUB). Ürün RUB değilse veya fiyat yoksa null döner;
+     * bu durumda listedeki fiyat kullanılır (kur dönüşümü uydurulmaz).
+     */
+    fun livePriceFor(productCurrency: String): Double? =
+        price?.takeIf { isOk && it > 0 && productCurrency.equals("RUB", ignoreCase = true) }
+
+    /** Operatörün varsayılan uçuş seti (işaretli değilse ilk set). */
+    val defaultFlightSet: TvFlightSet?
+        get() = safeFlights.firstOrNull { it.isDefault } ?: safeFlights.firstOrNull()
 }
 
 @Serializable

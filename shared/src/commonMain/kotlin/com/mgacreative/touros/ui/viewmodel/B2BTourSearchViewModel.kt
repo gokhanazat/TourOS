@@ -139,7 +139,9 @@ class B2BTourSearchViewModel(
     private val bookingRepository: BookingRepository,
     private val hotelRepository: com.mgacreative.touros.domain.repository.HotelRepository? = null,
     private val tourRepository: com.mgacreative.touros.domain.repository.TourRepository? = null,
-    private val getCurrentUserUseCase: com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase? = null
+    private val getCurrentUserUseCase: com.mgacreative.touros.domain.usecase.GetCurrentUserUseCase? = null,
+    // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Tourvisor canlı tur detayı: kayıt tutarı ekrandaki toplamla aynı hesaplanır
+    private val tourActualizationStore: com.mgacreative.touros.data.tourvisor.TourActualizationStore? = null
 ) : ViewModel() {
 
     companion object {
@@ -1491,8 +1493,18 @@ data class QuotaCheckResultDto(
 
             val isFlight = prod.productType.equals("FLIGHT", ignoreCase = true) || prod.flightNumber.isNotBlank() || prod.tourName.contains("Uçuş", ignoreCase = true)
             val dynamicMultiplier = calculateMultiplier(adults.value, childrenAges.value, isFlight)
-            val basePrice = prod.price * dynamicMultiplier
-            val flightDelta = fl?.priceDeltaRub ?: 0.0
+            // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Kayıt tutarı ekrandaki toplamla aynı kuralla hesaplanır:
+            //  - operatördeki güncel fiyat varsa taban fiyat odur (yoksa listedeki fiyat)
+            //  - gerçek uçuşlar geldiyse eski (türetilmiş) uçuş farkı eklenmez
+            //  - Tourvisor zorunlu ek ödemeleri + vize toplama eklenir
+            val tvData = (tourActualizationStore?.stateFor(prod.id)?.value
+                as? com.mgacreative.touros.data.tourvisor.TourActualizationState.Ready)?.data
+            val tvHasLiveFlights = tvData?.safeFlights?.isNotEmpty() == true
+            val tvLivePrice = tvData?.livePriceFor(prod.currency)
+            val tvPaxCount = (adults.value + childrenAges.value.size).coerceAtLeast(1)
+            val tvMandatoryExtras = if (tvData != null && prod.currency.equals("RUB", ignoreCase = true)) tvData.mandatoryExtrasTotal(tvPaxCount) else 0.0
+            val basePrice = (tvLivePrice ?: prod.price) * dynamicMultiplier
+            val flightDelta = if (tvHasLiveFlights) 0.0 else (fl?.priceDeltaRub ?: 0.0)
 
             val conversionRate = when (prod.currency.uppercase()) {
                 "RUB" -> 100.0
@@ -1501,7 +1513,7 @@ data class QuotaCheckResultDto(
                 else -> 1.0 // EUR
             }
             val extrasInProductCurrency = extraServices.value.filter { it.isSelected }.sumOf { (it.unitPriceEur * conversionRate) * it.paxCount }
-            val totalPrice = basePrice + flightDelta + extrasInProductCurrency
+            val totalPrice = basePrice + flightDelta + extrasInProductCurrency + tvMandatoryExtras
 
             val bookingId = generateUuid()
 
@@ -1578,7 +1590,22 @@ data class QuotaCheckResultDto(
                 )
 
                 // Kalem 2: Uçuş Parkuru Detayı
-                if (fl != null) {
+                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatörden gerçek uçuş geldiyse kayda o yazılır (türetilmiş liste yazılmaz)
+                val liveSet = if (tvHasLiveFlights) tvData?.defaultFlightSet else null
+                if (liveSet != null) {
+                    domainItems.add(
+                        BookingItem(
+                            id = generateUuid(),
+                            bookingId = bookingId,
+                            description = buildLiveFlightBookingDescription(liveSet),
+                            quantity = pList.size,
+                            unitPrice = 0.0,
+                            totalPrice = 0.0,
+                            itemType = "FLIGHT",
+                            notes = "Рейсы по данным туроператора (вариант по умолчанию). Окончательно — после подтверждения."
+                        )
+                    )
+                } else if (fl != null) {
                     domainItems.add(
                         BookingItem(
                             id = generateUuid(),
@@ -1612,6 +1639,32 @@ data class QuotaCheckResultDto(
                 )
             }
 
+            // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Tourvisor zorunlu ek ödemeleri + vize ayrı kalem olarak yazılır
+            if (tvData != null && tvMandatoryExtras > 0) {
+                val parts = buildList {
+                    tvData.safeAddPayments.forEach { p ->
+                        p.amount?.takeIf { it > 0 }?.let { add("${p.name.ifBlank { "Доплата" }}: ${it.toInt()}") }
+                    }
+                    tvData.visaCharge?.takeIf { it > 0 }?.let { add("Виза: ${it.toInt()}") }
+                }
+                domainItems.add(
+                    BookingItem(
+                        id = generateUuid(),
+                        bookingId = bookingId,
+                        description = "➕ Обязательные доплаты туроператора",
+                        quantity = tvPaxCount,
+                        unitPrice = tvMandatoryExtras / tvPaxCount,
+                        totalPrice = tvMandatoryExtras,
+                        itemType = "EXTRA",
+                        notes = parts.joinToString(" • ") + " ${prod.currency}/чел."
+                    )
+                )
+            }
+            // Fiyat operatörde değişmişse kayda not düşülür
+            val priceChangeNote = tvLivePrice?.takeIf { kotlin.math.abs(it - prod.price) >= 1.0 }?.let {
+                " • Цена актуализирована у туроператора: ${it.toInt()} (в списке ${prod.price.toInt()}) ${prod.currency}"
+            } ?: ""
+
             // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatör bilinmiyorsa uydurma operatör adı yazılmaz
             val operatorTitle = prod.operatorName
 
@@ -1640,7 +1693,8 @@ data class QuotaCheckResultDto(
                 operatorStatus = "BEKLİYOR",
                 // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Havayolu bilinmiyorsa uydurma "Charter" yazılmaz
                 notes = "🏢 Acente Rezervasyon Talebi • Operatör: $operatorTitle" +
-                    ((fl?.outboundAirline?.takeIf { it.isNotBlank() } ?: prod.airlineName.takeIf { it.isNotBlank() })?.let { " • Uçuş: $it" } ?: ""),
+                    ((fl?.outboundAirline?.takeIf { it.isNotBlank() } ?: prod.airlineName.takeIf { it.isNotBlank() })?.let { " • Uçuş: $it" } ?: "") +
+                    priceChangeNote,
                 tenantId = effectiveTenantId,
                 items = domainItems,
                 passengers = domainPassengers
@@ -1676,6 +1730,23 @@ data class QuotaCheckResultDto(
             "${fl.inboundDeparturePort}->${fl.inboundArrivalPort} (uçuş bilgisi $pending)"
         }
         return "🛫 UÇUŞ: Gidiş $outDate$outFlight ${fl.outboundDeparturePort}->${fl.outboundArrivalPort} $outTimes | Dönüş $inDate$inPart".replace("  ", " ")
+    }
+
+    /** [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatörden gelen gerçek uçuş seti için kayıt açıklaması (bilinmeyen alan uydurulmaz). */
+    private fun buildLiveFlightBookingDescription(set: com.mgacreative.touros.data.tourvisor.TvFlightSet): String {
+        fun leg(l: com.mgacreative.touros.data.tourvisor.TvFlightLeg): String {
+            if (l.isPlaceholder) return "рейс уточняется"
+            val flight = listOfNotNull(
+                l.airlineName?.takeIf { it.isNotBlank() },
+                l.number?.takeIf { it.isNotBlank() }?.let { "($it)" }
+            ).joinToString(" ")
+            val route = listOfNotNull(l.departurePort, l.arrivalPort).filter { it.isNotBlank() }.joinToString("→")
+            val time = listOfNotNull(l.departureDate, l.departureTime).filter { it.isNotBlank() }.joinToString(" ")
+            return listOf(flight, route, time).filter { it.isNotBlank() }.joinToString(" ").ifBlank { "рейс уточняется" }
+        }
+        val forward = set.forward.joinToString(" / ") { leg(it) }.ifBlank { "уточняется" }
+        val backward = set.backward.joinToString(" / ") { leg(it) }.ifBlank { "уточняется" }
+        return "🛫 Перелёт: туда $forward | обратно $backward"
     }
 
     /** "gg.aa.yyyy" biçiminde gidiş tarihi + gece sayısı = dönüş günü. Tarih çözülemezse boş döner. */

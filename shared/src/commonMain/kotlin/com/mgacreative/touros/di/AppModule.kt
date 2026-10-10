@@ -206,7 +206,8 @@ val viewModelModule = module {
     factory { com.mgacreative.touros.ui.viewmodel.PersonalizedRecommendationsViewModel(get(), get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AgencyOperatorConnectionsViewModel(get()) }
     single { com.mgacreative.touros.ui.viewmodel.AgencyProductPublishingViewModel(get(), getOrNull()) }
-    single { com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel(get(), get(), getOrNull(), getOrNull(), getOrNull()) }
+    // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Son parametre: TourActualizationStore (kayıt tutarı ekrandakiyle aynı hesaplansın diye)
+    single { com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel(get(), get(), getOrNull(), getOrNull(), getOrNull(), getOrNull()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminDataManagementViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminDeploymentViewModel(get()) }
     factory { com.mgacreative.touros.ui.viewmodel.AdminAgencyLedgerViewModel(get()) }

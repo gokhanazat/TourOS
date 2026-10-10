@@ -1056,7 +1056,8 @@ fun B2BTourSearchDashboardScreen(
                     } else {
                         val isFlight = curProduct.productType.equals("FLIGHT", ignoreCase = true) || curProduct.flightNumber.isNotBlank() || curProduct.tourName.contains("Uçuş", ignoreCase = true)
                         val dynamicMultiplier = B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges, isFlight)
-                        val basePrice = curProduct.price * dynamicMultiplier
+                        // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatördeki güncel fiyat varsa taban fiyat odur (kayıtla aynı kural)
+                        val basePrice = (com.mgacreative.touros.ui.components.rememberTourvisorLivePrice(curProduct) ?: curProduct.price) * dynamicMultiplier
 
                         Column(verticalArrangement = Arrangement.spacedBy(TourOSSpacing.medium)) {
                             Row(
@@ -1298,7 +1299,8 @@ fun B2BTourSearchDashboardScreen(
                     } else {
                         val isFlight = curProduct.productType.equals("FLIGHT", ignoreCase = true) || curProduct.flightNumber.isNotBlank() || curProduct.tourName.contains("Uçuş", ignoreCase = true)
                         val dynamicMultiplier = B2BTourSearchViewModel.calculateMultiplier(adults, childrenAges, isFlight)
-                        val basePrice = curProduct.price * dynamicMultiplier
+                        // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatördeki güncel fiyat varsa taban fiyat odur (kayıtla aynı kural)
+                        val basePrice = (com.mgacreative.touros.ui.components.rememberTourvisorLivePrice(curProduct) ?: curProduct.price) * dynamicMultiplier
                         // [ONAYLI DEĞİŞİKLİK (b)] Tourvisor zorunlu ek ödemeleri toplama eklenir; gerçek uçuş geldiyse eski uçuş farkı kullanılmaz
                         val tvStore3: com.mgacreative.touros.data.tourvisor.TourActualizationStore = org.koin.compose.koinInject()
                         val tvState3 by remember(curProduct.id) { tvStore3.stateFor(curProduct.id) }.collectAsState()

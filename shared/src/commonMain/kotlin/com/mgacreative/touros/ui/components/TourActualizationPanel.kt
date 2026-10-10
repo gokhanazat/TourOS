@@ -120,6 +120,19 @@ fun rememberTourvisorMandatoryExtras(product: UnifiedProductEntity?, paxCount: I
     return data.mandatoryExtrasTotal(paxCount)
 }
 
+/**
+ * Ekranların taban fiyatı için operatördeki güncel tur fiyatı (RUB).
+ * Bilgi yoksa / ürün RUB değilse null → ekran listedeki fiyatı kullanır.
+ * Rezervasyon kaydı (B2BTourSearchViewModel) aynı kuralla hesaplar; ekran ve kayıt tutarı aynı olur.
+ */
+@Composable
+fun rememberTourvisorLivePrice(product: UnifiedProductEntity?): Double? {
+    if (product == null || tourvisorTourIdOf(product.id) == null) return null
+    val store: TourActualizationStore = koinInject()
+    val state by remember(product.id) { store.stateFor(product.id) }.collectAsState()
+    return (state as? TourActualizationState.Ready)?.data?.livePriceFor(product.currency)
+}
+
 // ─── Bölümler ─────────────────────────────────────────────────────────────────
 
 @Composable
@@ -176,7 +189,8 @@ private fun ReadyBlock(lang: String, d: TourActualizationDto, product: UnifiedPr
             (if (placement.isNotBlank()) " ($placement)" else "")
         if (kotlin.math.abs(diff) >= 1.0) {
             InfoLine(
-                text = "$base — ${tx(lang, "listedeki fiyat", "цена в списке")}: ${money(product.price)} RUB",
+                text = "$base — ${tx(lang, "listedeki fiyat", "цена в списке")}: ${money(product.price)} RUB. " +
+                    tx(lang, "Toplam güncel fiyatla hesaplandı.", "Итог рассчитан по актуальной цене."),
                 color = if (diff > 0) TourOSColors.Warning else TourOSColors.Success,
                 background = if (diff > 0) TourOSColors.WarningContainer else TourOSColors.SuccessContainer
             )

@@ -2802,7 +2802,10 @@ fun GlobalWebPublicScreen(
                                 val flightsOnly = dbProducts.shuffled().filter { 
                                     it.category == "FLIGHT" || it.hotelName.startsWith("Uçuş:", ignoreCase = true) || it.hotelName.startsWith("✈️", ignoreCase = true)
                                 }.take(20)
-                                if (flightsOnly.isNotEmpty()) {
+                                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Uçuş bloğu, uçuş arama sekmesiyle aynı anahtara bağlı (CMS → Özellik Aç/Kapa).
+                                // Kapalıyken gösterilmez: sadece-uçuş verisi Tourvisor'dan gelmiyor, acenteyi yanıltmasın. Kod silinmedi.
+                                val flightBlockEnabled = com.mgacreative.touros.ui.components.rememberFlightSearchTabEnabled()
+                                if (flightBlockEnabled && flightsOnly.isNotEmpty()) {
                                     HorizontalProductSection(
                                         titleVectorIcon = Icons.Default.Flight,
                                         title = "Charter & Tarifeli Uçuşlar",

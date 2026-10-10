@@ -112,8 +112,9 @@ serve(async (req: Request) => {
     }
 
     // 5. Gizli Sunucu API Kimlik Bilgileri (Environment Secrets)
-    const tourvisorLogin = Deno.env.get("TOURVISOR_AUTH_LOGIN") || "Mabit23@gmail.com";
-    const tourvisorPass = Deno.env.get("TOURVISOR_AUTH_PASS") || "FFytMvSU0ZHr";
+    // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Açık yazılı yedek giriş bilgileri kaldırıldı (bu fonksiyon kullanılmıyor; Edge Functions yok)
+    const tourvisorLogin = Deno.env.get("TOURVISOR_AUTH_LOGIN") || "";
+    const tourvisorPass = Deno.env.get("TOURVISOR_AUTH_PASS") || "";
 
     const body: ProxySearchRequest = await req.json();
 

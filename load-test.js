@@ -12,8 +12,9 @@ import { check, sleep } from 'k6';
 
 const BASE_URL = __ENV.TARGET_URL || 'https://axileto.com';
 const TOURVISOR_URL = __ENV.TOURVISOR_URL || 'http://tourvisor.ru/xml/list.php';
-const TOURVISOR_LOGIN = __ENV.TOURVISOR_AUTH_LOGIN || 'Mabit23@gmail.com';
-const TOURVISOR_PASS = __ENV.TOURVISOR_AUTH_PASS || 'FFytMvSU0ZHr';
+// [ONAYLI DEĞİŞİKLİK — 10.10.2026] Giriş bilgileri koddan kaldırıldı; yalnızca GitHub Secrets / ortam değişkeninden gelir.
+const TOURVISOR_LOGIN = __ENV.TOURVISOR_AUTH_LOGIN || '';
+const TOURVISOR_PASS = __ENV.TOURVISOR_AUTH_PASS || '';
 
 const isSmokeTest = __ENV.SMOKE === 'true';
 

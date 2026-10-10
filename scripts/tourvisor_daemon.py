@@ -11,12 +11,24 @@ import datetime
 import subprocess
 import psycopg2
 import sys
+import os
 
-DB_HOST = '172.18.0.3'
-DB_PORT = 5432
-DB_NAME = 'postgres'
-DB_USER = 'postgres'
-DB_PASS = 'gGt5o1mMCgHMhPhFHYh0UgYcU6IgB2Lq'
+# [ONAYLI DEĞİŞİKLİK — 10.10.2026] Giriş bilgileri koddan kaldırıldı.
+# Değerler /etc/touros/tourvisor_actualize.env dosyasından gelir (canlı tur servisiyle ortak;
+# touros-sync-daemon.service → EnvironmentFile).
+# Alt süreç (tourvisor_full_sync.py) aynı ortam değişkenlerini devralır.
+def _env(name, default=None):
+    value = os.environ.get(name, default)
+    if value is None or str(value).strip() == '':
+        print(f"[HATA] Ortam değişkeni eksik: {name} (/etc/touros/tourvisor_actualize.env)", flush=True)
+        sys.exit(1)
+    return value
+
+DB_HOST = _env('DB_HOST')
+DB_PORT = int(_env('DB_PORT', '5432'))
+DB_NAME = _env('DB_NAME', 'postgres')
+DB_USER = _env('DB_USER')
+DB_PASS = _env('DB_PASS')
 SYNC_SCRIPT = '/home/ubuntu/tourvisor_sync/tourvisor_full_sync.py'
 
 def get_db():
