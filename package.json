@@ -1,0 +1,16 @@
+{
+  "name": "touros",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TourOS Multiplatform",
+  "scripts": {
+    "test:i18n": "./gradlew :shared:jvmTest --tests \"com.mgacreative.touros.ui.localization.I18nTranslationKeysTest\" --no-daemon",
+    "test:integration": "./gradlew :shared:jvmTest --tests \"com.mgacreative.touros.integration.OperatorLiveIntegrationTest\" --no-daemon",
+    "test:e2e": "npx playwright test",
+    "test:load": "k6 run load-test.js",
+    "test:security": "docker run --rm -v ${PWD}:/zap/wrk/:rw -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py -t https://axileto.com -r zap-report.html"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

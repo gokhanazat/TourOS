@@ -11,7 +11,9 @@
 
 ## 2. ALTYAPI VE VERİTABANI KULLANIMI
 - **Yandex Database:** Veritabanı Yandex üzerinde tutulmaktadır. Her işlem/prompt sonrasında yeni veya güncellenen bir SQL varsa bunu Yandex üzerinde çalıştırılacak formatta sun/yürüt.
-- **Supabase Sınırı:** Supabase tarafında HİÇBİR fonksiyon (Edge Functions, Database Functions vb.) etkin DEĞİLDİR; backend mantığını buna göre kur.
+- **Supabase Sınırı:** Supabase Cloud (supabase.co) ve Deno tabanlı Edge Function'lar KULLANILMAZ. Supabase, Yandex Cloud VM üzerindeki PostgreSQL 16'nın self-hosted API katmanıdır (https://api.axileto.com); ayrı bir veritabanı değildir.
+- **Backend Mantığı:** Merkezi iş mantığı (veri işleme, hesaplama, yetki, raporlama, kota) Yandex PostgreSQL üzerinde SQL/RPC (`CREATE FUNCTION ... LANGUAGE plpgsql`) olarak yazılır ve `supabase/migrations/` altına migration dosyası olarak eklenir. Sadece UI hesaplamaları, yerel filtreleme ve formatlama Kotlin (`shared/commonMain`) tarafında kalır.
+- **Ödeme:** Online ödeme alınmaz; ürün kullanıcılara doğrudan ticari olarak satılır. Ödeme sağlayıcı entegrasyonu ekleme/önerme.
 
 ## 3. KİLİTLİ ALANLAR VE KISITLAMALAR (SEARCH MODÜLÜ)
 - **Search Dokunulmazlığı:** "Search" (Arama) ile ilgili hiçbir dosyayı, sınıfı, bileşeni veya fonksiyonu (UI, ViewModel, Repository, UseCase vb.) KESİNLİKLE DEĞİŞTİRME, YENİDEN YAZMA, TAŞIMA veya SİLME.

@@ -8,7 +8,9 @@
 5. **Görsel Tutarlılık:** Web, Desktop, Android ve iOS platformlarında aynı tasarım dilini, tema ve bileşen yapısını birebir koru.
 6. **Soru / Fikir Modu:** "soru" veya "düşünüyorum" notu ile paylaşılan mesajlarda kesinlikle kod yazma ve dosya değiştirme; sadece analiz et ve yanıtla.
 7. **Sorun Odak Modu:** "Sorun" ibaresi ile başlayan istemlerde tam odaklanarak derinlemesine kök neden analizi ve çözüm üret.
-8. **Veritabanı Mimarisi:** Database Yandex Cloud üzerinde tutuluyor ve oradan Supabase'e çekiliyor; veri akışını buna göre koru.
+8. **Veritabanı Mimarisi:** Her şey Yandex Cloud'da. Veritabanı Yandex Cloud VM üzerindeki PostgreSQL 16'dır; Supabase bu veritabanının self-hosted API katmanıdır (https://api.axileto.com), ayrı bir veritabanı değildir. Supabase Cloud ve Edge Function'lar kullanılmaz.
+9. **Backend Mantığı:** Merkezi iş mantığı Yandex PostgreSQL üzerinde SQL/RPC (`CREATE FUNCTION ... LANGUAGE plpgsql`) olarak yazılır ve `supabase/migrations/` altına eklenir; sadece UI hesaplamaları, yerel filtreleme ve formatlama Kotlin tarafında kalır.
+10. **Ödeme:** Online ödeme alınmaz; ürün kullanıcılara doğrudan ticari olarak satılır. Ödeme sağlayıcı entegrasyonu ekleme/önerme.
 
 ---
 
