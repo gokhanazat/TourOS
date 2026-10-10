@@ -159,6 +159,8 @@ fun UniversalTourSearchBar(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         // ── 1. ÜST KATEGORİ SEKMELERİ (TURLAR | UÇAK BİLETİ | OTELLER) ─────────────
+        // [ONAYLI DEĞİŞİKLİK (a) — 10.10.2026] Uçak Bileti sekmesi CMS'teki "flight_search_tab" ayarına bağlı (varsayılan kapalı).
+        val flightTabEnabled = rememberFlightSearchTabEnabled()
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -167,7 +169,7 @@ fun UniversalTourSearchBar(
                 Triple("TOURS", AppLanguageManager.translate("Turlar & Paketler"), Icons.Default.Luggage),
                 Triple("FLIGHTS", AppLanguageManager.translate("Uçak Bileti"), Icons.Default.Flight),
                 Triple("HOTELS", AppLanguageManager.translate("Sadece Otel"), Icons.Default.Hotel)
-            ).forEach { (tabKey, tabLabel, tabIcon) ->
+            ).filter { it.first != "FLIGHTS" || flightTabEnabled }.forEach { (tabKey, tabLabel, tabIcon) ->
                 val isSelected = activeTab.uppercase() == tabKey || (tabKey == "FLIGHTS" && activeTab.uppercase() == "FLIGHT")
                 Surface(
                     shape = RoundedCornerShape(8.dp),

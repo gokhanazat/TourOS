@@ -133,6 +133,14 @@ TourOS/
 - Upsert için ID'ler deterministik olmalı (rastgele UUID / indeks değil); ayrıntı `AGENT_HANDOFF.md`.
 - Toplu yazmalar arka planda (`Dispatchers.IO`), 250'lik paketlerle; UI bloklanmaz.
 
+### Tourvisor canlı tur detayı (10.10.2026)
+- Rezervasyon adımında tek tur için `actualize.php` + `actdetail.php` sorgulanır (gerçek uçuşlar, zorunlu ek ödemeler, vize, tura dahil olanlar).
+- Akış: uygulama `request_tour_actualization(tour_id)` RPC → `pg_notify('tour_actualize')` → Yandex VM'deki `scripts/tourvisor_actualize_worker.py` (systemd) → `tour_actualizations` tablosu → uygulama okur. Önbellek 30 dk, günlük sınır `TV_DAILY_CAP`.
+- Kotlin: `data/tourvisor/` (model + `TourActualizationStore`, Koin single), `ui/components/TourActualizationPanel.kt`.
+- Toplu senkrona bu alanlar EKLENMEZ (Tourvisor toplu aktüalizasyonu önermiyor; kota 3000 arama/gün).
+- Aç/kapa: `app_feature_flags` (`flight_search_tab` varsayılan kapalı, `tour_actualization`), CMS ekranındaki kart + `set_app_feature_flag` RPC (sadece süper admin).
+- Uçuş arama sekmesi (sadece uçuş) gerçek kaynak olmadığı için gizli; `marketplace_products` FLIGHT kayıtları 15.09'da paket turlardan türetilmiştir.
+
 ---
 
 ## 8. Komutlar

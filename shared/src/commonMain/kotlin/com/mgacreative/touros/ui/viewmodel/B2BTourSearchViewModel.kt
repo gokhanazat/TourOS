@@ -1303,26 +1303,11 @@ data class QuotaCheckResultDto(
             selectedFlightOption.value = null
         }
 
-        val paxCount = (adults.value + childs.value).coerceAtLeast(1)
-
-        // Dinamik Ekstra Hizmetler (Yolcu Sayısına Bağlı)
-        val infantCount = childrenAges.value.count { it <= 2 }
-        val isFlightOnly = product.productType.equals("FLIGHT", ignoreCase = true) || product.flightNumber.isNotBlank() || product.tourName.contains("Uçuş", ignoreCase = true)
-
-        extraServices.value = if (isFlightOnly) {
-            listOf(
-                ExtraService("srv-1", "Uçuş & Bagaj Güvence Sigortası", "INSURANCE", 12.00, isMandatory = false, isSelected = false, paxCount = paxCount),
-                ExtraService("srv-2", "Uçuş İptal / Bilet Değişiklik Güvencesi", "INSURANCE", 18.00, isMandatory = false, isSelected = false, paxCount = paxCount),
-                ExtraService("srv-3", "Havalimanı Hızlı Geçiş (Fast Track & Lounge)", "EXTRA", 25.00, isMandatory = false, isSelected = false, paxCount = paxCount)
-            )
-        } else {
-            listOf(
-                ExtraService("srv-1", "SOGLASIE Medikal Sigorta 50.000 EUR", "INSURANCE", 16.25, isMandatory = true, isSelected = true, paxCount = paxCount),
-                ExtraService("srv-2", "Seyahat İptal / Vize İptal Sigortası", "INSURANCE", 25.00, isMandatory = false, isSelected = false, paxCount = paxCount),
-                ExtraService("srv-3", "Elite VIP Özel Havalimanı Transferi", "TRANSFER", 0.00, isMandatory = false, isSelected = true, paxCount = paxCount),
-                ExtraService("srv-4", "Bebek Oto Koltuğu Ekstrası", "EXTRA", 15.00, isMandatory = false, isSelected = (infantCount > 0), paxCount = infantCount.coerceAtLeast(1))
-            )
-        }
+        // [ONAYLI DEĞİŞİKLİK (b) — 10.10.2026] Sabit fiyatlı sigorta/ek hizmet listesi kaldırıldı.
+        // Medikal sigorta çoğu pakete zaten dahil olduğundan sabit "zorunlu" kalem müşteriden çift alınmasına yol açıyordu.
+        // Gerçek zorunlu ek ödemeler, vize ve tura dahil olanlar Tourvisor'dan gelir (TourActualizationPanel).
+        // Acenteler ileride kendi ek hizmetlerini veritabanından tanımlayabilir; kodda sabit fiyat tutulmaz.
+        extraServices.value = emptyList()
 
         // Dinamik Yolcu Formu (Yetişkinler + Çocuk Yaşları)
         val paxList = mutableListOf<PassengerInfo>()
@@ -1334,7 +1319,7 @@ data class QuotaCheckResultDto(
                     passengerType = "ADULT",
                     gender = if (idx % 2 != 0) "MALE" else "FEMALE",
                     isPayer = (idx == 1),
-                    citizenship = "Türkiye",
+                    // [ONAYLI DEĞİŞİKLİK (c)] Vatandaşlık varsayılanı "Türkiye" kaldırıldı → PassengerInfo varsayılanı (Россия)
                     documentType = "Pasaport"
                 )
             )
@@ -1347,7 +1332,7 @@ data class QuotaCheckResultDto(
                     passengerType = if (age <= 2) "INFANT" else "CHILD",
                     childAge = age,
                     gender = if (idx % 2 != 0) "MALE" else "FEMALE",
-                    citizenship = "Türkiye",
+                    // [ONAYLI DEĞİŞİKLİK (c)] Vatandaşlık varsayılanı "Türkiye" kaldırıldı
                     documentType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport",
                     isPayer = false
                 )
@@ -1370,7 +1355,7 @@ data class QuotaCheckResultDto(
                 passengerType = "ADULT",
                 childAge = null,
                 gender = "MALE",
-                citizenship = "Türkiye",
+                // [ONAYLI DEĞİŞİKLİK (c)] Vatandaşlık varsayılanı "Türkiye" kaldırıldı
                 documentType = "Pasaport",
                 isPayer = false
             )
@@ -1396,7 +1381,7 @@ data class QuotaCheckResultDto(
                 passengerType = if (age <= 2) "INFANT" else "CHILD",
                 childAge = age,
                 gender = "MALE",
-                citizenship = "Türkiye",
+                // [ONAYLI DEĞİŞİKLİK (c)] Vatandaşlık varsayılanı "Türkiye" kaldırıldı
                 documentType = if (age <= 2) "Doğum Belgesi / Pasaport" else "Pasaport",
                 isPayer = false
             )
@@ -1499,7 +1484,10 @@ data class QuotaCheckResultDto(
             createdPnrCode.value = pnr
 
             val mainPayer = pList.firstOrNull { it.isPayer } ?: pList.firstOrNull()
-            val payerName = "${mainPayer?.firstName ?: ""} ${mainPayer?.lastName ?: ""}".trim().ifBlank { "Müşteri Yolcu" }
+            // [ONAYLI DEĞİŞİKLİK — 10.10.2026] "Müşteri Yolcu" yerine: ödeyen → adı dolu ilk yolcu → "Турист 1"
+            val payerName = "${mainPayer?.firstName ?: ""} ${mainPayer?.lastName ?: ""}".trim().ifBlank {
+                pList.map { "${it.firstName} ${it.lastName}".trim() }.firstOrNull { it.isNotBlank() } ?: "Турист 1"
+            }
 
             val isFlight = prod.productType.equals("FLIGHT", ignoreCase = true) || prod.flightNumber.isNotBlank() || prod.tourName.contains("Uçuş", ignoreCase = true)
             val dynamicMultiplier = calculateMultiplier(adults.value, childrenAges.value, isFlight)
@@ -1508,7 +1496,7 @@ data class QuotaCheckResultDto(
 
             val conversionRate = when (prod.currency.uppercase()) {
                 "RUB" -> 100.0
-                "TRY", "TL" -> 38.0
+                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] TRY kaldırıldı (TL para birimi kullanılmıyor)
                 "USD" -> 1.08
                 else -> 1.0 // EUR
             }
@@ -1562,7 +1550,8 @@ data class QuotaCheckResultDto(
                     BookingItem(
                         id = generateUuid(),
                         bookingId = bookingId,
-                        description = "✈️ Uçuş Bileti: ${fl?.outboundAirline ?: prod.airlineName.ifBlank { "Havayolu" }} (${fl?.outboundFlightNumber ?: prod.flightNumber}) • ${prod.departureCity} ➔ ${prod.region}",
+                        // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Havayolu bilinmiyorsa uydurma "Havayolu" yazılmaz
+                        description = "✈️ Uçuş Bileti: ${fl?.outboundAirline ?: prod.airlineName} (${fl?.outboundFlightNumber ?: prod.flightNumber}) • ${prod.departureCity} ➔ ${prod.region}",
                         quantity = pList.size,
                         unitPrice = if (pList.isNotEmpty()) (basePrice / pList.size) else basePrice,
                         totalPrice = basePrice,
@@ -1576,7 +1565,10 @@ data class QuotaCheckResultDto(
                     BookingItem(
                         id = generateUuid(),
                         bookingId = bookingId,
-                        description = "🏨 ${prod.hotelName} (${prod.roomType.ifBlank { "FAMILY ROOM" }}) • ${prod.mealType.ifBlank { "Ultra All Inclusive" }}",
+                        // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Uydurma oda/yemek değerleri rezervasyona yazılmaz
+                        description = "🏨 ${prod.hotelName}" +
+                            (prod.roomType.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: "") +
+                            (prod.mealType.takeIf { it.isNotBlank() }?.let { " • $it" } ?: ""),
                         quantity = pList.size,
                         unitPrice = if (pList.isNotEmpty()) (basePrice / pList.size) else basePrice,
                         totalPrice = basePrice,
@@ -1620,7 +1612,8 @@ data class QuotaCheckResultDto(
                 )
             }
 
-            val operatorTitle = prod.operatorName.ifBlank { "Coral Travel / Anex Tour B2B" }
+            // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Operatör bilinmiyorsa uydurma operatör adı yazılmaz
+            val operatorTitle = prod.operatorName
 
             val currentUser = runCatching { getCurrentUserUseCase?.invoke() }.getOrNull()
             val effectiveTenantId = currentUser?.tenantId?.takeIf { it.isNotBlank() } ?: "00000000-0000-0000-0000-000000000001"
@@ -1629,10 +1622,12 @@ data class QuotaCheckResultDto(
                 id = bookingId,
                 bookingCode = pnr,
                 customerName = payerName,
-                customerEmail = mainPayer?.email?.ifBlank { "acente@touros.com" },
-                customerPhone = mainPayer?.phone?.ifBlank { "+90 500 000 0000" },
+                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Uydurma e-posta/telefon yazılmaz; boşsa boş kalır
+                customerEmail = mainPayer?.email?.takeIf { it.isNotBlank() },
+                customerPhone = mainPayer?.phone?.takeIf { it.isNotBlank() },
                 totalPrice = totalPrice,
-                currency = prod.currency.ifBlank { "EUR" },
+                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Varsayılan para birimi RUB (Tourvisor fiyatları RUB)
+                currency = prod.currency.ifBlank { "RUB" },
                 paxCount = pList.size,
                 status = BookingStatus.BEKLIYOR,
                 operatorName = operatorTitle,
@@ -1640,10 +1635,12 @@ data class QuotaCheckResultDto(
                 departureDate = depDate,
                 nights = prod.nights,
                 bookingType = if (isFlight) "FLIGHT" else "PACKAGE_TOUR",
-                roomTypeName = if (isFlight) "UÇUŞ BİLETİ" else prod.roomType.ifBlank { "DELUXE ROOM" },
+                roomTypeName = if (isFlight) "UÇUŞ BİLETİ" else prod.roomType,
                 operatorPnrCode = null,
                 operatorStatus = "BEKLİYOR",
-                notes = "🏢 Acente Rezervasyon Talebi • Operatör: $operatorTitle • Uçuş: ${fl?.outboundAirline ?: prod.airlineName.ifBlank { "Charter" }}",
+                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Havayolu bilinmiyorsa uydurma "Charter" yazılmaz
+                notes = "🏢 Acente Rezervasyon Talebi • Operatör: $operatorTitle" +
+                    ((fl?.outboundAirline?.takeIf { it.isNotBlank() } ?: prod.airlineName.takeIf { it.isNotBlank() })?.let { " • Uçuş: $it" } ?: ""),
                 tenantId = effectiveTenantId,
                 items = domainItems,
                 passengers = domainPassengers

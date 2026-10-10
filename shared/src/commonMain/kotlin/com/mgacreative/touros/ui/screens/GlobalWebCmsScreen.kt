@@ -301,6 +301,9 @@ fun GlobalWebCmsScreen(
                                 .verticalScroll(rememberScrollState()),
                             verticalArrangement = Arrangement.spacedBy(24.dp)
                         ) {
+                            // Özellik Aç/Kapa (uçuş arama sekmesi, canlı tur detayı) — anında kaydedilir, süper admin
+                            com.mgacreative.touros.ui.components.FeatureFlagsAdminCard()
+
                             // Üst Sabit Kaydet Butonu Banner
                             Card(
                                 modifier = Modifier.fillMaxWidth(),

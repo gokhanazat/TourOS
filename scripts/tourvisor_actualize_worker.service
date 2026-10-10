@@ -1,0 +1,20 @@
+# TourOS - Tourvisor Tek Tur Sorgu Servisi
+# Kurulum (Yandex VM):
+#   sudo cp tourvisor_actualize_worker.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now tourvisor_actualize_worker
+[Unit]
+Description=TourOS Tourvisor Actualize Worker
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/tourvisor_sync
+EnvironmentFile=/etc/touros/tourvisor_actualize.env
+ExecStart=/usr/bin/python3 -u /home/ubuntu/tourvisor_sync/tourvisor_actualize_worker.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

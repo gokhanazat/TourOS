@@ -76,7 +76,7 @@ fun B2BTourFlightServiceSelectionScreen(
     val currencyRateToProduct = remember(product.currency) {
         when (product.currency.uppercase()) {
             "RUB" -> 100.0
-            "TRY", "TL" -> 38.0
+            // [ONAYLI DEĞİŞİKLİK — 10.10.2026] TRY kaldırıldı (TL para birimi kullanılmıyor)
             "USD" -> 1.08
             else -> 1.0 // EUR
         }
@@ -88,14 +88,25 @@ fun B2BTourFlightServiceSelectionScreen(
         extraServices.filter { it.isSelected && !it.isMandatory }.sumOf { (it.unitPriceEur * currencyRateToProduct) * it.paxCount }
     }
     val extrasTotalInProductCurrency = mandatoryExtrasInProductCurrency + optionalExtrasInProductCurrency
-    val grandTotal = basePrice + flightDelta + extrasTotalInProductCurrency
+    // Tourvisor zorunlu ek ödemeler + vize (RUB; ürün RUB değilse 0 — panel ayrıca gösterir)
+    val tourvisorMandatoryExtras = rememberTourvisorMandatoryExtras(product, adults + childrenAges.size)
+    // Gerçek uçuşlar Tourvisor'dan geldiyse eski (türetilmiş) uçuş listesi ve farkı kullanılmaz
+    val tourActualizationStore: com.mgacreative.touros.data.tourvisor.TourActualizationStore = org.koin.compose.koinInject()
+    val tourActualizationState by remember(product.id) { tourActualizationStore.stateFor(product.id) }.collectAsState()
+    val hasLiveFlights = (tourActualizationState as? com.mgacreative.touros.data.tourvisor.TourActualizationState.Ready)?.data?.safeFlights?.isNotEmpty() == true
+    val effectiveFlightDelta = if (hasLiveFlights) 0.0 else flightDelta
+    val grandTotal = basePrice + effectiveFlightDelta + extrasTotalInProductCurrency + tourvisorMandatoryExtras
 
     Scaffold(
         containerColor = TourOSColors.Surface,
         topBar = {
             TourOSTopBar(
                 title = AppLanguageManager.translate("2. Adım: Uçuş & Hizmet Seçimi"),
-                subtitle = "${product.hotelName} — ${product.region}  ·  🏢 ${product.safeOperatorName.ifBlank { "Coral Travel" }}",
+                // [ONAYLI DEĞİŞİKLİK — 10.10.2026] Uydurma yedek değerler kaldırıldı; veri yoksa parça gösterilmez
+                subtitle = listOfNotNull(
+                    product.hotelName.takeIf { it.isNotBlank() }?.let { h -> if (product.region.isNotBlank()) "$h — ${product.region}" else h },
+                    product.safeOperatorName.takeIf { it.isNotBlank() }?.let { "🏢 $it" }
+                ).joinToString("  ·  "),
                 onNavigateBack = onNavigateBack
             )
         }
@@ -119,7 +130,7 @@ fun B2BTourFlightServiceSelectionScreen(
                 // ── SEÇİLİ KONAKLAMA ÖZET KARTI (GÖRSEL 3 & 9) ────────────────────
                 item {
                     val starsStr = "⭐".repeat(product.safeHotelCategory.coerceIn(1, 5))
-                    val displayHotelName = product.safeHotelName.ifBlank { product.safeTourName.ifBlank { "Holiday Inn Istanbul Airport" } }
+                    val displayHotelName = product.safeHotelName.ifBlank { product.safeTourName }
                     TourOSCard(
                         modifier = Modifier.fillMaxWidth(),
                         backgroundColor = TourOSColors.PrimaryContainer.copy(alpha = 0.2f),
@@ -145,8 +156,8 @@ fun B2BTourFlightServiceSelectionScreen(
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.weight(1f, fill = false)
                                     )
-                                    // Tur Operatörü Rozeti
-                                    Surface(
+                                    // Tur Operatörü Rozeti (operatör bilinmiyorsa gösterilmez)
+                                    if (product.safeOperatorName.isNotBlank()) Surface(
                                         shape = RoundedCornerShape(6.dp),
                                         color = TourOSColors.Primary.copy(alpha = 0.12f),
                                         border = androidx.compose.foundation.BorderStroke(1.dp, TourOSColors.Primary.copy(alpha = 0.3f))
@@ -158,7 +169,7 @@ fun B2BTourFlightServiceSelectionScreen(
                                         ) {
                                             Text("🏢", fontSize = 11.sp)
                                             Text(
-                                                text = "${AppLanguageManager.translate("Operatör")}: ${product.safeOperatorName.ifBlank { "Coral Travel" }}",
+                                                text = "${AppLanguageManager.translate("Operatör")}: ${product.safeOperatorName}",
                                                 style = TourOSTypography.Caption.copy(
                                                     color = TourOSColors.Primary,
                                                     fontWeight = FontWeight.Bold,
@@ -168,13 +179,19 @@ fun B2BTourFlightServiceSelectionScreen(
                                         }
                                     }
                                 }
-                                Text(
-                                    text = "🛏️ ${product.roomType.ifBlank { "FAMILY ROOM" }}  ·  🍽️ ${product.mealType.ifBlank { "Ultra All Inclusive" }}",
-                                    style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
-                                )
+                                val roomMealLine = listOfNotNull(
+                                    product.roomType.takeIf { it.isNotBlank() }?.let { "🛏️ $it" },
+                                    product.mealType.takeIf { it.isNotBlank() }?.let { "🍽️ $it" }
+                                ).joinToString("  ·  ")
+                                if (roomMealLine.isNotBlank()) {
+                                    Text(
+                                        text = roomMealLine,
+                                        style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
+                                    )
+                                }
                                 val paxDesc = "$adults ADL" + (if (childrenAges.isNotEmpty()) " + ${childrenAges.size} CHD (${childrenAges.joinToString(",") { "${it}y" }})" else "")
                                 Text(
-                                    text = "📅 ${product.departureDate?.ifBlank { "21.08.2026" } ?: "21.08.2026"} (${product.nights} ${AppLanguageManager.translate("Gece")})  ·  👥 $paxDesc",
+                                    text = "📅 ${product.departureDate?.takeIf { it.isNotBlank() } ?: "дата уточняется"} (${product.nights} ${AppLanguageManager.translate("Gece")})  ·  👥 $paxDesc",
                                     style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary),
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -198,25 +215,37 @@ fun B2BTourFlightServiceSelectionScreen(
                     }
                 }
 
-                // ── UÇUŞ SEÇİM BÖLÜMÜ ("Найдено 8 рейсов" - GÖRSEL 9 & 10) ────────
+                // ── TOURVISOR CANLI TUR DETAYI (gerçek uçuşlar, dahil olanlar, zorunlu ek ödemeler) ──
                 item {
-                    Text(
-                        text = "✈️ ${AppLanguageManager.translate("Uçuş Alternatifleri Seçimi")} (${availableFlightOptions.size} ${AppLanguageManager.translate("Uçuş Çifti Bulundu")})",
-                        style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
-                        fontWeight = FontWeight.Bold
+                    TourActualizationPanel(
+                        product = product,
+                        paxCount = adults + childrenAges.size
                     )
                 }
 
-                items(availableFlightOptions, key = { it.id }) { option ->
-                    FlightOptionCardItem(
-                        option = option,
-                        isSelected = selectedFlightOption?.id == option.id,
-                        onSelect = { viewModel.selectedFlightOption.value = option }
-                    )
+                // ── UÇUŞ SEÇİM BÖLÜMÜ ("Найдено 8 рейсов" - GÖRSEL 9 & 10) ────────
+                // Gerçek uçuşlar panelde gösteriliyorsa eski veritabanı uçuş listesi gizlenir
+                if (!hasLiveFlights && availableFlightOptions.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "✈️ ${AppLanguageManager.translate("Uçuş Alternatifleri Seçimi")} (${availableFlightOptions.size} ${AppLanguageManager.translate("Uçuş Çifti Bulundu")})",
+                            style = TourOSTypography.TitleMedium.copy(color = TourOSColors.TextPrimary),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    items(availableFlightOptions, key = { it.id }) { option ->
+                        FlightOptionCardItem(
+                            option = option,
+                            isSelected = selectedFlightOption?.id == option.id,
+                            onSelect = { viewModel.selectedFlightOption.value = option }
+                        )
+                    }
                 }
 
                 // ── EKSTRA HİZMETLER VE SİGORTALAR (COMPACT BİLEŞİK KART - GÖRSEL 3 & 4) ───
-                item {
+                // Sabit sigorta/hizmet listesi kaldırıldı; liste boşsa bu bölüm hiç gösterilmez
+                if (extraServices.isNotEmpty()) item {
                     Spacer(modifier = Modifier.height(TourOSSpacing.small))
                     Text(
                         text = "🛡️ ${AppLanguageManager.translate("Zorunlu ve İsteğe Bağlı Ekstra Hizmetler")}",
@@ -225,7 +254,7 @@ fun B2BTourFlightServiceSelectionScreen(
                     )
                 }
 
-                item {
+                if (extraServices.isNotEmpty()) item {
                     TourOSCard(
                         modifier = Modifier.fillMaxWidth(),
                         backgroundColor = TourOSColors.Surface,
@@ -272,7 +301,7 @@ fun B2BTourFlightServiceSelectionScreen(
                                 style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary)
                             )
                             Text(
-                                text = "${mandatoryExtrasInProductCurrency.toInt()} ${product.currency}",
+                                text = "${(mandatoryExtrasInProductCurrency + tourvisorMandatoryExtras).toInt()} ${product.currency}",
                                 style = TourOSTypography.Label.copy(color = TourOSColors.TextPrimary),
                                 fontWeight = FontWeight.Bold
                             )
@@ -445,54 +474,8 @@ private fun FlightOptionCardItem(
             }
         }
 
-        // ── GÖRSEL 10: UÇUŞ DETAYLARI VE ZORUNLU EK ÜCRETLER (MANDATORY SURCHARGES BREAKDOWN) ──
-        if (isSelected) {
-            Spacer(modifier = Modifier.height(TourOSSpacing.small))
-            HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.5f))
-            Spacer(modifier = Modifier.height(TourOSSpacing.small))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(TourOSColors.PrimaryContainer.copy(alpha = 0.5f))
-                    .padding(TourOSSpacing.medium),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "⚡ ${AppLanguageManager.translate("Zorunlu Uçuş Farkları ve Ek Ücret Dökümü (Mandatory Surcharges)")}",
-                    style = TourOSTypography.Caption.copy(color = TourOSColors.Primary),
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "• ${AppLanguageManager.translate("Dönem Uçuş Farkı (TURKISH AIRLINES)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(text = "+34.333 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "• ${AppLanguageManager.translate("Sabah Gidiş Uçuş Ek Ücreti (02:05 VKO)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(text = "+14.137 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "• ${AppLanguageManager.translate("Akşam Dönüş Uçuş Ek Ücreti (18:40 AYT)")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(text = "+18.176 RUB", style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.SemiBold)
-                }
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = "• ${AppLanguageManager.translate("Grup Havalimanı Transferi")}", style = TourOSTypography.Caption.copy(color = TourOSColors.TextSecondary))
-                    Text(text = AppLanguageManager.translate("Dahil (Включен)"), style = TourOSTypography.Caption.copy(color = TourOSColors.Success), fontWeight = FontWeight.Bold)
-                }
-
-                HorizontalDivider(color = TourOSColors.Divider.copy(alpha = 0.3f))
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = AppLanguageManager.translate("Toplam Zorunlu Ek Ücretler:"), style = TourOSTypography.Caption.copy(color = TourOSColors.TextPrimary), fontWeight = FontWeight.Bold)
-                    Text(text = "66.646 RUB", style = TourOSTypography.Label.copy(color = TourOSColors.Warning), fontWeight = FontWeight.Bold)
-                }
-            }
-        }
+        // Sabit yazılmış örnek ek ücret dökümü (+34.333 / +14.137 / +18.176 RUB) kaldırıldı.
+        // Gerçek zorunlu ek ödemeler TourActualizationPanel'de Tourvisor verisinden gösterilir.
     }
 }
 
@@ -506,7 +489,7 @@ private fun CompactExtraServiceRow(
 ) {
     val conversionRate = when (currency.uppercase()) {
         "RUB" -> 100.0
-        "TRY", "TL" -> 38.0
+        // [ONAYLI DEĞİŞİKLİK — 10.10.2026] TRY kaldırıldı (TL para birimi kullanılmıyor)
         "USD" -> 1.08
         else -> 1.0
     }

@@ -528,29 +528,29 @@ fun AxiletoLogoText(
 val ALL_WORLD_COUNTRIES = listOf(
     // 1. Popüler & Akdeniz
     Triple("TR", "Турция", "🇹🇷") to "POPULAR",
-    Triple("EG", "Mısır", "🇪🇬") to "POPULAR",
-    Triple("AE", "BAE (Dubai)", "🇦🇪") to "POPULAR",
-    Triple("TH", "Tayland", "🇹🇭") to "POPULAR",
-    Triple("RU", "Rusya", "🇷🇺") to "POPULAR",
-    Triple("MV", "Maldivler", "🇲🇻") to "POPULAR",
-    Triple("CY", "Kıbrıs", "🇨🇾") to "POPULAR",
-    Triple("GE", "Gürcistan", "🇬🇪") to "POPULAR",
+    Triple("EG", "Египет", "🇪🇬") to "POPULAR",
+    Triple("AE", "ОАЭ (Дубай)", "🇦🇪") to "POPULAR",
+    Triple("TH", "Таиланд", "🇹🇭") to "POPULAR",
+    Triple("RU", "Россия", "🇷🇺") to "POPULAR",
+    Triple("MV", "Мальдивы", "🇲🇻") to "POPULAR",
+    Triple("CY", "Кипр", "🇨🇾") to "POPULAR",
+    Triple("GE", "Грузия", "🇬🇪") to "POPULAR",
 
     // 2. Tropik & Egzotik Adalar
-    Triple("SC", "Seyşeller", "🇸🇨") to "TROPICAL",
-    Triple("LK", "Sri Lanka", "🇱🇰") to "TROPICAL",
-    Triple("MU", "Mauritius", "🇲🇺") to "TROPICAL",
-    Triple("ID", "Endonezya (Bali)", "🇮🇩") to "TROPICAL",
-    Triple("VN", "Vietnam", "🇻🇳") to "TROPICAL",
-    Triple("TZ", "Zanzibar", "🇹🇿") to "TROPICAL",
+    Triple("SC", "Сейшелы", "🇸🇨") to "TROPICAL",
+    Triple("LK", "Шри-Ланка", "🇱🇰") to "TROPICAL",
+    Triple("MU", "Маврикий", "🇲🇺") to "TROPICAL",
+    Triple("ID", "Индонезия (Бали)", "🇮🇩") to "TROPICAL",
+    Triple("VN", "Вьетнам", "🇻🇳") to "TROPICAL",
+    Triple("TZ", "Занзибар", "🇹🇿") to "TROPICAL",
 
     // 3. Avrupa & Akdeniz
-    Triple("ME", "Karadağ", "🇲🇪") to "EUROPE",
-    Triple("GR", "Yunanistan", "🇬🇷") to "EUROPE",
+    Triple("ME", "Черногория", "🇲🇪") to "EUROPE",
+    Triple("GR", "Греция", "🇬🇷") to "EUROPE",
 
     // 4. Asya & Kafkaslar
-    Triple("CN", "Çin", "🇨🇳") to "ASIA",
-    Triple("AB", "Abhazya", "🇬🇪") to "ASIA"
+    Triple("CN", "Китай", "🇨🇳") to "ASIA",
+    Triple("AB", "Абхазия", "🇬🇪") to "ASIA"
 )
 
 @kotlinx.serialization.Serializable
@@ -2056,24 +2056,24 @@ fun GlobalWebPublicScreen(
                             // ── 🌍 HİZMETLERİ KEŞFEDİN: ÜLKE GİRİŞ KARTLARI & HIZLI LİSTELEME ──────────────────
                             val countryDiscoveryCards = remember {
                                 listOf(
-                                    Triple("ALL", "Tüm Dünyayı Keşfet", "🌍") to Triple("https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80", "Global Destinasyonlar", "En İyi Fiyat"),
-                                    Triple("TR", "Турция", "🇹🇷") to Triple("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=80", "Antalya · Belek · Bodrum · Kemer", "54.000 ₽'den başlayan"),
-                                    Triple("EG", "Mısır", "🇪🇬") to Triple("https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&auto=format&fit=crop&q=80", "Şarm El-Şeyh · Hurgada · El Gouna", "46.000 ₽'den başlayan"),
-                                    Triple("TH", "Tayland", "🇹🇭") to Triple("https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&auto=format&fit=crop&q=80", "Phuket · Pattaya · Bangkok · Samui", "72.000 ₽'den başlayan"),
-                                    Triple("VN", "Vietnam", "🇻🇳") to Triple("https://images.unsplash.com/photo-1528127269322-539801943592?w=800&auto=format&fit=crop&q=80", "Da Nang · Phu Quoc · Nha Trang", "78.000 ₽'den başlayan"),
-                                    Triple("AE", "BAE (Dubai)", "🇦🇪") to Triple("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop&q=80", "Dubai Marina · Palm Jumeirah", "63.000 ₽'den başlayan"),
-                                    Triple("RU", "Rusya", "🇷🇺") to Triple("https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800&auto=format&fit=crop&q=80", "Moskova · Sochi · St. Petersburg", "38.000 ₽'den başlayan")
+                                    Triple("ALL", "Весь мир", "🌍") to Triple("https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&auto=format&fit=crop&q=80", "Популярные направления", "Лучшая цена"),
+                                    Triple("TR", "Турция", "🇹🇷") to Triple("https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&auto=format&fit=crop&q=80", "Анталья · Белек · Бодрум · Кемер", "от 54 000 ₽"),
+                                    Triple("EG", "Египет", "🇪🇬") to Triple("https://images.unsplash.com/photo-1539768942893-daf53e448371?w=800&auto=format&fit=crop&q=80", "Шарм-эль-Шейх · Хургада · Эль-Гуна", "от 46 000 ₽"),
+                                    Triple("TH", "Таиланд", "🇹🇭") to Triple("https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&auto=format&fit=crop&q=80", "Пхукет · Паттайя · Бангкок · Самуи", "от 72 000 ₽"),
+                                    Triple("VN", "Вьетнам", "🇻🇳") to Triple("https://images.unsplash.com/photo-1528127269322-539801943592?w=800&auto=format&fit=crop&q=80", "Дананг · Фукуок · Нячанг", "от 78 000 ₽"),
+                                    Triple("AE", "ОАЭ (Дубай)", "🇦🇪") to Triple("https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&auto=format&fit=crop&q=80", "Дубай Марина · Пальма Джумейра", "от 63 000 ₽"),
+                                    Triple("RU", "Россия", "🇷🇺") to Triple("https://images.unsplash.com/photo-1513326738677-b964603b136d?w=800&auto=format&fit=crop&q=80", "Москва · Сочи · Санкт-Петербург", "от 38 000 ₽")
                                 )
                             }
 
                             val subRegionsMap = remember {
                                 mapOf(
-                                    "TR" to listOf("Tümü", "Antalya", "Belek", "Kemer", "Lara", "Alanya", "Side", "Bodrum", "Marmaris", "Fethiye", "Çeşme"),
-                                    "EG" to listOf("Tümü", "Şarm El-Şeyh", "Hurgada", "El Gouna", "Makadi Bay"),
-                                    "TH" to listOf("Tümü", "Phuket", "Pattaya", "Bangkok", "Koh Samui", "Krabi"),
-                                    "VN" to listOf("Tümü", "Da Nang", "Phu Quoc", "Nha Trang", "Hoi An"),
-                                    "AE" to listOf("Tümü", "Dubai Marina", "Palm Jumeirah", "Downtown", "Abu Dhabi"),
-                                    "RU" to listOf("Tümü", "Moskova", "St. Petersburg", "Sochi", "Kazan")
+                                    "TR" to listOf("Все", "Анталья", "Белек", "Кемер", "Лара", "Аланья", "Сиде", "Бодрум", "Мармарис", "Фетхие", "Чешме"),
+                                    "EG" to listOf("Все", "Шарм-эль-Шейх", "Хургада", "Эль-Гуна", "Макади-Бэй"),
+                                    "TH" to listOf("Все", "Пхукет", "Паттайя", "Бангкок", "Самуи", "Краби"),
+                                    "VN" to listOf("Все", "Дананг", "Фукуок", "Нячанг", "Хойан"),
+                                    "AE" to listOf("Все", "Дубай Марина", "Пальма Джумейра", "Даунтаун", "Абу-Даби"),
+                                    "RU" to listOf("Все", "Москва", "Санкт-Петербург", "Сочи", "Казань")
                                 )
                             }
 
@@ -2183,8 +2183,13 @@ fun GlobalWebPublicScreen(
                                                     color = Color(0xFF0F5A56),
                                                     shape = RoundedCornerShape(10.dp)
                                                 ) {
+                                                    val pricePrefix = when (currentLanguage.code) {
+                                                        "ru" -> "2 чел. 7 ночей: "
+                                                        "en" -> "2 Pers. 7 Nights: "
+                                                        else -> "2 Kişi 7 Gece: "
+                                                    }
                                                     Text(
-                                                        text = "2 Kişi 7 Gece: $cPrice",
+                                                        text = "$pricePrefix$cPrice",
                                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                                                         style = TourOSTypography.BodyMedium.copy(color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                                     )
@@ -2216,18 +2221,28 @@ fun GlobalWebPublicScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
                                                 Text("🎯", fontSize = 16.sp)
+                                                val dedicatedSearchTitle = when (currentLanguage.code) {
+                                                    "ru" -> "$cName: Поиск туров и фильтры"
+                                                    "en" -> "$cName: Dedicated Search & Filters"
+                                                    else -> "$cName Özel Arama & Nokta Atışı Filtreleme"
+                                                }
                                                 Text(
-                                                    text = AppLanguageManager.translate("$cName Özel Arama & Nokta Atışı Filtreleme"),
+                                                    text = dedicatedSearchTitle,
                                                     style = TourOSTypography.TitleMedium.copy(color = Color(0xFF0F5A56), fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                                 )
                                             }
                                             TextButton(onClick = {
-                                                countryDedicatedSubRegion = "Tümü"
+                                                countryDedicatedSubRegion = "Все"
                                                 countryDedicatedHotelQuery = ""
                                                 countryDedicatedNights = "7 Gece"
                                                 countryDedicatedStars = setOf(4, 5)
                                             }) {
-                                                Text(AppLanguageManager.translate("↺ Filtreleri Sıfırla"), fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
+                                                val resetLabel = when (currentLanguage.code) {
+                                                    "ru" -> "↺ Сбросить фильтры"
+                                                    "en" -> "↺ Reset Filters"
+                                                    else -> "↺ Filtreleri Sıfırla"
+                                                }
+                                                Text(resetLabel, fontSize = 11.sp, color = Color(0xFF64748B), fontWeight = FontWeight.Bold)
                                             }
                                         }
 
@@ -2239,7 +2254,12 @@ fun GlobalWebPublicScreen(
                                         ) {
                                             // Belde Seçimi Çipleri
                                             Column(modifier = Modifier.weight(1.3f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                Text("📍 $cName Beldeleri", style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp))
+                                                val resortTitle = when (currentLanguage.code) {
+                                                    "ru" -> "📍 Курорты ($cName)"
+                                                    "en" -> "📍 Resorts of $cName"
+                                                    else -> "📍 $cName Beldeleri"
+                                                }
+                                                Text(resortTitle, style = TourOSTypography.Caption.copy(color = Color(0xFF64748B), fontWeight = FontWeight.Bold, fontSize = 11.sp))
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -2316,7 +2336,7 @@ fun GlobalWebPublicScreen(
                                         val matchCountry = matchesSelectedCountry(p, currentCountryCode)
                                         val loc = p.location.lowercase()
                                         val hName = p.hotelName.lowercase()
-                                        val matchSub = (countryDedicatedSubRegion == "Tümü") || loc.contains(countryDedicatedSubRegion.lowercase()) || hName.contains(countryDedicatedSubRegion.lowercase())
+                                        val matchSub = (countryDedicatedSubRegion == "Tümü" || countryDedicatedSubRegion == "Все") || loc.contains(countryDedicatedSubRegion.lowercase()) || hName.contains(countryDedicatedSubRegion.lowercase())
                                         val matchQuery = countryDedicatedHotelQuery.isBlank() || hName.contains(countryDedicatedHotelQuery.trim().lowercase()) || loc.contains(countryDedicatedHotelQuery.trim().lowercase())
                                         val matchStar = countryDedicatedStars.isEmpty() || countryDedicatedStars.contains(p.stars)
 
@@ -2324,10 +2344,20 @@ fun GlobalWebPublicScreen(
                                     }
                                 }
 
+                                val dedicatedSubtitle = when (currentLanguage.code) {
+                                    "ru" -> "Пакетные туры: 2 чел. / 7 ночей · Перелет + Трансфер + Отель"
+                                    "en" -> "Package Tours: 2 Pers. / 7 Nights · Flight + Transfer + Hotel Included"
+                                    else -> "Tarih: 12 - 19 Eyl · 2 Kişi / 7 Gece · Direkt Uçuş & Transfer Dahil"
+                                }
+                                val offersFoundLabel = when (currentLanguage.code) {
+                                    "ru" -> "предложений"
+                                    "en" -> "Hotels found"
+                                    else -> "Tesis Bulundu"
+                                }
                                 VerticalSearchResultsGridSection(
                                     titleVectorIcon = Icons.Default.LocationOn,
-                                    title = "${AppLanguageManager.translate("$cName Paket Turları & Otelleri")} (${dedicatedCountryOffers.size} ${AppLanguageManager.translate("Tesis Bulundu")})",
-                                    subtitle = "Tarih: 12 - 19 Eyl · 2 Kişi / 7 Gece · Direkt Uçuş & Transfer Dahil",
+                                    title = "$cName: ${AppLanguageManager.translate("Пакетные туры и отели")} (${dedicatedCountryOffers.size} $offersFoundLabel)",
+                                    subtitle = dedicatedSubtitle,
                                     hotels = dedicatedCountryOffers,
                                     onHotelClick = { selectedHotelForDetail = it },
                                     onSelectAndBook = handleDirectBooking
@@ -6052,7 +6082,7 @@ fun PopularCountriesDiscoveryDialog(
     var selectedRegionCategory by remember { mutableStateOf("ALL") }
     var countrySearchQuery by remember { mutableStateOf("") }
     var selectedCountryTab by remember { mutableStateOf("TR") } // Default to Turkey so tours are loaded immediately
-    var selectedSubRegionFilter by remember { mutableStateOf<String?>("Tümü") }
+    var selectedSubRegionFilter by remember { mutableStateOf<String?>("Все регионы") }
 
     // ORTAK VERİ HAVUZU: Ana arama ve Acente aramasıyla aynı kaynak ve aynı kurallar (geçmiş tarihli paketler gelmez)
     var countryPool by remember { mutableStateOf<List<com.mgacreative.touros.data.database.entity.UnifiedProductEntity>>(emptyList()) }
@@ -6086,23 +6116,23 @@ fun PopularCountriesDiscoveryDialog(
     val staticSubRegionsMap = remember {
         mapOf(
             "TR" to listOf("Анталья", "Аланья", "Кемер", "Белек", "Сиде", "Бодрум", "Мармарис", "Фетхие", "Стамбул", "Кушадасы", "Каппадокия", "Дидим"),
-            "EG" to listOf("Şarm El-Şeyh", "Hurgada", "El Gouna", "Makadi Bay"),
-            "TH" to listOf("Phuket", "Pattaya", "Bangkok", "Koh Samui", "Krabi"),
-            "VN" to listOf("Da Nang", "Phu Quoc", "Nha Trang", "Hoi An"),
-            "AE" to listOf("Dubai Marina", "Palm Jumeirah", "Downtown", "Abu Dhabi"),
-            "RU" to listOf("Moskova", "St. Petersburg", "Sochi", "Kazan"),
-            "MV" to listOf("Male", "Ari Atoll", "Baa Atoll", "Kaafu Atoll"),
-            "CY" to listOf("Girne", "Gazimağusa", "Lefkoşa", "Bafra", "Larnaka"),
-            "GE" to listOf("Batum", "Tiflis", "Gudauri", "Bakuriani"),
-            "SC" to listOf("Mahe", "Praslin", "La Digue"),
-            "LK" to listOf("Colombo", "Bentota", "Kandy", "Galle"),
-            "MU" to listOf("Port Louis", "Grand Baie", "Flic-en-Flac", "Belle Mare"),
-            "ID" to listOf("Bali", "Ubud", "Kuta", "Seminyak", "Nusa Dua"),
-            "TZ" to listOf("Zanzibar", "Nungwi", "Kendwa", "Stone Town"),
-            "ME" to listOf("Budva", "Kotor", "Tivat", "Herceg Novi"),
-            "GR" to listOf("Rodos", "Girit", "Atina", "Selanik", "Halkidiki"),
-            "CN" to listOf("Hainan", "Sanya", "Pekin", "Şanghay"),
-            "AB" to listOf("Gagra", "Pitsunda", "Sohum")
+            "EG" to listOf("Шарм-эль-Шейх", "Хургада", "Эль-Гуна", "Макади-Бэй"),
+            "TH" to listOf("Пхукет", "Паттайя", "Бангкок", "Самуи", "Краби"),
+            "VN" to listOf("Дананг", "Фукуок", "Нячанг", "Хойан"),
+            "AE" to listOf("Дубай Марина", "Пальма Джумейра", "Даунтаун", "Абу-Даби"),
+            "RU" to listOf("Москва", "Санкт-Петербург", "Сочи", "Казань"),
+            "MV" to listOf("Мале", "Ари Атолл", "Баа Атолл", "Каафу Атолл"),
+            "CY" to listOf("Кирения", "Фамагуста", "Никосия", "Бафра", "Ларнака"),
+            "GE" to listOf("Батуми", "Тбилиси", "Гудаури", "Бакуриани"),
+            "SC" to listOf("Маэ", "Праслин", "Ла-Диг"),
+            "LK" to listOf("Коломбо", "Бентота", "Канди", "Галле"),
+            "MU" to listOf("Порт-Луи", "Гранд-Бэй", "Флик-ан-Флак", "Бель-Мар"),
+            "ID" to listOf("Бали", "Убуд", "Кута", "Семиньяк", "Нуса-Дуа"),
+            "TZ" to listOf("Занзибар", "Нунгви", "Кендва", "Стоун-Таун"),
+            "ME" to listOf("Будва", "Котор", "Тиват", "Герцег-Нови"),
+            "GR" to listOf("Родос", "Крит", "Афины", "Салоники", "Халкидики"),
+            "CN" to listOf("Хайнань", "Санья", "Пекин", "Шанхай"),
+            "AB" to listOf("Гагра", "Пицунда", "Сухум")
         )
     }
 
@@ -6131,7 +6161,98 @@ fun PopularCountriesDiscoveryDialog(
             "kapadokya" to "Каппадокия",
             "cappadocia" to "Каппадокия",
             "didim" to "Дидим",
-            "анталия" to "Анталья"
+            "анталия" to "Анталья",
+            // Mısır
+            "şarm el-şeyh" to "Шарм-эль-Шейх",
+            "sarm el-seyh" to "Шарм-эль-Шейх",
+            "sharm el sheikh" to "Шарм-эль-Шейх",
+            "sharm el-sheikh" to "Шарм-эль-Шейх",
+            "sharm" to "Шарм-эль-Шейх",
+            "hurgada" to "Хургада",
+            "hurghada" to "Хургада",
+            "el gouna" to "Эль-Гуна",
+            "makadi bay" to "Макади-Бэй",
+            "makadi" to "Макади-Бэй",
+            // Tayland
+            "phuket" to "Пхукет",
+            "pattaya" to "Паттайя",
+            "bangkok" to "Бангкок",
+            "koh samui" to "Самуи",
+            "samui" to "Самуи",
+            "krabi" to "Краби",
+            // Vietnam
+            "da nang" to "Дананг",
+            "danang" to "Дананг",
+            "phu quoc" to "Фукуок",
+            "nha trang" to "Нячанг",
+            "hoi an" to "Хойан",
+            // BAE
+            "dubai" to "Дубай",
+            "dubai marina" to "Дубай Марина",
+            "palm jumeirah" to "Пальма Джумейра",
+            "downtown" to "Даунтаун",
+            "abu dhabi" to "Абу-Даби",
+            // Rusya
+            "moskova" to "Москва",
+            "moscow" to "Москва",
+            "st. petersburg" to "Санкт-Петербург",
+            "saint petersburg" to "Санкт-Петербург",
+            "petersburg" to "Санкт-Петербург",
+            "sochi" to "Сочи",
+            "kazan" to "Казань",
+            // Maldivler
+            "male" to "Мале",
+            "ari atoll" to "Ари Атолл",
+            "baa atoll" to "Баа Атолл",
+            "kaafu atoll" to "Каафу Атолл",
+            // Kıbrıs
+            "girne" to "Кирения",
+            "gazimağusa" to "Фамагуста",
+            "lefkoşa" to "Никосия",
+            "bafra" to "Бафра",
+            "larnaka" to "Ларнака",
+            // Gürcistan
+            "batum" to "Батуми",
+            "tiflis" to "Тбилиси",
+            "gudauri" to "Гудаури",
+            "bakuriani" to "Бакуриани",
+            // Diğer
+            "mahe" to "Маэ",
+            "praslin" to "Праслин",
+            "la digue" to "Ла-Диг",
+            "colombo" to "Коломбо",
+            "bentota" to "Бентота",
+            "kandy" to "Канди",
+            "galle" to "Галле",
+            "port louis" to "Порт-Луи",
+            "grand baie" to "Гранд-Бэй",
+            "flic-en-flac" to "Флик-ан-Флак",
+            "belle mare" to "Бель-Мар",
+            "bali" to "Бали",
+            "ubud" to "Убуд",
+            "kuta" to "Кута",
+            "seminyak" to "Семиньяк",
+            "nusa dua" to "Нуса-Дуа",
+            "zanzibar" to "Занзибар",
+            "nungwi" to "Нунгви",
+            "kendwa" to "Кендва",
+            "stone town" to "Стоун-Таун",
+            "budva" to "Будва",
+            "kotor" to "Котор",
+            "tivat" to "Тиват",
+            "herceg novi" to "Герцег-Нови",
+            "rodos" to "Родос",
+            "girit" to "Крит",
+            "atina" to "Афины",
+            "selanik" to "Салоники",
+            "halkidiki" to "Халкидики",
+            "hainan" to "Хайнань",
+            "sanya" to "Санья",
+            "pekin" to "Пекин",
+            "şanghay" to "Шанхай",
+            "gagra" to "Гагра",
+            "pitsunda" to "Пицунда",
+            "sohum" to "Сухум"
         )
     }
 
@@ -6149,23 +6270,18 @@ fun PopularCountriesDiscoveryDialog(
                 val tr = raw.trim()
                 turkishToRussianCityMap[tr.lowercase()] ?: tr
             }.filter { name ->
-                if (cCode == "TR") {
-                    // Türkçe / Latin mükerrer sekmeleri filtrele, sadece Rusça kalsın
-                    val isPureLatin = name.all { it.code < 128 || it in "çÇğĞıİöÖşŞüÜ" }
-                    !isPureLatin
-                } else {
-                    true
-                }
+                val isPureLatin = name.all { it.code < 128 || it in "çÇğĞıİöÖşŞüÜ" }
+                !isPureLatin
             }.distinct()
 
-            result[cCode] = if (combined.isNotEmpty()) listOf("Tümü") + combined else listOf("Tümü")
+            result[cCode] = if (combined.isNotEmpty()) listOf("Все регионы") + combined else listOf("Все регионы")
         }
         result
     }
 
     // ORTAK ARAMA KURALLARI: Ülke, bölge, kalkış ve tarih filtresi ana arama / acente aramasıyla aynı fonksiyondan geçer
     val countryFilteredProducts = remember(countryPool, selectedCountryTab, selectedSubRegionFilter, dialogDeparture, dialogStartDate, dialogEndDate) {
-        val subRegion = selectedSubRegionFilter?.takeIf { it.isNotBlank() && it != "Tümü" } ?: ""
+        val subRegion = selectedSubRegionFilter?.takeIf { it.isNotBlank() && it != "Все регионы" && it != "Tümü" && it != "Все" } ?: ""
         val (matched, _) = com.mgacreative.touros.ui.viewmodel.B2BTourSearchViewModel.filterByCriteria(
             countryPool,
             com.mgacreative.touros.ui.viewmodel.TourSearchCriteria(
@@ -6428,7 +6544,7 @@ fun PopularCountriesDiscoveryDialog(
                                     .clip(RoundedCornerShape(10.dp))
                                     .clickable {
                                         selectedCountryTab = cCode
-                                        selectedSubRegionFilter = "Tümü"
+                                        selectedSubRegionFilter = "Все регионы"
                                     },
                                 color = if (isSelected) Color(0xFF0F5A56) else Color.White,
                                 border = BorderStroke(1.dp, if (isSelected) Color(0xFF0F5A56) else Color(0xFFE2E8F0)),
@@ -6455,15 +6571,15 @@ fun PopularCountriesDiscoveryDialog(
                     }
 
                     // Alt Bölge / Şehir Çipleri (Seçilen Ülkeye Göre)
-                    val activeCities = countryCitiesMap[selectedCountryTab] ?: listOf("Tümü")
+                    val activeCities = countryCitiesMap[selectedCountryTab] ?: listOf("Все регионы")
                     if (activeCities.size > 1) {
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             items(activeCities) { city ->
-                                val isSelected = (selectedSubRegionFilter == city || (city == "Tümü" && (selectedSubRegionFilter == null || selectedSubRegionFilter == "Tümü")))
-                                val label = if (city == "Tümü") AppLanguageManager.translate("Все регионы") else AppLanguageManager.translate(city)
+                                val isSelected = (selectedSubRegionFilter == city || (city == "Все регионы" && (selectedSubRegionFilter == null || selectedSubRegionFilter == "Все регионы" || selectedSubRegionFilter == "Tümü")))
+                                val label = AppLanguageManager.translate(city)
                                 Surface(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
@@ -6493,11 +6609,21 @@ fun PopularCountriesDiscoveryDialog(
                         verticalAlignment = Alignment.Bottom
                     ) {
                         Box(modifier = Modifier.weight(1.2f)) {
+                            val allDepPlaceholder = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Все города вылета"
+                                "en" -> "All departure cities"
+                                else -> AppLanguageManager.translate("Tüm Kalkış Şehirleri")
+                            }
+                            val depLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Откуда (Город вылета)"
+                                "en" -> "From (Departure City)"
+                                else -> AppLanguageManager.translate("Nereden (Kalkış Şehri)")
+                            }
                             com.mgacreative.touros.ui.components.TourOSTextField(
-                                value = dialogDeparture.ifBlank { AppLanguageManager.translate("Tüm Kalkış Şehirleri") },
+                                value = dialogDeparture.ifBlank { allDepPlaceholder },
                                 onValueChange = {},
                                 readOnly = true,
-                                label = AppLanguageManager.translate("Nereden (Kalkış Şehri)"),
+                                label = depLabel,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Box(modifier = Modifier.matchParentSize().clickable { showDialogDeparturePicker = true })
@@ -6509,6 +6635,11 @@ fun PopularCountriesDiscoveryDialog(
                                 "de" -> "Alle Termine"
                                 else -> "Tüm tarihler"
                             }
+                            val dateLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Даты тура"
+                                "en" -> "Date Range"
+                                else -> AppLanguageManager.translate("Tarih Aralığı")
+                            }
                             val dateText = if (dialogStartDate.isNotBlank() && dialogEndDate.isNotBlank()) "$dialogStartDate — $dialogEndDate"
                                 else if (dialogStartDate.isNotBlank()) dialogStartDate
                                 else allDatesLabel
@@ -6516,7 +6647,7 @@ fun PopularCountriesDiscoveryDialog(
                                 value = dateText,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = AppLanguageManager.translate("Tarih Aralığı"),
+                                label = dateLabel,
                                 trailingIcon = {
                                     Icon(
                                         imageVector = Icons.Default.DateRange,
@@ -6530,16 +6661,36 @@ fun PopularCountriesDiscoveryDialog(
                             Box(modifier = Modifier.matchParentSize().clickable { showDialogDatePicker = true })
                         }
                         Box(modifier = Modifier.weight(1f)) {
+                            val adultWord = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> if (dialogAdults == 1) "Взрослый" else "Взрослых"
+                                "en" -> if (dialogAdults == 1) "Adult" else "Adults"
+                                else -> AppLanguageManager.translate("Yetişkin")
+                            }
+                            val adultShort = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Взр"
+                                "en" -> "Adl"
+                                else -> AppLanguageManager.translate("Yet")
+                            }
+                            val childShort = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Дет"
+                                "en" -> "Chd"
+                                else -> AppLanguageManager.translate("Çoc")
+                            }
                             val touristText = if (dialogChildAges.isEmpty()) {
-                                "$dialogAdults ${AppLanguageManager.translate("Yetişkin")}"
+                                "$dialogAdults $adultWord"
                             } else {
-                                "$dialogAdults ${AppLanguageManager.translate("Yet")}, ${dialogChildAges.size} ${AppLanguageManager.translate("Çoc")}"
+                                "$dialogAdults $adultShort, ${dialogChildAges.size} $childShort"
+                            }
+                            val touristLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "Туристы"
+                                "en" -> "Tourists"
+                                else -> AppLanguageManager.translate("Turist")
                             }
                             com.mgacreative.touros.ui.components.TourOSTextField(
                                 value = touristText,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = AppLanguageManager.translate("Turist"),
+                                label = touristLabel,
                                 modifier = Modifier.fillMaxWidth()
                             )
                             Box(modifier = Modifier.matchParentSize().clickable { showDialogTouristPicker = true })
@@ -6588,14 +6739,19 @@ fun PopularCountriesDiscoveryDialog(
                                 CircularProgressIndicator(color = Color(0xFF0F5A56))
                             }
                         } else {
-                            val subRegionLabel = if (!selectedSubRegionFilter.isNullOrBlank() && selectedSubRegionFilter != "Tümü") {
+                            val subRegionLabel = if (!selectedSubRegionFilter.isNullOrBlank() && selectedSubRegionFilter != "Все регионы" && selectedSubRegionFilter != "Tümü" && selectedSubRegionFilter != "Все") {
                                 " · ${AppLanguageManager.translate(selectedSubRegionFilter!!)}"
                             } else ""
 
+                            val hotelCountLabel = when (AppLanguageManager.currentLanguage.value.code) {
+                                "ru" -> "предложений"
+                                "en" -> "Hotels"
+                                else -> "Otel / Tesis"
+                            }
                             VerticalSearchResultsGridSection(
                                 titleVectorIcon = Icons.Default.LocationOn,
-                                title = "$translatedCName ${AppLanguageManager.translate("Paket Turları & Otelleri")} (${countryFilteredProducts.size} ${AppLanguageManager.translate("Otel / Tesis")})",
-                                subtitle = "${AppLanguageManager.translate("Destinasyon:")} $translatedCName$subRegionLabel · ${AppLanguageManager.translate("Uçuş + Transfer + Otel Dahil")}",
+                                title = "$translatedCName: ${AppLanguageManager.translate("Пакетные туры и отели")} (${countryFilteredProducts.size} $hotelCountLabel)",
+                                subtitle = "${AppLanguageManager.translate("Destinasyon:")} $translatedCName$subRegionLabel · ${AppLanguageManager.translate("Перелет + Трансфер + Отель")}",
                                 hotels = countryFilteredProducts,
                                 onHotelClick = onHotelClick,
                                 onSelectAndBook = { offer ->
